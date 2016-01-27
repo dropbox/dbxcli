@@ -9,6 +9,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/dropbox/dropbox-sdk-go/dropbox"
+	"github.com/dropbox/dropbox-sdk-go/dropbox/files"
 )
 
 const (
@@ -37,7 +38,7 @@ func initDbx(c *cli.Context) error {
 
 func ls(c *cli.Context) {
 	path := c.Args().First()
-	arg := dropbox.NewListFolderArg()
+	arg := files.NewListFolderArg()
 	arg.Path = path
 	res, err := dbx.ListFolder(arg)
 	if err != nil {
@@ -82,7 +83,7 @@ func put(c *cli.Context) {
 	src := c.Args().Get(0)
 	dst := c.Args().Get(1)
 	f, _ := os.Open(src)
-	arg := dropbox.NewCommitInfo()
+	arg := files.NewCommitInfo()
 	arg.Path = dst
 	arg.Mode.Tag = "overwrite"
 	res, err := dbx.Upload(arg, f)
@@ -91,7 +92,7 @@ func put(c *cli.Context) {
 
 func get(c *cli.Context) {
 	path := c.Args().First()
-	arg := &dropbox.DownloadArg{Path: path}
+	arg := &files.DownloadArg{Path: path}
 	res, content, err := dbx.Download(arg)
 	defer content.Close()
 	buf, _ := ioutil.ReadAll(content)
