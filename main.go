@@ -30,7 +30,7 @@ func initDbx(c *cli.Context) error {
 		return err
 	}
 	filePath := path.Join(u.HomeDir, ".config", "dbxcli", configFileName)
-	if dbx, err = dropbox.OauthClient(appKey, appSecret, filePath); err != nil {
+	if dbx, err = dropbox.OauthClient(appKey, appSecret, filePath, false); err != nil {
 		return err
 	}
 	return nil
