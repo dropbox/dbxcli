@@ -8,8 +8,8 @@ import (
 	"path"
 
 	"github.com/codegangsta/cli"
-	"github.com/dropbox/dropbox-sdk-go/dropbox"
-	"github.com/dropbox/dropbox-sdk-go/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go"
+	"github.com/dropbox/dropbox-sdk-go/files"
 )
 
 const (
