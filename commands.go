@@ -211,6 +211,23 @@ func Restore(ctx *cli.Context) (err error) {
 	return
 }
 
+func Mkdir(ctx *cli.Context) (err error) {
+	dst, err := parseDropboxUri(ctx.Args().First())
+	if err != nil {
+		return
+	}
+
+	args := files.NewCreateFolderArg()
+	args.Path = dst
+
+	_, err = dbx.CreateFolder(args)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func Du(ctx *cli.Context) (err error) {
 	usage, err := dbx.GetSpaceUsage()
 	if err != nil {
@@ -242,6 +259,7 @@ func setupCommands() []cli.Command {
 		NewCommand("rm", Rm),
 		NewCommand("cp", Cp),
 		NewCommand("mv", Mv),
+		NewCommand("mkdir", Mkdir),
 		NewCommand("revs", Revs),
 		NewCommand("restore", Restore),
 		NewCommand("du", Du),
