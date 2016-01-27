@@ -27,3 +27,11 @@ Copy file
 Move file
 
 	dbxcli mv dropbox://SRC dropbox://DEST
+
+List file revisions
+
+	dbxcli revs dropbox://PATH
+
+Restore file
+
+	dbxcli restore dropbox://PATH REVISION

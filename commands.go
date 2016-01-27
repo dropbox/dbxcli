@@ -167,6 +167,48 @@ func Mv(ctx *cli.Context) (err error) {
 	return
 }
 
+func Revs(ctx *cli.Context) (err error) {
+	path, err := parseDropboxUri(ctx.Args().First())
+	if err != nil {
+		return
+	}
+
+	args := files.NewListRevisionsArg()
+	args.Path = path
+
+	res, err := dbx.ListRevisions(args)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("Revision\tModification time\t\tSize\n")
+	for _, e := range res.Entries {
+		fmt.Printf("%s\t%v\t%v\n", e.Rev, e.ServerModified, e.Size)
+	}
+
+	return
+}
+
+func Restore(ctx *cli.Context) (err error) {
+	path, err := parseDropboxUri(ctx.Args().Get(0))
+	if err != nil {
+		return
+	}
+
+	rev := ctx.Args().Get(1)
+
+	args := files.NewRestoreArg()
+	args.Path = path
+	args.Rev = rev
+
+	_, err = dbx.Restore(args)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func setupCommands() []cli.Command {
 	return []cli.Command{
 		NewCommand("ls", Ls),
@@ -175,5 +217,7 @@ func setupCommands() []cli.Command {
 		NewCommand("rm", Rm),
 		NewCommand("cp", Cp),
 		NewCommand("mv", Mv),
+		NewCommand("revs", Revs),
+		NewCommand("restore", Restore),
 	}
 }
