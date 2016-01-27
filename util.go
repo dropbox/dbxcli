@@ -2,11 +2,16 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net/url"
 )
 
 const (
 	dropboxScheme = "dropbox"
+)
+
+var (
+	sizeUnits = [...]string{"B", "K", "M", "G", "T", "P", "E", "Z"}
 )
 
 func parseDropboxUri(uri string) (path string, err error) {
@@ -35,4 +40,15 @@ func parseDropboxUri(uri string) (path string, err error) {
 	}
 
 	return
+}
+
+func humanizeSize(size uint64) string {
+	num := float64(size)
+	for _, unit := range sizeUnits {
+		if math.Abs(num) < 1024.0 {
+			return fmt.Sprintf("%3.1f%s", num, unit)
+		}
+		num /= 1024.0
+	}
+	return fmt.Sprintf("%.1f%s", num, "Y")
 }

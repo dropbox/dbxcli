@@ -43,12 +43,14 @@ func Ls(ctx *cli.Context) (err error) {
 		return
 	}
 
+	fmt.Printf("Size\tModified\t\t\tPath\n")
+
 	for _, e := range res.Entries {
 		switch e.Tag {
 		case "folder":
-			fmt.Printf("%s/\n", e.Folder.Name)
+			fmt.Printf("-\t-\t\t\t\t%s\n", e.Folder.Name)
 		case "file":
-			fmt.Printf("%s\n", e.File.Name)
+			fmt.Printf("%v\t%v\t%s\n", humanizeSize(e.File.Size), e.File.ServerModified, e.File.Name)
 		}
 	}
 
@@ -209,6 +211,29 @@ func Restore(ctx *cli.Context) (err error) {
 	return
 }
 
+func Du(ctx *cli.Context) (err error) {
+	usage, err := dbx.GetSpaceUsage()
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("Used: %s\n", humanizeSize(usage.Used))
+	fmt.Printf("Type: %s\n", usage.Allocation.Tag)
+
+	allocation := usage.Allocation
+
+	switch allocation.Tag {
+	case "individual":
+		fmt.Printf("Allocated: %s\n", humanizeSize(allocation.Individual.Allocated))
+	case "team":
+		fmt.Printf("Allocated: %s (Used: %s)\n",
+			humanizeSize(allocation.Team.Allocated),
+			humanizeSize(allocation.Team.Used))
+	}
+
+	return
+}
+
 func setupCommands() []cli.Command {
 	return []cli.Command{
 		NewCommand("ls", Ls),
@@ -219,5 +244,6 @@ func setupCommands() []cli.Command {
 		NewCommand("mv", Mv),
 		NewCommand("revs", Revs),
 		NewCommand("restore", Restore),
+		NewCommand("du", Du),
 	}
 }
