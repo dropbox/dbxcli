@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -79,37 +78,13 @@ func df(c *cli.Context) {
 	}
 }
 
-func put(c *cli.Context) {
-	src := c.Args().Get(0)
-	dst := c.Args().Get(1)
-	f, _ := os.Open(src)
-	arg := files.NewCommitInfo()
-	arg.Path = dst
-	arg.Mode.Tag = "overwrite"
-	res, err := dbx.Upload(arg, f)
-	fmt.Printf("%v %v\n", res, err)
-}
-
-func get(c *cli.Context) {
-	path := c.Args().First()
-	arg := &files.DownloadArg{Path: path}
-	res, content, err := dbx.Download(arg)
-	defer content.Close()
-	buf, _ := ioutil.ReadAll(content)
-	fmt.Printf("%v %s %v\n", res, buf, err)
-}
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "dbxcli"
 	app.Before = initDbx
-	app.Commands = []cli.Command{
-		{Name: "get_space_usage", Aliases: []string{"df"}, Action: df},
-		{Name: "ls", Action: ls, Flags: []cli.Flag{
-			cli.BoolFlag{Name: "l"},
-		}},
-		{Name: "get", Action: get},
-		{Name: "put", Action: put},
+	app.Commands = setupCommands()
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
 	}
-	app.Run(os.Args)
 }
