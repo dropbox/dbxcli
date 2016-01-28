@@ -26,6 +26,14 @@ func NewCommand(name string, action ActionFunc) cli.Command {
 	}
 }
 
+func printFolderMetadata(e *files.FolderMetadata) {
+	fmt.Printf("-\t\t-\t-\t\t%s\n", e.Name)
+}
+
+func printFileMetadata(e *files.FileMetadata) {
+	fmt.Printf("%s\t%s\t%s\t%s\n", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified), e.Name)
+}
+
 func Ls(ctx *cli.Context) (err error) {
 	path := ""
 
@@ -48,9 +56,9 @@ func Ls(ctx *cli.Context) (err error) {
 	for _, e := range res.Entries {
 		switch e.Tag {
 		case "folder":
-			fmt.Printf("-\t\t-\t-\t\t%s\n", e.Folder.Name)
+			printFolderMetadata(e.Folder)
 		case "file":
-			fmt.Printf("%s\t%s\t%s\t%s\n", e.File.Rev, humanizeSize(e.File.Size), humanizeDate(e.File.ServerModified), e.File.Name)
+			printFileMetadata(e.File)
 		}
 	}
 
@@ -180,9 +188,9 @@ func Revs(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Revision\tSize\tLast modified\n")
+	fmt.Printf("Revision\tSize\tLast modified\tPath\n")
 	for _, e := range res.Entries {
-		fmt.Printf("%s\t%s\t%s\n", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
+		printFileMetadata(e)
 	}
 
 	return
@@ -223,6 +231,30 @@ func Mkdir(ctx *cli.Context) (err error) {
 	return
 }
 
+func Find(ctx *cli.Context) (err error) {
+	args := files.NewSearchArg()
+	args.Query = ctx.Args().First()
+
+	res, err := dbx.Search(args)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("Revision\tSize\tLast modified\n")
+
+	for _, m := range res.Matches {
+		e := m.Metadata
+		switch e.Tag {
+		case "folder":
+			printFolderMetadata(e.Folder)
+		case "file":
+			printFileMetadata(e.File)
+		}
+	}
+
+	return
+}
+
 func Du(ctx *cli.Context) (err error) {
 	usage, err := dbx.GetSpaceUsage()
 	if err != nil {
@@ -255,6 +287,7 @@ func setupCommands() []cli.Command {
 		NewCommand("cp", Cp),
 		NewCommand("mv", Mv),
 		NewCommand("mkdir", Mkdir),
+		NewCommand("find", Find),
 		NewCommand("revs", Revs),
 		NewCommand("restore", Restore),
 		NewCommand("du", Du),
