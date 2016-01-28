@@ -8,6 +8,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/dropbox/dropbox-sdk-go/team"
 	"github.com/mitchellh/ioprogress"
 )
 
@@ -349,6 +350,27 @@ func Du(ctx *cli.Context) (err error) {
 	return
 }
 
+func ListMembers(ctx *cli.Context) (err error) {
+	arg := team.NewMembersListArg()
+	res, err := dbx.MembersList(arg)
+	if err != nil {
+		return err
+	}
+
+	if len(res.Members) == 0 {
+		return
+	}
+
+	fmt.Printf("Name\tEmail\tRole\n")
+	for _, member := range res.Members {
+		fmt.Printf("%s\t%s\t%s\n",
+			member.Profile.Name.DisplayName,
+			member.Profile.Email,
+			member.Role.Tag)
+	}
+	return
+}
+
 func setupCommands() []cli.Command {
 	var err error
 
@@ -462,6 +484,14 @@ func setupCommands() []cli.Command {
 			},
 			After: after,
 			Usage: "Print Dropbox space usage",
+		},
+		{
+			Name: "list-members",
+			Action: func(ctx *cli.Context) {
+				err = ListMembers(ctx)
+			},
+			After: after,
+			Usage: "List members of a team (requires Team token)",
 		},
 	}
 }
