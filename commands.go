@@ -13,6 +13,8 @@ import (
 
 const (
 	longFormatFlag = "l"
+	// 16 MB chunks
+	chunkSize int64 = 1 << 24
 )
 
 func printFolderMetadata(e *files.FolderMetadata, longFormat bool) {
@@ -62,16 +64,45 @@ func Ls(ctx *cli.Context) (err error) {
 	return
 }
 
+func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (err error) {
+	res, err := dbx.UploadSessionStart(&io.LimitedReader{R: r, N: chunkSize})
+	if err != nil {
+		return
+	}
+
+	written := chunkSize
+
+	for (sizeTotal - written) > chunkSize {
+		args := files.NewUploadSessionCursor()
+		args.SessionId = res.SessionId
+		args.Offset = uint64(written)
+
+		err = dbx.UploadSessionAppend(args, &io.LimitedReader{R: r, N: chunkSize})
+		if err != nil {
+			return
+		}
+		written += chunkSize
+	}
+
+	args := files.NewUploadSessionFinishArg()
+	args.Cursor = files.NewUploadSessionCursor()
+	args.Cursor.SessionId = res.SessionId
+	args.Cursor.Offset = uint64(written)
+	args.Commit = commitInfo
+
+	if _, err = dbx.UploadSessionFinish(args, r); err != nil {
+		return
+	}
+
+	return
+}
+
 func Put(ctx *cli.Context) (err error) {
 	src := ctx.Args().Get(0)
 	dst, err := parseDropboxUri(ctx.Args().Get(1))
 	if err != nil {
 		return
 	}
-
-	args := files.NewCommitInfo()
-	args.Path = dst
-	args.Mode.Tag = "overwrite"
 
 	contents, err := os.Open(src)
 	defer contents.Close()
@@ -94,7 +125,15 @@ func Put(ctx *cli.Context) (err error) {
 		Size: contentsInfo.Size(),
 	}
 
-	if _, err = dbx.Upload(args, progressbar); err != nil {
+	commitInfo := files.NewCommitInfo()
+	commitInfo.Path = dst
+	commitInfo.Mode.Tag = "overwrite"
+
+	if contentsInfo.Size() > chunkSize {
+		return uploadChunked(progressbar, commitInfo, contentsInfo.Size())
+	}
+
+	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {
 		return
 	}
 
