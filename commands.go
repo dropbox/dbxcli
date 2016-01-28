@@ -121,7 +121,7 @@ func Rm(ctx *cli.Context) (err error) {
 	return
 }
 
-func Cp(ctx *cli.Context) (err error) {
+func parseRelocationArgs(ctx *cli.Context) (args *files.RelocationArg, err error) {
 	src, err := parseDropboxUri(ctx.Args().Get(0))
 	if err != nil {
 		return
@@ -131,9 +131,18 @@ func Cp(ctx *cli.Context) (err error) {
 		return
 	}
 
-	args := files.NewRelocationArg()
+	args = files.NewRelocationArg()
 	args.FromPath = src
 	args.ToPath = dst
+
+	return
+}
+
+func Cp(ctx *cli.Context) (err error) {
+	args, err := parseRelocationArgs(ctx)
+	if err != nil {
+		return
+	}
 
 	if _, err = dbx.Copy(args); err != nil {
 		return
@@ -143,18 +152,7 @@ func Cp(ctx *cli.Context) (err error) {
 }
 
 func Mv(ctx *cli.Context) (err error) {
-	src, err := parseDropboxUri(ctx.Args().Get(0))
-	if err != nil {
-		return
-	}
-	dst, err := parseDropboxUri(ctx.Args().Get(1))
-	if err != nil {
-		return
-	}
-
-	args := files.NewRelocationArg()
-	args.FromPath = src
-	args.ToPath = dst
+	args, err := parseRelocationArgs(ctx)
 
 	if _, err = dbx.Move(args); err != nil {
 		return
