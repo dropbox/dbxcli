@@ -180,9 +180,9 @@ func Revs(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Revision\tModification time\t\tSize\n")
+	fmt.Printf("Revision\tSize\tLast modified\n")
 	for _, e := range res.Entries {
-		fmt.Printf("%s\t%v\t%v\n", e.Rev, e.ServerModified, e.Size)
+		fmt.Printf("%s\t%s\t%s\n", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
 	}
 
 	return
