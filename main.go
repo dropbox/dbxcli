@@ -33,6 +33,7 @@ func initDbx(c *cli.Context) error {
 func main() {
 	app := cli.NewApp()
 	app.Name = "dbxcli"
+	app.Usage = "Dropbox command-line client."
 	app.Before = initDbx
 	app.Commands = setupCommands()
 
