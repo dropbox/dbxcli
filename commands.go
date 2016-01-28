@@ -42,14 +42,14 @@ func Ls(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Size\tModified\t\t\tPath\n")
+	fmt.Printf("Revision\tSize\tLast modified\tPath\n")
 
 	for _, e := range res.Entries {
 		switch e.Tag {
 		case "folder":
-			fmt.Printf("-\t-\t\t\t\t%s\n", e.Folder.Name)
+			fmt.Printf("-\t\t-\t-\t\t%s\n", e.Folder.Name)
 		case "file":
-			fmt.Printf("%v\t%v\t%s\n", humanizeSize(e.File.Size), e.File.ServerModified, e.File.Name)
+			fmt.Printf("%s\t%s\t%s\t%s\n", e.File.Rev, humanizeSize(e.File.Size), humanizeDate(e.File.ServerModified), e.File.Name)
 		}
 	}
 

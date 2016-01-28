@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"time"
 )
 
 const (
 	dropboxScheme = "dropbox"
+	dateFormat    = "Jan 2 15:04"
 )
 
 var (
@@ -51,4 +53,8 @@ func humanizeSize(size uint64) string {
 		num /= 1024.0
 	}
 	return fmt.Sprintf("%.1f%s", num, "Y")
+}
+
+func humanizeDate(t time.Time) string {
+	return t.Format(dateFormat)
 }
