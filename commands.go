@@ -10,12 +10,22 @@ import (
 	"github.com/dropbox/dropbox-sdk-go/files"
 )
 
-func printFolderMetadata(e *files.FolderMetadata) {
-	fmt.Printf("-\t\t-\t-\t\t%s\n", e.Name)
+const (
+	longFormatFlag = "l"
+)
+
+func printFolderMetadata(e *files.FolderMetadata, longFormat bool) {
+	if longFormat {
+		fmt.Printf("-\t\t-\t-\t\t")
+	}
+	fmt.Printf("%s\n", e.Name)
 }
 
-func printFileMetadata(e *files.FileMetadata) {
-	fmt.Printf("%s\t%s\t%s\t%s\n", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified), e.Name)
+func printFileMetadata(e *files.FileMetadata, longFormat bool) {
+	if longFormat {
+		fmt.Printf("%s\t%s\t%s\t", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
+	}
+	fmt.Printf("%s\n", e.Name)
 }
 
 func Ls(ctx *cli.Context) (err error) {
@@ -35,14 +45,16 @@ func Ls(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	if ctx.Bool(longFormatFlag) {
+		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	}
 
 	for _, e := range res.Entries {
 		switch e.Tag {
 		case "folder":
-			printFolderMetadata(e.Folder)
+			printFolderMetadata(e.Folder, ctx.Bool(longFormatFlag))
 		case "file":
-			printFileMetadata(e.File)
+			printFileMetadata(e.File, ctx.Bool(longFormatFlag))
 		}
 	}
 
@@ -172,9 +184,16 @@ func Revs(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	if ctx.Bool(longFormatFlag) {
+		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	}
+
 	for _, e := range res.Entries {
-		printFileMetadata(e)
+		if ctx.Bool(longFormatFlag) {
+			printFileMetadata(e, true)
+		} else {
+			fmt.Printf("%s\n", e.Rev)
+		}
 	}
 
 	return
@@ -224,15 +243,17 @@ func Find(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Revision\tSize\tLast modified\n")
+	if ctx.Bool(longFormatFlag) {
+		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	}
 
 	for _, m := range res.Matches {
 		e := m.Metadata
 		switch e.Tag {
 		case "folder":
-			printFolderMetadata(e.Folder)
+			printFolderMetadata(e.Folder, ctx.Bool(longFormatFlag))
 		case "file":
-			printFileMetadata(e.File)
+			printFileMetadata(e.File, ctx.Bool(longFormatFlag))
 		}
 	}
 
@@ -270,7 +291,7 @@ func setupCommands() []cli.Command {
 	}
 
 	longFormat := cli.BoolFlag{
-		Name:  "l",
+		Name:  longFormatFlag,
 		Usage: "use a long listing format",
 	}
 
