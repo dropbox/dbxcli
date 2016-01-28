@@ -394,9 +394,8 @@ func setupCommands() []cli.Command {
 			Action: func(ctx *cli.Context) {
 				err = Du(ctx)
 			},
-			After:     after,
-			Usage:     "",
-			ArgsUsage: "",
+			After: after,
+			Usage: "Print Dropbox space usage",
 		},
 	}
 }
