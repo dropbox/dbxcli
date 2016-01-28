@@ -10,22 +10,6 @@ import (
 	"github.com/dropbox/dropbox-sdk-go/files"
 )
 
-type ActionFunc func(ctx *cli.Context) error
-
-func NewCommand(name string, action ActionFunc) cli.Command {
-	var err error
-
-	return cli.Command{
-		Action: func(ctx *cli.Context) {
-			err = action(ctx)
-		},
-		After: func(ctx *cli.Context) error {
-			return err
-		},
-		Name: name,
-	}
-}
-
 func printFolderMetadata(e *files.FolderMetadata) {
 	fmt.Printf("-\t\t-\t-\t\t%s\n", e.Name)
 }
@@ -279,17 +263,119 @@ func Du(ctx *cli.Context) (err error) {
 }
 
 func setupCommands() []cli.Command {
+	var err error
+
+	after := func(ctx *cli.Context) error {
+		return err
+	}
+
+	longFormat := cli.BoolFlag{
+		Name:  "l",
+		Usage: "use a long listing format",
+	}
+
 	return []cli.Command{
-		NewCommand("ls", Ls),
-		NewCommand("get", Get),
-		NewCommand("put", Put),
-		NewCommand("rm", Rm),
-		NewCommand("cp", Cp),
-		NewCommand("mv", Mv),
-		NewCommand("mkdir", Mkdir),
-		NewCommand("find", Find),
-		NewCommand("revs", Revs),
-		NewCommand("restore", Restore),
-		NewCommand("du", Du),
+		{
+			Name: "ls",
+			Action: func(ctx *cli.Context) {
+				err = Ls(ctx)
+			},
+			After:     after,
+			Usage:     "List files in folder",
+			ArgsUsage: "[dropbox://PATH]",
+			Flags:     []cli.Flag{longFormat},
+			HideHelp:  true,
+		},
+		{
+			Name: "get",
+			Action: func(ctx *cli.Context) {
+				err = Get(ctx)
+			},
+			After:     after,
+			Usage:     "Get file from Dropbox",
+			ArgsUsage: "dropbox://SRC [DEST]",
+		},
+		{
+			Name: "put",
+			Action: func(ctx *cli.Context) {
+				err = Put(ctx)
+			},
+			After:     after,
+			Usage:     "Put file into Dropbox",
+			ArgsUsage: "SRC dropbox://DEST",
+		},
+		{
+			Name: "cp",
+			Action: func(ctx *cli.Context) {
+				err = Cp(ctx)
+			},
+			After:     after,
+			Usage:     "Copy file",
+			ArgsUsage: "dropbox://SRC dropbox://DEST",
+		},
+		{
+			Name: "mv",
+			Action: func(ctx *cli.Context) {
+				err = Mv(ctx)
+			},
+			After:     after,
+			Usage:     "Move file",
+			ArgsUsage: "dropbox://SRC dropbox://DEST",
+		},
+		{
+			Name: "rm",
+			Action: func(ctx *cli.Context) {
+				err = Rm(ctx)
+			},
+			After:     after,
+			Usage:     "Remove file",
+			ArgsUsage: "dropbox://PATH",
+		},
+		{
+			Name: "mkdir",
+			Action: func(ctx *cli.Context) {
+				err = Mkdir(ctx)
+			},
+			After:     after,
+			Usage:     "Create directory",
+			ArgsUsage: "dropbox://PATH",
+		},
+		{
+			Name: "find",
+			Action: func(ctx *cli.Context) {
+				err = Find(ctx)
+			},
+			After:     after,
+			ArgsUsage: "PATTERN",
+			Flags:     []cli.Flag{longFormat},
+		},
+		{
+			Name: "revs",
+			Action: func(ctx *cli.Context) {
+				err = Revs(ctx)
+			},
+			After:     after,
+			Usage:     "List file revisions",
+			ArgsUsage: "dropbox://PATH",
+			Flags:     []cli.Flag{longFormat},
+		},
+		{
+			Name: "restore",
+			Action: func(ctx *cli.Context) {
+				err = Restore(ctx)
+			},
+			After:     after,
+			Usage:     "Restore file",
+			ArgsUsage: "dropbox://PATH REVISION",
+		},
+		{
+			Name: "du",
+			Action: func(ctx *cli.Context) {
+				err = Du(ctx)
+			},
+			After:     after,
+			Usage:     "",
+			ArgsUsage: "",
+		},
 	}
 }
