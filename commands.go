@@ -29,8 +29,7 @@ func Ls(ctx *cli.Context) (err error) {
 	path := ""
 
 	if ctx.Args().Present() {
-		path, err = parseDropboxUri(ctx.Args().First())
-		if err != nil {
+		if path, err = parseDropboxUri(ctx.Args().First()); err != nil {
 			return
 		}
 	}
@@ -73,8 +72,7 @@ func Put(ctx *cli.Context) (err error) {
 		return
 	}
 
-	_, err = dbx.Upload(args, f)
-	if err != nil {
+	if _, err = dbx.Upload(args, f); err != nil {
 		return
 	}
 
@@ -100,8 +98,7 @@ func Get(ctx *cli.Context) (err error) {
 		return
 	}
 
-	_, err = io.Copy(f, contents)
-	if err != nil {
+	if _, err = io.Copy(f, contents); err != nil {
 		return
 	}
 
@@ -117,8 +114,7 @@ func Rm(ctx *cli.Context) (err error) {
 	args := files.NewDeleteArg()
 	args.Path = path
 
-	_, err = dbx.Delete(args)
-	if err != nil {
+	if _, err = dbx.Delete(args); err != nil {
 		return
 	}
 
@@ -139,8 +135,7 @@ func Cp(ctx *cli.Context) (err error) {
 	args.FromPath = src
 	args.ToPath = dst
 
-	_, err = dbx.Copy(args)
-	if err != nil {
+	if _, err = dbx.Copy(args); err != nil {
 		return
 	}
 
@@ -161,8 +156,7 @@ func Mv(ctx *cli.Context) (err error) {
 	args.FromPath = src
 	args.ToPath = dst
 
-	_, err = dbx.Move(args)
-	if err != nil {
+	if _, err = dbx.Move(args); err != nil {
 		return
 	}
 
@@ -203,8 +197,7 @@ func Restore(ctx *cli.Context) (err error) {
 	args.Path = path
 	args.Rev = rev
 
-	_, err = dbx.Restore(args)
-	if err != nil {
+	if _, err = dbx.Restore(args); err != nil {
 		return
 	}
 
@@ -220,8 +213,7 @@ func Mkdir(ctx *cli.Context) (err error) {
 	args := files.NewCreateFolderArg()
 	args.Path = dst
 
-	_, err = dbx.CreateFolder(args)
-	if err != nil {
+	if _, err = dbx.CreateFolder(args); err != nil {
 		return
 	}
 

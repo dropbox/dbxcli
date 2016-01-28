@@ -35,8 +35,8 @@ func main() {
 	app.Name = "dbxcli"
 	app.Before = initDbx
 	app.Commands = setupCommands()
-	err := app.Run(os.Args)
-	if err != nil {
+
+	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "dbxcli: %s\n", err)
 		os.Exit(1)
 	}
