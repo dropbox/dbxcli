@@ -57,6 +57,11 @@ func saveToken(filePath string, token *oauth2.Token) {
 }
 
 func initDbx(c *cli.Context) (err error) {
+	if c.GlobalString("token") != "" {
+		dbx = dropbox.Client(c.GlobalString("token"), false)
+		return
+	}
+
 	u, err := user.Current()
 	if u == nil || err != nil {
 		return
@@ -100,6 +105,9 @@ func main() {
 	app.Usage = "Dropbox command-line client."
 	app.Before = initDbx
 	app.Commands = setupCommands()
+	app.Flags = []cli.Flag{
+		cli.StringFlag{Name: "token", Usage: "OAuth token (bypasses OAuth flow)"},
+	}
 
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "dbxcli: %s\n", err)
