@@ -8,6 +8,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/mitchellh/ioprogress"
 )
 
 const (
@@ -72,12 +73,28 @@ func Put(ctx *cli.Context) (err error) {
 	args.Path = dst
 	args.Mode.Tag = "overwrite"
 
-	f, err := os.Open(src)
+	contents, err := os.Open(src)
+	defer contents.Close()
 	if err != nil {
 		return
 	}
 
-	if _, err = dbx.Upload(args, f); err != nil {
+	contentsInfo, err := contents.Stat()
+	if err != nil {
+		return
+	}
+
+	progressbar := &ioprogress.Reader{
+		Reader: contents,
+		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
+			return fmt.Sprintf("Uploading %s/%s",
+				humanizeSize(uint64(progress)),
+				humanizeSize(uint64(total)))
+		}),
+		Size: contentsInfo.Size(),
+	}
+
+	if _, err = dbx.Upload(args, progressbar); err != nil {
 		return
 	}
 
@@ -95,7 +112,7 @@ func Get(ctx *cli.Context) (err error) {
 	args := files.NewDownloadArg()
 	args.Path = src
 
-	_, contents, err := dbx.Download(args)
+	res, contents, err := dbx.Download(args)
 	defer contents.Close()
 	if err != nil {
 		return
@@ -107,7 +124,17 @@ func Get(ctx *cli.Context) (err error) {
 		return
 	}
 
-	if _, err = io.Copy(f, contents); err != nil {
+	progressbar := &ioprogress.Reader{
+		Reader: contents,
+		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
+			return fmt.Sprintf("Downloading %s/%s",
+				humanizeSize(uint64(progress)),
+				humanizeSize(uint64(total)))
+		}),
+		Size: int64(res.Size),
+	}
+
+	if _, err = io.Copy(f, progressbar); err != nil {
 		return
 	}
 
