@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/codegangsta/cli"
 	"github.com/dropbox/dropbox-sdk-go/files"
@@ -82,6 +83,10 @@ func Put(ctx *cli.Context) (err error) {
 func Get(ctx *cli.Context) (err error) {
 	src, err := parseDropboxUri(ctx.Args().Get(0))
 	dst := ctx.Args().Get(1)
+
+	if dst == "" {
+		dst = path.Base(src)
+	}
 
 	args := files.NewDownloadArg()
 	args.Path = src
