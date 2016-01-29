@@ -58,7 +58,7 @@ func saveToken(filePath string, token *oauth2.Token) {
 
 func initDbx(c *cli.Context) (err error) {
 	if c.GlobalString("token") != "" {
-		dbx = dropbox.Client(c.GlobalString("token"), false)
+		dbx = dropbox.Client(c.GlobalString("token"), c.GlobalBool("verbose"))
 		return
 	}
 
@@ -94,7 +94,7 @@ func initDbx(c *cli.Context) (err error) {
 		saveToken(filePath, token)
 	}
 
-	dbx = dropbox.Client(token.AccessToken, false)
+	dbx = dropbox.Client(token.AccessToken, c.GlobalBool("verbose"))
 
 	return
 }
@@ -107,6 +107,7 @@ func main() {
 	app.Commands = setupCommands()
 	app.Flags = []cli.Flag{
 		cli.StringFlag{Name: "token", Usage: "OAuth token (bypasses OAuth flow)"},
+		cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging in the SDK"},
 	}
 
 	if err := app.Run(os.Args); err != nil {
