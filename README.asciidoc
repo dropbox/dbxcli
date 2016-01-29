@@ -1,10 +1,13 @@
 = `dbxcli`: A command line tool for Dropbox users and team admins
 
+This is *BETA* software -- use with caution!
+
 == Features
 
   * Supports basic file operations like ls, cp, mkdir, mv (via the Files API)
   * Supports search
   * Supports file revisions and file restore
+  * Chunked uploads for large files, paginated listing for large directories
   * Supports a growing set of Team operations
 
 == Installation
@@ -53,6 +56,10 @@ GLOBAL OPTIONS:
    --help, -h           show help
    --version, -v        print the version
 ----
+
+Note the `--token` option. This is useful for running commands with an alternate token (e.g. when using the Teams API) as well as for debugging.
+
+The `--verbose` option will turn on verbose logging and is useful for debugging.
 
 == Contributing
 
