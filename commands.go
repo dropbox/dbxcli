@@ -34,7 +34,6 @@ func printFileMetadata(e *files.FileMetadata, longFormat bool) {
 
 func Ls(ctx *cli.Context) (err error) {
 	path := ""
-
 	if ctx.Args().Present() {
 		if path, err = parseDropboxUri(ctx.Args().First()); err != nil {
 			return
@@ -49,11 +48,25 @@ func Ls(ctx *cli.Context) (err error) {
 		return
 	}
 
+	entries := res.Entries
+
+	for res.HasMore {
+		args := files.NewListFolderContinueArg()
+		args.Cursor = res.Cursor
+
+		res, err = dbx.ListFolderContinue(args)
+		if err != nil {
+			return
+		}
+
+		entries = append(entries, res.Entries...)
+	}
+
 	if ctx.Bool(longFormatFlag) {
 		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
 	}
 
-	for _, e := range res.Entries {
+	for _, e := range entries {
 		switch e.Tag {
 		case "folder":
 			printFolderMetadata(e.Folder, ctx.Bool(longFormatFlag))
