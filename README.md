@@ -1,3 +1,0 @@
-# Dropbox CLI
-
-## Installation

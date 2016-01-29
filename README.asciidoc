@@ -1,0 +1,58 @@
+= `dbxcli`: A command line tool for Dropbox users and team admins
+
+== Features
+
+  * Supports basic file operations like ls, cp, mkdir, mv (via the Files API)
+  * Supports search
+  * Supports file revisions and file restore
+  * Supports a growing set of Team operations
+
+== Installation
+
+[source, sh]
+----
+$ go install github.com/dropbox/dbxcli
+----
+
+`dbxcli` has been built and tested against Go 1.5+
+
+== Usage
+
+`dbxcli` is largely self documenting. Run `dbxcli -h` for a list of supported commands:
+
+[source, sh]
+----
+$ dbxcli -h
+NAME:
+   dbxcli - Dropbox command-line client.
+
+USAGE:
+   dbxcli [global options] command [command options] [arguments...]
+
+VERSION:
+   0.1.0
+
+COMMANDS:
+   ls           List files in folder
+   get          Get file from Dropbox
+   put          Put file into Dropbox
+   cp           Copy file
+   mv           Move file
+   rm           Remove file
+   mkdir        Create directory
+   find
+   revs         List file revisions
+   restore      Restore file
+   du           Print Dropbox space usage
+   list-members List members of a team (requires Team token)
+   help, h      Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --token              OAuth token (bypasses OAuth flow)
+   --verbose            Enable verbose logging in the SDK
+   --help, -h           show help
+   --version, -v        print the version
+----
+
+== Contributing
+
