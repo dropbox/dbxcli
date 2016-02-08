@@ -374,10 +374,13 @@ func listMembers(ctx *cli.Context) (err error) {
 		return
 	}
 
-	fmt.Printf("Name\tEmail\tRole\n")
+	fmtStr := "%-12s\t%-40s\t%-8s\t%-16s\t%-16s\n"
+	fmt.Printf(fmtStr, "Name", "Id", "Status", "Email", "Role")
 	for _, member := range res.Members {
-		fmt.Printf("%s\t%s\t%s\n",
+		fmt.Printf(fmtStr,
 			member.Profile.Name.DisplayName,
+			member.Profile.TeamMemberId,
+			member.Profile.Status.Tag,
 			member.Profile.Email,
 			member.Role.Tag)
 	}
