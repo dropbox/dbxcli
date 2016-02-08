@@ -32,7 +32,7 @@ func printFileMetadata(e *files.FileMetadata, longFormat bool) {
 	fmt.Printf("%s\n", e.Name)
 }
 
-func Ls(ctx *cli.Context) (err error) {
+func ls(ctx *cli.Context) (err error) {
 	path := ""
 	if ctx.Args().Present() {
 		if path, err = parseDropboxUri(ctx.Args().First()); err != nil {
@@ -111,7 +111,7 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 	return
 }
 
-func Put(ctx *cli.Context) (err error) {
+func put(ctx *cli.Context) (err error) {
 	src := ctx.Args().Get(0)
 	dst, err := parseDropboxUri(ctx.Args().Get(1))
 	if err != nil {
@@ -154,7 +154,7 @@ func Put(ctx *cli.Context) (err error) {
 	return
 }
 
-func Get(ctx *cli.Context) (err error) {
+func get(ctx *cli.Context) (err error) {
 	src, err := parseDropboxUri(ctx.Args().Get(0))
 	dst := ctx.Args().Get(1)
 
@@ -194,7 +194,7 @@ func Get(ctx *cli.Context) (err error) {
 	return
 }
 
-func Rm(ctx *cli.Context) (err error) {
+func rm(ctx *cli.Context) (err error) {
 	path, err := parseDropboxUri(ctx.Args().First())
 	if err != nil {
 		return
@@ -227,7 +227,7 @@ func parseRelocationArgs(ctx *cli.Context) (args *files.RelocationArg, err error
 	return
 }
 
-func Cp(ctx *cli.Context) (err error) {
+func cp(ctx *cli.Context) (err error) {
 	args, err := parseRelocationArgs(ctx)
 	if err != nil {
 		return
@@ -240,7 +240,7 @@ func Cp(ctx *cli.Context) (err error) {
 	return
 }
 
-func Mv(ctx *cli.Context) (err error) {
+func mv(ctx *cli.Context) (err error) {
 	args, err := parseRelocationArgs(ctx)
 
 	if _, err = dbx.Move(args); err != nil {
@@ -250,7 +250,7 @@ func Mv(ctx *cli.Context) (err error) {
 	return
 }
 
-func Revs(ctx *cli.Context) (err error) {
+func revs(ctx *cli.Context) (err error) {
 	path, err := parseDropboxUri(ctx.Args().First())
 	if err != nil {
 		return
@@ -279,7 +279,7 @@ func Revs(ctx *cli.Context) (err error) {
 	return
 }
 
-func Restore(ctx *cli.Context) (err error) {
+func restore(ctx *cli.Context) (err error) {
 	path, err := parseDropboxUri(ctx.Args().Get(0))
 	if err != nil {
 		return
@@ -298,7 +298,7 @@ func Restore(ctx *cli.Context) (err error) {
 	return
 }
 
-func Mkdir(ctx *cli.Context) (err error) {
+func mkdir(ctx *cli.Context) (err error) {
 	dst, err := parseDropboxUri(ctx.Args().First())
 	if err != nil {
 		return
@@ -314,7 +314,7 @@ func Mkdir(ctx *cli.Context) (err error) {
 	return
 }
 
-func Find(ctx *cli.Context) (err error) {
+func find(ctx *cli.Context) (err error) {
 	args := files.NewSearchArg()
 	args.Query = ctx.Args().First()
 
@@ -340,7 +340,7 @@ func Find(ctx *cli.Context) (err error) {
 	return
 }
 
-func Du(ctx *cli.Context) (err error) {
+func du(ctx *cli.Context) (err error) {
 	usage, err := dbx.GetSpaceUsage()
 	if err != nil {
 		return
@@ -363,7 +363,7 @@ func Du(ctx *cli.Context) (err error) {
 	return
 }
 
-func ListMembers(ctx *cli.Context) (err error) {
+func listMembers(ctx *cli.Context) (err error) {
 	arg := team.NewMembersListArg()
 	res, err := dbx.MembersList(arg)
 	if err != nil {
@@ -400,7 +400,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "ls",
 			Action: func(ctx *cli.Context) {
-				err = Ls(ctx)
+				err = ls(ctx)
 			},
 			After:     after,
 			Usage:     "List files in folder",
@@ -411,7 +411,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "get",
 			Action: func(ctx *cli.Context) {
-				err = Get(ctx)
+				err = get(ctx)
 			},
 			After:     after,
 			Usage:     "Get file from Dropbox",
@@ -420,7 +420,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "put",
 			Action: func(ctx *cli.Context) {
-				err = Put(ctx)
+				err = put(ctx)
 			},
 			After:     after,
 			Usage:     "Put file into Dropbox",
@@ -429,7 +429,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "cp",
 			Action: func(ctx *cli.Context) {
-				err = Cp(ctx)
+				err = cp(ctx)
 			},
 			After:     after,
 			Usage:     "Copy file",
@@ -438,7 +438,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "mv",
 			Action: func(ctx *cli.Context) {
-				err = Mv(ctx)
+				err = mv(ctx)
 			},
 			After:     after,
 			Usage:     "Move file",
@@ -447,7 +447,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "rm",
 			Action: func(ctx *cli.Context) {
-				err = Rm(ctx)
+				err = rm(ctx)
 			},
 			After:     after,
 			Usage:     "Remove file",
@@ -456,7 +456,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "mkdir",
 			Action: func(ctx *cli.Context) {
-				err = Mkdir(ctx)
+				err = mkdir(ctx)
 			},
 			After:     after,
 			Usage:     "Create directory",
@@ -465,7 +465,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "find",
 			Action: func(ctx *cli.Context) {
-				err = Find(ctx)
+				err = find(ctx)
 			},
 			After:     after,
 			ArgsUsage: "PATTERN",
@@ -474,7 +474,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "revs",
 			Action: func(ctx *cli.Context) {
-				err = Revs(ctx)
+				err = revs(ctx)
 			},
 			After:     after,
 			Usage:     "List file revisions",
@@ -484,7 +484,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "restore",
 			Action: func(ctx *cli.Context) {
-				err = Restore(ctx)
+				err = restore(ctx)
 			},
 			After:     after,
 			Usage:     "Restore file",
@@ -493,7 +493,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "du",
 			Action: func(ctx *cli.Context) {
-				err = Du(ctx)
+				err = du(ctx)
 			},
 			After: after,
 			Usage: "Print Dropbox space usage",
@@ -501,7 +501,7 @@ func setupCommands() []cli.Command {
 		{
 			Name: "list-members",
 			Action: func(ctx *cli.Context) {
-				err = ListMembers(ctx)
+				err = listMembers(ctx)
 			},
 			After: after,
 			Usage: "List members of a team (requires Team token)",
