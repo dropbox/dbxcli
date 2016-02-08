@@ -401,6 +401,26 @@ func removeMember(ctx *cli.Context) (err error) {
 	return
 }
 
+func addMember(ctx *cli.Context) (err error) {
+	email := ctx.Args().Get(0)
+	firstName := ctx.Args().Get(1)
+	lastName := ctx.Args().Get(2)
+	arg := team.NewMembersAddArg()
+	member := team.NewMemberAddArg()
+	member.MemberEmail = email
+	member.MemberGivenName = firstName
+	member.MemberSurname = lastName
+	arg.NewMembers = append(arg.NewMembers, member)
+	res, err := dbx.MembersAdd(arg)
+	if err != nil {
+		return err
+	}
+	if res.Tag == "complete" {
+		fmt.Printf("User successfully added to the team.")
+	}
+	return
+}
+
 func setupCommands() []cli.Command {
 	var err error
 
@@ -530,6 +550,14 @@ func setupCommands() []cli.Command {
 			},
 			After: after,
 			Usage: "Remove member of a team (requires Team token)",
+		},
+		{
+			Name: "add-member",
+			Action: func(ctx *cli.Context) {
+				err = addMember(ctx)
+			},
+			After: after,
+			Usage: "Add new member to team (requires Team token)",
 		},
 	}
 }
