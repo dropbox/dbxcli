@@ -12,10 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import "github.com/spf13/cobra"
 
-func main() {
-	cmd.Execute()
+// teamCmd represents the team command
+var teamCmd = &cobra.Command{
+	Use:   "team",
+	Short: "Team management commands",
+}
+
+func init() {
+	RootCmd.AddCommand(teamCmd)
 }

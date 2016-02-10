@@ -12,10 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import (
+	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/spf13/cobra"
+)
 
-func main() {
-	cmd.Execute()
+func mkdir(cmd *cobra.Command, args []string) (err error) {
+	dst, err := parseDropboxUri(args[0])
+	if err != nil {
+		return
+	}
+
+	arg := files.NewCreateFolderArg()
+	arg.Path = dst
+
+	if _, err = dbx.CreateFolder(arg); err != nil {
+		return
+	}
+
+	return
+}
+
+// mkdirCmd represents the mkdir command
+var mkdirCmd = &cobra.Command{
+	Use:   "mkdir",
+	Short: "Create a new directory",
+	RunE:  mkdir,
+}
+
+func init() {
+	RootCmd.AddCommand(mkdirCmd)
 }

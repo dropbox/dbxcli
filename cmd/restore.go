@@ -12,10 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import (
+	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/spf13/cobra"
+)
 
-func main() {
-	cmd.Execute()
+func restore(cmd *cobra.Command, args []string) (err error) {
+	path, err := parseDropboxUri(args[0])
+	if err != nil {
+		return
+	}
+
+	rev := args[1]
+
+	arg := files.NewRestoreArg()
+	arg.Path = path
+	arg.Rev = rev
+
+	if _, err = dbx.Restore(arg); err != nil {
+		return
+	}
+
+	return
+}
+
+// restoreCmd represents the restore command
+var restoreCmd = &cobra.Command{
+	Use:   "restore",
+	Short: "Restore files",
+	RunE:  restore,
+}
+
+func init() {
+	RootCmd.AddCommand(restoreCmd)
 }

@@ -12,10 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import "github.com/spf13/cobra"
 
-func main() {
-	cmd.Execute()
+func cp(cmd *cobra.Command, args []string) (err error) {
+	arg, err := makeRelocationArg(args[0], args[1])
+	if err != nil {
+		return
+	}
+
+	if _, err = dbx.Copy(arg); err != nil {
+		return
+	}
+
+	return
+}
+
+// cpCmd represents the cp command
+var cpCmd = &cobra.Command{
+	Use:   "cp",
+	Short: "Copy files",
+	RunE:  cp,
+}
+
+func init() {
+	RootCmd.AddCommand(cpCmd)
 }

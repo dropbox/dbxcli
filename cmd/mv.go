@@ -12,10 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import "github.com/spf13/cobra"
 
-func main() {
-	cmd.Execute()
+func mv(cmd *cobra.Command, args []string) (err error) {
+	arg, err := makeRelocationArg(args[0], args[1])
+	if err != nil {
+		return
+	}
+
+	if _, err = dbx.Move(arg); err != nil {
+		return
+	}
+
+	return
+}
+
+// mvCmd represents the mv command
+var mvCmd = &cobra.Command{
+	Use:   "mv",
+	Short: "Move files",
+	RunE:  mv,
+}
+
+func init() {
+	RootCmd.AddCommand(mvCmd)
 }

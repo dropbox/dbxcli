@@ -12,10 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/dropbox/dbxcli/cmd"
+import (
+	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/spf13/cobra"
+)
 
-func main() {
-	cmd.Execute()
+func rm(cmd *cobra.Command, args []string) (err error) {
+	path, err := parseDropboxUri(args[0])
+	if err != nil {
+		return
+	}
+
+	arg := files.NewDeleteArg()
+	arg.Path = path
+
+	if _, err = dbx.Delete(arg); err != nil {
+		return
+	}
+
+	return
+}
+
+// rmCmd represents the rm command
+var rmCmd = &cobra.Command{
+	Use:   "rm",
+	Short: "Remove files",
+	RunE:  rm,
+}
+
+func init() {
+	RootCmd.AddCommand(rmCmd)
 }
