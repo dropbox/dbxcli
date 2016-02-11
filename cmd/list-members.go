@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go/team"
 	"github.com/spf13/cobra"
@@ -32,16 +34,19 @@ func listMembers(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	fmtStr := "%-12s\t%-40s\t%-8s\t%-16s\t%-16s\n"
-	fmt.Printf(fmtStr, "Name", "Id", "Status", "Email", "Role")
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	fmtStr := "%s\t%s\t%s\t%s\t%s\n"
+	fmt.Fprintf(w, fmtStr, "Name", "Id", "Status", "Email", "Role")
 	for _, member := range res.Members {
-		fmt.Printf(fmtStr,
+		fmt.Fprintf(w, fmtStr,
 			member.Profile.Name.DisplayName,
 			member.Profile.TeamMemberId,
 			member.Profile.Status.Tag,
 			member.Profile.Email,
 			member.Role.Tag)
 	}
+	w.Flush()
 	return
 }
 
