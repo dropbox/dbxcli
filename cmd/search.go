@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/dropbox/dropbox-sdk-go/files"
 	"github.com/spf13/cobra"
@@ -39,9 +40,9 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		e := m.Metadata
 		switch e.Tag {
 		case "folder":
-			printFolderMetadata(e.Folder, long)
+			printFolderMetadata(os.Stdout, e.Folder, long)
 		case "file":
-			printFileMetadata(e.File, long)
+			printFileMetadata(os.Stdout, e.File, long)
 		}
 	}
 

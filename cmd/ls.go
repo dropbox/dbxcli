@@ -16,23 +16,26 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go/files"
 	"github.com/spf13/cobra"
 )
 
-func printFolderMetadata(e *files.FolderMetadata, longFormat bool) {
+func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
 	if longFormat {
-		fmt.Printf("-\t\t-\t-\t\t")
+		fmt.Fprintf(w, "-\t-\t-\t")
 	}
-	fmt.Printf("%s\n", e.Name)
+	fmt.Fprintf(w, "%s\n", e.Name)
 }
 
-func printFileMetadata(e *files.FileMetadata, longFormat bool) {
+func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
-		fmt.Printf("%s\t%s\t%s\t", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
+		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
 	}
-	fmt.Printf("%s\n", e.Name)
+	fmt.Fprintf(w, "%s\n", e.Name)
 }
 
 func ls(cmd *cobra.Command, args []string) (err error) {
@@ -65,19 +68,22 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		entries = append(entries, res.Entries...)
 	}
 
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 	long, _ := cmd.Flags().GetBool("long")
 	if long {
-		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
 	for _, e := range entries {
 		switch e.Tag {
 		case "folder":
-			printFolderMetadata(e.Folder, long)
+			printFolderMetadata(w, e.Folder, long)
 		case "file":
-			printFileMetadata(e.File, long)
+			printFileMetadata(w, e.File, long)
 		}
 	}
+	w.Flush()
 
 	return
 }

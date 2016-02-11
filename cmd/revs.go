@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/dropbox/dropbox-sdk-go/files"
 	"github.com/spf13/cobra"
@@ -43,7 +44,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	for _, e := range res.Entries {
 		if long {
-			printFileMetadata(e, long)
+			printFileMetadata(os.Stdout, e, long)
 		} else {
 			fmt.Printf("%s\n", e.Rev)
 		}
