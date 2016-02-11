@@ -26,35 +26,49 @@ $ go install github.com/dropbox/dbxcli
 [source, sh]
 ----
 $ dbxcli -h
-NAME:
-   dbxcli - Dropbox command-line client.
+Use dbxcli to quickly interact with your Dropbox, upload/download files,
+manage your team and more. It is easy, scriptable and works on all platforms!
 
-USAGE:
-   dbxcli [global options] command [command options] [arguments...]
+Usage:
+  dbxcli [command]
 
-VERSION:
-   0.1.0
+Available Commands:
+  cp          Copy files
+  du          Display usage information
+  get         Download a file
+  ls          List files
+  mkdir       Create a new directory
+  mv          Move files
+  put         Upload files
+  restore     Restore files
+  revs        List file revisions
+  rm          Remove files
+  search      Search
+  team        Team management commands
 
-COMMANDS:
-   ls           List files in folder
-   get          Get file from Dropbox
-   put          Put file into Dropbox
-   cp           Copy file
-   mv           Move file
-   rm           Remove file
-   mkdir        Create directory
-   find
-   revs         List file revisions
-   restore      Restore file
-   du           Print Dropbox space usage
-   list-members List members of a team (requires Team token)
-   help, h      Shows a list of commands or help for one command
+Flags:
+  -h, --help           help for dbxcli
+      --token string   Access token
+  -v, --verbose        Enable verbose logging
 
-GLOBAL OPTIONS:
-   --token              OAuth token (bypasses OAuth flow)
-   --verbose            Enable verbose logging in the SDK
-   --help, -h           show help
-   --version, -v        print the version
+Use "dbxcli [command] --help" for more information about a command.
+
+$ dbxcli team --help
+Team management commands
+
+Usage:
+  dbxcli team [command]
+
+Available Commands:
+  add-member    Add a new member to a team
+  list-members  List team members
+  remove-member Remove member from a team
+
+Global Flags:
+      --token string   Access token
+  -v, --verbose        Enable verbose logging
+
+Use "dbxcli team [command] --help" for more information about a command.
 ----
 
 Note the `--token` option. This is useful for running commands with an alternate token (e.g. when using the Teams API) as well as for debugging.
