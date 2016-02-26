@@ -20,7 +20,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
 )

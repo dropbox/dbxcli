@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dropbox/dropbox-sdk-go/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/spf13/cobra"
 )
 

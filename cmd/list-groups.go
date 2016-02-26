@@ -19,7 +19,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/dropbox/dropbox-sdk-go/team"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
 	"github.com/spf13/cobra"
 )
 
