@@ -26,7 +26,7 @@ import (
 )
 
 func get(cmd *cobra.Command, args []string) (err error) {
-	src, err := parseDropboxUri(args[0])
+	src, err := validatePath(args[0])
 	dst := args[1]
 
 	if dst == "" {

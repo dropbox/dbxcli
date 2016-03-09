@@ -20,7 +20,7 @@ import (
 )
 
 func rm(cmd *cobra.Command, args []string) (err error) {
-	path, err := parseDropboxUri(args[0])
+	path, err := validatePath(args[0])
 	if err != nil {
 		return
 	}

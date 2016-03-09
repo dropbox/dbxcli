@@ -20,7 +20,7 @@ import (
 )
 
 func mkdir(cmd *cobra.Command, args []string) (err error) {
-	dst, err := parseDropboxUri(args[0])
+	dst, err := validatePath(args[0])
 	if err != nil {
 		return
 	}

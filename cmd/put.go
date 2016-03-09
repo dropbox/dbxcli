@@ -61,7 +61,7 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	src := args[0]
-	dst, err := parseDropboxUri(args[1])
+	dst, err := validatePath(args[1])
 	if err != nil {
 		return
 	}

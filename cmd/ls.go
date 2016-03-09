@@ -41,7 +41,7 @@ func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 func ls(cmd *cobra.Command, args []string) (err error) {
 	path := ""
 	if len(args) > 0 {
-		if path, err = parseDropboxUri(args[0]); err != nil {
+		if path, err = validatePath(args[0]); err != nil {
 			return
 		}
 	}
