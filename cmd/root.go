@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"os/user"
 	"path"
 	"strings"
 	"time"
@@ -29,6 +28,7 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -132,11 +132,11 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	u, err := user.Current()
-	if u == nil || err != nil {
+	dir, err := homedir.Dir()
+	if err != nil {
 		return
 	}
-	filePath := path.Join(u.HomeDir, ".config", "dbxcli", configFileName)
+	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
 
 	conf := &oauth2.Config{
 		ClientID:     appKey,
