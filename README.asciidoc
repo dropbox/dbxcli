@@ -12,12 +12,7 @@ This is *BETA* software -- use with caution!
 
 == Installation
 
-[source, sh]
-----
-$ go install github.com/dropbox/dbxcli
-----
-
-`dbxcli` has been built and tested against Go 1.5+
+Download pre-compiled binaries for Mac, Windows and Linux from the https://github.com/dropbox/dbxcli/releases[releases] page.
 
 == Usage
 
