@@ -1,4 +1,17 @@
 language: go
 
 go:
-  - tip
+  - 1.6
+
+before_deploy:
+  - go get github.com/inconshreveable/mousetrap
+  - go get github.com/mitchellh/gox
+  - gox -ldflags="-X main.version=${TRAVIS_TAG:-TRAVIS_COMMIT}" -osarch="darwin/amd64 linux/amd64 windows/amd64" -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}"
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: "dist/*"
+  file_glob: true
+  on:
+    tags: true
