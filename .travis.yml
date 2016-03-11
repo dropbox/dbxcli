@@ -3,6 +3,10 @@ language: go
 go:
   - 1.6
 
+script:
+  - go get github.com/mitchellh/gox
+  - gox -osarch="darwin/amd64 linux/amd64 windows/amd64" -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}"
+
 before_deploy:
   - go get github.com/mitchellh/gox
   - gox -osarch="darwin/amd64 linux/amd64 windows/amd64" -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}"
