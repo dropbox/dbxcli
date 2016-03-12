@@ -21,6 +21,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -118,7 +119,11 @@ func saveToken(filePath string, token *oauth2.Token) {
 		if err != nil {
 			return
 		}
-		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
+		err = os.MkdirAll(filepath.Dir(filePath), 0700)
+		if err != nil {
+			return
+		}
+		if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
 			return
 		}
 	}
