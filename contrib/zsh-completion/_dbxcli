@@ -1,0 +1,82 @@
+#compdef dbxcli
+
+function _dbxcli() {
+  local context curcontext=$curcontext state line
+  typeset -A opt_args
+  local ret=1
+
+  _arguments -C \
+    '1: :__dbxcli_sub_commands' \
+    '*:: :->args' \
+    && ret=0
+
+  case $state in
+    (args)
+      case $words[1] in
+        (cp|du|get|mkdir|mv|put|restore|rm|version)
+          _arguments -C \
+            '(-h --help)'{-h,--help}'[Print information about a command]' \
+            '--token[(string) Access token]' \
+            '(-v --verbose)'{-v,--verbose}'[Enable verbose logging]' \
+            && ret=0
+          ;;
+        (ls|revs|search)
+          _arguments -C \
+            '(-l --long)'{-l,--long}'[Long listing]' \
+            '(-h --help)'{-h,--help}'[Print information about a command]' \
+            '--token[(string) Access token]' \
+            '(-v --verbose)'{-v,--verbose}'[Enable verbose logging]' \
+            && ret=0
+          ;;
+        (team)
+          _arguments -C \
+            '1: :__team_sub_commands' \
+            '(-h --help)'{-h,--help}'[Print information about a command]' \
+            '--token[(string) Access token]' \
+            '(-v --verbose)'{-v,--verbose}'[Enable verbose logging]' \
+            && ret=0
+          ;;
+      esac
+      ;;
+  esac
+
+  return ret
+}
+
+__dbxcli_sub_commands() {
+  local -a _c
+
+  _c=(
+    'cp:Copy files'
+    'du:Display usage information'
+    'get:Download a file'
+    'ls:List files'
+    'mkdir:Create a new directory'
+    'mv:Move files'
+    'put:Upload files'
+    'restore:Restore files'
+    'revs:List file revisions'
+    'rm:Remove files'
+    'search:Search'
+    'team:Team management commands'
+    'version:Print version information'
+  )
+
+  _describe -t commands dbxcli_sub_commands _c
+}
+
+__team_sub_commands() {
+  local -a _c
+
+  _c=(
+    'add-member:Add a new member to a team'
+    'info:Get team information'
+    'list-groups:List groups'
+    'list-members:List team members'
+    'remove-member:Remove member from a team'
+  )
+
+  _describe -t commands team_sub_commands _c
+}
+
+_dbxcli "$@"
