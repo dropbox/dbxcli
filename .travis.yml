@@ -3,6 +3,9 @@ language: go
 go:
   - 1.6
 
+before_script:
+  - go vet ./...
+
 before_deploy:
   - go get github.com/inconshreveable/mousetrap
   - go get github.com/mitchellh/gox
