@@ -1,11 +1,11 @@
 # Change Log
 
-## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
-
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.1.1...HEAD)
+## [v0.2.0](https://github.com/dropbox/dbxcli/tree/v0.2.0) (2016-03-14)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.1.1...v0.2.0)
 
 **Merged pull requests:**
 
+- Add zsh-completion [\#5](https://github.com/dropbox/dbxcli/pull/5) ([knakayama](https://github.com/knakayama))
 - Run `go vet` in `before\_script` [\#4](https://github.com/dropbox/dbxcli/pull/4) ([diwakergupta](https://github.com/diwakergupta))
 - Create directory [\#3](https://github.com/dropbox/dbxcli/pull/3) ([mattn](https://github.com/mattn))
 
