@@ -70,6 +70,12 @@ Note the `--token` option. This is useful for running commands with an alternate
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
 
+== We need your help!
+
+`dbxcli` is under active development! As you can see from the https://www.dropbox.com/developers/documentation/http/documentation[API docs], we only support a small number of features today and have only scratched the surface of what's possible. We would love feedback from you, our users, to guide what to build next and how to improve the tool.
+
+So please, file feature requests, report bugs or better yet, send us pull requests! More on contributing below.
+
 == Contributing
 
  * Step 1: send a https://help.github.com/articles/using-pull-requests/[pull request]
