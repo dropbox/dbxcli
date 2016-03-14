@@ -33,8 +33,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		dst = path.Base(src)
 	}
 
-	arg := files.NewDownloadArg()
-	arg.Path = src
+	arg := files.NewDownloadArg(src)
 
 	res, contents, err := dbx.Download(arg)
 	defer contents.Close()

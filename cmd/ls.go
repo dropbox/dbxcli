@@ -46,8 +46,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	arg := files.NewListFolderArg()
-	arg.Path = path
+	arg := files.NewListFolderArg(path)
 
 	res, err := dbx.ListFolder(arg)
 	if err != nil {
@@ -57,8 +56,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	entries := res.Entries
 
 	for res.HasMore {
-		arg := files.NewListFolderContinueArg()
-		arg.Cursor = res.Cursor
+		arg := files.NewListFolderContinueArg(res.Cursor)
 
 		res, err = dbx.ListFolderContinue(arg)
 		if err != nil {

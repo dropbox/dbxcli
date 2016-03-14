@@ -23,8 +23,7 @@ import (
 )
 
 func search(cmd *cobra.Command, args []string) (err error) {
-	arg := files.NewSearchArg()
-	arg.Query = args[0]
+	arg := files.NewSearchArg("", args[0])
 
 	res, err := dbx.Search(arg)
 	if err != nil {

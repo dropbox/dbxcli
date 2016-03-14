@@ -35,9 +35,7 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 	written := chunkSize
 
 	for (sizeTotal - written) > chunkSize {
-		args := files.NewUploadSessionCursor()
-		args.SessionId = res.SessionId
-		args.Offset = uint64(written)
+		args := files.NewUploadSessionCursor(res.SessionId, uint64(written))
 
 		err = dbx.UploadSessionAppend(args, &io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
@@ -46,11 +44,8 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 		written += chunkSize
 	}
 
-	args := files.NewUploadSessionFinishArg()
-	args.Cursor = files.NewUploadSessionCursor()
-	args.Cursor.SessionId = res.SessionId
-	args.Cursor.Offset = uint64(written)
-	args.Commit = commitInfo
+	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
+	args := files.NewUploadSessionFinishArg(cursor, commitInfo)
 
 	if _, err = dbx.UploadSessionFinish(args, r); err != nil {
 		return
@@ -87,8 +82,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		Size: contentsInfo.Size(),
 	}
 
-	commitInfo := files.NewCommitInfo()
-	commitInfo.Path = dst
+	commitInfo := files.NewCommitInfo(dst)
 	commitInfo.Mode.Tag = "overwrite"
 
 	if contentsInfo.Size() > chunkSize {

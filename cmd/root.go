@@ -67,9 +67,7 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 		return
 	}
 
-	arg = files.NewRelocationArg()
-	arg.FromPath = src
-	arg.ToPath = dst
+	arg = files.NewRelocationArg(src, dst)
 
 	return
 }

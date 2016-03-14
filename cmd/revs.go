@@ -28,8 +28,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	arg := files.NewListRevisionsArg()
-	arg.Path = path
+	arg := files.NewListRevisionsArg(path)
 
 	res, err := dbx.ListRevisions(arg)
 	if err != nil {

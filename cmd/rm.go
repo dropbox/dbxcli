@@ -25,8 +25,7 @@ func rm(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	arg := files.NewDeleteArg()
-	arg.Path = path
+	arg := files.NewDeleteArg(path)
 
 	if _, err = dbx.Delete(arg); err != nil {
 		return

@@ -25,8 +25,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	arg := files.NewCreateFolderArg()
-	arg.Path = dst
+	arg := files.NewCreateFolderArg(dst)
 
 	if _, err = dbx.CreateFolder(arg); err != nil {
 		return

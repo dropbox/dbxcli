@@ -23,8 +23,7 @@ import (
 
 func removeMember(cmd *cobra.Command, args []string) (err error) {
 	email := args[0]
-	arg := team.NewMembersRemoveArg()
-	arg.User = &team.UserSelectorArg{Tag: "email", Email: email}
+	arg := team.NewMembersRemoveArg(&team.UserSelectorArg{Tag: "email", Email: email})
 	res, err := dbx.MembersRemove(arg)
 	if err != nil {
 		return err
