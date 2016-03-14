@@ -78,8 +78,9 @@ So please, file feature requests, report bugs or better yet, send us pull reques
 
 == Contributing
 
- * Step 1: send a https://help.github.com/articles/using-pull-requests/[pull request]
- * Step 2: Profit!
+ * Step 1: If you're submitting a non-trivial change, please fill out the https://opensource.dropbox.com/cla/[Dropbox Contributor License Agreement] first.
+ * Step 2: send a https://help.github.com/articles/using-pull-requests/[pull request]
+ * Step 3: Profit!
  
 **Useful Resources**
 
