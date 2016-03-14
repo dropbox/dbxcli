@@ -72,3 +72,10 @@ The `--verbose` option will turn on verbose logging and is useful for debugging.
 
 == Contributing
 
+ * Step 1: send a https://help.github.com/articles/using-pull-requests/[pull request]
+ * Step 2: Profit!
+ 
+**Useful Resources**
+
+* https://godoc.org/github.com/dropbox/dropbox-sdk-go-unofficial[Go SDK documentation]
+* https://www.dropbox.com/developers/documentation/http/documentation[API documentation]
