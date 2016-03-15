@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/dropbox/dbxcli/cmd"
 	"github.com/spf13/cobra"
@@ -33,6 +34,8 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
+	// Log date, time and file information by default
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	cmd.RootCmd.AddCommand(versionCmd)
 }
 
