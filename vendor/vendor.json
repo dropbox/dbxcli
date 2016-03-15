@@ -1,0 +1,81 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/apierror",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/async",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/files",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/sharing",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/users",
+			"revision": "a44b562a638f450ece780cedc1aa8fdb16a20bb3",
+			"revisionTime": "2016-03-14T12:50:42-07:00"
+		},
+		{
+			"path": "github.com/inconshreveable/mousetrap",
+			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
+			"revisionTime": "2014-10-17T13:07:13-07:00"
+		},
+		{
+			"path": "github.com/mitchellh/go-homedir",
+			"revision": "981ab348d865cf048eb7d17e78ac7192632d8415",
+			"revisionTime": "2016-03-01T10:31:30-08:00"
+		},
+		{
+			"path": "github.com/mitchellh/ioprogress",
+			"revision": "8163955264568045f462ae7e2d6d07b2001fc997",
+			"revisionTime": "2015-05-21T15:15:56-06:00"
+		},
+		{
+			"path": "github.com/spf13/cobra",
+			"revision": "65a708cee0a4424f4e353d031ce440643e312f92",
+			"revisionTime": "2016-02-08T02:29:17+08:00"
+		},
+		{
+			"path": "github.com/spf13/pflag",
+			"revision": "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7",
+			"revisionTime": "2015-10-24T12:54:09+02:00"
+		},
+		{
+			"path": "golang.org/x/net/context",
+			"revision": "cd8c2701a5e10f044db915e65eac68f738399d22",
+			"revisionTime": "2015-10-15T20:01:14Z"
+		},
+		{
+			"path": "golang.org/x/oauth2",
+			"revision": "ef4eca6b097fad7cec79afcc278d213a6de1c960",
+			"revisionTime": "2015-10-13T14:05:36-07:00"
+		},
+		{
+			"path": "golang.org/x/oauth2/internal",
+			"revision": "ef4eca6b097fad7cec79afcc278d213a6de1c960",
+			"revisionTime": "2015-10-13T14:05:36-07:00"
+		}
+	]
+}
