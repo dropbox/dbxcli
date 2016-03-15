@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
 )
@@ -76,8 +77,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		Reader: contents,
 		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
 			return fmt.Sprintf("Uploading %s/%s",
-				humanizeSize(uint64(progress)),
-				humanizeSize(uint64(total)))
+				humanize.Bytes(uint64(progress)), humanize.Bytes(uint64(total)))
 		}),
 		Size: contentsInfo.Size(),
 	}

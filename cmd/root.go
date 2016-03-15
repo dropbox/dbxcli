@@ -18,12 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"golang.org/x/oauth2"
 
@@ -70,21 +68,6 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 	arg = files.NewRelocationArg(src, dst)
 
 	return
-}
-
-func humanizeSize(size uint64) string {
-	num := float64(size)
-	for _, unit := range sizeUnits {
-		if math.Abs(num) < 1024.0 {
-			return fmt.Sprintf("%3.1f%s", num, unit)
-		}
-		num /= 1024.0
-	}
-	return fmt.Sprintf("%.1f%s", num, "Y")
-}
-
-func humanizeDate(t time.Time) string {
-	return t.Format(dateFormat)
 }
 
 var dbx dropbox.Api

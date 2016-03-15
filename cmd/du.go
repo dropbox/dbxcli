@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -26,18 +27,18 @@ func du(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	fmt.Printf("Used: %s\n", humanizeSize(usage.Used))
+	fmt.Printf("Used: %s\n", humanize.Bytes(usage.Used))
 	fmt.Printf("Type: %s\n", usage.Allocation.Tag)
 
 	allocation := usage.Allocation
 
 	switch allocation.Tag {
 	case "individual":
-		fmt.Printf("Allocated: %s\n", humanizeSize(allocation.Individual.Allocated))
+		fmt.Printf("Allocated: %s\n", humanize.Bytes(allocation.Individual.Allocated))
 	case "team":
 		fmt.Printf("Allocated: %s (Used: %s)\n",
-			humanizeSize(allocation.Team.Allocated),
-			humanizeSize(allocation.Team.Used))
+			humanize.Bytes(allocation.Team.Allocated),
+			humanize.Bytes(allocation.Team.Used))
 	}
 
 	return

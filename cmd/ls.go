@@ -21,6 +21,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
-		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanizeSize(e.Size), humanizeDate(e.ServerModified))
+		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.Bytes(e.Size), humanize.Time(e.ServerModified))
 	}
 	fmt.Fprintf(w, "%s\n", e.Name)
 }
