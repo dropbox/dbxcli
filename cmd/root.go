@@ -161,6 +161,7 @@ var RootCmd = &cobra.Command{
 	Short: "A command line tool for Dropbox users and team admins",
 	Long: `Use dbxcli to quickly interact with your Dropbox, upload/download files,
 manage your team and more. It is easy, scriptable and works on all platforms!`,
+	SilenceUsage:      true,
 	PersistentPreRunE: initDbx,
 }
 
@@ -168,7 +169,6 @@ manage your team and more. It is easy, scriptable and works on all platforms!`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(-1)
 	}
 }
