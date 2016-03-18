@@ -36,11 +36,6 @@ const (
 	appKey         = "7fz0ag7t20fc0nv"
 	appSecret      = "1x7b0lb2mulwmrb"
 	dropboxScheme  = "dropbox"
-	dateFormat     = "Jan 2 15:04"
-)
-
-var (
-	sizeUnits = [...]string{"B", "K", "M", "G", "T", "P", "E", "Z"}
 )
 
 func validatePath(p string) (path string, err error) {
