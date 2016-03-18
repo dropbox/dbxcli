@@ -29,6 +29,7 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
 )
 
@@ -496,7 +497,7 @@ type FolderPermission struct {
 	// True if the user is allowed to take the action.
 	Allow bool `json:"allow"`
 	// The reason why the user is denied the permission. Not present if the action
-	// is allowed
+	// is allowed, or if no reason is available.
 	Reason *PermissionDeniedReason `json:"reason,omitempty"`
 }
 
@@ -513,9 +514,15 @@ type FolderPolicy struct {
 	AclUpdatePolicy *AclUpdatePolicy `json:"acl_update_policy"`
 	// Who links can be shared with.
 	SharedLinkPolicy *SharedLinkPolicy `json:"shared_link_policy"`
-	// Who can be a member of this shared folder. Only set if the user is a member
-	// of a team.
+	// Who can be a member of this shared folder, as set on the folder itself. The
+	// effective policy may differ from this value if the team-wide policy is more
+	// restrictive. Present only if the folder is owned by a team.
 	MemberPolicy *MemberPolicy `json:"member_policy,omitempty"`
+	// Who can be a member of this shared folder, taking into account both the
+	// folder and the team-wide policy. This value may differ from that of
+	// member_policy if the team-wide policy is more restrictive than the folder
+	// policy. Present only if the folder is owned by a team.
+	ResolvedMemberPolicy *MemberPolicy `json:"resolved_member_policy,omitempty"`
 }
 
 func NewFolderPolicy(AclUpdatePolicy *AclUpdatePolicy, SharedLinkPolicy *SharedLinkPolicy) *FolderPolicy {
@@ -528,7 +535,7 @@ func NewFolderPolicy(AclUpdatePolicy *AclUpdatePolicy, SharedLinkPolicy *SharedL
 type GetMetadataArgs struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Folder actions to query. This field is optional.
+	// Folder actions to query.
 	Actions []*FolderAction `json:"actions,omitempty"`
 }
 
@@ -620,6 +627,8 @@ type GroupInfo struct {
 	GroupId   string `json:"group_id"`
 	// The number of members in the group.
 	MemberCount uint32 `json:"member_count"`
+	// The type of group.
+	GroupType *team.GroupType `json:"group_type"`
 	// If the group is owned by the current user's team.
 	SameTeam bool `json:"same_team"`
 	// External ID of group. This is an arbitrary ID that an admin can attach to a
@@ -627,11 +636,12 @@ type GroupInfo struct {
 	GroupExternalId string `json:"group_external_id,omitempty"`
 }
 
-func NewGroupInfo(GroupName string, GroupId string, MemberCount uint32, SameTeam bool) *GroupInfo {
+func NewGroupInfo(GroupName string, GroupId string, MemberCount uint32, GroupType *team.GroupType, SameTeam bool) *GroupInfo {
 	s := new(GroupInfo)
 	s.GroupName = GroupName
 	s.GroupId = GroupId
 	s.MemberCount = MemberCount
+	s.GroupType = GroupType
 	s.SameTeam = SameTeam
 	return s
 }
@@ -836,10 +846,24 @@ func NewLinkPermissions(CanRevoke bool) *LinkPermissions {
 	return s
 }
 
+type ListFolderMembersCursorArg struct {
+	// Member actions to query.
+	Actions []*MemberAction `json:"actions,omitempty"`
+	// The maximum number of results that include members, groups and invitees to
+	// return per request.
+	Limit uint32 `json:"limit"`
+}
+
+func NewListFolderMembersCursorArg() *ListFolderMembersCursorArg {
+	s := new(ListFolderMembersCursorArg)
+	s.Limit = 1000
+	return s
+}
+
 type ListFolderMembersArgs struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Member actions to query. This field is optional.
+	// Member actions to query.
 	Actions []*MemberAction `json:"actions,omitempty"`
 	// The maximum number of results that include members, groups and invitees to
 	// return per request.
@@ -897,7 +921,7 @@ func (u *ListFolderMembersContinueError) UnmarshalJSON(body []byte) error {
 type ListFoldersArgs struct {
 	// The maximum number of results to return per request.
 	Limit uint32 `json:"limit"`
-	// Folder actions to query. This field is optional.
+	// Folder actions to query.
 	Actions []*FolderAction `json:"actions,omitempty"`
 }
 
@@ -908,8 +932,8 @@ func NewListFoldersArgs() *ListFoldersArgs {
 }
 
 type ListFoldersContinueArg struct {
-	// The cursor returned by your last call to `ListFolders` or
-	// `ListFoldersContinue`.
+	// The cursor returned by the previous API call specified in the endpoint
+	// description.
 	Cursor string `json:"cursor"`
 }
 
@@ -923,13 +947,16 @@ type ListFoldersContinueError struct {
 	Tag string `json:".tag"`
 }
 
-// Result for `ListFolders`. Unmounted shared folders can be identified by the
+// Result for `ListFolders` or `ListMountableFolders`, depending on which
+// endpoint was requested. Unmounted shared folders can be identified by the
 // absence of `SharedFolderMetadata.path_lower`.
 type ListFoldersResult struct {
 	// List of all shared folders the authenticated user has access to.
 	Entries []*SharedFolderMetadata `json:"entries"`
 	// Present if there are additional shared folders that have not been returned
-	// yet. Pass the cursor into `ListFoldersContinue` to list additional folders.
+	// yet. Pass the cursor into the corresponding continue endpoint (either
+	// `ListFoldersContinue` or `ListMountableFoldersContinue`) to list additional
+	// folders.
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1325,12 +1352,14 @@ type ShareFolderArg struct {
 	// The path to the folder to share. If it does not exist, then a new one is
 	// created.
 	Path string `json:"path"`
-	// Who can be a member of this shared folder.
+	// Who can be a member of this shared folder. Only applicable if the current
+	// user is on a team.
 	MemberPolicy *MemberPolicy `json:"member_policy"`
 	// Who can add and remove members of this shared folder.
 	AclUpdatePolicy *AclUpdatePolicy `json:"acl_update_policy"`
 	// The policy to apply to shared links created for content inside this shared
-	// folder.
+	// folder.  The current user must be on a team to set this policy to
+	// `SharedLinkPolicy.members`.
 	SharedLinkPolicy *SharedLinkPolicy `json:"shared_link_policy"`
 	// Whether to force the share to happen asynchronously.
 	ForceAsync bool `json:"force_async"`
@@ -1490,6 +1519,12 @@ type SharedFolderMetadataBase struct {
 	// Actions the current user may perform on the folder and its contents. The set
 	// of permissions corresponds to the FolderActions in the request.
 	Permissions []*FolderPermission `json:"permissions,omitempty"`
+	// The team that owns the folder. This field is not present if the folder is
+	// not owned by a team.
+	OwnerTeam *users.Team `json:"owner_team,omitempty"`
+	// The ID of the parent shared folder. This field is present only if the folder
+	// is contained within another shared folder.
+	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
 }
 
 func NewSharedFolderMetadataBase(AccessType *AccessLevel, IsTeamFolder bool, Policy *FolderPolicy) *SharedFolderMetadataBase {
@@ -1516,6 +1551,12 @@ type SharedFolderMetadata struct {
 	// Actions the current user may perform on the folder and its contents. The set
 	// of permissions corresponds to the FolderActions in the request.
 	Permissions []*FolderPermission `json:"permissions,omitempty"`
+	// The team that owns the folder. This field is not present if the folder is
+	// not owned by a team.
+	OwnerTeam *users.Team `json:"owner_team,omitempty"`
+	// The ID of the parent shared folder. This field is present only if the folder
+	// is contained within another shared folder.
+	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
 	// The lower-cased full path of this shared folder. Absent for unmounted
 	// folders.
 	PathLower string `json:"path_lower,omitempty"`
@@ -1669,10 +1710,10 @@ type UnshareFolderArg struct {
 	LeaveACopy bool `json:"leave_a_copy"`
 }
 
-func NewUnshareFolderArg(SharedFolderId string, LeaveACopy bool) *UnshareFolderArg {
+func NewUnshareFolderArg(SharedFolderId string) *UnshareFolderArg {
 	s := new(UnshareFolderArg)
 	s.SharedFolderId = SharedFolderId
-	s.LeaveACopy = LeaveACopy
+	s.LeaveACopy = false
 	return s
 }
 
@@ -1767,13 +1808,14 @@ func (u *UpdateFolderMemberError) UnmarshalJSON(body []byte) error {
 type UpdateFolderPolicyArg struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Who can be a member of this shared folder. Only set this if the current user
-	// is on a team.
+	// Who can be a member of this shared folder. Only applicable if the current
+	// user is on a team.
 	MemberPolicy *MemberPolicy `json:"member_policy,omitempty"`
 	// Who can add and remove members of this shared folder.
 	AclUpdatePolicy *AclUpdatePolicy `json:"acl_update_policy,omitempty"`
 	// The policy to apply to shared links created for content inside this shared
-	// folder.
+	// folder. The current user must be on a team to set this policy to
+	// `SharedLinkPolicy.members`.
 	SharedLinkPolicy *SharedLinkPolicy `json:"shared_link_policy,omitempty"`
 }
 
@@ -1921,16 +1963,18 @@ type Sharing interface {
 	// changes.
 	ListFolders(arg *ListFoldersArgs) (res *ListFoldersResult, err error)
 	// Once a cursor has been retrieved from `ListFolders`, use this to paginate
-	// through all shared folders. Apps must have full Dropbox access to use this
-	// endpoint. Warning: This endpoint is in beta and is subject to minor but
-	// possibly backwards-incompatible changes.
+	// through all shared folders. The cursor must come from a previous call to
+	// `ListFolders` or `ListFoldersContinue`. Apps must have full Dropbox access
+	// to use this endpoint. Warning: This endpoint is in beta and is subject to
+	// minor but possibly backwards-incompatible changes.
 	ListFoldersContinue(arg *ListFoldersContinueArg) (res *ListFoldersResult, err error)
 	// Return the list of all shared folders the current user can mount or unmount.
 	// Apps must have full Dropbox access to use this endpoint.
 	ListMountableFolders(arg *ListFoldersArgs) (res *ListFoldersResult, err error)
 	// Once a cursor has been retrieved from `ListMountableFolders`, use this to
-	// paginate through all mountable shared folders. Apps must have full Dropbox
-	// access to use this endpoint.
+	// paginate through all mountable shared folders. The cursor must come from a
+	// previous call to `ListMountableFolders` or `ListMountableFoldersContinue`.
+	// Apps must have full Dropbox access to use this endpoint.
 	ListMountableFoldersContinue(arg *ListFoldersContinueArg) (res *ListFoldersResult, err error)
 	// List shared links of this user. If no path is given or the path is empty,
 	// returns a list of all shared links for the current user. If a non-empty path
@@ -1979,10 +2023,11 @@ type Sharing interface {
 	// This endpoint is in beta and is subject to minor but possibly
 	// backwards-incompatible changes.
 	ShareFolder(arg *ShareFolderArg) (res *ShareFolderLaunch, err error)
-	// Transfer ownership of a shared folder to a member of the shared folder. Apps
-	// must have full Dropbox access to use this endpoint. Warning: This endpoint
-	// is in beta and is subject to minor but possibly backwards-incompatible
-	// changes.
+	// Transfer ownership of a shared folder to a member of the shared folder. User
+	// must have `AccessLevel.owner` access to the shared folder to perform a
+	// transfer. Apps must have full Dropbox access to use this endpoint. Warning:
+	// This endpoint is in beta and is subject to minor but possibly
+	// backwards-incompatible changes.
 	TransferFolder(arg *TransferFolderArg) (err error)
 	// The current user unmounts the designated folder. They can re-mount the
 	// folder at a later time using `MountFolder`. Apps must have full Dropbox
@@ -2000,8 +2045,10 @@ type Sharing interface {
 	// Warning: This endpoint is in beta and is subject to minor but possibly
 	// backwards-incompatible changes.
 	UpdateFolderMember(arg *UpdateFolderMemberArg) (err error)
-	// Update the sharing policies for a shared folder. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
+	// Update the sharing policies for a shared folder. User must have
+	// `AccessLevel.owner` access to the shared folder to update its policies. Apps
+	// must have full Dropbox access to use this endpoint. Warning: This endpoint
+	// is in beta and is subject to minor but possibly backwards-incompatible
+	// changes.
 	UpdateFolderPolicy(arg *UpdateFolderPolicyArg) (res *SharedFolderMetadata, err error)
 }

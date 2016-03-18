@@ -31,14 +31,19 @@ import (
 const (
 	apiVersion    = 2
 	defaultDomain = ".dropboxapi.com"
-	hostApi       = "api"
+	hostAPI       = "api"
 	hostContent   = "content"
 	hostNotify    = "notify"
 )
 
+type Options struct {
+	Verbose    bool
+	AsMemberId string
+}
+
 type apiImpl struct {
 	client  *http.Client
-	verbose bool
+	options Options
 	hostMap map[string]string
 }
 
@@ -50,24 +55,28 @@ func getenv(key string, defVal string) string {
 	return val
 }
 
-func (dbx *apiImpl) generateUrl(host string, namespace string, route string) string {
+func (dbx *apiImpl) generateURL(host string, namespace string, route string) string {
 	fqHost := dbx.hostMap[host]
 	return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
 }
 
-func Client(token string, verbose bool) Api {
-	var conf = &oauth2.Config{
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://www.dropbox.com/1/oauth2/authorize",
-			TokenURL: "https://api.dropbox.com/1/oauth2/token",
-		},
-	}
-	tok := &oauth2.Token{AccessToken: token}
+// Client returns an `Api` instance for Dropbox using the given OAuth token.
+func Client(token string, options Options) Api {
 	domain := getenv("DROPBOX_DOMAIN", defaultDomain)
 	hostMap := map[string]string{
-		hostApi:     hostApi + domain,
+		hostAPI:     hostAPI + domain,
 		hostContent: hostContent + domain,
 		hostNotify:  hostNotify + domain,
 	}
-	return &apiImpl{conf.Client(oauth2.NoContext, tok), verbose, hostMap}
+	authDomain := getenv("DROPBOX_DOMAIN", ".dropbox.com")
+	authUrl := fmt.Sprintf("https://www%s/1/oauth2/authorize", authDomain)
+	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", authDomain)
+	var conf = &oauth2.Config{
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  authUrl,
+			TokenURL: tokenUrl,
+		},
+	}
+	tok := &oauth2.Token{AccessToken: token}
+	return &apiImpl{conf.Client(oauth2.NoContext, tok), options, hostMap}
 }

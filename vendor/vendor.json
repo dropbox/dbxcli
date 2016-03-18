@@ -4,38 +4,38 @@
 	"package": [
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/apierror",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/async",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/files",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/sharing",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/users",
-			"revision": "8937392140ae8f71e002e0d336f79858aafe2f0b",
-			"revisionTime": "2016-03-15T12:45:57-07:00"
+			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
+			"revisionTime": "2016-03-18T14:11:21-07:00"
 		},
 		{
 			"path": "github.com/dustin/go-humanize",

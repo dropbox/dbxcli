@@ -568,7 +568,9 @@ func NewListFolderGetLatestCursorResult(Cursor string) *ListFolderGetLatestCurso
 }
 
 type ListFolderLongpollArg struct {
-	// A cursor as returned by `ListFolder` or `ListFolderContinue`
+	// A cursor as returned by `ListFolder` or `ListFolderContinue`. Cursors
+	// retrieved by setting `ListFolderArg.include_media_info` to `True` are not
+	// supported.
 	Cursor string `json:"cursor"`
 	// A timeout in seconds. The request will block for at most this length of
 	// time, plus up to 90 seconds of random jitter added to avoid the thundering
@@ -1395,7 +1397,10 @@ type Files interface {
 	// Create a folder at a given path.
 	CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err error)
 	// Delete the file or folder at a given path. If the path is a folder, all its
-	// contents will be deleted too.
+	// contents will be deleted too. A successful response indicates that the file
+	// or folder was deleted. The returned metadata will be the corresponding
+	// `FileMetadata` or `FolderMetadata` for the item at time of deletion, and not
+	// a `DeletedMetadata` object.
 	Delete(arg *DeleteArg) (res *Metadata, err error)
 	// Download a file from a user's Dropbox.
 	Download(arg *DownloadArg) (res *FileMetadata, content io.ReadCloser, err error)

@@ -112,9 +112,11 @@ func saveToken(filePath string, token *oauth2.Token) {
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
+	var options dropbox.Options
+	options.Verbose = verbose
 
 	if token, _ := cmd.Flags().GetString("token"); token != "" {
-		dbx = dropbox.Client(token, verbose)
+		dbx = dropbox.Client(token, options)
 		return
 	}
 
@@ -150,7 +152,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		saveToken(filePath, token)
 	}
 
-	dbx = dropbox.Client(token.AccessToken, verbose)
+	dbx = dropbox.Client(token.AccessToken, options)
 
 	return
 }

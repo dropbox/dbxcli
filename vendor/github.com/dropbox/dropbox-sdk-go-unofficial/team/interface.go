@@ -322,7 +322,7 @@ type GetMembershipReport struct {
 	PendingInvites []uint64 `json:"pending_invites"`
 	// The number of members that joined the team, for each day.
 	MembersJoined []uint64 `json:"members_joined"`
-	// The number of members that joined the team, for each day.
+	// The number of suspended team members, for each day.
 	SuspendedMembers []uint64 `json:"suspended_members"`
 	// The total number of licenses the team has, for each day.
 	Licenses []uint64 `json:"licenses"`
@@ -666,6 +666,11 @@ func (u *GroupSelector) UnmarshalJSON(body []byte) error {
 		}
 	}
 	return nil
+}
+
+// The group type determines how a group is created and managed.
+type GroupType struct {
+	Tag string `json:".tag"`
 }
 
 type GroupUpdateArgs struct {
@@ -1780,6 +1785,11 @@ type SharedFolderMemberPolicy struct {
 	Tag string `json:".tag"`
 }
 
+// Policy governing the visibility of newly created shared links.
+type SharedLinkCreatePolicy struct {
+	Tag string `json:".tag"`
+}
+
 // Describes the number of users in a specific storage bucket.
 type StorageBucket struct {
 	// The name of the storage bucket. For example, '1G' is a bucket of users with
@@ -1895,12 +1905,15 @@ type TeamSharingPolicies struct {
 	SharedFolderMemberPolicy *SharedFolderMemberPolicy `json:"shared_folder_member_policy"`
 	// Which shared folders team members can join.
 	SharedFolderJoinPolicy *SharedFolderJoinPolicy `json:"shared_folder_join_policy"`
+	// What is the visibility of newly created shared links.
+	SharedLinkCreatePolicy *SharedLinkCreatePolicy `json:"shared_link_create_policy"`
 }
 
-func NewTeamSharingPolicies(SharedFolderMemberPolicy *SharedFolderMemberPolicy, SharedFolderJoinPolicy *SharedFolderJoinPolicy) *TeamSharingPolicies {
+func NewTeamSharingPolicies(SharedFolderMemberPolicy *SharedFolderMemberPolicy, SharedFolderJoinPolicy *SharedFolderJoinPolicy, SharedLinkCreatePolicy *SharedLinkCreatePolicy) *TeamSharingPolicies {
 	s := new(TeamSharingPolicies)
 	s.SharedFolderMemberPolicy = SharedFolderMemberPolicy
 	s.SharedFolderJoinPolicy = SharedFolderJoinPolicy
+	s.SharedLinkCreatePolicy = SharedLinkCreatePolicy
 	return s
 }
 
