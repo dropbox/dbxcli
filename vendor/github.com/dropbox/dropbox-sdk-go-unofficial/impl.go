@@ -65,6 +65,9 @@ func (dbx *apiImpl) Copy(arg *files.RelocationArg) (res *files.Metadata, err err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -138,6 +141,9 @@ func (dbx *apiImpl) CreateFolder(arg *files.CreateFolderArg) (res *files.FolderM
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -211,6 +217,9 @@ func (dbx *apiImpl) Delete(arg *files.DeleteArg) (res *files.Metadata, err error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -284,6 +293,9 @@ func (dbx *apiImpl) Download(arg *files.DownloadArg) (res *files.FileMetadata, c
 	}
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -353,6 +365,9 @@ func (dbx *apiImpl) GetMetadata(arg *files.GetMetadataArg) (res *files.Metadata,
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -426,6 +441,9 @@ func (dbx *apiImpl) GetPreview(arg *files.PreviewArg) (res *files.FileMetadata, 
 	}
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -495,6 +513,9 @@ func (dbx *apiImpl) GetThumbnail(arg *files.ThumbnailArg) (res *files.FileMetada
 	}
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -564,6 +585,9 @@ func (dbx *apiImpl) ListFolder(arg *files.ListFolderArg) (res *files.ListFolderR
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -637,6 +661,9 @@ func (dbx *apiImpl) ListFolderContinue(arg *files.ListFolderContinueArg) (res *f
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -710,6 +737,9 @@ func (dbx *apiImpl) ListFolderGetLatestCursor(arg *files.ListFolderArg) (res *fi
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -783,6 +813,9 @@ func (dbx *apiImpl) ListFolderLongpoll(arg *files.ListFolderLongpollArg) (res *f
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	req.Header.Del("Authorization")
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
@@ -857,6 +890,9 @@ func (dbx *apiImpl) ListRevisions(arg *files.ListRevisionsArg) (res *files.ListR
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -930,6 +966,9 @@ func (dbx *apiImpl) Move(arg *files.RelocationArg) (res *files.Metadata, err err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1003,6 +1042,9 @@ func (dbx *apiImpl) PermanentlyDelete(arg *files.DeleteArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1071,6 +1113,9 @@ func (dbx *apiImpl) Restore(arg *files.RestoreArg) (res *files.FileMetadata, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1144,6 +1189,9 @@ func (dbx *apiImpl) Search(arg *files.SearchArg) (res *files.SearchResult, err e
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1218,6 +1266,9 @@ func (dbx *apiImpl) Upload(arg *files.CommitInfo, content io.Reader) (res *files
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1292,6 +1343,9 @@ func (dbx *apiImpl) UploadSessionAppend(arg *files.UploadSessionCursor, content 
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1361,6 +1415,9 @@ func (dbx *apiImpl) UploadSessionFinish(arg *files.UploadSessionFinishArg, conte
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1426,6 +1483,9 @@ func (dbx *apiImpl) UploadSessionStart(content io.Reader) (res *files.UploadSess
 	}
 
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1499,6 +1559,9 @@ func (dbx *apiImpl) AddFolderMember(arg *sharing.AddFolderMemberArg) (err error)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1567,6 +1630,9 @@ func (dbx *apiImpl) CheckJobStatus(arg *async.PollArg) (res *sharing.JobStatus, 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1640,6 +1706,9 @@ func (dbx *apiImpl) CheckShareJobStatus(arg *async.PollArg) (res *sharing.ShareF
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1713,6 +1782,9 @@ func (dbx *apiImpl) CreateSharedLink(arg *sharing.CreateSharedLinkArg) (res *sha
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1786,6 +1858,9 @@ func (dbx *apiImpl) CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWi
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1859,6 +1934,9 @@ func (dbx *apiImpl) GetFolderMetadata(arg *sharing.GetMetadataArgs) (res *sharin
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -1932,6 +2010,9 @@ func (dbx *apiImpl) GetSharedLinkFile(arg *sharing.GetSharedLinkMetadataArg) (re
 	}
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2001,6 +2082,9 @@ func (dbx *apiImpl) GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2074,6 +2158,9 @@ func (dbx *apiImpl) GetSharedLinks(arg *sharing.GetSharedLinksArg) (res *sharing
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2147,6 +2234,9 @@ func (dbx *apiImpl) ListFolderMembers(arg *sharing.ListFolderMembersArgs) (res *
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2220,6 +2310,9 @@ func (dbx *apiImpl) ListFolderMembersContinue(arg *sharing.ListFolderMembersCont
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2293,6 +2386,9 @@ func (dbx *apiImpl) ListFolders(arg *sharing.ListFoldersArgs) (res *sharing.List
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2366,6 +2462,9 @@ func (dbx *apiImpl) ListFoldersContinue(arg *sharing.ListFoldersContinueArg) (re
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2439,6 +2538,9 @@ func (dbx *apiImpl) ListMountableFolders(arg *sharing.ListFoldersArgs) (res *sha
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2512,6 +2614,9 @@ func (dbx *apiImpl) ListMountableFoldersContinue(arg *sharing.ListFoldersContinu
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2585,6 +2690,9 @@ func (dbx *apiImpl) ListSharedLinks(arg *sharing.ListSharedLinksArg) (res *shari
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2658,6 +2766,9 @@ func (dbx *apiImpl) ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettin
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2731,6 +2842,9 @@ func (dbx *apiImpl) MountFolder(arg *sharing.MountFolderArg) (res *sharing.Share
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2804,6 +2918,9 @@ func (dbx *apiImpl) RelinquishFolderMembership(arg *sharing.RelinquishFolderMemb
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2872,6 +2989,9 @@ func (dbx *apiImpl) RemoveFolderMember(arg *sharing.RemoveFolderMemberArg) (res 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -2945,6 +3065,9 @@ func (dbx *apiImpl) RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) (err erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3013,6 +3136,9 @@ func (dbx *apiImpl) ShareFolder(arg *sharing.ShareFolderArg) (res *sharing.Share
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3086,6 +3212,9 @@ func (dbx *apiImpl) TransferFolder(arg *sharing.TransferFolderArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3154,6 +3283,9 @@ func (dbx *apiImpl) UnmountFolder(arg *sharing.UnmountFolderArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3222,6 +3354,9 @@ func (dbx *apiImpl) UnshareFolder(arg *sharing.UnshareFolderArg) (res *async.Lau
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3295,6 +3430,9 @@ func (dbx *apiImpl) UpdateFolderMember(arg *sharing.UpdateFolderMemberArg) (err 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3363,6 +3501,9 @@ func (dbx *apiImpl) UpdateFolderPolicy(arg *sharing.UpdateFolderPolicyArg) (res 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3436,6 +3577,9 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *team.ListMemberDevicesArg) (re
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3509,6 +3653,9 @@ func (dbx *apiImpl) DevicesListTeamDevices(arg *team.ListTeamDevicesArg) (res *t
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3582,6 +3729,9 @@ func (dbx *apiImpl) DevicesRevokeDeviceSession(arg *team.RevokeDeviceSessionArg)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3650,6 +3800,9 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *team.RevokeDeviceSessio
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3714,6 +3867,9 @@ func (dbx *apiImpl) GetInfo() (res *team.TeamGetInfoResult, err error) {
 		return
 	}
 
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3787,6 +3943,9 @@ func (dbx *apiImpl) GroupsCreate(arg *team.GroupCreateArg) (res *team.GroupFullI
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3860,6 +4019,9 @@ func (dbx *apiImpl) GroupsDelete(arg *team.GroupSelector) (res *async.LaunchEmpt
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -3933,6 +4095,9 @@ func (dbx *apiImpl) GroupsGetInfo(arg *team.GroupsSelector) (res []*team.GroupsG
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4006,6 +4171,9 @@ func (dbx *apiImpl) GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmpty
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4079,6 +4247,9 @@ func (dbx *apiImpl) GroupsList(arg *team.GroupsListArg) (res *team.GroupsListRes
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4152,6 +4323,9 @@ func (dbx *apiImpl) GroupsListContinue(arg *team.GroupsListContinueArg) (res *te
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4225,6 +4399,9 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *team.GroupMembersAddArg) (res *team.Gr
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4298,6 +4475,9 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *team.GroupMembersRemoveArg) (res *t
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4371,6 +4551,9 @@ func (dbx *apiImpl) GroupsMembersSetAccessType(arg *team.GroupMembersSetAccessTy
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4444,6 +4627,9 @@ func (dbx *apiImpl) GroupsUpdate(arg *team.GroupUpdateArgs) (res *team.GroupFull
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4517,6 +4703,9 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *team.ListMemberAppsArg) 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4590,6 +4779,9 @@ func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *team.ListTeamAppsArg) (res
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4663,6 +4855,9 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedApp(arg *team.RevokeLinkedApiAppArg) (
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4731,6 +4926,9 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *team.RevokeLinkedApiAppB
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4804,6 +5002,9 @@ func (dbx *apiImpl) MembersAdd(arg *team.MembersAddArg) (res *team.MembersAddLau
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4877,6 +5078,9 @@ func (dbx *apiImpl) MembersAddJobStatusGet(arg *async.PollArg) (res *team.Member
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -4950,6 +5154,9 @@ func (dbx *apiImpl) MembersGetInfo(arg *team.MembersGetInfoArgs) (res []*team.Me
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5023,6 +5230,9 @@ func (dbx *apiImpl) MembersList(arg *team.MembersListArg) (res *team.MembersList
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5096,6 +5306,9 @@ func (dbx *apiImpl) MembersListContinue(arg *team.MembersListContinueArg) (res *
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5169,6 +5382,9 @@ func (dbx *apiImpl) MembersRemove(arg *team.MembersRemoveArg) (res *async.Launch
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5242,6 +5458,9 @@ func (dbx *apiImpl) MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.Po
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5315,6 +5534,9 @@ func (dbx *apiImpl) MembersSendWelcomeEmail(arg *team.UserSelectorArg) (err erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5383,6 +5605,9 @@ func (dbx *apiImpl) MembersSetAdminPermissions(arg *team.MembersSetPermissionsAr
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5456,6 +5681,9 @@ func (dbx *apiImpl) MembersSetProfile(arg *team.MembersSetProfileArg) (res *team
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5529,6 +5757,9 @@ func (dbx *apiImpl) MembersSuspend(arg *team.MembersDeactivateArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5597,6 +5828,9 @@ func (dbx *apiImpl) MembersUnsuspend(arg *team.MembersUnsuspendArg) (err error) 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5665,6 +5899,9 @@ func (dbx *apiImpl) ReportsGetActivity(arg *team.DateRange) (res *team.GetActivi
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5738,6 +5975,9 @@ func (dbx *apiImpl) ReportsGetDevices(arg *team.DateRange) (res *team.GetDevices
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5811,6 +6051,9 @@ func (dbx *apiImpl) ReportsGetMembership(arg *team.DateRange) (res *team.GetMemb
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5884,6 +6127,9 @@ func (dbx *apiImpl) ReportsGetStorage(arg *team.DateRange) (res *team.GetStorage
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -5957,6 +6203,9 @@ func (dbx *apiImpl) GetAccount(arg *users.GetAccountArg) (res *users.BasicAccoun
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -6030,6 +6279,9 @@ func (dbx *apiImpl) GetAccountBatch(arg *users.GetAccountBatchArg) (res []*users
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -6094,6 +6346,9 @@ func (dbx *apiImpl) GetCurrentAccount() (res *users.FullAccount, err error) {
 		return
 	}
 
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}
@@ -6158,6 +6413,9 @@ func (dbx *apiImpl) GetSpaceUsage() (res *users.SpaceUsage, err error) {
 		return
 	}
 
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
 	if dbx.options.Verbose {
 		log.Printf("req: %v", req)
 	}

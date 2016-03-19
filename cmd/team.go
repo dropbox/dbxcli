@@ -14,12 +14,22 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 // teamCmd represents the team command
 var teamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Team management commands",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if member, _ := cmd.Flags().GetString("as-member"); member != "" {
+			return fmt.Errorf("Flag `as-member` is invalid for team sub-commands")
+		}
+		return initDbx(cmd, args)
+	},
 }
 
 func init() {

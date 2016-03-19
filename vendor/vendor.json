@@ -4,38 +4,38 @@
 	"package": [
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/apierror",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/async",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/files",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/sharing",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/users",
-			"revision": "052da409cc4efd9992558de51da1efc711a967fa",
-			"revisionTime": "2016-03-18T14:11:21-07:00"
+			"revision": "cdc733805c9a9a255d15add9dff81cbf471eb881",
+			"revisionTime": "2016-03-18T22:58:00-07:00"
 		},
 		{
 			"path": "github.com/dustin/go-humanize",
@@ -59,8 +59,8 @@
 		},
 		{
 			"path": "github.com/spf13/cobra",
-			"revision": "65a708cee0a4424f4e353d031ce440643e312f92",
-			"revisionTime": "2016-02-08T02:29:17+08:00"
+			"revision": "1bacefc9a216c93293e670067bd159a64b4d72c3",
+			"revisionTime": "2016-03-15T16:50:08-05:00"
 		},
 		{
 			"path": "github.com/spf13/pflag",
@@ -69,18 +69,18 @@
 		},
 		{
 			"path": "golang.org/x/net/context",
-			"revision": "cd8c2701a5e10f044db915e65eac68f738399d22",
-			"revisionTime": "2015-10-15T20:01:14Z"
+			"revision": "35b06af0720201bc2f326773a80767387544f8c4",
+			"revisionTime": "2016-03-15T14:00:09+11:00"
 		},
 		{
 			"path": "golang.org/x/oauth2",
-			"revision": "ef4eca6b097fad7cec79afcc278d213a6de1c960",
-			"revisionTime": "2015-10-13T14:05:36-07:00"
+			"revision": "045497edb6234273d67dbc25da3f2ddbc4c4cacf",
+			"revisionTime": "2016-03-04T15:22:30-06:00"
 		},
 		{
 			"path": "golang.org/x/oauth2/internal",
-			"revision": "ef4eca6b097fad7cec79afcc278d213a6de1c960",
-			"revisionTime": "2015-10-13T14:05:36-07:00"
+			"revision": "045497edb6234273d67dbc25da3f2ddbc4c4cacf",
+			"revisionTime": "2016-03-04T15:22:30-06:00"
 		}
 	]
 }

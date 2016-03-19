@@ -109,6 +109,8 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	var options dropbox.Options
 	options.Verbose = verbose
+	asMember, _ := cmd.Flags().GetString("as-member")
+	options.AsMemberId = asMember
 
 	if token, _ := cmd.Flags().GetString("token"); token != "" {
 		dbx = dropbox.Client(token, options)
@@ -173,4 +175,5 @@ func Execute() {
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("token", "", "Access token")
+	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
 }
