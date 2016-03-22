@@ -123,12 +123,18 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	}
 	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
 
+	authDomain := os.Getenv("DROPBOX_DOMAIN")
+	if authDomain == "" {
+		authDomain = ".dropbox.com"
+	}
+	authUrl := fmt.Sprintf("https://www%s/1/oauth2/authorize", authDomain)
+	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", authDomain)
 	conf := &oauth2.Config{
 		ClientID:     appKey,
 		ClientSecret: appSecret,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://www.dropbox.com/1/oauth2/authorize",
-			TokenURL: "https://api.dropbox.com/1/oauth2/token",
+			AuthURL:  authUrl,
+			TokenURL: tokenUrl,
 		},
 	}
 	token, err := readToken(filePath)
