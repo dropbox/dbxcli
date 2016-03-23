@@ -23,7 +23,6 @@ package dropbox
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"golang.org/x/oauth2"
 )
@@ -39,6 +38,7 @@ const (
 type Options struct {
 	Verbose    bool
 	AsMemberId string
+	Domain     string
 }
 
 type apiImpl struct {
@@ -47,12 +47,17 @@ type apiImpl struct {
 	hostMap map[string]string
 }
 
-func getenv(key string, defVal string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		val = defVal
+// OAuthEndpoint constructs an `oauth2.Endpoint` for the given domain
+func OAuthEndpoint(domain string) oauth2.Endpoint {
+	if domain == "" {
+		domain = defaultDomain
 	}
-	return val
+	authUrl := fmt.Sprintf("https://meta%s/1/oauth2/authorize", domain)
+	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", domain)
+	if domain == defaultDomain {
+		authUrl = "https://www.dropbox.com/1/oauth2/authorize"
+	}
+	return oauth2.Endpoint{AuthURL: authUrl, TokenURL: tokenUrl}
 }
 
 func (dbx *apiImpl) generateURL(host string, namespace string, route string) string {
@@ -62,21 +67,23 @@ func (dbx *apiImpl) generateURL(host string, namespace string, route string) str
 
 // Client returns an `Api` instance for Dropbox using the given OAuth token.
 func Client(token string, options Options) Api {
-	domain := getenv("DROPBOX_DOMAIN", defaultDomain)
+	domain := options.Domain
+	if domain == "" {
+		domain = defaultDomain
+	}
+
 	hostMap := map[string]string{
 		hostAPI:     hostAPI + domain,
 		hostContent: hostContent + domain,
 		hostNotify:  hostNotify + domain,
 	}
-	authDomain := getenv("DROPBOX_DOMAIN", ".dropbox.com")
-	authUrl := fmt.Sprintf("https://www%s/1/oauth2/authorize", authDomain)
-	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", authDomain)
-	var conf = &oauth2.Config{
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  authUrl,
-			TokenURL: tokenUrl,
-		},
-	}
+	var conf = &oauth2.Config{Endpoint: OAuthEndpoint(domain)}
 	tok := &oauth2.Token{AccessToken: token}
 	return &apiImpl{conf.Client(oauth2.NoContext, tok), options, hostMap}
+}
+
+func init() {
+	// These are not registered in the oauth library by default
+	oauth2.RegisterBrokenAuthHeaderProvider("https://api.dropboxapi.com")
+	oauth2.RegisterBrokenAuthHeaderProvider("https://api-dbdev.dev.corp.dropbox.com")
 }

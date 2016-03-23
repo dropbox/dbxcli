@@ -8,9 +8,7 @@ before_script:
   - go vet github.com/dropbox/dbxcli
 
 script:
-  - gox -ldflags="-s -w -X main.version=${TRAVIS_TAG:-TRAVIS_COMMIT}"
-    -osarch="darwin/amd64 linux/amd64 windows/amd64"
-    -output "dist/{{.Dir}}-{{.OS}}-{{.Arch}}"
+  - ./build.sh
 
 deploy:
   provider: releases

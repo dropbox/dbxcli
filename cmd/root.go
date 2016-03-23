@@ -32,11 +32,46 @@ import (
 )
 
 const (
-	configFileName = "auth.conf"
+	configFileName = "auth.json"
 	appKey         = "7fz0ag7t20fc0nv"
 	appSecret      = "1x7b0lb2mulwmrb"
 	dropboxScheme  = "dropbox"
+
+	tokenPersonal   = "personal"
+	tokenTeamAccess = "teamAccess"
+	tokenTeamManage = "teamManage"
 )
+
+var (
+	personalAppKey      = "t99asy5qf227urb"
+	personalAppSecret   = "ua3eu130a3via0g"
+	teamAccessAppKey    = "xov98dvsbk4lsfx"
+	teamAccessAppSecret = "pflxrs3dj8g65ri"
+	teamManageAppKey    = "b5x5uoyit2ga57q"
+	teamManageAppSecret = "vlx9l450df6ebw2"
+)
+
+// Map of map of strings
+// For each domain, we want to save different tokens depending on the
+// command type: personal, team access and team manage
+type TokenMap map[string]map[string]string
+
+func oauthConfig(tokenType string, domain string) *oauth2.Config {
+	var appKey, appSecret string
+	switch tokenType {
+	case "personal":
+		appKey, appSecret = personalAppKey, personalAppSecret
+	case "teamAccess":
+		appKey, appSecret = teamAccessAppKey, teamAccessAppSecret
+	case "teamManage":
+		appKey, appSecret = teamManageAppKey, teamManageAppSecret
+	}
+	return &oauth2.Config{
+		ClientID:     appKey,
+		ClientSecret: appSecret,
+		Endpoint:     dropbox.OAuthEndpoint(domain),
+	}
+}
 
 func validatePath(p string) (path string, err error) {
 	path = p
@@ -67,50 +102,59 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 
 var dbx dropbox.Api
 
-func readToken(filePath string) (*oauth2.Token, error) {
+func readTokens(filePath string) (TokenMap, error) {
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	var tok oauth2.Token
-	if json.Unmarshal(b, &tok) != nil {
+	var tokens TokenMap
+	if json.Unmarshal(b, &tokens) != nil {
 		return nil, err
 	}
 
-	if !tok.Valid() {
-		return nil, fmt.Errorf("Token %v is no longer valid", tok)
-	}
-
-	return &tok, nil
+	return tokens, nil
 }
 
-func saveToken(filePath string, token *oauth2.Token) {
-	if _, err := os.Stat(filePath); err != nil {
-		if !os.IsNotExist(err) {
-			return
-		}
-		// create file
-		b, err := json.Marshal(token)
-		if err != nil {
-			return
-		}
+func writeTokens(filePath string, tokens TokenMap) {
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// Doesn't exist; lets create it
 		err = os.MkdirAll(filepath.Dir(filePath), 0700)
 		if err != nil {
 			return
 		}
-		if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
-			return
-		}
 	}
+
+	// At this point, file must exist. Lets (over)write it.
+	b, err := json.Marshal(tokens)
+	if err != nil {
+		return
+	}
+	if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
+		return
+	}
+}
+
+func tokenType(cmd *cobra.Command) string {
+	if cmd.Parent().Name() == "team" {
+		return tokenTeamManage
+	}
+	if asMember, _ := cmd.Flags().GetString("as-member"); asMember != "" {
+		return tokenTeamAccess
+	}
+	return tokenPersonal
 }
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
+	asMember, _ := cmd.Flags().GetString("as-member")
+	domain, _ := cmd.Flags().GetString("domain")
+
 	var options dropbox.Options
 	options.Verbose = verbose
-	asMember, _ := cmd.Flags().GetString("as-member")
 	options.AsMemberId = asMember
+	options.Domain = domain
 
 	if token, _ := cmd.Flags().GetString("token"); token != "" {
 		dbx = dropbox.Client(token, options)
@@ -122,23 +166,19 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
+	tokType := tokenType(cmd)
+	conf := oauthConfig(tokType, domain)
 
-	authDomain := os.Getenv("DROPBOX_DOMAIN")
-	if authDomain == "" {
-		authDomain = ".dropbox.com"
+	tokenMap, err := readTokens(filePath)
+	if tokenMap == nil {
+		tokenMap = make(TokenMap)
 	}
-	authUrl := fmt.Sprintf("https://www%s/1/oauth2/authorize", authDomain)
-	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", authDomain)
-	conf := &oauth2.Config{
-		ClientID:     appKey,
-		ClientSecret: appSecret,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  authUrl,
-			TokenURL: tokenUrl,
-		},
+	if tokenMap[domain] == nil {
+		tokenMap[domain] = make(map[string]string)
 	}
-	token, err := readToken(filePath)
-	if err != nil {
+	tokens := tokenMap[domain]
+
+	if err != nil || tokens[tokType] == "" {
 		fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
 		fmt.Printf("2. Click \"Allow\" (you might have to log in first).\n")
 		fmt.Printf("3. Copy the authorization code.\n")
@@ -148,14 +188,16 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		if _, err = fmt.Scan(&code); err != nil {
 			return
 		}
+		var token *oauth2.Token
 		token, err = conf.Exchange(oauth2.NoContext, code)
 		if err != nil {
 			return
 		}
-		saveToken(filePath, token)
+		tokens[tokType] = token.AccessToken
+		writeTokens(filePath, tokenMap)
 	}
 
-	dbx = dropbox.Client(token.AccessToken, options)
+	dbx = dropbox.Client(tokens[tokType], options)
 
 	return
 }
@@ -182,4 +224,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("token", "", "Access token")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
+	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
+	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
+	RootCmd.PersistentFlags().MarkHidden("domain")
 }
