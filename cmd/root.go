@@ -156,11 +156,6 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	options.AsMemberId = asMember
 	options.Domain = domain
 
-	if token, _ := cmd.Flags().GetString("token"); token != "" {
-		dbx = dropbox.Client(token, options)
-		return
-	}
-
 	dir, err := homedir.Dir()
 	if err != nil {
 		return
@@ -222,7 +217,6 @@ func Execute() {
 
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
-	RootCmd.PersistentFlags().String("token", "", "Access token")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
