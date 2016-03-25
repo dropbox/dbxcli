@@ -20,7 +20,7 @@ Download pre-compiled binaries for Mac, Windows and Linux from the https://githu
 
 [source, sh]
 ----
-$ dbxcli -h
+$ dbxcli --help
 Use dbxcli to quickly interact with your Dropbox, upload/download files,
 manage your team and more. It is easy, scriptable and works on all platforms!
 
@@ -40,11 +40,11 @@ Available Commands:
   rm          Remove files
   search      Search
   team        Team management commands
+  version     Print version information
 
 Flags:
-  -h, --help           help for dbxcli
-      --token string   Access token
-  -v, --verbose        Enable verbose logging
+      --as-member string   Member ID to perform action as
+  -v, --verbose            Enable verbose logging
 
 Use "dbxcli [command] --help" for more information about a command.
 
@@ -56,17 +56,17 @@ Usage:
 
 Available Commands:
   add-member    Add a new member to a team
+  info          Get team information
+  list-groups   List groups
   list-members  List team members
   remove-member Remove member from a team
 
 Global Flags:
-      --token string   Access token
-  -v, --verbose        Enable verbose logging
+      --as-member string   Member ID to perform action as
+  -v, --verbose            Enable verbose logging
 
 Use "dbxcli team [command] --help" for more information about a command.
 ----
-
-Note the `--token` option. This is useful for running commands with an alternate token (e.g. when using the Teams API) as well as for debugging.
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
 
