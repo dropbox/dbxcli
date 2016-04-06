@@ -90,8 +90,17 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
 	Use:   "ls",
-	Short: "List files",
-	RunE:  ls,
+	Short: "List folders",
+	Long: `List Folders.
+	Attempting ls on files will fail with 'Error: path/not_folder/.'
+
+	Examples:
+	$ dbxcli ls / # Or, dbxcli ls
+	$ dbxcli ls some-folder
+	$ dbxcli ls /some-folder # Or dbxcli ls some-folder/
+	$ dbxcli ls -l # Or, dbxcli ls --long
+	`,
+	RunE: ls,
 }
 
 func init() {
