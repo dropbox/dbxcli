@@ -7,13 +7,13 @@ WARNING: This SDK is **NOT yet official**. What does this mean?
   * There is no formal Dropbox https://www.dropbox.com/developers/support[support] for this SDK at this point
   * Bugs may or may not get fixed
   * Not all SDK features may be implemented and implemented features may be buggy or incorrect
-  
+
 
 === Uh OK, so why are you releasing this?
 
   * the SDK, while unofficial, _is_ usable. See https://github.com/dropbox/dbxcli[dbxcli] for an example application built using the SDK
   * we would like to get feedback from the community and evaluate the level of interest/enthusiasm before investing into official supporting one more SDK
- 
+
 == Installation
 
 [source,sh]
@@ -42,7 +42,7 @@ Once you've created an app, you can get an access token from the app's console. 
 import "github.com/dropbox/dropbox-sdk-go-unofficial"
 
 func main() {
-  api := dropbox.Client(token, true) // second argument enables verbose logging in the SDK
+  api := dropbox.Client(token, dropbox.Options{Verbose: true}) // second argument enables verbose logging in the SDK
   // start making API calls
 }
 ----
@@ -60,7 +60,7 @@ Each Dropbox API takes in a request type and returns a response type. For instan
   * Instantiate the argument via the `New*` convenience functions in the SDK
   * Invoke the API
   * Process the response (or handle error, as below)
-  
+
 Here's an example:
 
 [source, go]
