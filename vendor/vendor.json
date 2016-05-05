@@ -73,10 +73,10 @@
 			"revisionTime": "2015-05-21T21:15:56Z"
 		},
 		{
-			"checksumSHA1": "DkBlcsi2trRBlja1TjARKuHjYFk=",
+			"checksumSHA1": "/vtqxT0FvoKBL+79o3ydfsbEtGs=",
 			"path": "github.com/spf13/cobra",
-			"revision": "e14e47b7a916ed178f4559ebd7e625cf16410181",
-			"revisionTime": "2016-04-13T18:27:05Z"
+			"revision": "336d629de064dbb12166b46c06039dbcfb935de1",
+			"revisionTime": "2016-04-30T13:18:32Z"
 		},
 		{
 			"checksumSHA1": "s0GYwa3YNJJXON/b+6ci2Sz9mEw=",
@@ -87,20 +87,20 @@
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
 			"path": "golang.org/x/net/context",
-			"revision": "1aafd77e1e7f6849ad16a7bdeb65e3589a10b2bb",
-			"revisionTime": "2016-04-27T01:54:49Z"
+			"revision": "35ec611a141ee705590b9eb64d673f9e6dfeb1ac",
+			"revisionTime": "2016-04-28T06:05:50Z"
 		},
 		{
 			"checksumSHA1": "UtUkp2yqxAwGreQoHhrBR0Mttg4=",
 			"path": "golang.org/x/oauth2",
-			"revision": "7e9cd5d59563851383f8f81a7fbb01213709387c",
-			"revisionTime": "2016-04-15T16:12:18Z"
+			"revision": "e86e2718db89775a4604abc10a5d3a5672e7336e",
+			"revisionTime": "2016-05-04T21:09:14Z"
 		},
 		{
 			"checksumSHA1": "W/GiDqzsagBnR7/yEvxatMhUDBs=",
 			"path": "golang.org/x/oauth2/internal",
-			"revision": "7e9cd5d59563851383f8f81a7fbb01213709387c",
-			"revisionTime": "2016-04-15T16:12:18Z"
+			"revision": "e86e2718db89775a4604abc10a5d3a5672e7336e",
+			"revisionTime": "2016-05-04T21:09:14Z"
 		}
 	],
 	"rootPath": "github.com/dropbox/dbxcli"

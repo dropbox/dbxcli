@@ -43,12 +43,12 @@ const (
 )
 
 var (
-	personalAppKey      = "t99asy5qf227urb"
-	personalAppSecret   = "ua3eu130a3via0g"
-	teamAccessAppKey    = "xov98dvsbk4lsfx"
-	teamAccessAppSecret = "pflxrs3dj8g65ri"
-	teamManageAppKey    = "b5x5uoyit2ga57q"
-	teamManageAppSecret = "vlx9l450df6ebw2"
+	personalAppKey      = "mvhz183vwqibe7q"
+	personalAppSecret   = "q0kquhzgetjwcz1"
+	teamAccessAppKey    = "zud1va492pnehkc"
+	teamAccessAppSecret = "p3ginm1gy0kmj54"
+	teamManageAppKey    = "xxe04eai4wmlitv"
+	teamManageAppSecret = "t8ms714yun7nu5s"
 )
 
 // Map of map of strings
