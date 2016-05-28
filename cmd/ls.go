@@ -18,12 +18,24 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
+
+func getFileMetadata(path string) (*files.Metadata, error) {
+	arg := files.NewGetMetadataArg(path)
+
+	res, err := dbx.GetMetadata(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
 
 func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
 	if longFormat {
@@ -50,21 +62,28 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	arg := files.NewListFolderArg(path)
 
 	res, err := dbx.ListFolder(arg)
+	var entries []*files.Metadata
 	if err != nil {
-		return
-	}
-
-	entries := res.Entries
-
-	for res.HasMore {
-		arg := files.NewListFolderContinueArg(res.Cursor)
-
-		res, err = dbx.ListFolderContinue(arg)
-		if err != nil {
-			return
+		if strings.Contains(err.Error(), "path/not_folder/") {
+			metaRes, _ := getFileMetadata(path)
+			entries = []*files.Metadata{metaRes}
+			err = nil
+		} else {
+			return err
 		}
+	} else {
+		entries = res.Entries
 
-		entries = append(entries, res.Entries...)
+		for res.HasMore {
+			arg := files.NewListFolderContinueArg(res.Cursor)
+
+			res, err = dbx.ListFolderContinue(arg)
+			if err != nil {
+				return
+			}
+
+			entries = append(entries, res.Entries...)
+		}
 	}
 
 	w := new(tabwriter.Writer)
