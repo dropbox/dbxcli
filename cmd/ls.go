@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Sends a get_metadata request for a given path and returns the response
 func getFileMetadata(path string) (*files.Metadata, error) {
 	arg := files.NewGetMetadataArg(path)
 
@@ -55,7 +56,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	path := ""
 	if len(args) > 0 {
 		if path, err = validatePath(args[0]); err != nil {
-			return
+			return err
 		}
 	}
 
@@ -64,11 +65,17 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	res, err := dbx.ListFolder(arg)
 	var entries []*files.Metadata
 	if err != nil {
+		// Don't treat a "not_folder" error as fatal; recover by sending a
+		// get_metadata request for the same path and using that response instead.
 		if strings.Contains(err.Error(), "path/not_folder/") {
-			metaRes, _ := getFileMetadata(path)
+			var metaRes *files.Metadata
+			metaRes, err = getFileMetadata(path)
 			entries = []*files.Metadata{metaRes}
-			err = nil
-		} else {
+		}
+
+		// Return if there's an error other than "not_folder" or if the follow-up
+		// metadata request fails.
+		if err != nil {
 			return err
 		}
 	} else {
@@ -79,7 +86,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 			res, err = dbx.ListFolderContinue(arg)
 			if err != nil {
-				return
+				return err
 			}
 
 			entries = append(entries, res.Entries...)
@@ -103,7 +110,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 	w.Flush()
 
-	return
+	return err
 }
 
 // lsCmd represents the ls command
