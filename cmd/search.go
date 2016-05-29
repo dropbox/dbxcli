@@ -50,7 +50,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
-	Use:   "search",
+	Use:   "search [flags] <query>",
 	Short: "Search",
 	RunE:  search,
 }

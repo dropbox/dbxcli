@@ -31,7 +31,7 @@ func mv(cmd *cobra.Command, args []string) (err error) {
 
 // mvCmd represents the mv command
 var mvCmd = &cobra.Command{
-	Use:   "mv",
+	Use:   "mv [flags] <source> <target>",
 	Short: "Move files",
 	RunE:  mv,
 }

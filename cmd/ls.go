@@ -89,7 +89,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
-	Use:   "ls",
+	Use:   "ls [flags] [<path>]",
 	Short: "List folders",
 	Long: `List Folders.
 	Attempting ls on files will fail with 'Error: path/not_folder/.'

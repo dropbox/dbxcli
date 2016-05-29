@@ -38,7 +38,7 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 
 // restoreCmd represents the restore command
 var restoreCmd = &cobra.Command{
-	Use:   "restore",
+	Use:   "restore [flags] <file> <revision>",
 	Short: "Restore files",
 	RunE:  restore,
 }
