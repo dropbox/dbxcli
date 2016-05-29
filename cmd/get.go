@@ -39,6 +39,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	var dst string
 	if len(args) < 2 {
+		// If a destination is not specified use the base of the source path
 		dst = path.Base(src)
 	} else {
 		dst = args[1]
