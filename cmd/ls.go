@@ -117,14 +117,10 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 var lsCmd = &cobra.Command{
 	Use:   "ls [flags] [<path>]",
 	Short: "List files and folders",
-	Long: `List files and folders
-
-Examples:
-$ dbxcli ls / # Or just 'ls'
-$ dbxcli ls /some-folder # Or 'ls some-folder'
-$ dbxcli ls /some-folder/some-file.pdf
-$ dbxcli ls -l # Or 'ls --long'
-`,
+	Example: `  dbxcli ls / # Or just 'ls'
+  dbxcli ls /some-folder # Or 'ls some-folder'
+  dbxcli ls /some-folder/some-file.pdf
+  dbxcli ls -l`,
 	RunE: ls,
 }
 
