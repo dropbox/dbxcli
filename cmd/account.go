@@ -15,30 +15,66 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
 	"github.com/spf13/cobra"
 )
 
-func account(cmd *cobra.Command, args []string) error {
-	res, err := dbx.GetCurrentAccount()
-	if err != nil {
-		return err
+// printFullAccount prints the account details returned by GetCurrentAccount
+func printFullAccount(w *tabwriter.Writer, fa *users.FullAccount) {
+	fmt.Fprintf(w, "Logged in as %s <%s>\n\n", fa.Name.DisplayName, fa.Email)
+	fmt.Fprintf(w, "Account Id:\t%s\n", fa.AccountId)
+	fmt.Fprintf(w, "Account Type:\t%s\n", fa.AccountType.Tag)
+	fmt.Fprintf(w, "Locale:\t%s\n", fa.Locale)
+	fmt.Fprintf(w, "Referral Link:\t%s\n", fa.ReferralLink)
+	fmt.Fprintf(w, "Profile Photo Url:\t%s\n", fa.ProfilePhotoUrl)
+	fmt.Fprintf(w, "Paired Account:\t%t\n", fa.IsPaired)
+	if fa.Team != nil {
+		fmt.Fprintf(w, "Team:\n  Name:\t%s\n  Id:\t%s\n  Member Id:\t%s\n", fa.Team.Name, fa.Team.Id, fa.TeamMemberId)
 	}
+}
 
+// printBasicAccount prints the account details returned by GetAccount
+func printBasicAccount(w *tabwriter.Writer, ba *users.BasicAccount) {
+	fmt.Fprintf(w, "Name:\t%s\n", ba.Name.DisplayName)
+	if !ba.EmailVerified {
+		ba.Email += " (unverified)"
+	}
+	fmt.Fprintf(w, "Email:\t%s\n", ba.Email)
+	fmt.Fprintf(w, "Is Teammate:\t%t\n", ba.IsTeammate)
+	if ba.TeamMemberId != "" {
+		fmt.Fprintf(w, "Team Member Id:\t%s\n", ba.TeamMemberId)
+	}
+	fmt.Fprintf(w, "Profile Photo URL:\t%s\n", ba.ProfilePhotoUrl)
+}
+
+func account(cmd *cobra.Command, args []string) error {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 
-	fmt.Fprintf(w, "Logged in as %s <%s>\n\n", res.Name.DisplayName, res.Email)
-	fmt.Fprintf(w, "Account Id:\t%s\n", res.AccountId)
-	fmt.Fprintf(w, "Account Type:\t%s\n", res.AccountType.Tag)
-	fmt.Fprintf(w, "Locale:\t%s\n", res.Locale)
-	fmt.Fprintf(w, "Referral Link:\t%s\n", res.ReferralLink)
-	fmt.Fprintf(w, "Paired Account:\t%t\n", res.IsPaired)
-	if res.Team != nil {
-		fmt.Fprintf(w, "Team:\n  Name:\t%s\n  Id:\t%s\n  Member Id:\t%s\n", res.Team.Name, res.Team.Id, res.TeamMemberId)
+	switch len(args) {
+	case 0:
+		// If no arguments are provided get the current user's account
+		res, err := dbx.GetCurrentAccount()
+		if err != nil {
+			return err
+		}
+		printFullAccount(w, res)
+	case 1:
+		// Otherwise look up an account with the provided ID
+		if len(args[0]) != 40 {
+			return errors.New("account ID must be 40 characters")
+		}
+		arg := users.NewGetAccountArg(args[0])
+		res, err := dbx.GetAccount(arg)
+		if err != nil {
+			return err
+		}
+		printBasicAccount(w, res)
 	}
 
 	w.Flush()
@@ -47,9 +83,10 @@ func account(cmd *cobra.Command, args []string) error {
 }
 
 var accountCmd = &cobra.Command{
-	Use:   "account",
-	Short: "Display information about the current account",
-	RunE:  account,
+	Use:     "account [flags] [<account-id>]",
+	Short:   "Display account information",
+	Example: "  dbxcli account\n  dbxcli account dbid:xxxx",
+	RunE:    account,
 }
 
 func init() {
