@@ -36,7 +36,7 @@ func rm(cmd *cobra.Command, args []string) (err error) {
 
 // rmCmd represents the rm command
 var rmCmd = &cobra.Command{
-	Use:   "rm",
+	Use:   "rm [flags] <file>",
 	Short: "Remove files",
 	RunE:  rm,
 }

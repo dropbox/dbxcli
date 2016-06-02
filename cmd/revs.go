@@ -54,7 +54,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 // revsCmd represents the revs command
 var revsCmd = &cobra.Command{
-	Use:   "revs",
+	Use:   "revs [flags] <file>",
 	Short: "List file revisions",
 	RunE:  revs,
 }

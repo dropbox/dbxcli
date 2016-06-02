@@ -39,7 +39,7 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 
 // addMemberCmd represents the add-member command
 var addMemberCmd = &cobra.Command{
-	Use:   "add-member",
+	Use:   "add-member [flags] <email> <first-name> <last-name>",
 	Short: "Add a new member to a team",
 	RunE:  addMember,
 }

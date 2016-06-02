@@ -36,7 +36,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 // mkdirCmd represents the mkdir command
 var mkdirCmd = &cobra.Command{
-	Use:   "mkdir",
+	Use:   "mkdir [flags] <directory>",
 	Short: "Create a new directory",
 	RunE:  mkdir,
 }

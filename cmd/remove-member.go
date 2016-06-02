@@ -36,7 +36,7 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 
 // removeMemberCmd represents the remove-member command
 var removeMemberCmd = &cobra.Command{
-	Use:   "remove-member",
+	Use:   "remove-member [flags] <email>",
 	Short: "Remove member from a team",
 	RunE:  removeMember,
 }

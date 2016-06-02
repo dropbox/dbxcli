@@ -98,7 +98,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 // putCmd represents the put command
 var putCmd = &cobra.Command{
-	Use:   "put",
+	Use:   "put [flags] <source> [<target>]",
 	Short: "Upload files",
 	RunE:  put,
 }

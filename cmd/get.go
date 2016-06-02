@@ -66,7 +66,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get [flags] <source> [<target>]",
 	Short: "Download a file",
 	RunE:  get,
 }

@@ -31,7 +31,7 @@ func cp(cmd *cobra.Command, args []string) (err error) {
 
 // cpCmd represents the cp command
 var cpCmd = &cobra.Command{
-	Use:   "cp",
+	Use:   "cp [flags] <source> <target>",
 	Short: "Copy files",
 	RunE:  cp,
 }
