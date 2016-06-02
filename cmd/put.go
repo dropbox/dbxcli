@@ -63,16 +63,14 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	src := args[0]
-	if err != nil {
-		return
-	}
 
-	var dst string
-	if len(args) < 2 {
-		// If a destination is not specified use the base of the source path
-		dst = "/" + path.Base(src)
-	} else {
+	// Default `dst` to the base segment of the source path; use the second argument if provided.
+	dst := "/" + path.Base(src)
+	if len(args) == 2 {
 		dst, err = validatePath(args[1])
+		if err != nil {
+			return
+		}
 	}
 
 	contents, err := os.Open(src)
