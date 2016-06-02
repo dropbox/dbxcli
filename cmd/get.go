@@ -29,7 +29,7 @@ import (
 
 func get(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`get` requires 1 or 2 arguments")
+		return errors.New("`get` requires `src` and/or `dst` arguments")
 	}
 
 	src, err := validatePath(args[0])

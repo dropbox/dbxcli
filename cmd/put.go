@@ -59,7 +59,7 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`put` requires 1 or 2 arguments")
+		return errors.New("`put` requires `src` and/or `dst` arguments")
 	}
 
 	src := args[0]
