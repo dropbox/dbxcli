@@ -15,9 +15,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
@@ -56,10 +58,19 @@ func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (
 }
 
 func put(cmd *cobra.Command, args []string) (err error) {
+	if len(args) == 0 || len(args) > 2 {
+		return errors.New("`put` requires `src` and/or `dst` arguments")
+	}
+
 	src := args[0]
-	dst, err := validatePath(args[1])
-	if err != nil {
-		return
+
+	// Default `dst` to the base segment of the source path; use the second argument if provided.
+	dst := "/" + path.Base(src)
+	if len(args) == 2 {
+		dst, err = validatePath(args[1])
+		if err != nil {
+			return
+		}
 	}
 
 	contents, err := os.Open(src)

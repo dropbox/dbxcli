@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,11 +28,19 @@ import (
 )
 
 func get(cmd *cobra.Command, args []string) (err error) {
-	src, err := validatePath(args[0])
-	dst := args[1]
+	if len(args) == 0 || len(args) > 2 {
+		return errors.New("`get` requires `src` and/or `dst` arguments")
+	}
 
-	if dst == "" {
-		dst = path.Base(src)
+	src, err := validatePath(args[0])
+	if err != nil {
+		return
+	}
+
+	// Default `dst` to the base segment of the source path; use the second argument if provided.
+	dst := path.Base(src)
+	if len(args) == 2 {
+		dst = args[1]
 	}
 
 	arg := files.NewDownloadArg(src)
