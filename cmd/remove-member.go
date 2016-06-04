@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
@@ -22,6 +23,10 @@ import (
 )
 
 func removeMember(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`remove-member` requires an `email` argument")
+	}
+
 	email := args[0]
 	arg := team.NewMembersRemoveArg(&team.UserSelectorArg{Tag: "email", Email: email})
 	res, err := dbx.MembersRemove(arg)

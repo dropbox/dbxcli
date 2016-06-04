@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
@@ -22,6 +23,10 @@ import (
 )
 
 func addMember(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 3 {
+		return errors.New("`add-member` requires `email`, `first`, and `last` arguments")
+	}
+
 	email := args[0]
 	firstName := args[1]
 	lastName := args[2]
