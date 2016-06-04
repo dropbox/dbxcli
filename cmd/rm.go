@@ -15,11 +15,17 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/spf13/cobra"
 )
 
 func rm(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`rm` requires a `file` argument")
+	}
+
 	path, err := validatePath(args[0])
 	if err != nil {
 		return

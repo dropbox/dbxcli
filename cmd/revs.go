@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -23,6 +24,10 @@ import (
 )
 
 func revs(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`revs` requires a `file` argument")
+	}
+
 	path, err := validatePath(args[0])
 	if err != nil {
 		return

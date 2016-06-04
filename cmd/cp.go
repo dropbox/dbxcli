@@ -14,9 +14,17 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+
+	"github.com/spf13/cobra"
+)
 
 func cp(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 2 {
+		return errors.New("`cp` requires `src` and `dst` arguments")
+	}
+
 	arg, err := makeRelocationArg(args[0], args[1])
 	if err != nil {
 		return

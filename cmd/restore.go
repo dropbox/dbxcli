@@ -15,11 +15,17 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/spf13/cobra"
 )
 
 func restore(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 2 {
+		return errors.New("`restore` requires `file` and `revision` arguments")
+	}
+
 	path, err := validatePath(args[0])
 	if err != nil {
 		return

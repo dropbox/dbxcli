@@ -15,11 +15,17 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/spf13/cobra"
 )
 
 func mkdir(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`mkdir` requires a `directory` argument")
+	}
+
 	dst, err := validatePath(args[0])
 	if err != nil {
 		return

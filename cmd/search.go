@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -23,6 +24,10 @@ import (
 )
 
 func search(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`search` requires a `query` argument")
+	}
+
 	arg := files.NewSearchArg("", args[0])
 
 	res, err := dbx.Search(arg)
