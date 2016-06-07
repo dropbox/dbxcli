@@ -18,12 +18,25 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
+
+// Sends a get_metadata request for a given path and returns the response
+func getFileMetadata(path string) (*files.Metadata, error) {
+	arg := files.NewGetMetadataArg(path)
+
+	res, err := dbx.GetMetadata(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
 
 func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
 	if longFormat {
@@ -43,28 +56,41 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	path := ""
 	if len(args) > 0 {
 		if path, err = validatePath(args[0]); err != nil {
-			return
+			return err
 		}
 	}
 
 	arg := files.NewListFolderArg(path)
 
 	res, err := dbx.ListFolder(arg)
+	var entries []*files.Metadata
 	if err != nil {
-		return
-	}
-
-	entries := res.Entries
-
-	for res.HasMore {
-		arg := files.NewListFolderContinueArg(res.Cursor)
-
-		res, err = dbx.ListFolderContinue(arg)
-		if err != nil {
-			return
+		// Don't treat a "not_folder" error as fatal; recover by sending a
+		// get_metadata request for the same path and using that response instead.
+		if strings.Contains(err.Error(), "path/not_folder/") {
+			var metaRes *files.Metadata
+			metaRes, err = getFileMetadata(path)
+			entries = []*files.Metadata{metaRes}
 		}
 
-		entries = append(entries, res.Entries...)
+		// Return if there's an error other than "not_folder" or if the follow-up
+		// metadata request fails.
+		if err != nil {
+			return err
+		}
+	} else {
+		entries = res.Entries
+
+		for res.HasMore {
+			arg := files.NewListFolderContinueArg(res.Cursor)
+
+			res, err = dbx.ListFolderContinue(arg)
+			if err != nil {
+				return err
+			}
+
+			entries = append(entries, res.Entries...)
+		}
 	}
 
 	w := new(tabwriter.Writer)
@@ -84,22 +110,17 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 	w.Flush()
 
-	return
+	return err
 }
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
 	Use:   "ls [flags] [<path>]",
-	Short: "List folders",
-	Long: `List Folders.
-	Attempting ls on files will fail with 'Error: path/not_folder/.'
-
-	Examples:
-	$ dbxcli ls / # Or, dbxcli ls
-	$ dbxcli ls some-folder
-	$ dbxcli ls /some-folder # Or dbxcli ls some-folder/
-	$ dbxcli ls -l # Or, dbxcli ls --long
-	`,
+	Short: "List files and folders",
+	Example: `  dbxcli ls / # Or just 'ls'
+  dbxcli ls /some-folder # Or 'ls some-folder'
+  dbxcli ls /some-folder/some-file.pdf
+  dbxcli ls -l`,
 	RunE: ls,
 }
 
