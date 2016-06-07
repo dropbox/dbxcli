@@ -1,7 +1,58 @@
 # Change Log
 
+## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
+
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.1.0...HEAD)
+
+**Implemented enhancements:**
+
+- Support `ls` on files [\#8](https://github.com/dropbox/dbxcli/issues/8)
+
+**Closed issues:**
+
+- "Usage" section of help text is missing arguments [\#13](https://github.com/dropbox/dbxcli/issues/13)
+- `get` command panics without second argument [\#10](https://github.com/dropbox/dbxcli/issues/10)
+
+**Merged pull requests:**
+
+- Check `args` slice bounds in all commands [\#18](https://github.com/dropbox/dbxcli/pull/18) ([waits](https://github.com/waits))
+- Add argument information to "usage" section of help text [\#14](https://github.com/dropbox/dbxcli/pull/14) ([waits](https://github.com/waits))
+- Check `args` slice bounds in `get` and `put` functions [\#12](https://github.com/dropbox/dbxcli/pull/12) ([waits](https://github.com/waits))
+- Support `ls` on files [\#11](https://github.com/dropbox/dbxcli/pull/11) ([waits](https://github.com/waits))
+
+## [v1.1.0](https://github.com/dropbox/dbxcli/tree/v1.1.0) (2016-05-05)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.0.0...v1.1.0)
+
+**Closed issues:**
+
+- Bad authorization URL generated. [\#9](https://github.com/dropbox/dbxcli/issues/9)
+- Fails on most uploads and downloads [\#7](https://github.com/dropbox/dbxcli/issues/7)
+
+## [v1.0.0](https://github.com/dropbox/dbxcli/tree/v1.0.0) (2016-03-23)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.6.0...v1.0.0)
+
+## [v0.6.0](https://github.com/dropbox/dbxcli/tree/v0.6.0) (2016-03-19)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.5.0...v0.6.0)
+
+## [v0.5.0](https://github.com/dropbox/dbxcli/tree/v0.5.0) (2016-03-16)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.4.0...v0.5.0)
+
+**Closed issues:**
+
+- Improve \(or add?\) error handling [\#1](https://github.com/dropbox/dbxcli/issues/1)
+
+## [v0.4.0](https://github.com/dropbox/dbxcli/tree/v0.4.0) (2016-03-15)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.3.0...v0.4.0)
+
+## [v0.3.0](https://github.com/dropbox/dbxcli/tree/v0.3.0) (2016-03-15)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.2.0...v0.3.0)
+
 ## [v0.2.0](https://github.com/dropbox/dbxcli/tree/v0.2.0) (2016-03-14)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.1.1...v0.2.0)
+
+**Closed issues:**
+
+- Asks for authentication code on each run \[Linux\] [\#6](https://github.com/dropbox/dbxcli/issues/6)
 
 **Merged pull requests:**
 
