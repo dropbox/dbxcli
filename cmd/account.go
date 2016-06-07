@@ -53,22 +53,22 @@ func printBasicAccount(w *tabwriter.Writer, ba *users.BasicAccount) {
 }
 
 func account(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 {
+		return errors.New("`account` accepts an optional `id` argument")
+	}
+
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 
-	switch len(args) {
-	case 0:
+	if len(args) == 0 {
 		// If no arguments are provided get the current user's account
 		res, err := dbx.GetCurrentAccount()
 		if err != nil {
 			return err
 		}
 		printFullAccount(w, res)
-	case 1:
+	} else {
 		// Otherwise look up an account with the provided ID
-		if len(args[0]) != 40 {
-			return errors.New("account ID must be 40 characters")
-		}
 		arg := users.NewGetAccountArg(args[0])
 		res, err := dbx.GetAccount(arg)
 		if err != nil {
