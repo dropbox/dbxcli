@@ -27,18 +27,18 @@ func du(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	fmt.Printf("Used: %s\n", humanize.Bytes(usage.Used))
+	fmt.Printf("Used: %s\n", humanize.IBytes(usage.Used))
 	fmt.Printf("Type: %s\n", usage.Allocation.Tag)
 
 	allocation := usage.Allocation
 
 	switch allocation.Tag {
 	case "individual":
-		fmt.Printf("Allocated: %s\n", humanize.Bytes(allocation.Individual.Allocated))
+		fmt.Printf("Allocated: %s\n", humanize.IBytes(allocation.Individual.Allocated))
 	case "team":
 		fmt.Printf("Allocated: %s (Used: %s)\n",
-			humanize.Bytes(allocation.Team.Allocated),
-			humanize.Bytes(allocation.Team.Used))
+			humanize.IBytes(allocation.Team.Allocated),
+			humanize.IBytes(allocation.Team.Used))
 	}
 
 	return
