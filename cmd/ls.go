@@ -47,7 +47,7 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
-		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.Bytes(e.Size), humanize.Time(e.ServerModified))
+		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
 	}
 	fmt.Fprintf(w, "%s\n", e.Name)
 }

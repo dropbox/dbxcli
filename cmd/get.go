@@ -61,7 +61,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		Reader: contents,
 		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
 			return fmt.Sprintf("Downloading %s/%s",
-				humanize.Bytes(uint64(progress)), humanize.Bytes(uint64(total)))
+				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
 		}),
 		Size: int64(res.Size),
 	}
