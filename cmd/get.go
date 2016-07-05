@@ -42,6 +42,10 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 2 {
 		dst = args[1]
 	}
+	// If `dst` is a directory, append the source filename.
+	if f, err := os.Stat(dst); err == nil && f.IsDir() {
+		dst = path.Join(dst, path.Base(src))
+	}
 
 	arg := files.NewDownloadArg(src)
 
