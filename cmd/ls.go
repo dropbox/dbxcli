@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
+	"github.com/grantseltzer/golumns"
 	"github.com/spf13/cobra"
 )
 
@@ -100,16 +102,9 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
-	for _, e := range entries {
-		switch e.Tag {
-		case "folder":
-			printFolderMetadata(w, e.Folder, long)
-		case "file":
-			printFileMetadata(w, e.File, long)
-		}
-	}
+	entryNames := listOfEntryNames(entries)
+	golumns.Display(entryNames)
 	w.Flush()
-
 	return err
 }
 
@@ -128,4 +123,20 @@ func init() {
 	RootCmd.AddCommand(lsCmd)
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
+}
+
+func listOfEntryNames(entries []*files.Metadata) []string {
+	listOfEntryNames := []string{}
+
+	for _, entry := range entries {
+		switch entry.Tag {
+		case "folder":
+			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name+"    ")
+		case "file":
+			listOfEntryNames = append(listOfEntryNames, entry.File.Name+"    ")
+		}
+	}
+
+	sort.Strings(listOfEntryNames)
+	return listOfEntryNames
 }
