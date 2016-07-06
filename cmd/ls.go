@@ -42,14 +42,14 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 	if longFormat {
 		fmt.Fprintf(w, "-\t-\t-\t")
 	}
-	fmt.Fprintf(w, "%s\n", e.Name)
+	fmt.Fprintf(w, "%s\t\t", e.Name)
 }
 
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
 		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
 	}
-	fmt.Fprintf(w, "%s\n", e.Name)
+	fmt.Fprintf(w, "%s\t\t", e.Name)
 }
 
 func ls(cmd *cobra.Command, args []string) (err error) {
@@ -109,7 +109,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 	w.Flush()
-
+	fmt.Println()
 	return err
 }
 
