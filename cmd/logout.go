@@ -18,16 +18,35 @@ import (
 	"os"
 	"path"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
+// Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
 	dir, err := homedir.Dir()
 	if err != nil {
 		return err
 	}
 	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
+
+	tokMap, err := readTokens(filePath)
+	if err != nil {
+		return err
+	}
+
+	for domain, tokens := range tokMap {
+		for _, token := range tokens {
+			config := dropbox.Config{token, false, "", domain}
+			client := auth.New(config)
+			client.TokenRevoke()
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	err = os.Remove(filePath)
 	if err != nil {
