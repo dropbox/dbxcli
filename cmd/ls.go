@@ -17,9 +17,13 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
@@ -42,14 +46,14 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 	if longFormat {
 		fmt.Fprintf(w, "-\t-\t-\t")
 	}
-	fmt.Fprintf(w, "%s\t\t", e.Name)
+	fmt.Fprintf(w, "%s\n", e.Name)
 }
 
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
 		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
 	}
-	fmt.Fprintf(w, "%s\t\t", e.Name)
+	fmt.Fprintf(w, "%s\n", e.Name)
 }
 
 func ls(cmd *cobra.Command, args []string) (err error) {
@@ -100,16 +104,28 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
-	for _, e := range entries {
-		switch e.Tag {
-		case "folder":
-			printFolderMetadata(w, e.Folder, long)
-		case "file":
-			printFileMetadata(w, e.File, long)
-		}
+	entryNames := listOfEntryNames(entries)
+	lengths := lengthOfEntryNames(entryNames)
+	columnLength := columnLength(lengths)
+	entryNames = resizeEntries(columnLength, entryNames)
+	termWidth, err := terminalWidth()
+	if err != nil {
+		return err
 	}
+	columns := termWidth / columnLength
+	if columns == 0 {
+		columns++
+	}
+	for i, entry := range entryNames {
+		if i%columns == 0 {
+			if i != 0 {
+				fmt.Fprintf(w, "\n")
+			}
+		}
+		fmt.Fprintf(w, "%s", entry)
+	}
+	fmt.Fprintf(w, "%s", "\n")
 	w.Flush()
-	fmt.Println()
 	return err
 }
 
@@ -128,4 +144,75 @@ func init() {
 	RootCmd.AddCommand(lsCmd)
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
+}
+
+func listOfEntryNames(entries []*files.Metadata) []string {
+	listOfEntryNames := []string{}
+
+	for _, entry := range entries {
+		switch entry.Tag {
+		case "folder":
+			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name+"    ")
+		case "file":
+			listOfEntryNames = append(listOfEntryNames, entry.File.Name+"    ")
+		}
+	}
+
+	sort.Strings(listOfEntryNames)
+	return listOfEntryNames
+}
+
+func lengthOfEntryNames(listOfEntryNames []string) []int {
+	lengths := []int{}
+	for _, entry := range listOfEntryNames {
+		lengths = append(lengths, len(entry))
+	}
+	return lengths
+}
+
+func fewestColumns(lengths []int) int {
+	termWidth, _ := terminalWidth()
+
+	columns := 1
+	prevLength := 0
+	for _, length := range lengths {
+		if length+prevLength+4 < termWidth {
+			columns++
+			prevLength += length + 4
+		} else {
+			break
+		}
+	}
+	return columns
+}
+
+func columnLength(lengths []int) int {
+	sort.Ints(lengths)
+	return reverse(lengths)[0] + 4
+}
+
+func resizeEntries(fullSize int, entryNames []string) []string {
+	for i, entry := range entryNames {
+		for len(entry) != fullSize {
+			entry += " "
+		}
+		entryNames[i] = entry
+	}
+	return entryNames
+}
+
+func numberOfRows(numberOfRows, numberOfNames int) int {
+	return int(math.Ceil(float64(numberOfNames) / float64(numberOfRows)))
+}
+
+func reverse(input []int) []int {
+	if len(input) == 0 {
+		return input
+	}
+	return append(reverse(input[1:]), input[0])
+}
+
+func terminalWidth() (int, error) {
+	width, _, err := terminal.GetSize(0)
+	return width, err
 }
