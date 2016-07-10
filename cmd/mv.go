@@ -14,19 +14,53 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+	"os"
 
-func mv(cmd *cobra.Command, args []string) (err error) {
-	arg, err := makeRelocationArg(args[0], args[1])
-	if err != nil {
-		return
+	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/spf13/cobra"
+)
+
+func mv(cmd *cobra.Command, args []string) error {
+	var destination string
+	var argsToMove []string
+
+	if len(args) > 2 {
+		destination = args[len(args)-1]
+		argsToMove = args[0 : len(args)-1]
+	} else if len(args) == 2 {
+		destination = args[1]
+		argsToMove = append(argsToMove, args[0])
+	} else {
+		return fmt.Errorf("mv command requires a source and a destination")
 	}
 
-	if _, err = dbx.Move(arg); err != nil {
-		return
+	mvErrors := []error{}
+	relocationArgs := []*files.RelocationArg{}
+
+	for _, argument := range argsToMove {
+		arg, err := makeRelocationArg(argument, destination+"/"+argument)
+		if err != nil {
+			relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
+			mvErrors = append(mvErrors, relocationError)
+		} else {
+			relocationArgs = append(relocationArgs, arg)
+		}
 	}
 
-	return
+	for _, arg := range relocationArgs {
+		if _, err := dbx.Move(arg); err != nil {
+			moveError := fmt.Errorf("Move error: %v", arg)
+			mvErrors = append(mvErrors, moveError)
+		}
+	}
+
+	for _, mvError := range mvErrors {
+		fmt.Fprintf(os.Stderr, "%v\n", mvError)
+	}
+
+	return nil
 }
 
 // mvCmd represents the mv command
