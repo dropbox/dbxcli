@@ -131,9 +131,9 @@ func listOfEntryNames(entries []*files.Metadata) []string {
 	for _, entry := range entries {
 		switch entry.Tag {
 		case "folder":
-			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name+"    ")
+			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name)
 		case "file":
-			listOfEntryNames = append(listOfEntryNames, entry.File.Name+"    ")
+			listOfEntryNames = append(listOfEntryNames, entry.File.Name)
 		}
 	}
 
