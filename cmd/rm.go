@@ -22,12 +22,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func rm(cmd *cobra.Command, args []string) (err error) {
-	if len(args) != 1 {
-		return errors.New("`rm` requires a `file` argument")
-	}
-
-	path, err := validatePath(args[0])
+func removePath(rawpath string) (err error) {
+	path, err := validatePath(rawpath)
 	if err != nil {
 		return
 	}
@@ -45,8 +41,14 @@ func rm(cmd *cobra.Command, args []string) (err error) {
 	if _, err = dbx.Delete(arg); err != nil {
 		return
 	}
+	return nil
+}
 
-	return
+func rm(cmd *cobra.Command, args []string) (err error) {
+	if len(args) != 1 {
+		return errors.New("`rm` requires a `file` or `folder` argument")
+	}
+	return removePath(args[0])
 }
 
 // rmCmd represents the rm command
