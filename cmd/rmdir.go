@@ -22,40 +22,40 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func rm(cmd *cobra.Command, args []string) (err error) {
+func rmdir(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return errors.New("`rm` requires a `file` argument")
+		return errors.New("`rmdir` requires a `directory` argument")
 	}
 
 	path, err := validatePath(args[0])
 	if err != nil {
-		return
+		return err
 	}
 
 	pathMetaData, err := getFileMetadata(path)
 	if err != nil {
-		return
+		return err
 	}
-	if pathMetaData.Tag == folder {
-		return fmt.Errorf("rm: cannot remove ‘%s’: Is a directory", path)
+	if pathMetaData.Tag != folder {
+		return fmt.Errorf("rmdir: failed to remove ‘%s’: Not a directory", path)
 	}
 
 	arg := files.NewDeleteArg(path)
 
 	if _, err = dbx.Delete(arg); err != nil {
-		return
+		return err
 	}
 
-	return
+	return nil
 }
 
-// rmCmd represents the rm command
-var rmCmd = &cobra.Command{
-	Use:   "rm [flags] <file>",
-	Short: "Remove files",
-	RunE:  rm,
+// rmdirCmd represents the rmdir command
+var rmdirCmd = &cobra.Command{
+	Use:   "rmdir <directory>",
+	Short: "Remove directory",
+	RunE:  rmdir,
 }
 
 func init() {
-	RootCmd.AddCommand(rmCmd)
+	RootCmd.AddCommand(rmdirCmd)
 }
