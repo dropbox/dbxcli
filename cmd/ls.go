@@ -17,16 +17,14 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/dustin/go-humanize"
+	"github.com/grantseltzer/golumns"
 	"github.com/spf13/cobra"
 )
 
@@ -105,26 +103,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	entryNames := listOfEntryNames(entries)
-	lengths := lengthOfEntryNames(entryNames)
-	columnLength := columnLength(lengths)
-	entryNames = resizeEntries(columnLength, entryNames)
-	termWidth, err := terminalWidth()
-	if err != nil {
-		return err
-	}
-	columns := termWidth / columnLength
-	if columns == 0 {
-		columns++
-	}
-	for i, entry := range entryNames {
-		if i%columns == 0 {
-			if i != 0 {
-				fmt.Fprintf(w, "\n")
-			}
-		}
-		fmt.Fprintf(w, "%s", entry)
-	}
-	fmt.Fprintf(w, "%s", "\n")
+	golumns.Display(entryNames)
 	w.Flush()
 	return err
 }
@@ -160,59 +139,4 @@ func listOfEntryNames(entries []*files.Metadata) []string {
 
 	sort.Strings(listOfEntryNames)
 	return listOfEntryNames
-}
-
-func lengthOfEntryNames(listOfEntryNames []string) []int {
-	lengths := []int{}
-	for _, entry := range listOfEntryNames {
-		lengths = append(lengths, len(entry))
-	}
-	return lengths
-}
-
-func fewestColumns(lengths []int) int {
-	termWidth, _ := terminalWidth()
-
-	columns := 1
-	prevLength := 0
-	for _, length := range lengths {
-		if length+prevLength+4 < termWidth {
-			columns++
-			prevLength += length + 4
-		} else {
-			break
-		}
-	}
-	return columns
-}
-
-func columnLength(lengths []int) int {
-	sort.Ints(lengths)
-	return reverse(lengths)[0] + 4
-}
-
-func resizeEntries(fullSize int, entryNames []string) []string {
-	for i, entry := range entryNames {
-		for len(entry) != fullSize {
-			entry += " "
-		}
-		entryNames[i] = entry
-	}
-	return entryNames
-}
-
-func numberOfRows(numberOfRows, numberOfNames int) int {
-	return int(math.Ceil(float64(numberOfNames) / float64(numberOfRows)))
-}
-
-func reverse(input []int) []int {
-	if len(input) == 0 {
-		return input
-	}
-	return append(reverse(input[1:]), input[0])
-}
-
-func terminalWidth() (int, error) {
-	width, _, err := terminal.GetSize(0)
-	return width, err
 }
