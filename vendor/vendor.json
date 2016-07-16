@@ -55,6 +55,12 @@
 			"revisionTime": "2016-06-23T01:40:21Z"
 		},
 		{
+			"checksumSHA1": "5oDgh+T6olvkUxvrP/h2k79YC80=",
+			"path": "github.com/grantseltzer/golumns",
+			"revision": "9c1d7f44e072f135958e011eba2404a716f6dc22",
+			"revisionTime": "2016-07-15T16:06:59Z"
+		},
+		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
 			"path": "github.com/inconshreveable/mousetrap",
 			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
@@ -103,5 +109,5 @@
 			"revisionTime": "2016-07-06T23:03:55Z"
 		}
 	],
-	"rootPath": "github.com/dropbox/dbxcli"
+	"rootPath": "dbxcli"
 }
