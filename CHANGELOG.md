@@ -2,7 +2,24 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.1.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.2.0...HEAD)
+
+**Closed issues:**
+
+- Have seperate commands for `rm` and `rmdir` [\#25](https://github.com/dropbox/dbxcli/issues/25)
+- `put` command is sending wrong client\_modified timestamp [\#20](https://github.com/dropbox/dbxcli/issues/20)
+- Make `ls` list files in multiple columns [\#17](https://github.com/dropbox/dbxcli/issues/17)
+
+**Merged pull requests:**
+
+- Allow for multiple arguments to mv [\#30](https://github.com/dropbox/dbxcli/pull/30) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Split rm into rm/rmdir, added consts for dangling strings [\#28](https://github.com/dropbox/dbxcli/pull/28) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Allow providing a directory as a destination for `get` [\#22](https://github.com/dropbox/dbxcli/pull/22) ([waits](https://github.com/waits))
+- Set `client\_modified` parameter when uploading files [\#21](https://github.com/dropbox/dbxcli/pull/21) ([waits](https://github.com/waits))
+- Display file sizes using multiples of 1024 for consistency with other Dropbox apps [\#19](https://github.com/dropbox/dbxcli/pull/19) ([waits](https://github.com/waits))
+
+## [v1.2.0](https://github.com/dropbox/dbxcli/tree/v1.2.0) (2016-06-07)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.1.0...v1.2.0)
 
 **Implemented enhancements:**
 
