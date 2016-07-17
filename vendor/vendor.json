@@ -7,6 +7,12 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "A74XoXwN2gakwEWU8WzQwVEStk8=",
+			"path": "github.com/GrantSeltzer/golumns",
+			"revision": "9c1d7f44e072f135958e011eba2404a716f6dc22",
+			"revisionTime": "2016-07-15T16:06:59Z"
+		},
+		{
 			"checksumSHA1": "rhL7Byz/kUm7SwqG/cJsvcitWWA=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial",
 			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
@@ -83,6 +89,12 @@
 			"path": "github.com/spf13/pflag",
 			"revision": "367864438f1b1a3c7db4da06a2f55b144e6784e0",
 			"revisionTime": "2016-06-10T19:09:02Z"
+		},
+		{
+			"checksumSHA1": "N5fb5y92DFIP+wUhi1rSwPp9vyk=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "10c26747e67d76ad4fafe6087c6f4073c3b22942",
+			"revisionTime": "2016-07-08T18:32:35Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
