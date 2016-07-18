@@ -30,17 +30,235 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/apierror"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/properties"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/sharing"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
 )
 
 type Api interface {
+	auth.Auth
 	files.Files
 	sharing.Sharing
 	team.Team
 	users.Users
+}
+
+type wrapTokenRevoke struct {
+	apierror.ApiError
+	EndpointError struct{} `json:"error"`
+}
+
+func (dbx *apiImpl) TokenRevoke() (err error) {
+	cli := dbx.client
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "auth", "token/revoke"), nil)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapTokenRevoke
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
+type wrapAlphaGetMetadata struct {
+	apierror.ApiError
+	EndpointError *files.AlphaGetMetadataError `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGetMetadata(arg *files.AlphaGetMetadataArg) (res *files.Metadata, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "alpha/get_metadata"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGetMetadata
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAlphaUpload struct {
+	apierror.ApiError
+	EndpointError *files.UploadErrorWithProperties `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaUpload(arg *files.CommitInfoWithProperties, content io.Reader) (res *files.FileMetadata, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "alpha/upload"), content)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaUpload
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 type wrapCopy struct {
@@ -91,6 +309,158 @@ func (dbx *apiImpl) Copy(arg *files.RelocationArg) (res *files.Metadata, err err
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapCopy
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapCopyReferenceGet struct {
+	apierror.ApiError
+	EndpointError *files.GetCopyReferenceError `json:"error"`
+}
+
+func (dbx *apiImpl) CopyReferenceGet(arg *files.GetCopyReferenceArg) (res *files.GetCopyReferenceResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "copy_reference/get"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapCopyReferenceGet
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapCopyReferenceSave struct {
+	apierror.ApiError
+	EndpointError *files.SaveCopyReferenceError `json:"error"`
+}
+
+func (dbx *apiImpl) CopyReferenceSave(arg *files.SaveCopyReferenceArg) (res *files.SaveCopyReferenceResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "copy_reference/save"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapCopyReferenceSave
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -287,12 +657,12 @@ func (dbx *apiImpl) Download(arg *files.DownloadArg) (res *files.FileMetadata, c
 		return
 	}
 
-	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "download"), nil)
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "download"), bytes.NewReader(b))
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/json")
 	if dbx.options.AsMemberId != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
 	}
@@ -435,12 +805,12 @@ func (dbx *apiImpl) GetPreview(arg *files.PreviewArg) (res *files.FileMetadata, 
 		return
 	}
 
-	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "get_preview"), nil)
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "get_preview"), bytes.NewReader(b))
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/json")
 	if dbx.options.AsMemberId != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
 	}
@@ -491,6 +861,82 @@ func (dbx *apiImpl) GetPreview(arg *files.PreviewArg) (res *files.FileMetadata, 
 	return
 }
 
+type wrapGetTemporaryLink struct {
+	apierror.ApiError
+	EndpointError *files.GetTemporaryLinkError `json:"error"`
+}
+
+func (dbx *apiImpl) GetTemporaryLink(arg *files.GetTemporaryLinkArg) (res *files.GetTemporaryLinkResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "get_temporary_link"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapGetTemporaryLink
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 type wrapGetThumbnail struct {
 	apierror.ApiError
 	EndpointError *files.ThumbnailError `json:"error"`
@@ -507,12 +953,12 @@ func (dbx *apiImpl) GetThumbnail(arg *files.ThumbnailArg) (res *files.FileMetada
 		return
 	}
 
-	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "get_thumbnail"), nil)
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "get_thumbnail"), bytes.NewReader(b))
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/json")
 	if dbx.options.AsMemberId != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
 	}
@@ -1088,6 +1534,433 @@ func (dbx *apiImpl) PermanentlyDelete(arg *files.DeleteArg) (err error) {
 	return
 }
 
+type wrapPropertiesAdd struct {
+	apierror.ApiError
+	EndpointError *files.AddPropertiesError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesAdd(arg *files.PropertyGroupWithPath) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/add"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesAdd
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
+type wrapPropertiesOverwrite struct {
+	apierror.ApiError
+	EndpointError *files.InvalidPropertyGroupError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesOverwrite(arg *files.PropertyGroupWithPath) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/overwrite"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesOverwrite
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
+type wrapPropertiesRemove struct {
+	apierror.ApiError
+	EndpointError *files.RemovePropertiesError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesRemove(arg *files.RemovePropertiesArg) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/remove"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesRemove
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
+type wrapPropertiesTemplateGet struct {
+	apierror.ApiError
+	EndpointError *properties.PropertyTemplateError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg) (res *properties.GetPropertyTemplateResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/template/get"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesTemplateGet
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapPropertiesTemplateList struct {
+	apierror.ApiError
+	EndpointError *properties.PropertyTemplateError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTemplateIds, err error) {
+	cli := dbx.client
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/template/list"), nil)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesTemplateList
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapPropertiesUpdate struct {
+	apierror.ApiError
+	EndpointError *files.UpdatePropertiesError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesUpdate(arg *files.UpdatePropertyGroupArg) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "properties/update"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapPropertiesUpdate
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
 type wrapRestore struct {
 	apierror.ApiError
 	EndpointError *files.RestoreError `json:"error"`
@@ -1136,6 +2009,158 @@ func (dbx *apiImpl) Restore(arg *files.RestoreArg) (res *files.FileMetadata, err
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapRestore
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapSaveUrl struct {
+	apierror.ApiError
+	EndpointError *files.SaveUrlError `json:"error"`
+}
+
+func (dbx *apiImpl) SaveUrl(arg *files.SaveUrlArg) (res *files.SaveUrlResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "save_url"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapSaveUrl
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapSaveUrlCheckJobStatus struct {
+	apierror.ApiError
+	EndpointError *async.PollError `json:"error"`
+}
+
+func (dbx *apiImpl) SaveUrlCheckJobStatus(arg *async.PollArg) (res *files.SaveUrlJobStatus, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "files", "save_url/check_job_status"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapSaveUrlCheckJobStatus
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -1389,6 +2414,78 @@ func (dbx *apiImpl) UploadSessionAppend(arg *files.UploadSessionCursor, content 
 	return
 }
 
+type wrapUploadSessionAppendV2 struct {
+	apierror.ApiError
+	EndpointError *files.UploadSessionLookupError `json:"error"`
+}
+
+func (dbx *apiImpl) UploadSessionAppendV2(arg *files.UploadSessionAppendArg, content io.Reader) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "upload_session/append_v2"), content)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/octet-stream")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapUploadSessionAppendV2
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
 type wrapUploadSessionFinish struct {
 	apierror.ApiError
 	EndpointError *files.UploadSessionFinishError `json:"error"`
@@ -1471,14 +2568,23 @@ type wrapUploadSessionStart struct {
 	EndpointError struct{} `json:"error"`
 }
 
-func (dbx *apiImpl) UploadSessionStart(content io.Reader) (res *files.UploadSessionStartResult, err error) {
+func (dbx *apiImpl) UploadSessionStart(arg *files.UploadSessionStartArg, content io.Reader) (res *files.UploadSessionStartResult, err error) {
 	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
 
 	req, err := http.NewRequest("POST", dbx.generateURL("content", "files", "upload_session/start"), content)
 	if err != nil {
 		return
 	}
 
+	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
 	if dbx.options.AsMemberId != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
@@ -1506,6 +2612,82 @@ func (dbx *apiImpl) UploadSessionStart(content io.Reader) (res *files.UploadSess
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapUploadSessionStart
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAddFileMember struct {
+	apierror.ApiError
+	EndpointError *sharing.AddFileMemberError `json:"error"`
+}
+
+func (dbx *apiImpl) AddFileMember(arg *sharing.AddFileMemberArgs) (res []*sharing.FileMemberActionResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "add_file_member"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAddFileMember
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -1653,6 +2835,82 @@ func (dbx *apiImpl) CheckJobStatus(arg *async.PollArg) (res *sharing.JobStatus, 
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapCheckJobStatus
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapCheckRemoveMemberJobStatus struct {
+	apierror.ApiError
+	EndpointError *async.PollError `json:"error"`
+}
+
+func (dbx *apiImpl) CheckRemoveMemberJobStatus(arg *async.PollArg) (res *sharing.RemoveMemberJobStatus, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "check_remove_member_job_status"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapCheckRemoveMemberJobStatus
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -1909,6 +3167,158 @@ func (dbx *apiImpl) CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWi
 	return
 }
 
+type wrapGetFileMetadata struct {
+	apierror.ApiError
+	EndpointError *sharing.GetFileMetadataError `json:"error"`
+}
+
+func (dbx *apiImpl) GetFileMetadata(arg *sharing.GetFileMetadataArg) (res *sharing.SharedFileMetadata, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "get_file_metadata"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapGetFileMetadata
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapGetFileMetadataBatch struct {
+	apierror.ApiError
+	EndpointError *sharing.SharingUserError `json:"error"`
+}
+
+func (dbx *apiImpl) GetFileMetadataBatch(arg *sharing.GetFileMetadataBatchArg) (res []*sharing.GetFileMetadataBatchResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "get_file_metadata/batch"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapGetFileMetadataBatch
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 type wrapGetFolderMetadata struct {
 	apierror.ApiError
 	EndpointError *sharing.SharedFolderAccessError `json:"error"`
@@ -2001,12 +3411,12 @@ func (dbx *apiImpl) GetSharedLinkFile(arg *sharing.GetSharedLinkMetadataArg) (re
 		return
 	}
 
-	req, err := http.NewRequest("POST", dbx.generateURL("content", "sharing", "get_shared_link_file"), nil)
+	req, err := http.NewRequest("POST", dbx.generateURL("content", "sharing", "get_shared_link_file"), bytes.NewReader(b))
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Dropbox-API-Arg", string(b))
+	req.Header.Set("Content-Type", "application/json")
 	if dbx.options.AsMemberId != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
 	}
@@ -2181,6 +3591,234 @@ func (dbx *apiImpl) GetSharedLinks(arg *sharing.GetSharedLinksArg) (res *sharing
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapGetSharedLinks
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapListFileMembers struct {
+	apierror.ApiError
+	EndpointError *sharing.ListFileMembersError `json:"error"`
+}
+
+func (dbx *apiImpl) ListFileMembers(arg *sharing.ListFileMembersArg) (res *sharing.SharedFileMembers, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "list_file_members"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapListFileMembers
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapListFileMembersBatch struct {
+	apierror.ApiError
+	EndpointError *sharing.SharingUserError `json:"error"`
+}
+
+func (dbx *apiImpl) ListFileMembersBatch(arg *sharing.ListFileMembersBatchArg) (res []*sharing.ListFileMembersBatchResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "list_file_members/batch"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapListFileMembersBatch
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapListFileMembersContinue struct {
+	apierror.ApiError
+	EndpointError *sharing.ListFileMembersContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) ListFileMembersContinue(arg *sharing.ListFileMembersContinueArg) (res *sharing.SharedFileMembers, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "list_file_members/continue"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapListFileMembersContinue
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -2665,6 +4303,158 @@ func (dbx *apiImpl) ListMountableFoldersContinue(arg *sharing.ListFoldersContinu
 	return
 }
 
+type wrapListReceivedFiles struct {
+	apierror.ApiError
+	EndpointError *sharing.SharingUserError `json:"error"`
+}
+
+func (dbx *apiImpl) ListReceivedFiles(arg *sharing.ListFilesArg) (res *sharing.ListFilesResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "list_received_files"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapListReceivedFiles
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapListReceivedFilesContinue struct {
+	apierror.ApiError
+	EndpointError *sharing.ListFilesContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) ListReceivedFilesContinue(arg *sharing.ListFilesContinueArg) (res *sharing.ListFilesResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "list_received_files/continue"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapListReceivedFilesContinue
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 type wrapListSharedLinks struct {
 	apierror.ApiError
 	EndpointError *sharing.ListSharedLinksError `json:"error"`
@@ -2893,12 +4683,83 @@ func (dbx *apiImpl) MountFolder(arg *sharing.MountFolderArg) (res *sharing.Share
 	return
 }
 
+type wrapRelinquishFileMembership struct {
+	apierror.ApiError
+	EndpointError *sharing.RelinquishFileMembershipError `json:"error"`
+}
+
+func (dbx *apiImpl) RelinquishFileMembership(arg *sharing.RelinquishFileMembershipArg) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "relinquish_file_membership"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapRelinquishFileMembership
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
 type wrapRelinquishFolderMembership struct {
 	apierror.ApiError
 	EndpointError *sharing.RelinquishFolderMembershipError `json:"error"`
 }
 
-func (dbx *apiImpl) RelinquishFolderMembership(arg *sharing.RelinquishFolderMembershipArg) (err error) {
+func (dbx *apiImpl) RelinquishFolderMembership(arg *sharing.RelinquishFolderMembershipArg) (res *async.LaunchEmptyResult, err error) {
 	cli := dbx.client
 
 	if dbx.options.Verbose {
@@ -2961,6 +4822,163 @@ func (dbx *apiImpl) RelinquishFolderMembership(arg *sharing.RelinquishFolderMemb
 		err = apiError
 		return
 	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapRemoveFileMember struct {
+	apierror.ApiError
+	EndpointError *sharing.RemoveFileMemberError `json:"error"`
+}
+
+func (dbx *apiImpl) RemoveFileMember(arg *sharing.RemoveFileMemberArg) (res *sharing.FileMemberActionIndividualResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "remove_file_member"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapRemoveFileMember
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapRemoveFileMember2 struct {
+	apierror.ApiError
+	EndpointError *sharing.RemoveFileMemberError `json:"error"`
+}
+
+func (dbx *apiImpl) RemoveFileMember2(arg *sharing.RemoveFileMemberArg) (res *sharing.FileMemberRemoveActionResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "remove_file_member_2"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapRemoveFileMember2
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
@@ -2969,7 +4987,7 @@ type wrapRemoveFolderMember struct {
 	EndpointError *sharing.RemoveFolderMemberError `json:"error"`
 }
 
-func (dbx *apiImpl) RemoveFolderMember(arg *sharing.RemoveFolderMemberArg) (res *async.LaunchEmptyResult, err error) {
+func (dbx *apiImpl) RemoveFolderMember(arg *sharing.RemoveFolderMemberArg) (res *async.LaunchResultBase, err error) {
 	cli := dbx.client
 
 	if dbx.options.Verbose {
@@ -3329,6 +5347,77 @@ func (dbx *apiImpl) UnmountFolder(arg *sharing.UnmountFolderArg) (err error) {
 	return
 }
 
+type wrapUnshareFile struct {
+	apierror.ApiError
+	EndpointError *sharing.UnshareFileError `json:"error"`
+}
+
+func (dbx *apiImpl) UnshareFile(arg *sharing.UnshareFileArg) (err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "sharing", "unshare_file"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.AsMemberId != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.options.AsMemberId)
+	}
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapUnshareFile
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	return
+}
+
 type wrapUnshareFolder struct {
 	apierror.ApiError
 	EndpointError *sharing.UnshareFolderError `json:"error"`
@@ -3410,7 +5499,7 @@ type wrapUpdateFolderMember struct {
 	EndpointError *sharing.UpdateFolderMemberError `json:"error"`
 }
 
-func (dbx *apiImpl) UpdateFolderMember(arg *sharing.UpdateFolderMemberArg) (err error) {
+func (dbx *apiImpl) UpdateFolderMember(arg *sharing.UpdateFolderMemberArg) (res *sharing.MemberAccessLevelResult, err error) {
 	cli := dbx.client
 
 	if dbx.options.Verbose {
@@ -3473,6 +5562,11 @@ func (dbx *apiImpl) UpdateFolderMember(arg *sharing.UpdateFolderMemberArg) (err 
 		err = apiError
 		return
 	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
@@ -3552,6 +5646,371 @@ func (dbx *apiImpl) UpdateFolderPolicy(arg *sharing.UpdateFolderPolicyArg) (res 
 	return
 }
 
+type wrapAlphaGroupsCreate struct {
+	apierror.ApiError
+	EndpointError *team.GroupCreateError `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGroupsCreate(arg *team.AlphaGroupCreateArg) (res *team.AlphaGroupFullInfo, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "alpha/groups/create"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGroupsCreate
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAlphaGroupsGetInfo struct {
+	apierror.ApiError
+	EndpointError *team.GroupsGetInfoError `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGroupsGetInfo(arg *team.GroupsSelector) (res []*team.AlphaGroupsGetInfoItem, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "alpha/groups/get_info"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGroupsGetInfo
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAlphaGroupsList struct {
+	apierror.ApiError
+	EndpointError struct{} `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGroupsList(arg *team.GroupsListArg) (res *team.AlphaGroupsListResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "alpha/groups/list"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGroupsList
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAlphaGroupsListContinue struct {
+	apierror.ApiError
+	EndpointError *team.GroupsListContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGroupsListContinue(arg *team.GroupsListContinueArg) (res *team.AlphaGroupsListResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "alpha/groups/list/continue"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGroupsListContinue
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapAlphaGroupsUpdate struct {
+	apierror.ApiError
+	EndpointError *team.GroupUpdateError `json:"error"`
+}
+
+func (dbx *apiImpl) AlphaGroupsUpdate(arg *team.AlphaGroupUpdateArgs) (res *team.AlphaGroupFullInfo, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "alpha/groups/update"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapAlphaGroupsUpdate
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 type wrapDevicesListMemberDevices struct {
 	apierror.ApiError
 	EndpointError *team.ListMemberDevicesError `json:"error"`
@@ -3597,6 +6056,79 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *team.ListMemberDevicesArg) (re
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapDevicesListMemberDevices
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapDevicesListMembersDevices struct {
+	apierror.ApiError
+	EndpointError *team.ListMembersDevicesError `json:"error"`
+}
+
+func (dbx *apiImpl) DevicesListMembersDevices(arg *team.ListMembersDevicesArg) (res *team.ListMembersDevicesResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "devices/list_members_devices"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapDevicesListMembersDevices
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return
@@ -4414,6 +6946,152 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *team.GroupMembersAddArg) (res *team.Gr
 	return
 }
 
+type wrapGroupsMembersList struct {
+	apierror.ApiError
+	EndpointError *team.GroupSelectorError `json:"error"`
+}
+
+func (dbx *apiImpl) GroupsMembersList(arg *team.GroupsMembersListArg) (res *team.GroupsMembersListResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "groups/members/list"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapGroupsMembersList
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapGroupsMembersListContinue struct {
+	apierror.ApiError
+	EndpointError *team.GroupsMembersListContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) GroupsMembersListContinue(arg *team.GroupsMembersListContinueArg) (res *team.GroupsMembersListResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "groups/members/list/continue"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapGroupsMembersListContinue
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 type wrapGroupsMembersRemove struct {
 	apierror.ApiError
 	EndpointError *team.GroupMembersRemoveError `json:"error"`
@@ -4489,7 +7167,7 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *team.GroupMembersRemoveArg) (res *t
 
 type wrapGroupsMembersSetAccessType struct {
 	apierror.ApiError
-	EndpointError *team.GroupMemberSelectorError `json:"error"`
+	EndpointError *team.GroupMemberSetAccessTypeError `json:"error"`
 }
 
 func (dbx *apiImpl) GroupsMembersSetAccessType(arg *team.GroupMembersSetAccessTypeArg) (res []*team.GroupsGetInfoItem, err error) {
@@ -4678,6 +7356,79 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *team.ListMemberAppsArg) 
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
 			var errWrap wrapLinkedAppsListMemberLinkedApps
+			err = json.Unmarshal(body, &errWrap)
+			if err != nil {
+				return
+			}
+			err = errWrap
+			return
+		}
+		var apiError apierror.ApiError
+		if resp.StatusCode == 400 {
+			apiError.ErrorSummary = string(body)
+			err = apiError
+			return
+		}
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+type wrapLinkedAppsListMembersLinkedApps struct {
+	apierror.ApiError
+	EndpointError *team.ListMembersAppsError `json:"error"`
+}
+
+func (dbx *apiImpl) LinkedAppsListMembersLinkedApps(arg *team.ListMembersAppsArg) (res *team.ListMembersAppsResult, err error) {
+	cli := dbx.client
+
+	if dbx.options.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", dbx.generateURL("api", "team", "linked_apps/list_members_linked_apps"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.options.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.options.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.options.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 409 {
+			var errWrap wrapLinkedAppsListMembersLinkedApps
 			err = json.Unmarshal(body, &errWrap)
 			if err != nil {
 				return

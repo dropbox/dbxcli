@@ -29,7 +29,7 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/team_common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
 )
 
@@ -42,6 +42,77 @@ type AccessLevel struct {
 // In other words, who can add, remove, or change the privileges of members.
 type AclUpdatePolicy struct {
 	Tag string `json:".tag"`
+}
+
+// Arguments for `AddFileMember`.
+type AddFileMemberArgs struct {
+	// File to which to add members.
+	File string `json:"file"`
+	// Members to add. Note that even an email address is given, this may result in
+	// a user being directy added to the membership if that email is the user's
+	// main account email.
+	Members []*MemberSelector `json:"members"`
+	// Message to send to added members in their invitation.
+	CustomMessage string `json:"custom_message,omitempty"`
+	// Whether added members should be notified via device notifications of their
+	// invitation.
+	Quiet bool `json:"quiet"`
+	// AccessLevel union object, describing what access level we want to give new
+	// members.
+	AccessLevel *AccessLevel `json:"access_level"`
+	// If the custom message should be added as a comment on the file.
+	AddMessageAsComment bool `json:"add_message_as_comment"`
+}
+
+func NewAddFileMemberArgs(File string, Members []*MemberSelector) *AddFileMemberArgs {
+	s := new(AddFileMemberArgs)
+	s.File = File
+	s.Members = Members
+	s.Quiet = false
+	s.AccessLevel = &AccessLevel{Tag: "viewer"}
+	s.AddMessageAsComment = false
+	return s
+}
+
+// Errors for `AddFileMember`.
+type AddFileMemberError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *AddFileMemberError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 type AddFolderMemberArg struct {
@@ -366,6 +437,68 @@ func (u *CreateSharedLinkWithSettingsError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// Sharing actions that may be taken on files.
+type FileAction struct {
+	Tag string `json:".tag"`
+}
+
+type FileErrorResult struct {
+	Tag string `json:".tag"`
+	// File specified by id was not found.
+	FileNotFoundError string `json:"file_not_found_error,omitempty"`
+	// User does not have permission to take the specified action on the file.
+	InvalidFileActionError string `json:"invalid_file_action_error,omitempty"`
+	// User does not have permission to access file specified by file.Id.
+	PermissionDeniedError string `json:"permission_denied_error,omitempty"`
+}
+
+func (u *FileErrorResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// File specified by id was not found.
+		FileNotFoundError json.RawMessage `json:"file_not_found_error"`
+		// User does not have permission to take the specified action on the file.
+		InvalidFileActionError json.RawMessage `json:"invalid_file_action_error"`
+		// User does not have permission to access file specified by file.Id.
+		PermissionDeniedError json.RawMessage `json:"permission_denied_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "file_not_found_error":
+		{
+			if len(w.FileNotFoundError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.FileNotFoundError, &u.FileNotFoundError); err != nil {
+				return err
+			}
+		}
+	case "invalid_file_action_error":
+		{
+			if len(w.InvalidFileActionError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.InvalidFileActionError, &u.InvalidFileActionError); err != nil {
+				return err
+			}
+		}
+	case "permission_denied_error":
+		{
+			if len(w.PermissionDeniedError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.PermissionDeniedError, &u.PermissionDeniedError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // The metadata of a shared link
 type SharedLinkMetadata struct {
 	Tag    string              `json:".tag"`
@@ -452,6 +585,130 @@ func NewFileLinkMetadata(Url string, Name string, LinkPermissions *LinkPermissio
 	return s
 }
 
+type FileMemberActionError struct {
+	Tag string `json:".tag"`
+}
+
+type FileMemberActionIndividualResult struct {
+	Tag string `json:".tag"`
+	// Member was successfully removed from this file. If AccessLevel is given, the
+	// member still has access via a parent shared folder.
+	Success *AccessLevel `json:"success,omitempty"`
+	// User was not able to remove this member.
+	MemberError *FileMemberActionError `json:"member_error,omitempty"`
+}
+
+func (u *FileMemberActionIndividualResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Member was successfully removed from this file. If AccessLevel is given,
+		// the member still has access via a parent shared folder.
+		Success json.RawMessage `json:"success,omitempty"`
+		// User was not able to remove this member.
+		MemberError json.RawMessage `json:"member_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "success":
+		{
+			if len(w.Success) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Success, &u.Success); err != nil {
+				return err
+			}
+		}
+	case "member_error":
+		{
+			if len(w.MemberError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Per-member result for `RemoveFileMember2` or `AddFileMember`.
+type FileMemberActionResult struct {
+	// One of specified input members.
+	Member *MemberSelector `json:"member"`
+	// The outcome of the action on this member.
+	Result *FileMemberActionIndividualResult `json:"result"`
+}
+
+func NewFileMemberActionResult(Member *MemberSelector, Result *FileMemberActionIndividualResult) *FileMemberActionResult {
+	s := new(FileMemberActionResult)
+	s.Member = Member
+	s.Result = Result
+	return s
+}
+
+type FileMemberRemoveActionResult struct {
+	Tag string `json:".tag"`
+	// Member was successfully removed from this file.
+	Success *MemberAccessLevelResult `json:"success,omitempty"`
+	// User was not able to remove this member.
+	MemberError *FileMemberActionError `json:"member_error,omitempty"`
+}
+
+func (u *FileMemberRemoveActionResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Member was successfully removed from this file.
+		Success json.RawMessage `json:"success"`
+		// User was not able to remove this member.
+		MemberError json.RawMessage `json:"member_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "success":
+		{
+			if err := json.Unmarshal(body, &u.Success); err != nil {
+				return err
+			}
+		}
+	case "member_error":
+		{
+			if len(w.MemberError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Whether the user is allowed to take the sharing action on the file.
+type FilePermission struct {
+	// The action that the user may wish to take on the file.
+	Action *FileAction `json:"action"`
+	// True if the user is allowed to take the action.
+	Allow bool `json:"allow"`
+	// The reason why the user is denied the permission. Not present if the action
+	// is allowed
+	Reason *PermissionDeniedReason `json:"reason,omitempty"`
+}
+
+func NewFilePermission(Action *FileAction, Allow bool) *FilePermission {
+	s := new(FilePermission)
+	s.Action = Action
+	s.Allow = Allow
+	return s
+}
+
 // Actions that may be taken on shared folders.
 type FolderAction struct {
 	Tag string `json:".tag"`
@@ -532,10 +789,138 @@ func NewFolderPolicy(AclUpdatePolicy *AclUpdatePolicy, SharedLinkPolicy *SharedL
 	return s
 }
 
+// Arguments of `GetFileMetadata`
+type GetFileMetadataArg struct {
+	// The file to query.
+	File string `json:"file"`
+	// File actions to query.
+	Actions []*FileAction `json:"actions,omitempty"`
+}
+
+func NewGetFileMetadataArg(File string) *GetFileMetadataArg {
+	s := new(GetFileMetadataArg)
+	s.File = File
+	return s
+}
+
+// Arguments of `GetFileMetadataBatch`
+type GetFileMetadataBatchArg struct {
+	// The files to query.
+	Files []string `json:"files"`
+	// File actions to query.
+	Actions []*FileAction `json:"actions,omitempty"`
+}
+
+func NewGetFileMetadataBatchArg(Files []string) *GetFileMetadataBatchArg {
+	s := new(GetFileMetadataBatchArg)
+	s.Files = Files
+	return s
+}
+
+// Per file results of `GetFileMetadataBatch`
+type GetFileMetadataBatchResult struct {
+	// This is the input file identifier corresponding to one of
+	// `GetFileMetadataBatchArg.files`.
+	File string `json:"file"`
+	// The result for this particular file
+	Result *GetFileMetadataIndividualResult `json:"result"`
+}
+
+func NewGetFileMetadataBatchResult(File string, Result *GetFileMetadataIndividualResult) *GetFileMetadataBatchResult {
+	s := new(GetFileMetadataBatchResult)
+	s.File = File
+	s.Result = Result
+	return s
+}
+
+// Error result for `GetFileMetadata`.
+type GetFileMetadataError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *GetFileMetadataError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type GetFileMetadataIndividualResult struct {
+	Tag string `json:".tag"`
+	// The result for this file if it was successful.
+	Metadata *SharedFileMetadata `json:"metadata,omitempty"`
+	// The result for this file if it was an error.
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *GetFileMetadataIndividualResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// The result for this file if it was successful.
+		Metadata json.RawMessage `json:"metadata"`
+		// The result for this file if it was an error.
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "metadata":
+		{
+			if err := json.Unmarshal(body, &u.Metadata); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type GetMetadataArgs struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Folder actions to query.
+	// This is a list indicating whether the returned folder data will include a
+	// boolean value  `FolderPermission.allow` that describes whether the current
+	// user can perform the  FolderAction on the folder.
 	Actions []*FolderAction `json:"actions,omitempty"`
 }
 
@@ -625,28 +1010,30 @@ func NewGetSharedLinksResult(Links []*LinkMetadata) *GetSharedLinksResult {
 type GroupInfo struct {
 	GroupName string `json:"group_name"`
 	GroupId   string `json:"group_id"`
-	// The number of members in the group.
-	MemberCount uint32 `json:"member_count"`
 	// The type of group.
-	GroupType *team.GroupType `json:"group_type"`
+	GroupType *team_common.GroupType `json:"group_type"`
+	// If the current user is an owner of the group.
+	IsOwner bool `json:"is_owner"`
 	// If the group is owned by the current user's team.
 	SameTeam bool `json:"same_team"`
 	// External ID of group. This is an arbitrary ID that an admin can attach to a
 	// group.
 	GroupExternalId string `json:"group_external_id,omitempty"`
+	// The number of members in the group.
+	MemberCount uint32 `json:"member_count,omitempty"`
 }
 
-func NewGroupInfo(GroupName string, GroupId string, MemberCount uint32, GroupType *team.GroupType, SameTeam bool) *GroupInfo {
+func NewGroupInfo(GroupName string, GroupId string, GroupType *team_common.GroupType, IsOwner bool, SameTeam bool) *GroupInfo {
 	s := new(GroupInfo)
 	s.GroupName = GroupName
 	s.GroupId = GroupId
-	s.MemberCount = MemberCount
 	s.GroupType = GroupType
+	s.IsOwner = IsOwner
 	s.SameTeam = SameTeam
 	return s
 }
 
-// The information about a member of the shared folder.
+// The information about a member of the shared content.
 type MembershipInfo struct {
 	// The access type for this member.
 	AccessType *AccessLevel `json:"access_type"`
@@ -655,7 +1042,7 @@ type MembershipInfo struct {
 	Permissions []*MemberPermission `json:"permissions,omitempty"`
 	// Suggested name initials for a member.
 	Initials string `json:"initials,omitempty"`
-	// True if the member's access to the file is inherited from a parent folder.
+	// True if the member has access from a parent folder.
 	IsInherited bool `json:"is_inherited"`
 }
 
@@ -666,7 +1053,7 @@ func NewMembershipInfo(AccessType *AccessLevel) *MembershipInfo {
 	return s
 }
 
-// The information about a group member of the shared folder.
+// The information about a group member of the shared content.
 type GroupMembershipInfo struct {
 	// The access type for this member.
 	AccessType *AccessLevel `json:"access_type"`
@@ -677,7 +1064,7 @@ type GroupMembershipInfo struct {
 	Permissions []*MemberPermission `json:"permissions,omitempty"`
 	// Suggested name initials for a member.
 	Initials string `json:"initials,omitempty"`
-	// True if the member's access to the file is inherited from a parent folder.
+	// True if the member has access from a parent folder.
 	IsInherited bool `json:"is_inherited"`
 }
 
@@ -689,7 +1076,7 @@ func NewGroupMembershipInfo(AccessType *AccessLevel, Group *GroupInfo) *GroupMem
 	return s
 }
 
-// The information about a user invited to become a member a shared folder.
+// Information about the recipient of a shared content invitation.
 type InviteeInfo struct {
 	Tag string `json:".tag"`
 	// E-mail address of invited user.
@@ -721,19 +1108,21 @@ func (u *InviteeInfo) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// The information about a user invited to become a member of a shared folder.
+// Information about an invited member of a shared content.
 type InviteeMembershipInfo struct {
 	// The access type for this member.
 	AccessType *AccessLevel `json:"access_type"`
-	// The information for the invited user.
+	// Recipient of the invitation.
 	Invitee *InviteeInfo `json:"invitee"`
 	// The permissions that requesting user has on this member. The set of
 	// permissions corresponds to the MemberActions in the request.
 	Permissions []*MemberPermission `json:"permissions,omitempty"`
 	// Suggested name initials for a member.
 	Initials string `json:"initials,omitempty"`
-	// True if the member's access to the file is inherited from a parent folder.
+	// True if the member has access from a parent folder.
 	IsInherited bool `json:"is_inherited"`
+	// The user this invitation is tied to, if available.
+	User *UserInfo `json:"user,omitempty"`
 }
 
 func NewInviteeMembershipInfo(AccessType *AccessLevel, Invitee *InviteeInfo) *InviteeMembershipInfo {
@@ -752,6 +1141,8 @@ type JobError struct {
 	UnshareFolderError *UnshareFolderError `json:"unshare_folder_error,omitempty"`
 	// Error occurred while performing `RemoveFolderMember` action.
 	RemoveFolderMemberError *RemoveFolderMemberError `json:"remove_folder_member_error,omitempty"`
+	// Error occurred while performing `RelinquishFolderMembership` action.
+	RelinquishFolderMembershipError *RelinquishFolderMembershipError `json:"relinquish_folder_membership_error,omitempty"`
 }
 
 func (u *JobError) UnmarshalJSON(body []byte) error {
@@ -761,6 +1152,8 @@ func (u *JobError) UnmarshalJSON(body []byte) error {
 		UnshareFolderError json.RawMessage `json:"unshare_folder_error"`
 		// Error occurred while performing `RemoveFolderMember` action.
 		RemoveFolderMemberError json.RawMessage `json:"remove_folder_member_error"`
+		// Error occurred while performing `RelinquishFolderMembership` action.
+		RelinquishFolderMembershipError json.RawMessage `json:"relinquish_folder_membership_error"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
@@ -783,6 +1176,15 @@ func (u *JobError) UnmarshalJSON(body []byte) error {
 				break
 			}
 			if err := json.Unmarshal(w.RemoveFolderMemberError, &u.RemoveFolderMemberError); err != nil {
+				return err
+			}
+		}
+	case "relinquish_folder_membership_error":
+		{
+			if len(w.RelinquishFolderMembershipError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.RelinquishFolderMembershipError, &u.RelinquishFolderMembershipError); err != nil {
 				return err
 			}
 		}
@@ -846,8 +1248,285 @@ func NewLinkPermissions(CanRevoke bool) *LinkPermissions {
 	return s
 }
 
+// Arguments for `ListFileMembers`.
+type ListFileMembersArg struct {
+	// The file for which you want to see members.
+	File string `json:"file"`
+	// The actions for which to return permissions on a member
+	Actions []*MemberAction `json:"actions,omitempty"`
+	// Whether to include members who only have access from a parent shared folder.
+	IncludeInherited bool `json:"include_inherited"`
+	// Number of members to return max per query. Defaults to 100 if no limit is
+	// specified.
+	Limit uint32 `json:"limit"`
+}
+
+func NewListFileMembersArg(File string) *ListFileMembersArg {
+	s := new(ListFileMembersArg)
+	s.File = File
+	s.IncludeInherited = true
+	s.Limit = 100
+	return s
+}
+
+// Arguments for `ListFileMembersBatch`.
+type ListFileMembersBatchArg struct {
+	// Files for which to return members.
+	Files []string `json:"files"`
+	// Number of members to return max per query. Defaults to 10 if no limit is
+	// specified.
+	Limit uint32 `json:"limit"`
+}
+
+func NewListFileMembersBatchArg(Files []string) *ListFileMembersBatchArg {
+	s := new(ListFileMembersBatchArg)
+	s.Files = Files
+	s.Limit = 10
+	return s
+}
+
+// Per-file result for `ListFileMembersBatch`.
+type ListFileMembersBatchResult struct {
+	// This is the input file identifier, whether an ID or a path.
+	File string `json:"file"`
+	// The result for this particular file
+	Result *ListFileMembersIndividualResult `json:"result"`
+}
+
+func NewListFileMembersBatchResult(File string, Result *ListFileMembersIndividualResult) *ListFileMembersBatchResult {
+	s := new(ListFileMembersBatchResult)
+	s.File = File
+	s.Result = Result
+	return s
+}
+
+// Arguments for `ListFileMembersContinue`.
+type ListFileMembersContinueArg struct {
+	// The cursor returned by your last call to `ListFileMembers`,
+	// `ListFileMembersContinue`, or `ListFileMembersBatch`.
+	Cursor string `json:"cursor"`
+}
+
+func NewListFileMembersContinueArg(Cursor string) *ListFileMembersContinueArg {
+	s := new(ListFileMembersContinueArg)
+	s.Cursor = Cursor
+	return s
+}
+
+// Error for `ListFileMembersContinue`.
+type ListFileMembersContinueError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *ListFileMembersContinueError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type ListFileMembersCountResult struct {
+	// A list of members on this file.
+	Members *SharedFileMembers `json:"members"`
+	// The number of members on this file. This does not include inherited members
+	MemberCount uint32 `json:"member_count"`
+}
+
+func NewListFileMembersCountResult(Members *SharedFileMembers, MemberCount uint32) *ListFileMembersCountResult {
+	s := new(ListFileMembersCountResult)
+	s.Members = Members
+	s.MemberCount = MemberCount
+	return s
+}
+
+// Error for `ListFileMembers`.
+type ListFileMembersError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *ListFileMembersError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type ListFileMembersIndividualResult struct {
+	Tag string `json:".tag"`
+	// The results of the query for this file if it was successful
+	Result *ListFileMembersCountResult `json:"result,omitempty"`
+	// The result of the query for this file if it was an error.
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *ListFileMembersIndividualResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// The results of the query for this file if it was successful
+		Result json.RawMessage `json:"result"`
+		// The result of the query for this file if it was an error.
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "result":
+		{
+			if err := json.Unmarshal(body, &u.Result); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Arguments for `ListReceivedFiles`.
+type ListFilesArg struct {
+	// Number of files to return max per query. Defaults to 100 if no limit is
+	// specified.
+	Limit uint32 `json:"limit"`
+	// File actions to query.
+	Actions []*FileAction `json:"actions,omitempty"`
+}
+
+func NewListFilesArg() *ListFilesArg {
+	s := new(ListFilesArg)
+	s.Limit = 100
+	return s
+}
+
+// Arguments for `ListReceivedFilesContinue`.
+type ListFilesContinueArg struct {
+	// Cursor in `ListFilesResult.cursor`
+	Cursor string `json:"cursor"`
+}
+
+func NewListFilesContinueArg(Cursor string) *ListFilesContinueArg {
+	s := new(ListFilesContinueArg)
+	s.Cursor = Cursor
+	return s
+}
+
+// Error results for `ListReceivedFilesContinue`.
+type ListFilesContinueError struct {
+	Tag string `json:".tag"`
+	// User account had a problem.
+	UserError *SharingUserError `json:"user_error,omitempty"`
+}
+
+func (u *ListFilesContinueError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// User account had a problem.
+		UserError json.RawMessage `json:"user_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Success results for `ListReceivedFiles`.
+type ListFilesResult struct {
+	// Information about the files shared with current user.
+	Entries []*SharedFileMetadata `json:"entries"`
+	// Cursor used to obtain additional shared files.
+	Cursor string `json:"cursor,omitempty"`
+}
+
+func NewListFilesResult(Entries []*SharedFileMetadata) *ListFilesResult {
+	s := new(ListFilesResult)
+	s.Entries = Entries
+	return s
+}
+
 type ListFolderMembersCursorArg struct {
-	// Member actions to query.
+	// This is a list indicating whether each returned member will include a
+	// boolean value `MemberPermission.allow` that describes whether the current
+	// user can perform the MemberAction on the member.
 	Actions []*MemberAction `json:"actions,omitempty"`
 	// The maximum number of results that include members, groups and invitees to
 	// return per request.
@@ -863,7 +1542,9 @@ func NewListFolderMembersCursorArg() *ListFolderMembersCursorArg {
 type ListFolderMembersArgs struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Member actions to query.
+	// This is a list indicating whether each returned member will include a
+	// boolean value `MemberPermission.allow` that describes whether the current
+	// user can perform the MemberAction on the member.
 	Actions []*MemberAction `json:"actions,omitempty"`
 	// The maximum number of results that include members, groups and invitees to
 	// return per request.
@@ -921,7 +1602,9 @@ func (u *ListFolderMembersContinueError) UnmarshalJSON(body []byte) error {
 type ListFoldersArgs struct {
 	// The maximum number of results to return per request.
 	Limit uint32 `json:"limit"`
-	// Folder actions to query.
+	// This is a list indicating whether each returned folder data entry will
+	// include a boolean field `FolderPermission.allow` that describes whether the
+	// current user can perform the `FolderAction` on the folder.
 	Actions []*FolderAction `json:"actions,omitempty"`
 }
 
@@ -1027,6 +1710,22 @@ func NewListSharedLinksResult(Links []*SharedLinkMetadata, HasMore bool) *ListSh
 	return s
 }
 
+// Contains information about a member's access level to content after an
+// operation.
+type MemberAccessLevelResult struct {
+	// The member still has this level of access to the content through a parent
+	// folder.
+	AccessLevel *AccessLevel `json:"access_level,omitempty"`
+	// A localized string with additional information about why the user has this
+	// access level to the content.
+	Warning string `json:"warning,omitempty"`
+}
+
+func NewMemberAccessLevelResult() *MemberAccessLevelResult {
+	s := new(MemberAccessLevelResult)
+	return s
+}
+
 // Actions that may be taken on members of a shared folder.
 type MemberAction struct {
 	Tag string `json:".tag"`
@@ -1106,12 +1805,15 @@ type ModifySharedLinkSettingsArgs struct {
 	Url string `json:"url"`
 	// Set of settings for the shared link.
 	Settings *SharedLinkSettings `json:"settings"`
+	// If set to true, removes the expiration of the shared link.
+	RemoveExpiration bool `json:"remove_expiration"`
 }
 
 func NewModifySharedLinkSettingsArgs(Url string, Settings *SharedLinkSettings) *ModifySharedLinkSettingsArgs {
 	s := new(ModifySharedLinkSettingsArgs)
 	s.Url = Url
 	s.Settings = Settings
+	s.RemoveExpiration = false
 	return s
 }
 
@@ -1217,14 +1919,57 @@ type PermissionDeniedReason struct {
 	Tag string `json:".tag"`
 }
 
+type RelinquishFileMembershipArg struct {
+	// The path or id for the file.
+	File string `json:"file"`
+}
+
+func NewRelinquishFileMembershipArg(File string) *RelinquishFileMembershipArg {
+	s := new(RelinquishFileMembershipArg)
+	s.File = File
+	return s
+}
+
+type RelinquishFileMembershipError struct {
+	Tag         string                  `json:".tag"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *RelinquishFileMembershipError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type RelinquishFolderMembershipArg struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
+	// Keep a copy of the folder's contents upon relinquishing membership.
+	LeaveACopy bool `json:"leave_a_copy"`
 }
 
 func NewRelinquishFolderMembershipArg(SharedFolderId string) *RelinquishFolderMembershipArg {
 	s := new(RelinquishFolderMembershipArg)
 	s.SharedFolderId = SharedFolderId
+	s.LeaveACopy = false
 	return s
 }
 
@@ -1244,6 +1989,64 @@ func (u *RelinquishFolderMembershipError) UnmarshalJSON(body []byte) error {
 	}
 	u.Tag = w.Tag
 	switch w.Tag {
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Arguments for `RemoveFileMember2`.
+type RemoveFileMemberArg struct {
+	// File from which to remove members.
+	File string `json:"file"`
+	// Member to remove from this file. Note that even if an email is specified, it
+	// may result in the removal of a user (not an invitee) if the user's main
+	// account corresponds to that email address.
+	Member *MemberSelector `json:"member"`
+}
+
+func NewRemoveFileMemberArg(File string, Member *MemberSelector) *RemoveFileMemberArg {
+	s := new(RemoveFileMemberArg)
+	s.File = File
+	s.Member = Member
+	return s
+}
+
+// Errors for `RemoveFileMember2`.
+type RemoveFileMemberError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *RemoveFileMemberError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
 	case "access_error":
 		{
 			if len(w.AccessError) == 0 {
@@ -1316,6 +2119,47 @@ func (u *RemoveFolderMemberError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+type RemoveMemberJobStatus struct {
+	Tag string `json:".tag"`
+	// Removing the folder member has finished. The value is information about
+	// whether the member has another form of access.
+	Complete *MemberAccessLevelResult `json:"complete,omitempty"`
+	Failed   *RemoveFolderMemberError `json:"failed,omitempty"`
+}
+
+func (u *RemoveMemberJobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Removing the folder member has finished. The value is information about
+		// whether the member has another form of access.
+		Complete json.RawMessage `json:"complete"`
+		Failed   json.RawMessage `json:"failed"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "complete":
+		{
+			if err := json.Unmarshal(body, &u.Complete); err != nil {
+				return err
+			}
+		}
+	case "failed":
+		{
+			if len(w.Failed) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // The access permission that can be requested by the caller for the shared
 // link. Note that the final resolved visibility of the shared link takes into
 // account other aspects, such as team and shared folder settings. Check the
@@ -1375,13 +2219,13 @@ func NewShareFolderArg(Path string) *ShareFolderArg {
 	return s
 }
 
-type ShareFolderError struct {
+type ShareFolderErrorBase struct {
 	Tag string `json:".tag"`
 	// `ShareFolderArg.path` is invalid.
 	BadPath *SharePathError `json:"bad_path,omitempty"`
 }
 
-func (u *ShareFolderError) UnmarshalJSON(body []byte) error {
+func (u *ShareFolderErrorBase) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		Tag string `json:".tag"`
 		// `ShareFolderArg.path` is invalid.
@@ -1404,6 +2248,10 @@ func (u *ShareFolderError) UnmarshalJSON(body []byte) error {
 		}
 	}
 	return nil
+}
+
+type ShareFolderError struct {
+	Tag string `json:".tag"`
 }
 
 type ShareFolderJobStatus struct {
@@ -1473,6 +2321,94 @@ func (u *ShareFolderLaunch) UnmarshalJSON(body []byte) error {
 
 type SharePathError struct {
 	Tag string `json:".tag"`
+	// Folder is already shared. Contains metadata about the existing shared
+	// folder.
+	AlreadyShared *SharedFolderMetadata `json:"already_shared,omitempty"`
+}
+
+func (u *SharePathError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Folder is already shared. Contains metadata about the existing shared
+		// folder.
+		AlreadyShared json.RawMessage `json:"already_shared"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "already_shared":
+		{
+			if err := json.Unmarshal(body, &u.AlreadyShared); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Shared file user, group, and invitee membership. Used for the results of
+// `ListFileMembers` and `ListFileMembersContinue`, and used as part of the
+// results for `ListFileMembersBatch`.
+type SharedFileMembers struct {
+	// The list of user members of the shared file.
+	Users []*UserMembershipInfo `json:"users"`
+	// The list of group members of the shared file.
+	Groups []*GroupMembershipInfo `json:"groups"`
+	// The list of invited members of a file, but have not logged in and claimed
+	// this.
+	Invitees []*InviteeMembershipInfo `json:"invitees"`
+	// Present if there are additional shared file members that have not been
+	// returned yet. Pass the cursor into `ListFileMembersContinue` to list
+	// additional members.
+	Cursor string `json:"cursor,omitempty"`
+}
+
+func NewSharedFileMembers(Users []*UserMembershipInfo, Groups []*GroupMembershipInfo, Invitees []*InviteeMembershipInfo) *SharedFileMembers {
+	s := new(SharedFileMembers)
+	s.Users = Users
+	s.Groups = Groups
+	s.Invitees = Invitees
+	return s
+}
+
+// Properties of the shared file.
+type SharedFileMetadata struct {
+	// Policies governing this shared file.
+	Policy *FolderPolicy `json:"policy"`
+	// URL for displaying a web preview of the shared file.
+	PreviewUrl string `json:"preview_url"`
+	// The name of this file.
+	Name string `json:"name"`
+	// The ID of the file.
+	Id string `json:"id"`
+	// The sharing permissions that requesting user has on this file. This
+	// corresponds to the entries given in `GetFileMetadataBatchArg.actions` or
+	// `GetFileMetadataArg.actions`.
+	Permissions []*FilePermission `json:"permissions,omitempty"`
+	// The team that owns the file. This field is not present if the file is not
+	// owned by a team.
+	OwnerTeam *users.Team `json:"owner_team,omitempty"`
+	// The ID of the parent shared folder. This field is present only if the file
+	// is contained within a shared folder.
+	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
+	// The lower-case full path of this file. Absent for unmounted files.
+	PathLower string `json:"path_lower,omitempty"`
+	// The cased path to be used for display purposes only. In rare instances the
+	// casing will not correctly match the user's filesystem, but this behavior
+	// will match the path provided in the Core API v1. Absent for unmounted files.
+	PathDisplay string `json:"path_display,omitempty"`
+}
+
+func NewSharedFileMetadata(Policy *FolderPolicy, PreviewUrl string, Name string, Id string) *SharedFileMetadata {
+	s := new(SharedFileMetadata)
+	s.Policy = Policy
+	s.PreviewUrl = PreviewUrl
+	s.Name = Name
+	s.Id = Id
+	return s
 }
 
 // There is an error accessing the shared folder.
@@ -1490,8 +2426,7 @@ type SharedFolderMembers struct {
 	Users []*UserMembershipInfo `json:"users"`
 	// The list of group members of the shared folder.
 	Groups []*GroupMembershipInfo `json:"groups"`
-	// The list of invited members of the shared folder. This list will not include
-	// invitees that have already accepted or declined to join the shared folder.
+	// The list of invitees to the shared folder.
 	Invitees []*InviteeMembershipInfo `json:"invitees"`
 	// Present if there are additional shared folder members that have not been
 	// returned yet. Pass the cursor into `ListFolderMembersContinue` to list
@@ -1516,9 +2451,6 @@ type SharedFolderMetadataBase struct {
 	IsTeamFolder bool `json:"is_team_folder"`
 	// Policies governing this shared folder.
 	Policy *FolderPolicy `json:"policy"`
-	// Actions the current user may perform on the folder and its contents. The set
-	// of permissions corresponds to the FolderActions in the request.
-	Permissions []*FolderPermission `json:"permissions,omitempty"`
 	// The team that owns the folder. This field is not present if the folder is
 	// not owned by a team.
 	OwnerTeam *users.Team `json:"owner_team,omitempty"`
@@ -1548,9 +2480,9 @@ type SharedFolderMetadata struct {
 	Name string `json:"name"`
 	// The ID of the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
-	// Actions the current user may perform on the folder and its contents. The set
-	// of permissions corresponds to the FolderActions in the request.
-	Permissions []*FolderPermission `json:"permissions,omitempty"`
+	// Timestamp indicating when the current user was invited to this shared
+	// folder.
+	TimeInvited time.Time `json:"time_invited"`
 	// The team that owns the folder. This field is not present if the folder is
 	// not owned by a team.
 	OwnerTeam *users.Team `json:"owner_team,omitempty"`
@@ -1560,15 +2492,19 @@ type SharedFolderMetadata struct {
 	// The lower-cased full path of this shared folder. Absent for unmounted
 	// folders.
 	PathLower string `json:"path_lower,omitempty"`
+	// Actions the current user may perform on the folder and its contents. The set
+	// of permissions corresponds to the FolderActions in the request.
+	Permissions []*FolderPermission `json:"permissions,omitempty"`
 }
 
-func NewSharedFolderMetadata(AccessType *AccessLevel, IsTeamFolder bool, Policy *FolderPolicy, Name string, SharedFolderId string) *SharedFolderMetadata {
+func NewSharedFolderMetadata(AccessType *AccessLevel, IsTeamFolder bool, Policy *FolderPolicy, Name string, SharedFolderId string, TimeInvited time.Time) *SharedFolderMetadata {
 	s := new(SharedFolderMetadata)
 	s.AccessType = AccessType
 	s.IsTeamFolder = IsTeamFolder
 	s.Policy = Policy
 	s.Name = Name
 	s.SharedFolderId = SharedFolderId
+	s.TimeInvited = TimeInvited
 	return s
 }
 
@@ -1597,6 +2533,16 @@ func NewSharedLinkSettings() *SharedLinkSettings {
 }
 
 type SharedLinkSettingsError struct {
+	Tag string `json:".tag"`
+}
+
+// User could not access this file.
+type SharingFileAccessError struct {
+	Tag string `json:".tag"`
+}
+
+// User account had a problem preventing this action.
+type SharingUserError struct {
 	Tag string `json:".tag"`
 }
 
@@ -1701,6 +2647,59 @@ func (u *UnmountFolderError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// Arguments for `UnshareFile`.
+type UnshareFileArg struct {
+	// The file to unshare.
+	File string `json:"file"`
+}
+
+func NewUnshareFileArg(File string) *UnshareFileArg {
+	s := new(UnshareFileArg)
+	s.File = File
+	return s
+}
+
+// Error result for `UnshareFile`.
+type UnshareFileError struct {
+	Tag         string                  `json:".tag"`
+	UserError   *SharingUserError       `json:"user_error,omitempty"`
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
+}
+
+func (u *UnshareFileError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag         string          `json:".tag"`
+		UserError   json.RawMessage `json:"user_error"`
+		AccessError json.RawMessage `json:"access_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "user_error":
+		{
+			if len(w.UserError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+				return err
+			}
+		}
+	case "access_error":
+		{
+			if len(w.AccessError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type UnshareFolderArg struct {
 	// The ID for the shared folder.
 	SharedFolderId string `json:"shared_folder_id"`
@@ -1768,6 +2767,9 @@ type UpdateFolderMemberError struct {
 	Tag         string                   `json:".tag"`
 	AccessError *SharedFolderAccessError `json:"access_error,omitempty"`
 	MemberError *SharedFolderMemberError `json:"member_error,omitempty"`
+	// If updating the access type required the member to be added to the shared
+	// folder and there was an error when adding the member.
+	NoExplicitAccess *AddFolderMemberError `json:"no_explicit_access,omitempty"`
 }
 
 func (u *UpdateFolderMemberError) UnmarshalJSON(body []byte) error {
@@ -1775,6 +2777,9 @@ func (u *UpdateFolderMemberError) UnmarshalJSON(body []byte) error {
 		Tag         string          `json:".tag"`
 		AccessError json.RawMessage `json:"access_error"`
 		MemberError json.RawMessage `json:"member_error"`
+		// If updating the access type required the member to be added to the shared
+		// folder and there was an error when adding the member.
+		NoExplicitAccess json.RawMessage `json:"no_explicit_access"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
@@ -1797,6 +2802,15 @@ func (u *UpdateFolderMemberError) UnmarshalJSON(body []byte) error {
 				break
 			}
 			if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+				return err
+			}
+		}
+	case "no_explicit_access":
+		{
+			if len(w.NoExplicitAccess) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.NoExplicitAccess, &u.NoExplicitAccess); err != nil {
 				return err
 			}
 		}
@@ -1873,7 +2887,7 @@ func NewUserInfo(AccountId string, SameTeam bool) *UserInfo {
 	return s
 }
 
-// The information about a user member of the shared folder.
+// The information about a user member of the shared content.
 type UserMembershipInfo struct {
 	// The access type for this member.
 	AccessType *AccessLevel `json:"access_type"`
@@ -1884,7 +2898,7 @@ type UserMembershipInfo struct {
 	Permissions []*MemberPermission `json:"permissions,omitempty"`
 	// Suggested name initials for a member.
 	Initials string `json:"initials,omitempty"`
-	// True if the member's access to the file is inherited from a parent folder.
+	// True if the member has access from a parent folder.
 	IsInherited bool `json:"is_inherited"`
 }
 
@@ -1904,20 +2918,21 @@ type Visibility struct {
 }
 
 type Sharing interface {
+	// Adds specified members to a file.
+	AddFileMember(arg *AddFileMemberArgs) (res []*FileMemberActionResult, err error)
 	// Allows an owner or editor (if the ACL update policy allows) of a shared
 	// folder to add another member. For the new member to get access to all the
 	// functionality for this folder, you will need to call `MountFolder` on their
-	// behalf. Apps must have full Dropbox access to use this endpoint. Warning:
-	// This endpoint is in beta and is subject to minor but possibly
-	// backwards-incompatible changes.
+	// behalf. Apps must have full Dropbox access to use this endpoint.
 	AddFolderMember(arg *AddFolderMemberArg) (err error)
 	// Returns the status of an asynchronous job. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
+	// access to use this endpoint.
 	CheckJobStatus(arg *async.PollArg) (res *JobStatus, err error)
 	// Returns the status of an asynchronous job for sharing a folder. Apps must
-	// have full Dropbox access to use this endpoint. Warning: This endpoint is in
-	// beta and is subject to minor but possibly backwards-incompatible changes.
+	// have full Dropbox access to use this endpoint.
+	CheckRemoveMemberJobStatus(arg *async.PollArg) (res *RemoveMemberJobStatus, err error)
+	// Returns the status of an asynchronous job for sharing a folder. Apps must
+	// have full Dropbox access to use this endpoint.
 	CheckShareJobStatus(arg *async.PollArg) (res *ShareFolderJobStatus, err error)
 	// Create a shared link. If a shared link already exists for the given path,
 	// that link is returned. Note that in the returned `PathLinkMetadata`, the
@@ -1933,9 +2948,12 @@ type Sharing interface {
 	// though, may depend on other aspects such as team and shared folder
 	// settings).
 	CreateSharedLinkWithSettings(arg *CreateSharedLinkWithSettingsArg) (res *SharedLinkMetadata, err error)
+	// Returns shared file metadata.
+	GetFileMetadata(arg *GetFileMetadataArg) (res *SharedFileMetadata, err error)
+	// Returns shared file metadata.
+	GetFileMetadataBatch(arg *GetFileMetadataBatchArg) (res []*GetFileMetadataBatchResult, err error)
 	// Returns shared folder metadata by its folder ID. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
+	// access to use this endpoint.
 	GetFolderMetadata(arg *GetMetadataArgs) (res *SharedFolderMetadata, err error)
 	// Download the shared link's file from a user's Dropbox.
 	GetSharedLinkFile(arg *GetSharedLinkMetadataArg) (res *SharedLinkMetadata, content io.ReadCloser, err error)
@@ -1948,25 +2966,33 @@ type Sharing interface {
 	// access to the given path.  Collection links are never returned in this case.
 	// Note that the url field in the response is never the shortened URL.
 	GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksResult, err error)
+	// Use to obtain the members who have been invited to a file, both inherited
+	// and uninherited members.
+	ListFileMembers(arg *ListFileMembersArg) (res *SharedFileMembers, err error)
+	// Get members of multiple files at once. The arguments to this route are more
+	// limited, and the limit on query result size per file is more strict. To
+	// customize the results more, use the individual file endpoint. Inherited
+	// users are not included in the result, and permissions are not returned for
+	// this endpoint.
+	ListFileMembersBatch(arg *ListFileMembersBatchArg) (res []*ListFileMembersBatchResult, err error)
+	// Once a cursor has been retrieved from `ListFileMembers` or
+	// `ListFileMembersBatch`, use this to paginate through all shared file
+	// members.
+	ListFileMembersContinue(arg *ListFileMembersContinueArg) (res *SharedFileMembers, err error)
 	// Returns shared folder membership by its folder ID. Apps must have full
-	// Dropbox access to use this endpoint. Warning: This endpoint is in beta and
-	// is subject to minor but possibly backwards-incompatible changes.
+	// Dropbox access to use this endpoint.
 	ListFolderMembers(arg *ListFolderMembersArgs) (res *SharedFolderMembers, err error)
 	// Once a cursor has been retrieved from `ListFolderMembers`, use this to
 	// paginate through all shared folder members. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
+	// access to use this endpoint.
 	ListFolderMembersContinue(arg *ListFolderMembersContinueArg) (res *SharedFolderMembers, err error)
 	// Return the list of all shared folders the current user has access to. Apps
-	// must have full Dropbox access to use this endpoint. Warning: This endpoint
-	// is in beta and is subject to minor but possibly backwards-incompatible
-	// changes.
+	// must have full Dropbox access to use this endpoint.
 	ListFolders(arg *ListFoldersArgs) (res *ListFoldersResult, err error)
 	// Once a cursor has been retrieved from `ListFolders`, use this to paginate
 	// through all shared folders. The cursor must come from a previous call to
 	// `ListFolders` or `ListFoldersContinue`. Apps must have full Dropbox access
-	// to use this endpoint. Warning: This endpoint is in beta and is subject to
-	// minor but possibly backwards-incompatible changes.
+	// to use this endpoint.
 	ListFoldersContinue(arg *ListFoldersContinueArg) (res *ListFoldersResult, err error)
 	// Return the list of all shared folders the current user can mount or unmount.
 	// Apps must have full Dropbox access to use this endpoint.
@@ -1976,6 +3002,12 @@ type Sharing interface {
 	// previous call to `ListMountableFolders` or `ListMountableFoldersContinue`.
 	// Apps must have full Dropbox access to use this endpoint.
 	ListMountableFoldersContinue(arg *ListFoldersContinueArg) (res *ListFoldersResult, err error)
+	// Returns a list of all files shared with current user.  Does not include
+	// files the user has received via shared folders, and does  not include
+	// unclaimed invitations.
+	ListReceivedFiles(arg *ListFilesArg) (res *ListFilesResult, err error)
+	// Get more results with a cursor from `ListReceivedFiles`.
+	ListReceivedFilesContinue(arg *ListFilesContinueArg) (res *ListFilesResult, err error)
 	// List shared links of this user. If no path is given or the path is empty,
 	// returns a list of all shared links for the current user. If a non-empty path
 	// is given, returns a list of all shared links that allow access to the given
@@ -1994,20 +3026,26 @@ type Sharing interface {
 	// The current user mounts the designated folder. Mount a shared folder for a
 	// user after they have been added as a member. Once mounted, the shared folder
 	// will appear in their Dropbox. Apps must have full Dropbox access to use this
-	// endpoint. Warning: This endpoint is in beta and is subject to minor but
-	// possibly backwards-incompatible changes.
+	// endpoint.
 	MountFolder(arg *MountFolderArg) (res *SharedFolderMetadata, err error)
+	// The current user relinquishes their membership in the designated file. Note
+	// that the current user may still have inherited access to this file through
+	// the parent folder. Apps must have full Dropbox access to use this endpoint.
+	RelinquishFileMembership(arg *RelinquishFileMembershipArg) (err error)
 	// The current user relinquishes their membership in the designated shared
 	// folder and will no longer have access to the folder.  A folder owner cannot
-	// relinquish membership in their own folder. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
-	RelinquishFolderMembership(arg *RelinquishFolderMembershipArg) (err error)
+	// relinquish membership in their own folder. This will run synchronously if
+	// leave_a_copy is false, and asynchronously if leave_a_copy is true. Apps must
+	// have full Dropbox access to use this endpoint.
+	RelinquishFolderMembership(arg *RelinquishFolderMembershipArg) (res *async.LaunchEmptyResult, err error)
+	// Identical to remove_file_member_2 but with less information returned.
+	RemoveFileMember(arg *RemoveFileMemberArg) (res *FileMemberActionIndividualResult, err error)
+	// Removes a specified member from the file.
+	RemoveFileMember2(arg *RemoveFileMemberArg) (res *FileMemberRemoveActionResult, err error)
 	// Allows an owner or editor (if the ACL update policy allows) of a shared
 	// folder to remove another member. Apps must have full Dropbox access to use
-	// this endpoint. Warning: This endpoint is in beta and is subject to minor but
-	// possibly backwards-incompatible changes.
-	RemoveFolderMember(arg *RemoveFolderMemberArg) (res *async.LaunchEmptyResult, err error)
+	// this endpoint.
+	RemoveFolderMember(arg *RemoveFolderMemberArg) (res *async.LaunchResultBase, err error)
 	// Revoke a shared link. Note that even after revoking a shared link to a file,
 	// the file may be accessible if there are shared links leading to any of the
 	// file parent folders. To list all shared links that enable access to a
@@ -2019,36 +3057,27 @@ type Sharing interface {
 	// testing the async case repeatable, set `ShareFolderArg.force_async`. If a
 	// `ShareFolderLaunch.async_job_id` is returned, you'll need to call
 	// `CheckShareJobStatus` until the action completes to get the metadata for the
-	// folder. Apps must have full Dropbox access to use this endpoint. Warning:
-	// This endpoint is in beta and is subject to minor but possibly
-	// backwards-incompatible changes.
+	// folder. Apps must have full Dropbox access to use this endpoint.
 	ShareFolder(arg *ShareFolderArg) (res *ShareFolderLaunch, err error)
 	// Transfer ownership of a shared folder to a member of the shared folder. User
 	// must have `AccessLevel.owner` access to the shared folder to perform a
-	// transfer. Apps must have full Dropbox access to use this endpoint. Warning:
-	// This endpoint is in beta and is subject to minor but possibly
-	// backwards-incompatible changes.
+	// transfer. Apps must have full Dropbox access to use this endpoint.
 	TransferFolder(arg *TransferFolderArg) (err error)
 	// The current user unmounts the designated folder. They can re-mount the
 	// folder at a later time using `MountFolder`. Apps must have full Dropbox
-	// access to use this endpoint. Warning: This endpoint is in beta and is
-	// subject to minor but possibly backwards-incompatible changes.
+	// access to use this endpoint.
 	UnmountFolder(arg *UnmountFolderArg) (err error)
+	// Remove all members from this file. Does not remove inherited members.
+	UnshareFile(arg *UnshareFileArg) (err error)
 	// Allows a shared folder owner to unshare the folder. You'll need to call
 	// `CheckJobStatus` to determine if the action has completed successfully. Apps
-	// must have full Dropbox access to use this endpoint. Warning: This endpoint
-	// is in beta and is subject to minor but possibly backwards-incompatible
-	// changes.
+	// must have full Dropbox access to use this endpoint.
 	UnshareFolder(arg *UnshareFolderArg) (res *async.LaunchEmptyResult, err error)
 	// Allows an owner or editor of a shared folder to update another member's
 	// permissions. Apps must have full Dropbox access to use this endpoint.
-	// Warning: This endpoint is in beta and is subject to minor but possibly
-	// backwards-incompatible changes.
-	UpdateFolderMember(arg *UpdateFolderMemberArg) (err error)
+	UpdateFolderMember(arg *UpdateFolderMemberArg) (res *MemberAccessLevelResult, err error)
 	// Update the sharing policies for a shared folder. User must have
 	// `AccessLevel.owner` access to the shared folder to update its policies. Apps
-	// must have full Dropbox access to use this endpoint. Warning: This endpoint
-	// is in beta and is subject to minor but possibly backwards-incompatible
-	// changes.
+	// must have full Dropbox access to use this endpoint.
 	UpdateFolderPolicy(arg *UpdateFolderPolicyArg) (res *SharedFolderMetadata, err error)
 }

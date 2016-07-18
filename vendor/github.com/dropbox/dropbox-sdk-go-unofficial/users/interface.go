@@ -21,7 +21,11 @@
 // This namespace contains endpoints and data types for user management.
 package users
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/team_policies"
+)
 
 // The amount of detail revealed about an account depends on the user being
 // queried and the user making the query.
@@ -36,16 +40,19 @@ type Account struct {
 	Email string `json:"email"`
 	// Whether the user has verified their e-mail address.
 	EmailVerified bool `json:"email_verified"`
+	// Whether the user has been disabled.
+	Disabled bool `json:"disabled"`
 	// URL for the photo representing the user, if one is set.
 	ProfilePhotoUrl string `json:"profile_photo_url,omitempty"`
 }
 
-func NewAccount(AccountId string, Name *Name, Email string, EmailVerified bool) *Account {
+func NewAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Disabled bool) *Account {
 	s := new(Account)
 	s.AccountId = AccountId
 	s.Name = Name
 	s.Email = Email
 	s.EmailVerified = EmailVerified
+	s.Disabled = Disabled
 	return s
 }
 
@@ -66,6 +73,8 @@ type BasicAccount struct {
 	Email string `json:"email"`
 	// Whether the user has verified their e-mail address.
 	EmailVerified bool `json:"email_verified"`
+	// Whether the user has been disabled.
+	Disabled bool `json:"disabled"`
 	// Whether this user is a teammate of the current user. If this account is the
 	// current user's account, then this will be `True`.
 	IsTeammate bool `json:"is_teammate"`
@@ -76,12 +85,13 @@ type BasicAccount struct {
 	TeamMemberId string `json:"team_member_id,omitempty"`
 }
 
-func NewBasicAccount(AccountId string, Name *Name, Email string, EmailVerified bool, IsTeammate bool) *BasicAccount {
+func NewBasicAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Disabled bool, IsTeammate bool) *BasicAccount {
 	s := new(BasicAccount)
 	s.AccountId = AccountId
 	s.Name = Name
 	s.Email = Email
 	s.EmailVerified = EmailVerified
+	s.Disabled = Disabled
 	s.IsTeammate = IsTeammate
 	return s
 }
@@ -98,6 +108,8 @@ type FullAccount struct {
 	Email string `json:"email"`
 	// Whether the user has verified their e-mail address.
 	EmailVerified bool `json:"email_verified"`
+	// Whether the user has been disabled.
+	Disabled bool `json:"disabled"`
 	// The language that the user specified. Locale tags will be `IETF language
 	// tags` <http://en.wikipedia.org/wiki/IETF_language_tag>.
 	Locale string `json:"locale"`
@@ -115,22 +127,56 @@ type FullAccount struct {
 	// `ISO 3166-1` <http://en.wikipedia.org/wiki/ISO_3166-1>.
 	Country string `json:"country,omitempty"`
 	// If this account is a member of a team, information about that team.
-	Team *Team `json:"team,omitempty"`
+	Team *FullTeam `json:"team,omitempty"`
 	// This account's unique team member id. This field will only be present if
 	// `team` is present.
 	TeamMemberId string `json:"team_member_id,omitempty"`
 }
 
-func NewFullAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Locale string, ReferralLink string, IsPaired bool, AccountType *AccountType) *FullAccount {
+func NewFullAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Disabled bool, Locale string, ReferralLink string, IsPaired bool, AccountType *AccountType) *FullAccount {
 	s := new(FullAccount)
 	s.AccountId = AccountId
 	s.Name = Name
 	s.Email = Email
 	s.EmailVerified = EmailVerified
+	s.Disabled = Disabled
 	s.Locale = Locale
 	s.ReferralLink = ReferralLink
 	s.IsPaired = IsPaired
 	s.AccountType = AccountType
+	return s
+}
+
+// Information about a team.
+type Team struct {
+	// The team's unique ID.
+	Id string `json:"id"`
+	// The name of the team.
+	Name string `json:"name"`
+}
+
+func NewTeam(Id string, Name string) *Team {
+	s := new(Team)
+	s.Id = Id
+	s.Name = Name
+	return s
+}
+
+// Detailed information about a team.
+type FullTeam struct {
+	// The team's unique ID.
+	Id string `json:"id"`
+	// The name of the team.
+	Name string `json:"name"`
+	// Team policies governing sharing.
+	SharingPolicies *team_policies.TeamSharingPolicies `json:"sharing_policies"`
+}
+
+func NewFullTeam(Id string, Name string, SharingPolicies *team_policies.TeamSharingPolicies) *FullTeam {
+	s := new(FullTeam)
+	s.Id = Id
+	s.Name = Name
+	s.SharingPolicies = SharingPolicies
 	return s
 }
 
@@ -280,21 +326,6 @@ func NewSpaceUsage(Used uint64, Allocation *SpaceAllocation) *SpaceUsage {
 	s := new(SpaceUsage)
 	s.Used = Used
 	s.Allocation = Allocation
-	return s
-}
-
-// Information about a team.
-type Team struct {
-	// The team's unique ID.
-	Id string `json:"id"`
-	// The name of the team.
-	Name string `json:"name"`
-}
-
-func NewTeam(Id string, Name string) *Team {
-	s := new(Team)
-	s.Id = Id
-	s.Name = Name
 	return s
 }
 

@@ -25,7 +25,152 @@ import (
 	"encoding/json"
 	"io"
 	"time"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/properties"
 )
+
+type PropertiesError struct {
+	Tag  string       `json:".tag"`
+	Path *LookupError `json:"path,omitempty"`
+}
+
+func (u *PropertiesError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag  string          `json:".tag"`
+		Path json.RawMessage `json:"path"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "path":
+		{
+			if len(w.Path) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type InvalidPropertyGroupError struct {
+	Tag string `json:".tag"`
+}
+
+type AddPropertiesError struct {
+	Tag string `json:".tag"`
+}
+
+type GetMetadataArg struct {
+	// The path of a file or folder on Dropbox.
+	Path string `json:"path"`
+	// If true, `FileMetadata.media_info` is set for photo and video.
+	IncludeMediaInfo bool `json:"include_media_info"`
+	// If true, `DeletedMetadata` will be returned for deleted file or folder,
+	// otherwise `LookupError.not_found` will be returned.
+	IncludeDeleted bool `json:"include_deleted"`
+	// If true, the results will include a flag for each file indicating whether or
+	// not  that file has any explicit members.
+	IncludeHasExplicitSharedMembers bool `json:"include_has_explicit_shared_members"`
+}
+
+func NewGetMetadataArg(Path string) *GetMetadataArg {
+	s := new(GetMetadataArg)
+	s.Path = Path
+	s.IncludeMediaInfo = false
+	s.IncludeDeleted = false
+	s.IncludeHasExplicitSharedMembers = false
+	return s
+}
+
+type AlphaGetMetadataArg struct {
+	// The path of a file or folder on Dropbox.
+	Path string `json:"path"`
+	// If true, `FileMetadata.media_info` is set for photo and video.
+	IncludeMediaInfo bool `json:"include_media_info"`
+	// If true, `DeletedMetadata` will be returned for deleted file or folder,
+	// otherwise `LookupError.not_found` will be returned.
+	IncludeDeleted bool `json:"include_deleted"`
+	// If true, the results will include a flag for each file indicating whether or
+	// not  that file has any explicit members.
+	IncludeHasExplicitSharedMembers bool `json:"include_has_explicit_shared_members"`
+	// If true, `FileMetadata.property_groups` is set for files with custom
+	// properties.
+	IncludePropertyTemplates []string `json:"include_property_templates,omitempty"`
+}
+
+func NewAlphaGetMetadataArg(Path string) *AlphaGetMetadataArg {
+	s := new(AlphaGetMetadataArg)
+	s.Path = Path
+	s.IncludeMediaInfo = false
+	s.IncludeDeleted = false
+	s.IncludeHasExplicitSharedMembers = false
+	return s
+}
+
+type GetMetadataError struct {
+	Tag  string       `json:".tag"`
+	Path *LookupError `json:"path,omitempty"`
+}
+
+func (u *GetMetadataError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag  string          `json:".tag"`
+		Path json.RawMessage `json:"path"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "path":
+		{
+			if len(w.Path) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type AlphaGetMetadataError struct {
+	Tag             string                 `json:".tag"`
+	PropertiesError *LookUpPropertiesError `json:"properties_error,omitempty"`
+}
+
+func (u *AlphaGetMetadataError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag             string          `json:".tag"`
+		PropertiesError json.RawMessage `json:"properties_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "properties_error":
+		{
+			if len(w.PropertiesError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.PropertiesError, &u.PropertiesError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 type CommitInfo struct {
 	// Path in the user's Dropbox to save the file.
@@ -49,6 +194,37 @@ type CommitInfo struct {
 
 func NewCommitInfo(Path string) *CommitInfo {
 	s := new(CommitInfo)
+	s.Path = Path
+	s.Mode = &WriteMode{Tag: "add"}
+	s.Autorename = false
+	s.Mute = false
+	return s
+}
+
+type CommitInfoWithProperties struct {
+	// Path in the user's Dropbox to save the file.
+	Path string `json:"path"`
+	// Selects what to do if the file already exists.
+	Mode *WriteMode `json:"mode"`
+	// If there's a conflict, as determined by `mode`, have the Dropbox server try
+	// to autorename the file to avoid conflict.
+	Autorename bool `json:"autorename"`
+	// The value to store as the `client_modified` timestamp. Dropbox automatically
+	// records the time at which the file was written to the Dropbox servers. It
+	// can also record an additional timestamp, provided by Dropbox desktop
+	// clients, mobile clients, and API apps of when the file was actually created
+	// or modified.
+	ClientModified time.Time `json:"client_modified,omitempty"`
+	// Normally, users are made aware of any file modifications in their Dropbox
+	// account via notifications in the client software. If `True`, this tells the
+	// clients that this modification shouldn't result in a user notification.
+	Mute bool `json:"mute"`
+	// List of custom properties to add to file.
+	PropertyGroups []*properties.PropertyGroup `json:"property_groups,omitempty"`
+}
+
+func NewCommitInfoWithProperties(Path string) *CommitInfoWithProperties {
+	s := new(CommitInfoWithProperties)
 	s.Path = Path
 	s.Mode = &WriteMode{Tag: "add"}
 	s.Autorename = false
@@ -197,23 +373,22 @@ type DeletedMetadata struct {
 	// slash.
 	Name string `json:"name"`
 	// The lowercased full path in the user's Dropbox. This always starts with a
-	// slash.
-	PathLower string `json:"path_lower"`
+	// slash. This field will be null if the file or folder is not mounted.
+	PathLower string `json:"path_lower,omitempty"`
 	// The cased path to be used for display purposes only. In rare instances the
 	// casing will not correctly match the user's filesystem, but this behavior
 	// will match the path provided in the Core API v1. Changes to the casing of
-	// paths won't be returned by `ListFolderContinue`
-	PathDisplay string `json:"path_display"`
+	// paths won't be returned by `ListFolderContinue`. This field will be null if
+	// the file or folder is not mounted.
+	PathDisplay string `json:"path_display,omitempty"`
 	// Deprecated. Please use `FileSharingInfo.parent_shared_folder_id` or
 	// `FolderSharingInfo.parent_shared_folder_id` instead.
 	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
 }
 
-func NewDeletedMetadata(Name string, PathLower string, PathDisplay string) *DeletedMetadata {
+func NewDeletedMetadata(Name string) *DeletedMetadata {
 	s := new(DeletedMetadata)
 	s.Name = Name
-	s.PathLower = PathLower
-	s.PathDisplay = PathDisplay
 	return s
 }
 
@@ -278,14 +453,6 @@ type FileMetadata struct {
 	// The last component of the path (including extension). This never contains a
 	// slash.
 	Name string `json:"name"`
-	// The lowercased full path in the user's Dropbox. This always starts with a
-	// slash.
-	PathLower string `json:"path_lower"`
-	// The cased path to be used for display purposes only. In rare instances the
-	// casing will not correctly match the user's filesystem, but this behavior
-	// will match the path provided in the Core API v1. Changes to the casing of
-	// paths won't be returned by `ListFolderContinue`
-	PathDisplay string `json:"path_display"`
 	// A unique identifier for the file.
 	Id string `json:"id"`
 	// For files, this is the modification time set by the desktop client when the
@@ -302,6 +469,15 @@ type FileMetadata struct {
 	Rev string `json:"rev"`
 	// The file size in bytes.
 	Size uint64 `json:"size"`
+	// The lowercased full path in the user's Dropbox. This always starts with a
+	// slash. This field will be null if the file or folder is not mounted.
+	PathLower string `json:"path_lower,omitempty"`
+	// The cased path to be used for display purposes only. In rare instances the
+	// casing will not correctly match the user's filesystem, but this behavior
+	// will match the path provided in the Core API v1. Changes to the casing of
+	// paths won't be returned by `ListFolderContinue`. This field will be null if
+	// the file or folder is not mounted.
+	PathDisplay string `json:"path_display,omitempty"`
 	// Deprecated. Please use `FileSharingInfo.parent_shared_folder_id` or
 	// `FolderSharingInfo.parent_shared_folder_id` instead.
 	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
@@ -309,13 +485,20 @@ type FileMetadata struct {
 	MediaInfo *MediaInfo `json:"media_info,omitempty"`
 	// Set if this file is contained in a shared folder.
 	SharingInfo *FileSharingInfo `json:"sharing_info,omitempty"`
+	// Additional information if the file has custom properties with the property
+	// template specified.
+	PropertyGroups []*properties.PropertyGroup `json:"property_groups,omitempty"`
+	// This flag will only be present if include_has_explicit_shared_members  is
+	// true in `ListFolder` or `GetMetadata`. If this  flag is present, it will be
+	// true if this file has any explicit shared  members. This is different from
+	// sharing_info in that this could be true  in the case where a file has
+	// explicit members but is not contained within  a shared folder.
+	HasExplicitSharedMembers bool `json:"has_explicit_shared_members,omitempty"`
 }
 
-func NewFileMetadata(Name string, PathLower string, PathDisplay string, Id string, ClientModified time.Time, ServerModified time.Time, Rev string, Size uint64) *FileMetadata {
+func NewFileMetadata(Name string, Id string, ClientModified time.Time, ServerModified time.Time, Rev string, Size uint64) *FileMetadata {
 	s := new(FileMetadata)
 	s.Name = Name
-	s.PathLower = PathLower
-	s.PathDisplay = PathDisplay
 	s.Id = Id
 	s.ClientModified = ClientModified
 	s.ServerModified = ServerModified
@@ -358,16 +541,17 @@ type FolderMetadata struct {
 	// The last component of the path (including extension). This never contains a
 	// slash.
 	Name string `json:"name"`
+	// A unique identifier for the folder.
+	Id string `json:"id"`
 	// The lowercased full path in the user's Dropbox. This always starts with a
-	// slash.
-	PathLower string `json:"path_lower"`
+	// slash. This field will be null if the file or folder is not mounted.
+	PathLower string `json:"path_lower,omitempty"`
 	// The cased path to be used for display purposes only. In rare instances the
 	// casing will not correctly match the user's filesystem, but this behavior
 	// will match the path provided in the Core API v1. Changes to the casing of
-	// paths won't be returned by `ListFolderContinue`
-	PathDisplay string `json:"path_display"`
-	// A unique identifier for the folder.
-	Id string `json:"id"`
+	// paths won't be returned by `ListFolderContinue`. This field will be null if
+	// the file or folder is not mounted.
+	PathDisplay string `json:"path_display,omitempty"`
 	// Deprecated. Please use `FileSharingInfo.parent_shared_folder_id` or
 	// `FolderSharingInfo.parent_shared_folder_id` instead.
 	ParentSharedFolderId string `json:"parent_shared_folder_id,omitempty"`
@@ -376,13 +560,14 @@ type FolderMetadata struct {
 	// Set if the folder is contained in a shared folder or is a shared folder
 	// mount point.
 	SharingInfo *FolderSharingInfo `json:"sharing_info,omitempty"`
+	// Additional information if the file has custom properties with the property
+	// template specified.
+	PropertyGroups []*properties.PropertyGroup `json:"property_groups,omitempty"`
 }
 
-func NewFolderMetadata(Name string, PathLower string, PathDisplay string, Id string) *FolderMetadata {
+func NewFolderMetadata(Name string, Id string) *FolderMetadata {
 	s := new(FolderMetadata)
 	s.Name = Name
-	s.PathLower = PathLower
-	s.PathDisplay = PathDisplay
 	s.Id = Id
 	return s
 }
@@ -405,26 +590,23 @@ func NewFolderSharingInfo(ReadOnly bool) *FolderSharingInfo {
 	return s
 }
 
-type GetMetadataArg struct {
-	// The path of a file or folder on Dropbox.
+type GetCopyReferenceArg struct {
+	// The path to the file or folder you want to get a copy reference to.
 	Path string `json:"path"`
-	// If true, `FileMetadata.media_info` is set for photo and video.
-	IncludeMediaInfo bool `json:"include_media_info"`
 }
 
-func NewGetMetadataArg(Path string) *GetMetadataArg {
-	s := new(GetMetadataArg)
+func NewGetCopyReferenceArg(Path string) *GetCopyReferenceArg {
+	s := new(GetCopyReferenceArg)
 	s.Path = Path
-	s.IncludeMediaInfo = false
 	return s
 }
 
-type GetMetadataError struct {
+type GetCopyReferenceError struct {
 	Tag  string       `json:".tag"`
 	Path *LookupError `json:"path,omitempty"`
 }
 
-func (u *GetMetadataError) UnmarshalJSON(body []byte) error {
+func (u *GetCopyReferenceError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		Tag  string          `json:".tag"`
 		Path json.RawMessage `json:"path"`
@@ -446,6 +628,78 @@ func (u *GetMetadataError) UnmarshalJSON(body []byte) error {
 		}
 	}
 	return nil
+}
+
+type GetCopyReferenceResult struct {
+	// Metadata of the file or folder.
+	Metadata *Metadata `json:"metadata"`
+	// A copy reference to the file or folder.
+	CopyReference string `json:"copy_reference"`
+	// The expiration date of the copy reference. This value is currently set to be
+	// far enough in the future so that expiration is effectively not an issue.
+	Expires time.Time `json:"expires"`
+}
+
+func NewGetCopyReferenceResult(Metadata *Metadata, CopyReference string, Expires time.Time) *GetCopyReferenceResult {
+	s := new(GetCopyReferenceResult)
+	s.Metadata = Metadata
+	s.CopyReference = CopyReference
+	s.Expires = Expires
+	return s
+}
+
+type GetTemporaryLinkArg struct {
+	// The path to the file you want a temporary link to.
+	Path string `json:"path"`
+}
+
+func NewGetTemporaryLinkArg(Path string) *GetTemporaryLinkArg {
+	s := new(GetTemporaryLinkArg)
+	s.Path = Path
+	return s
+}
+
+type GetTemporaryLinkError struct {
+	Tag  string       `json:".tag"`
+	Path *LookupError `json:"path,omitempty"`
+}
+
+func (u *GetTemporaryLinkError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag  string          `json:".tag"`
+		Path json.RawMessage `json:"path"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "path":
+		{
+			if len(w.Path) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type GetTemporaryLinkResult struct {
+	// Metadata of the file.
+	Metadata *FileMetadata `json:"metadata"`
+	// The temporary link which can be used to stream content the file.
+	Link string `json:"link"`
+}
+
+func NewGetTemporaryLinkResult(Metadata *FileMetadata, Link string) *GetTemporaryLinkResult {
+	s := new(GetTemporaryLinkResult)
+	s.Metadata = Metadata
+	s.Link = Link
+	return s
 }
 
 // GPS coordinates for a photo or video.
@@ -474,6 +728,9 @@ type ListFolderArg struct {
 	// If true, the results will include entries for files and folders that used to
 	// exist but were deleted.
 	IncludeDeleted bool `json:"include_deleted"`
+	// If true, the results will include a flag for each file indicating whether or
+	// not  that file has any explicit members.
+	IncludeHasExplicitSharedMembers bool `json:"include_has_explicit_shared_members"`
 }
 
 func NewListFolderArg(Path string) *ListFolderArg {
@@ -482,6 +739,7 @@ func NewListFolderArg(Path string) *ListFolderArg {
 	s.Recursive = false
 	s.IncludeMediaInfo = false
 	s.IncludeDeleted = false
+	s.IncludeHasExplicitSharedMembers = false
 	return s
 }
 
@@ -591,8 +849,8 @@ type ListFolderLongpollError struct {
 }
 
 type ListFolderLongpollResult struct {
-	// Indicates whether new changes are available. If true, call `ListFolder` to
-	// retrieve the changes.
+	// Indicates whether new changes are available. If true, call
+	// `ListFolderContinue` to retrieve the changes.
 	Changes bool `json:"changes"`
 	// If present, backoff for at least this many seconds before calling
 	// `ListFolderLongpoll` again.
@@ -679,6 +937,10 @@ func NewListRevisionsResult(IsDeleted bool, Entries []*FileMetadata) *ListRevisi
 	s.IsDeleted = IsDeleted
 	s.Entries = Entries
 	return s
+}
+
+type LookUpPropertiesError struct {
+	Tag string `json:".tag"`
 }
 
 type LookupError struct {
@@ -832,6 +1094,37 @@ func (u *PreviewError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+type PropertyGroupUpdate struct {
+	// A unique identifier for a property template.
+	TemplateId string `json:"template_id"`
+	// List of property fields to update if the field already exists. If the field
+	// doesn't exist, add the field to the property group.
+	AddOrUpdateFields []*properties.PropertyField `json:"add_or_update_fields,omitempty"`
+	// List of property field names to remove from property group if the field
+	// exists.
+	RemoveFields []string `json:"remove_fields,omitempty"`
+}
+
+func NewPropertyGroupUpdate(TemplateId string) *PropertyGroupUpdate {
+	s := new(PropertyGroupUpdate)
+	s.TemplateId = TemplateId
+	return s
+}
+
+type PropertyGroupWithPath struct {
+	// A unique identifier for the file.
+	Path string `json:"path"`
+	// Filled custom property templates associated with a file.
+	PropertyGroups []*properties.PropertyGroup `json:"property_groups"`
+}
+
+func NewPropertyGroupWithPath(Path string, PropertyGroups []*properties.PropertyGroup) *PropertyGroupWithPath {
+	s := new(PropertyGroupWithPath)
+	s.Path = Path
+	s.PropertyGroups = PropertyGroups
+	return s
+}
+
 type RelocationArg struct {
 	// Path in the user's Dropbox to be copied or moved.
 	FromPath string `json:"from_path"`
@@ -897,6 +1190,50 @@ func (u *RelocationError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+type RemovePropertiesArg struct {
+	// A unique identifier for the file.
+	Path string `json:"path"`
+	// A list of identifiers for a property template created by route
+	// properties/template/add.
+	PropertyTemplateIds []string `json:"property_template_ids"`
+}
+
+func NewRemovePropertiesArg(Path string, PropertyTemplateIds []string) *RemovePropertiesArg {
+	s := new(RemovePropertiesArg)
+	s.Path = Path
+	s.PropertyTemplateIds = PropertyTemplateIds
+	return s
+}
+
+type RemovePropertiesError struct {
+	Tag                 string                 `json:".tag"`
+	PropertyGroupLookup *LookUpPropertiesError `json:"property_group_lookup,omitempty"`
+}
+
+func (u *RemovePropertiesError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag                 string          `json:".tag"`
+		PropertyGroupLookup json.RawMessage `json:"property_group_lookup"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "property_group_lookup":
+		{
+			if len(w.PropertyGroupLookup) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type RestoreArg struct {
 	// The path to the file you want to restore.
 	Path string `json:"path"`
@@ -948,6 +1285,170 @@ func (u *RestoreError) UnmarshalJSON(body []byte) error {
 				break
 			}
 			if err := json.Unmarshal(w.PathWrite, &u.PathWrite); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type SaveCopyReferenceArg struct {
+	// A copy reference returned by `CopyReferenceGet`.
+	CopyReference string `json:"copy_reference"`
+	// Path in the user's Dropbox that is the destination.
+	Path string `json:"path"`
+}
+
+func NewSaveCopyReferenceArg(CopyReference string, Path string) *SaveCopyReferenceArg {
+	s := new(SaveCopyReferenceArg)
+	s.CopyReference = CopyReference
+	s.Path = Path
+	return s
+}
+
+type SaveCopyReferenceError struct {
+	Tag  string      `json:".tag"`
+	Path *WriteError `json:"path,omitempty"`
+}
+
+func (u *SaveCopyReferenceError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag  string          `json:".tag"`
+		Path json.RawMessage `json:"path"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "path":
+		{
+			if len(w.Path) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type SaveCopyReferenceResult struct {
+	// The metadata of the saved file or folder in the user's Dropbox.
+	Metadata *Metadata `json:"metadata"`
+}
+
+func NewSaveCopyReferenceResult(Metadata *Metadata) *SaveCopyReferenceResult {
+	s := new(SaveCopyReferenceResult)
+	s.Metadata = Metadata
+	return s
+}
+
+type SaveUrlArg struct {
+	// The path in Dropbox where the URL will be saved to.
+	Path string `json:"path"`
+	// The URL to be saved.
+	Url string `json:"url"`
+}
+
+func NewSaveUrlArg(Path string, Url string) *SaveUrlArg {
+	s := new(SaveUrlArg)
+	s.Path = Path
+	s.Url = Url
+	return s
+}
+
+type SaveUrlError struct {
+	Tag  string      `json:".tag"`
+	Path *WriteError `json:"path,omitempty"`
+}
+
+func (u *SaveUrlError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag  string          `json:".tag"`
+		Path json.RawMessage `json:"path"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "path":
+		{
+			if len(w.Path) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type SaveUrlJobStatus struct {
+	Tag string `json:".tag"`
+	// Metadata of the file where the URL is saved to.
+	Complete *FileMetadata `json:"complete,omitempty"`
+	Failed   *SaveUrlError `json:"failed,omitempty"`
+}
+
+func (u *SaveUrlJobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Metadata of the file where the URL is saved to.
+		Complete json.RawMessage `json:"complete"`
+		Failed   json.RawMessage `json:"failed"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "complete":
+		{
+			if err := json.Unmarshal(body, &u.Complete); err != nil {
+				return err
+			}
+		}
+	case "failed":
+		{
+			if len(w.Failed) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type SaveUrlResult struct {
+	Tag string `json:".tag"`
+	// Metadata of the file where the URL is saved to.
+	Complete *FileMetadata `json:"complete,omitempty"`
+}
+
+func (u *SaveUrlResult) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag string `json:".tag"`
+		// Metadata of the file where the URL is saved to.
+		Complete json.RawMessage `json:"complete"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "complete":
+		{
+			if err := json.Unmarshal(body, &u.Complete); err != nil {
 				return err
 			}
 		}
@@ -1110,6 +1611,49 @@ type ThumbnailSize struct {
 	Tag string `json:".tag"`
 }
 
+type UpdatePropertiesError struct {
+	Tag                 string                 `json:".tag"`
+	PropertyGroupLookup *LookUpPropertiesError `json:"property_group_lookup,omitempty"`
+}
+
+func (u *UpdatePropertiesError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag                 string          `json:".tag"`
+		PropertyGroupLookup json.RawMessage `json:"property_group_lookup"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "property_group_lookup":
+		{
+			if len(w.PropertyGroupLookup) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type UpdatePropertyGroupArg struct {
+	// A unique identifier for the file.
+	Path string `json:"path"`
+	// Filled custom property templates associated with a file.
+	UpdatePropertyGroups []*PropertyGroupUpdate `json:"update_property_groups"`
+}
+
+func NewUpdatePropertyGroupArg(Path string, UpdatePropertyGroups []*PropertyGroupUpdate) *UpdatePropertyGroupArg {
+	s := new(UpdatePropertyGroupArg)
+	s.Path = Path
+	s.UpdatePropertyGroups = UpdatePropertyGroups
+	return s
+}
+
 type UploadError struct {
 	Tag string `json:".tag"`
 	// Unable to save the uploaded contents to a file.
@@ -1136,6 +1680,50 @@ func (u *UploadError) UnmarshalJSON(body []byte) error {
 		}
 	}
 	return nil
+}
+
+type UploadErrorWithProperties struct {
+	Tag             string                     `json:".tag"`
+	PropertiesError *InvalidPropertyGroupError `json:"properties_error,omitempty"`
+}
+
+func (u *UploadErrorWithProperties) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		Tag             string          `json:".tag"`
+		PropertiesError json.RawMessage `json:"properties_error"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch w.Tag {
+	case "properties_error":
+		{
+			if len(w.PropertiesError) == 0 {
+				break
+			}
+			if err := json.Unmarshal(w.PropertiesError, &u.PropertiesError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type UploadSessionAppendArg struct {
+	// Contains the upload session ID and the offset.
+	Cursor *UploadSessionCursor `json:"cursor"`
+	// If true, the current session will be closed, at which point you won't be
+	// able to call `UploadSessionAppendV2` anymore with the current session.
+	Close bool `json:"close"`
+}
+
+func NewUploadSessionAppendArg(Cursor *UploadSessionCursor) *UploadSessionAppendArg {
+	s := new(UploadSessionAppendArg)
+	s.Cursor = Cursor
+	s.Close = false
+	return s
 }
 
 type UploadSessionCursor struct {
@@ -1256,9 +1844,21 @@ func NewUploadSessionOffsetError(CorrectOffset uint64) *UploadSessionOffsetError
 	return s
 }
 
+type UploadSessionStartArg struct {
+	// If true, the current session will be closed, at which point you won't be
+	// able to call `UploadSessionAppendV2` anymore with the current session.
+	Close bool `json:"close"`
+}
+
+func NewUploadSessionStartArg() *UploadSessionStartArg {
+	s := new(UploadSessionStartArg)
+	s.Close = false
+	return s
+}
+
 type UploadSessionStartResult struct {
 	// A unique identifier for the upload session. Pass this to
-	// `UploadSessionAppend` and `UploadSessionFinish`.
+	// `UploadSessionAppendV2` and `UploadSessionFinish`.
 	SessionId string `json:"session_id"`
 }
 
@@ -1391,9 +1991,24 @@ func (u *WriteMode) UnmarshalJSON(body []byte) error {
 }
 
 type Files interface {
+	// Returns the metadata for a file or folder. This is an alpha endpoint
+	// compatible with the properties API. Note: Metadata for the root folder is
+	// unsupported.
+	AlphaGetMetadata(arg *AlphaGetMetadataArg) (res *Metadata, err error)
+	// Create a new file with the contents provided in the request. Note that this
+	// endpoint is part of the properties API alpha and is slightly different from
+	// `Upload`. Do not use this to upload a file larger than 150 MB. Instead,
+	// create an upload session with `UploadSessionStart`.
+	AlphaUpload(arg *CommitInfoWithProperties, content io.Reader) (res *FileMetadata, err error)
 	// Copy a file or folder to a different location in the user's Dropbox. If the
 	// source path is a folder all its contents will be copied.
 	Copy(arg *RelocationArg) (res *Metadata, err error)
+	// Get a copy reference to a file or folder. This reference string can be used
+	// to save that file or folder to another user's Dropbox by passing it to
+	// `CopyReferenceSave`.
+	CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyReferenceResult, err error)
+	// Save a copy reference returned by `CopyReferenceGet` to the user's Dropbox.
+	CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyReferenceResult, err error)
 	// Create a folder at a given path.
 	CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err error)
 	// Delete the file or folder at a given path. If the path is a folder, all its
@@ -1411,6 +2026,10 @@ type Files interface {
 	// files with  the following extensions: .doc, .docx, .docm, .ppt, .pps, .ppsx,
 	// .ppsm, .pptx, .pptm,  .xls, .xlsx, .xlsm, .rtf
 	GetPreview(arg *PreviewArg) (res *FileMetadata, content io.ReadCloser, err error)
+	// Get a temporary link to stream content of a file. This link will expire in
+	// four hours and afterwards you will get 410 Gone. Content-Type of the link is
+	// determined automatically by the file's mime type.
+	GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporaryLinkResult, err error)
 	// Get a thumbnail for an image. This method currently supports files with the
 	// following file extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos
 	// that are larger than 20MB in size won't be converted to a thumbnail.
@@ -1426,8 +2045,8 @@ type Files interface {
 	// need to know about files that already exist in Dropbox.
 	ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFolderGetLatestCursorResult, err error)
 	// A longpoll endpoint to wait for changes on an account. In conjunction with
-	// `ListFolder`, this call gives you a low-latency way to monitor an account
-	// for file changes. The connection will block until there are changes
+	// `ListFolderContinue`, this call gives you a low-latency way to monitor an
+	// account for file changes. The connection will block until there are changes
 	// available or a timeout occurs. This endpoint is useful mostly for
 	// client-side apps. If you're looking for server-side notifications, check out
 	// our `webhooks documentation`
@@ -1442,9 +2061,36 @@ type Files interface {
 	// https://www.dropbox.com/en/help/40). Note: This endpoint is only available
 	// for Dropbox Business apps.
 	PermanentlyDelete(arg *DeleteArg) (err error)
+	// Add custom properties to a file using a filled property template. See
+	// properties/template/add to create new property templates.
+	PropertiesAdd(arg *PropertyGroupWithPath) (err error)
+	// Overwrite custom properties from a specified template associated with a
+	// file.
+	PropertiesOverwrite(arg *PropertyGroupWithPath) (err error)
+	// Remove all custom properties from a specified template associated with a
+	// file. To remove specific property key value pairs, see `PropertiesUpdate`.
+	// To update a property template, see properties/template/update. Property
+	// templates can't be removed once created.
+	PropertiesRemove(arg *RemovePropertiesArg) (err error)
+	// Get the schema for a specified template.
+	PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg) (res *properties.GetPropertyTemplateResult, err error)
+	// Get the property template identifiers for a user. To get the schema of each
+	// template use `PropertiesTemplateGet`.
+	PropertiesTemplateList() (res *properties.ListPropertyTemplateIds, err error)
+	// Add, update or remove custom properties from a specified template associated
+	// with a file. Fields that already exist and not described in the request will
+	// not be modified.
+	PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error)
 	// Restore a file to a specific revision
 	Restore(arg *RestoreArg) (res *FileMetadata, err error)
-	// Searches for files and folders.
+	// Save a specified URL into a file in user's Dropbox. If the given path
+	// already exists, the file will be renamed to avoid the conflict (e.g. myfile
+	// (1).txt).
+	SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error)
+	// Check the status of a `SaveUrl` job.
+	SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobStatus, err error)
+	// Searches for files and folders. Note: Recent changes may not immediately be
+	// reflected in search results due to a short delay in indexing.
 	Search(arg *SearchArg) (res *SearchResult, err error)
 	// Create a new file with the contents provided in the request. Do not use this
 	// to upload a file larger than 150 MB. Instead, create an upload session with
@@ -1453,13 +2099,17 @@ type Files interface {
 	// Append more data to an upload session. A single request should not upload
 	// more than 150 MB of file contents.
 	UploadSessionAppend(arg *UploadSessionCursor, content io.Reader) (err error)
+	// Append more data to an upload session. When the parameter close is set, this
+	// call will close the session. A single request should not upload more than
+	// 150 MB of file contents.
+	UploadSessionAppendV2(arg *UploadSessionAppendArg, content io.Reader) (err error)
 	// Finish an upload session and save the uploaded data to the given file path.
 	// A single request should not upload more than 150 MB of file contents.
 	UploadSessionFinish(arg *UploadSessionFinishArg, content io.Reader) (res *FileMetadata, err error)
 	// Upload sessions allow you to upload a single file using multiple requests.
 	// This call starts a new upload session with the given data.  You can then use
-	// `UploadSessionAppend` to add more data and `UploadSessionFinish` to save all
-	// the data to a file in Dropbox. A single request should not upload more than
-	// 150 MB of file contents.
-	UploadSessionStart(content io.Reader) (res *UploadSessionStartResult, err error)
+	// `UploadSessionAppendV2` to add more data and `UploadSessionFinish` to save
+	// all the data to a file in Dropbox. A single request should not upload more
+	// than 150 MB of file contents.
+	UploadSessionStart(arg *UploadSessionStartArg, content io.Reader) (res *UploadSessionStartResult, err error)
 }

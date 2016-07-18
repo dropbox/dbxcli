@@ -13,52 +13,82 @@
 			"revisionTime": "2016-07-15T16:06:59Z"
 		},
 		{
-			"checksumSHA1": "rhL7Byz/kUm7SwqG/cJsvcitWWA=",
+			"checksumSHA1": "ELnDGd4rXyAIXQC/ElB0N+KMxq8=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
 			"checksumSHA1": "duzh0ljtcNs9gO/4sBTC7lY6WL0=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/apierror",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
 			"checksumSHA1": "/9uzGxiG9Zg+cnXizYfdIzkUfS0=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/async",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
-			"checksumSHA1": "30D0xboCEw38dYql2ufJk2oczPs=",
+			"checksumSHA1": "Fg629h33ejoanPXcMhH1I1sX8HU=",
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/auth",
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
+		},
+		{
+			"checksumSHA1": "BW5RuaqyoHr1egpsTqDcByGjlqE=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/files",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
-			"checksumSHA1": "86NBvJswZntpVcWYFG8wkWZ1MqY=",
+			"checksumSHA1": "MStZ+BbHPT22p3XfMqOMlywLpak=",
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/properties",
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
+		},
+		{
+			"checksumSHA1": "MFj2bi7+qU+eoxzn0c3AakthHck=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/sharing",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
-			"checksumSHA1": "C+YYtbYeJ6d6D7viXeUk0bBXA/M=",
+			"checksumSHA1": "jI1AOQjxyhdr+VPOuiet9K345n4=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
-			"checksumSHA1": "OIWr76bbxTfw75nilqUqpzilm0E=",
+			"checksumSHA1": "vt+XHzfsF5TggZuNwJ1NKwLuyAg=",
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team_common",
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
+		},
+		{
+			"checksumSHA1": "qeqLYAZAkxmOxzuzsUokNQVFV6s=",
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/team_policies",
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
+		},
+		{
+			"checksumSHA1": "tel35SLBf64SX66JGYdfJ5xbMBQ=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/users",
-			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
-			"revisionTime": "2016-04-27T04:32:50Z"
+			"revision": "ebfe7ba0b8fdddbd444ee0d7e56c2dc3b1457efa",
+			"revisionTime": "2016-07-18T17:52:33Z"
 		},
 		{
 			"checksumSHA1": "/FDxiBMqDvQ0ldqUPVDzGxTGJU8=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "fef948f2d241bd1fd0631108ecc2c9553bae60bf",
 			"revisionTime": "2016-06-23T01:40:21Z"
+		},
+		{
+			"checksumSHA1": "5oDgh+T6olvkUxvrP/h2k79YC80=",
+			"path": "github.com/grantseltzer/golumns",
+			"revision": "9c1d7f44e072f135958e011eba2404a716f6dc22",
+			"revisionTime": "2016-07-15T16:06:59Z"
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
@@ -79,10 +109,10 @@
 			"revisionTime": "2015-05-21T21:15:56Z"
 		},
 		{
-			"checksumSHA1": "gMvUE4x4idMiMMzfH2ZkI2YDxUY=",
+			"checksumSHA1": "zZcyPnQjboWV0mMCbF+G5vl26C0=",
 			"path": "github.com/spf13/cobra",
-			"revision": "a272c3cbd5ff80a5bf5c5603df50183f9f3f7324",
-			"revisionTime": "2016-07-08T20:24:02Z"
+			"revision": "b24564e919247d7c870fe0ed3738c98d8741aca4",
+			"revisionTime": "2016-07-15T23:55:49Z"
 		},
 		{
 			"checksumSHA1": "45OZzM/Hyc8mwjG2zn38n6bKZws=",
@@ -93,26 +123,26 @@
 		{
 			"checksumSHA1": "N5fb5y92DFIP+wUhi1rSwPp9vyk=",
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "10c26747e67d76ad4fafe6087c6f4073c3b22942",
-			"revisionTime": "2016-07-08T18:32:35Z"
+			"revision": "f28b56427a527c2e35c0bcac123f0a6a8a943cd3",
+			"revisionTime": "2016-07-17T00:14:59Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
 			"path": "golang.org/x/net/context",
-			"revision": "a728288923b47049b2ce791836767ffbe964a5bd",
-			"revisionTime": "2016-07-07T22:24:52Z"
+			"revision": "3797cd8864994d713d909eda5e61ede8683fdc12",
+			"revisionTime": "2016-07-16T23:29:31Z"
 		},
 		{
 			"checksumSHA1": "UtUkp2yqxAwGreQoHhrBR0Mttg4=",
 			"path": "golang.org/x/oauth2",
-			"revision": "7357e96168422ba1e6e7f21075713b72d58764e7",
-			"revisionTime": "2016-07-06T23:03:55Z"
+			"revision": "a8702432015187171c5120cbf5020bfca7be35b6",
+			"revisionTime": "2016-07-18T00:34:09Z"
 		},
 		{
 			"checksumSHA1": "D3v/aqfB9swlaZcSksCoF+lbOqo=",
 			"path": "golang.org/x/oauth2/internal",
-			"revision": "7357e96168422ba1e6e7f21075713b72d58764e7",
-			"revisionTime": "2016-07-06T23:03:55Z"
+			"revision": "a8702432015187171c5120cbf5020bfca7be35b6",
+			"revisionTime": "2016-07-18T00:34:09Z"
 		}
 	],
 	"rootPath": "github.com/dropbox/dbxcli"

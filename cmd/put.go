@@ -31,7 +31,8 @@ import (
 const chunkSize int64 = 1 << 24
 
 func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (err error) {
-	res, err := dbx.UploadSessionStart(&io.LimitedReader{R: r, N: chunkSize})
+	res, err := dbx.UploadSessionStart(files.NewUploadSessionStartArg(),
+		&io.LimitedReader{R: r, N: chunkSize})
 	if err != nil {
 		return
 	}
