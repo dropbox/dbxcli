@@ -102,9 +102,9 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 		for _, entry := range entries {
 			switch entry.Tag {
-			case "folder":
+			case folder:
 				printFolderMetadata(w, entry.Folder, long)
-			case "file":
+			case file:
 				printFileMetadata(w, entry.File, long)
 			}
 		}
@@ -122,9 +122,9 @@ func listOfEntryNames(entries []*files.Metadata) []string {
 
 	for _, entry := range entries {
 		switch entry.Tag {
-		case "folder":
+		case folder:
 			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name)
-		case "file":
+		case file:
 			listOfEntryNames = append(listOfEntryNames, entry.File.Name)
 		}
 	}

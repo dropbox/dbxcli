@@ -43,9 +43,9 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	for _, m := range res.Matches {
 		e := m.Metadata
 		switch e.Tag {
-		case "folder":
+		case folder:
 			printFolderMetadata(os.Stdout, e.Folder, long)
-		case "file":
+		case file:
 			printFileMetadata(os.Stdout, e.File, long)
 		}
 	}
