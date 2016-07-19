@@ -16,25 +16,52 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
 	"github.com/spf13/cobra"
 )
 
-func cp(cmd *cobra.Command, args []string) (err error) {
-	if len(args) != 2 {
-		return errors.New("`cp` requires `src` and `dst` arguments")
+func cp(cmd *cobra.Command, args []string) error {
+	var destination string
+	var argsToCopy []string
+
+	if len(args) > 2 {
+		destination = args[len(args)-1]
+		argsToCopy = args[0 : len(args)-1]
+	} else if len(args) == 2 {
+		destination = args[1]
+		argsToCopy = append(argsToCopy, args[0])
+	} else {
+		return errors.New("cp requires a source and a destination")
 	}
 
-	arg, err := makeRelocationArg(args[0], args[1])
-	if err != nil {
-		return
+	cpErrors := []error{}
+	relocationArgs := []*files.RelocationArg{}
+
+	for _, argument := range argsToCopy {
+		arg, err := makeRelocationArg(argument, destination+"/"+argument)
+		if err != nil {
+			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, destination, err)
+			cpErrors = append(cpErrors, relocationError)
+		} else {
+			relocationArgs = append(relocationArgs, arg)
+		}
 	}
 
-	if _, err = dbx.Copy(arg); err != nil {
-		return
+	for _, arg := range relocationArgs {
+		if _, err := dbx.Copy(arg); err != nil {
+			copyError := fmt.Errorf("Copy error: %v", arg)
+			cpErrors = append(cpErrors, copyError)
+		}
 	}
 
-	return
+	for _, cpError := range cpErrors {
+		fmt.Fprintf(os.Stderr, "%v\n", cpError)
+	}
+
+	return nil
 }
 
 // cpCmd represents the cp command
