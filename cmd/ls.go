@@ -54,15 +54,9 @@ func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	fmt.Fprintf(w, "%s\n", e.Name)
 }
 
-func ls(cmd *cobra.Command, args []string) (err error) {
-	path := ""
-	if len(args) > 0 {
-		if path, err = validatePath(args[0]); err != nil {
-			return err
-		}
-	}
-
-	arg := files.NewListFolderArg(path)
+// Return the list of files in a folder
+func ListFiles(folderpath string) ([]*files.Metadata, error) {
+	arg := files.NewListFolderArg(folderpath)
 
 	res, err := dbx.ListFolder(arg)
 	var entries []*files.Metadata
@@ -71,14 +65,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		// get_metadata request for the same path and using that response instead.
 		if strings.Contains(err.Error(), "path/not_folder/") {
 			var metaRes *files.Metadata
-			metaRes, err = getFileMetadata(path)
+			metaRes, err = getFileMetadata(folderpath)
 			entries = []*files.Metadata{metaRes}
 		}
 
 		// Return if there's an error other than "not_folder" or if the follow-up
 		// metadata request fails.
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		entries = res.Entries
@@ -88,11 +82,25 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 			res, err = dbx.ListFolderContinue(arg)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			entries = append(entries, res.Entries...)
 		}
+	}
+	return entries, nil
+}
+
+func ls(cmd *cobra.Command, args []string) (err error) {
+	path := ""
+	if len(args) > 0 {
+		if path, err = validatePath(args[0]); err != nil {
+			return err
+		}
+	}
+	entries, err := ListFiles(path)
+	if err != nil {
+		return err
 	}
 
 	long, _ := cmd.Flags().GetBool("long")
