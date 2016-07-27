@@ -122,6 +122,7 @@ type AlphaGroupCreateArg struct {
 func NewAlphaGroupCreateArg(GroupName string) *AlphaGroupCreateArg {
 	s := new(AlphaGroupCreateArg)
 	s.GroupName = GroupName
+	s.GroupManagementType = &team_common.GroupManagementType{Tagged: dropbox.Tagged{"company_managed"}}
 	return s
 }
 
@@ -1218,6 +1219,7 @@ func NewMemberAddArg(MemberEmail string, MemberGivenName string, MemberSurname s
 	s.MemberGivenName = MemberGivenName
 	s.MemberSurname = MemberSurname
 	s.SendWelcomeEmail = true
+	s.Role = &AdminTier{Tagged: dropbox.Tagged{"member_only"}}
 	return s
 }
 

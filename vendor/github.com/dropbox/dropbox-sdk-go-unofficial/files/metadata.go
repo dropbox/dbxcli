@@ -48,3 +48,26 @@ func (r *ListFolderResult) UnmarshalJSON(b []byte) error {
 	}
 	return nil
 }
+
+type searchMatch struct {
+	MatchType *SearchMatchType `json:"match_type"`
+	Metadata  metadataUnion    `json:"metadata"`
+}
+
+func (s *SearchMatch) UnmarshalJSON(b []byte) error {
+	var m searchMatch
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	s.MatchType = m.MatchType
+	e := m.Metadata
+	switch e.Tag {
+	case "file":
+		s.Metadata = e.File
+	case "folder":
+		s.Metadata = e.Folder
+	case "deleted":
+		s.Metadata = e.Deleted
+	}
+	return nil
+}

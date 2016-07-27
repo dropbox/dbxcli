@@ -174,6 +174,7 @@ type CommitInfo struct {
 func NewCommitInfo(Path string) *CommitInfo {
 	s := new(CommitInfo)
 	s.Path = Path
+	s.Mode = &WriteMode{Tagged: dropbox.Tagged{"add"}}
 	s.Autorename = false
 	s.Mute = false
 	return s
@@ -188,6 +189,7 @@ type CommitInfoWithProperties struct {
 func NewCommitInfoWithProperties(Path string) *CommitInfoWithProperties {
 	s := new(CommitInfoWithProperties)
 	s.Path = Path
+	s.Mode = &WriteMode{Tagged: dropbox.Tagged{"add"}}
 	s.Autorename = false
 	s.Mute = false
 	return s
@@ -1354,6 +1356,7 @@ func NewSearchArg(Path string, Query string) *SearchArg {
 	s.Query = Query
 	s.Start = 0
 	s.MaxResults = 100
+	s.Mode = &SearchMode{Tagged: dropbox.Tagged{"filename"}}
 	return s
 }
 
@@ -1438,6 +1441,8 @@ type ThumbnailArg struct {
 func NewThumbnailArg(Path string) *ThumbnailArg {
 	s := new(ThumbnailArg)
 	s.Path = Path
+	s.Format = &ThumbnailFormat{Tagged: dropbox.Tagged{"jpeg"}}
+	s.Size = &ThumbnailSize{Tagged: dropbox.Tagged{"w64h64"}}
 	return s
 }
 
