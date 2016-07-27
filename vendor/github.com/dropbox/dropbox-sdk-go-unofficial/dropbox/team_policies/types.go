@@ -20,34 +20,63 @@
 
 package team_policies
 
+import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+
 type EmmState struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	EmmState_Disabled = "disabled"
+	EmmState_Optional = "optional"
+	EmmState_Required = "required"
+	EmmState_Other    = "other"
+)
 
 // Policy governing which shared folders a team member can join.
 type SharedFolderJoinPolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	SharedFolderJoinPolicy_FromTeamOnly = "from_team_only"
+	SharedFolderJoinPolicy_FromAnyone   = "from_anyone"
+	SharedFolderJoinPolicy_Other        = "other"
+)
 
 // Policy governing who can be a member of a folder shared by a team member.
 type SharedFolderMemberPolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	SharedFolderMemberPolicy_Team   = "team"
+	SharedFolderMemberPolicy_Anyone = "anyone"
+	SharedFolderMemberPolicy_Other  = "other"
+)
 
 // Policy governing the visibility of newly created shared links.
 type SharedLinkCreatePolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	SharedLinkCreatePolicy_DefaultPublic   = "default_public"
+	SharedLinkCreatePolicy_DefaultTeamOnly = "default_team_only"
+	SharedLinkCreatePolicy_TeamOnly        = "team_only"
+	SharedLinkCreatePolicy_Other           = "other"
+)
 
 // Policies governing team members.
 type TeamMemberPolicies struct {
 	// Policies governing sharing.
 	Sharing *TeamSharingPolicies `json:"sharing"`
-	// This describes the Enterprise Mobility Management (EMM) state for this team.
-	// This information can be used to understand if an organization is integrating
-	// with a third-party EMM vendor to further manage and apply restrictions upon
-	// the team's Dropbox usage on mobile devices. This is a new feature and in the
-	// future we'll be adding more new fields and additional documentation.
+	// This describes the Enterprise Mobility Management (EMM) state for this
+	// team. This information can be used to understand if an organization is
+	// integrating with a third-party EMM vendor to further manage and apply
+	// restrictions upon the team's Dropbox usage on mobile devices. This is a
+	// new feature and in the future we'll be adding more new fields and
+	// additional documentation.
 	EmmState *EmmState `json:"emm_state"`
 }
 

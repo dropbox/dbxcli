@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +35,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListRevisionsArg(path)
 
+	dbx := files.New(config)
 	res, err := dbx.ListRevisions(arg)
 	if err != nil {
 		return

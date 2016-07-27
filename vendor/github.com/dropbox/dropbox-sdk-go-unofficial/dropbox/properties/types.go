@@ -22,10 +22,15 @@
 // endpoints.
 package properties
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+)
 
 type GetPropertyTemplateArg struct {
-	// An identifier for property template added by route properties/template/add.
+	// An identifier for property template added by route
+	// properties/template/add.
 	TemplateId string `json:"template_id"`
 }
 
@@ -37,11 +42,11 @@ func NewGetPropertyTemplateArg(TemplateId string) *GetPropertyTemplateArg {
 
 // Describes property templates that can be filled and associated with a file.
 type PropertyGroupTemplate struct {
-	// A display name for the property template. Property template names can be up
-	// to 256 bytes.
+	// A display name for the property template. Property template names can be
+	// up to 256 bytes.
 	Name string `json:"name"`
-	// Description for new property template. Property template descriptions can be
-	// up to 1024 bytes.
+	// Description for new property template. Property template descriptions can
+	// be up to 1024 bytes.
 	Description string `json:"description"`
 	// This is a list of custom properties associated with a property template.
 	// There can be up to 64 properties in a single property template.
@@ -58,15 +63,7 @@ func NewPropertyGroupTemplate(Name string, Description string, Fields []*Propert
 
 // The Property template for the specified template.
 type GetPropertyTemplateResult struct {
-	// A display name for the property template. Property template names can be up
-	// to 256 bytes.
-	Name string `json:"name"`
-	// Description for new property template. Property template descriptions can be
-	// up to 1024 bytes.
-	Description string `json:"description"`
-	// This is a list of custom properties associated with a property template.
-	// There can be up to 64 properties in a single property template.
-	Fields []*PropertyFieldTemplate `json:"fields"`
+	PropertyGroupTemplate
 }
 
 func NewGetPropertyTemplateResult(Name string, Description string, Fields []*PropertyFieldTemplate) *GetPropertyTemplateResult {
@@ -89,39 +86,46 @@ func NewListPropertyTemplateIds(TemplateIds []string) *ListPropertyTemplateIds {
 }
 
 type PropertyTemplateError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// Property template does not exist for given identifier.
 	TemplateNotFound string `json:"template_not_found,omitempty"`
 }
 
+const (
+	PropertyTemplateError_TemplateNotFound  = "template_not_found"
+	PropertyTemplateError_RestrictedContent = "restricted_content"
+	PropertyTemplateError_Other             = "other"
+)
+
 func (u *PropertyTemplateError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// Property template does not exist for given identifier.
-		TemplateNotFound json.RawMessage `json:"template_not_found"`
+		dropbox.Tagged
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "template_not_found":
-		{
-			if len(w.TemplateNotFound) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.TemplateNotFound, &u.TemplateNotFound); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.TemplateNotFound); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
 type ModifyPropertyTemplateError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	ModifyPropertyTemplateError_ConflictingPropertyNames  = "conflicting_property_names"
+	ModifyPropertyTemplateError_TooManyProperties         = "too_many_properties"
+	ModifyPropertyTemplateError_TooManyTemplates          = "too_many_templates"
+	ModifyPropertyTemplateError_TemplateAttributeTooLarge = "template_attribute_too_large"
+)
 
 type PropertyField struct {
 	// This is the name or key of a custom property in a property template. File
@@ -145,8 +149,8 @@ type PropertyFieldTemplate struct {
 	// This is the name or key of a custom property in a property template. File
 	// property names can be up to 256 bytes.
 	Name string `json:"name"`
-	// This is the description for a custom property in a property template. File
-	// property description can be up to 1024 bytes.
+	// This is the description for a custom property in a property template.
+	// File property description can be up to 1024 bytes.
 	Description string `json:"description"`
 	// This is the data type of the value of this property. This type will be
 	// enforced upon property creation and modifications.
@@ -165,8 +169,8 @@ func NewPropertyFieldTemplate(Name string, Description string, Type *PropertyTyp
 type PropertyGroup struct {
 	// A unique identifier for a property template type.
 	TemplateId string `json:"template_id"`
-	// This is a list of custom properties associated with a file. There can be up
-	// to 32 properties for a template.
+	// This is a list of custom properties associated with a file. There can be
+	// up to 32 properties for a template.
 	Fields []*PropertyField `json:"fields"`
 }
 
@@ -180,5 +184,10 @@ func NewPropertyGroup(TemplateId string, Fields []*PropertyField) *PropertyGroup
 // Data type of the given property added. This endpoint is in beta and  only
 // properties of type strings is supported.
 type PropertyType struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	PropertyType_String = "string"
+	PropertyType_Other  = "other"
+)

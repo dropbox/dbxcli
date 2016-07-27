@@ -18,14 +18,56 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package auth
+package files
 
-// Errors occurred during authentication.
-type AuthError struct {
-	Tag string `json:".tag"`
+import "encoding/json"
+
+type listFolderResult struct {
+	Entries []metadataUnion `json:"entries"`
+	Cursor  string          `json:"cursor"`
+	HasMore bool            `json:"has_more"`
 }
 
-type Auth interface {
-	// Disables the access token used to authenticate the call.
-	TokenRevoke() (err error)
+func (r *ListFolderResult) UnmarshalJSON(b []byte) error {
+	var l listFolderResult
+	if err := json.Unmarshal(b, &l); err != nil {
+		return err
+	}
+	r.Cursor = l.Cursor
+	r.HasMore = l.HasMore
+	r.Entries = make([]IsMetadata, len(l.Entries))
+	for i, e := range l.Entries {
+		switch e.Tag {
+		case "file":
+			r.Entries[i] = e.File
+		case "folder":
+			r.Entries[i] = e.Folder
+		case "deleted":
+			r.Entries[i] = e.Deleted
+		}
+	}
+	return nil
+}
+
+type searchMatch struct {
+	MatchType *SearchMatchType `json:"match_type"`
+	Metadata  metadataUnion    `json:"metadata"`
+}
+
+func (s *SearchMatch) UnmarshalJSON(b []byte) error {
+	var m searchMatch
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	s.MatchType = m.MatchType
+	e := m.Metadata
+	switch e.Tag {
+	case "file":
+		s.Metadata = e.File
+	case "folder":
+		s.Metadata = e.Folder
+	case "deleted":
+		s.Metadata = e.Deleted
+	}
+	return nil
 }

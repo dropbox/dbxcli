@@ -24,10 +24,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team_common"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team_policies"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
 )
 
 type DeviceSession struct {
@@ -51,22 +52,13 @@ func NewDeviceSession(SessionId string) *DeviceSession {
 
 // Information on active web sessions
 type ActiveWebSession struct {
-	// The session id
-	SessionId string `json:"session_id"`
+	DeviceSession
 	// Information on the hosting device
 	UserAgent string `json:"user_agent"`
 	// Information on the hosting operating system
 	Os string `json:"os"`
 	// Information on the browser used for this web session
 	Browser string `json:"browser"`
-	// The IP address of the last activity from this session
-	IpAddress string `json:"ip_address,omitempty"`
-	// The country from which the last activity from this session was made
-	Country string `json:"country,omitempty"`
-	// The time this session was created
-	Created time.Time `json:"created,omitempty"`
-	// The time of the last activity from this session
-	Updated time.Time `json:"updated,omitempty"`
 }
 
 func NewActiveWebSession(SessionId string, UserAgent string, Os string, Browser string) *ActiveWebSession {
@@ -78,15 +70,47 @@ func NewActiveWebSession(SessionId string, UserAgent string, Os string, Browser 
 	return s
 }
 
+// Arguments for adding property templates.
+type AddPropertyTemplateArg struct {
+	properties.PropertyGroupTemplate
+}
+
+func NewAddPropertyTemplateArg(Name string, Description string, Fields []*properties.PropertyFieldTemplate) *AddPropertyTemplateArg {
+	s := new(AddPropertyTemplateArg)
+	s.Name = Name
+	s.Description = Description
+	s.Fields = Fields
+	return s
+}
+
+type AddPropertyTemplateResult struct {
+	// An identifier for property template added by `propertiesTemplateAdd`.
+	TemplateId string `json:"template_id"`
+}
+
+func NewAddPropertyTemplateResult(TemplateId string) *AddPropertyTemplateResult {
+	s := new(AddPropertyTemplateResult)
+	s.TemplateId = TemplateId
+	return s
+}
+
 // Describes which team-related admin permissions a user has.
 type AdminTier struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	AdminTier_TeamAdmin           = "team_admin"
+	AdminTier_UserManagementAdmin = "user_management_admin"
+	AdminTier_SupportAdmin        = "support_admin"
+	AdminTier_MemberOnly          = "member_only"
+)
 
 type GroupCreateArg struct {
 	// Group name.
 	GroupName string `json:"group_name"`
-	// The creator of a team can associate an arbitrary external ID to the group.
+	// The creator of a team can associate an arbitrary external ID to the
+	// group.
 	GroupExternalId string `json:"group_external_id,omitempty"`
 }
 
@@ -97,10 +121,7 @@ func NewGroupCreateArg(GroupName string) *GroupCreateArg {
 }
 
 type AlphaGroupCreateArg struct {
-	// Group name.
-	GroupName string `json:"group_name"`
-	// The creator of a team can associate an arbitrary external ID to the group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
+	GroupCreateArg
 	// Whether the team can be managed by selected users, or only by team admins
 	GroupManagementType *team_common.GroupManagementType `json:"group_management_type"`
 }
@@ -108,26 +129,18 @@ type AlphaGroupCreateArg struct {
 func NewAlphaGroupCreateArg(GroupName string) *AlphaGroupCreateArg {
 	s := new(AlphaGroupCreateArg)
 	s.GroupName = GroupName
-	s.GroupManagementType = &team_common.GroupManagementType{Tag: "company_managed"}
+	s.GroupManagementType = &team_common.GroupManagementType{Tagged: dropbox.Tagged{"company_managed"}}
 	return s
 }
 
 // Full description of a group.
 type AlphaGroupFullInfo struct {
-	GroupName string `json:"group_name"`
-	GroupId   string `json:"group_id"`
-	// Who is allowed to manage the group.
-	GroupManagementType *team_common.GroupManagementType `json:"group_management_type"`
+	team_common.AlphaGroupSummary
+	// List of group members.
+	Members []*GroupMemberInfo `json:"members,omitempty"`
 	// The group creation time as a UTC timestamp in milliseconds since the Unix
 	// epoch.
 	Created uint64 `json:"created"`
-	// External ID of group. This is an arbitrary ID that an admin can attach to a
-	// group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
-	// The number of members in the group.
-	MemberCount uint32 `json:"member_count,omitempty"`
-	// List of group members.
-	Members []*GroupMemberInfo `json:"members,omitempty"`
 }
 
 func NewAlphaGroupFullInfo(GroupName string, GroupId string, GroupManagementType *team_common.GroupManagementType, Created uint64) *AlphaGroupFullInfo {
@@ -140,9 +153,9 @@ func NewAlphaGroupFullInfo(GroupName string, GroupId string, GroupManagementType
 }
 
 type IncludeMembersArg struct {
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
+	// Whether to return the list of members in the group.  Note that the
+	// default value will cause all the group members  to be returned in the
+	// response. This may take a long time for large groups.
 	ReturnMembers bool `json:"return_members"`
 }
 
@@ -153,17 +166,14 @@ func NewIncludeMembersArg() *IncludeMembersArg {
 }
 
 type GroupUpdateArgs struct {
+	IncludeMembersArg
 	// Specify a group.
 	Group *GroupSelector `json:"group"`
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
-	ReturnMembers bool `json:"return_members"`
 	// Optional argument. Set group name to this if provided.
 	NewGroupName string `json:"new_group_name,omitempty"`
 	// Optional argument. New group external ID. If the argument is None, the
-	// group's external_id won't be updated. If the argument is empty string, the
-	// group's external id will be cleared.
+	// group's external_id won't be updated. If the argument is empty string,
+	// the group's external id will be cleared.
 	NewGroupExternalId string `json:"new_group_external_id,omitempty"`
 }
 
@@ -175,18 +185,7 @@ func NewGroupUpdateArgs(Group *GroupSelector) *GroupUpdateArgs {
 }
 
 type AlphaGroupUpdateArgs struct {
-	// Specify a group.
-	Group *GroupSelector `json:"group"`
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
-	ReturnMembers bool `json:"return_members"`
-	// Optional argument. Set group name to this if provided.
-	NewGroupName string `json:"new_group_name,omitempty"`
-	// Optional argument. New group external ID. If the argument is None, the
-	// group's external_id won't be updated. If the argument is empty string, the
-	// group's external id will be cleared.
-	NewGroupExternalId string `json:"new_group_external_id,omitempty"`
+	GroupUpdateArgs
 	// Set new group management type, if provided.
 	NewGroupManagementType *team_common.GroupManagementType `json:"new_group_management_type,omitempty"`
 }
@@ -199,57 +198,53 @@ func NewAlphaGroupUpdateArgs(Group *GroupSelector) *AlphaGroupUpdateArgs {
 }
 
 type AlphaGroupsGetInfoItem struct {
-	Tag string `json:".tag"`
-	// An ID that was provided as a parameter to `AlphaGroupsGetInfo`, and did not
-	// match a corresponding group. The ID can be a group ID, or an external ID,
-	// depending on how the method was called.
+	dropbox.Tagged
+	// An ID that was provided as a parameter to `alphaGroupsGetInfo`, and did
+	// not match a corresponding group. The ID can be a group ID, or an external
+	// ID, depending on how the method was called.
 	IdNotFound string `json:"id_not_found,omitempty"`
 	// Info about a group.
 	GroupInfo *AlphaGroupFullInfo `json:"group_info,omitempty"`
 }
 
+const (
+	AlphaGroupsGetInfoItem_IdNotFound = "id_not_found"
+	AlphaGroupsGetInfoItem_GroupInfo  = "group_info"
+)
+
 func (u *AlphaGroupsGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// An ID that was provided as a parameter to `AlphaGroupsGetInfo`, and did not
-		// match a corresponding group. The ID can be a group ID, or an external ID,
-		// depending on how the method was called.
-		IdNotFound json.RawMessage `json:"id_not_found"`
+		dropbox.Tagged
 		// Info about a group.
-		GroupInfo json.RawMessage `json:"group_info"`
+		GroupInfo json.RawMessage `json:"group_info,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "id_not_found":
-		{
-			if len(w.IdNotFound) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.IdNotFound, &u.IdNotFound); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+			return err
 		}
+
 	case "group_info":
-		{
-			if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
 type AlphaGroupsListResult struct {
 	Groups []*team_common.AlphaGroupSummary `json:"groups"`
-	// Pass the cursor into `AlphaGroupsListContinue` to obtain the additional
+	// Pass the cursor into `alphaGroupsListContinue` to obtain the additional
 	// groups.
 	Cursor string `json:"cursor"`
-	// Is true if there are additional groups that have not been returned yet. An
-	// additional call to `AlphaGroupsListContinue` can retrieve them.
+	// Is true if there are additional groups that have not been returned yet.
+	// An additional call to `alphaGroupsListContinue` can retrieve them.
 	HasMore bool `json:"has_more"`
 }
 
@@ -267,14 +262,14 @@ type ApiApp struct {
 	AppId string `json:"app_id"`
 	// The application name
 	AppName string `json:"app_name"`
-	// Whether the linked application uses a dedicated folder
-	IsAppFolder bool `json:"is_app_folder"`
 	// The application publisher name
 	Publisher string `json:"publisher,omitempty"`
 	// The publisher's URL
 	PublisherUrl string `json:"publisher_url,omitempty"`
 	// The time this application was linked
 	Linked time.Time `json:"linked,omitempty"`
+	// Whether the linked application uses a dedicated folder
+	IsAppFolder bool `json:"is_app_folder"`
 }
 
 func NewApiApp(AppId string, AppName string, IsAppFolder bool) *ApiApp {
@@ -312,13 +307,16 @@ func NewDateRange() *DateRange {
 
 // Errors that can originate from problems in input arguments to reports.
 type DateRangeError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	DateRangeError_Other = "other"
+)
 
 // Information about linked Dropbox desktop client sessions
 type DesktopClientSession struct {
-	// The session id
-	SessionId string `json:"session_id"`
+	DeviceSession
 	// Name of the hosting desktop
 	HostName string `json:"host_name"`
 	// The Dropbox desktop client type
@@ -329,14 +327,6 @@ type DesktopClientSession struct {
 	Platform string `json:"platform"`
 	// Whether it's possible to delete all of the account files upon unlinking
 	IsDeleteOnUnlinkSupported bool `json:"is_delete_on_unlink_supported"`
-	// The IP address of the last activity from this session
-	IpAddress string `json:"ip_address,omitempty"`
-	// The country from which the last activity from this session was made
-	Country string `json:"country,omitempty"`
-	// The time this session was created
-	Created time.Time `json:"created,omitempty"`
-	// The time of the last activity from this session
-	Updated time.Time `json:"updated,omitempty"`
 }
 
 func NewDesktopClientSession(SessionId string, HostName string, ClientType *DesktopPlatform, ClientVersion string, Platform string, IsDeleteOnUnlinkSupported bool) *DesktopClientSession {
@@ -351,8 +341,15 @@ func NewDesktopClientSession(SessionId string, HostName string, ClientType *Desk
 }
 
 type DesktopPlatform struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	DesktopPlatform_Windows = "windows"
+	DesktopPlatform_Mac     = "mac"
+	DesktopPlatform_Linux   = "linux"
+	DesktopPlatform_Other   = "other"
+)
 
 type DeviceSessionArg struct {
 	// The session id
@@ -405,8 +402,7 @@ func NewDevicesActive(Windows []uint64, Macos []uint64, Linux []uint64, Ios []ui
 // of values, one value per day. If there is no data for a day, then the value
 // will be None.
 type GetActivityReport struct {
-	// First date present in the results as 'YYYY-MM-DD' or None.
-	StartDate string `json:"start_date"`
+	BaseDfbReport
 	// Array of total number of adds by team members.
 	Adds []uint64 `json:"adds"`
 	// Array of number of edits by team members. If the same user edits the same
@@ -423,7 +419,8 @@ type GetActivityReport struct {
 	// Array of the number of shared folders with some activity in the last 28
 	// days.
 	ActiveSharedFolders28Day []uint64 `json:"active_shared_folders_28_day"`
-	// Array of the number of shared folders with some activity in the last week.
+	// Array of the number of shared folders with some activity in the last
+	// week.
 	ActiveSharedFolders7Day []uint64 `json:"active_shared_folders_7_day"`
 	// Array of the number of shared folders with some activity in the last day.
 	ActiveSharedFolders1Day []uint64 `json:"active_shared_folders_1_day"`
@@ -435,8 +432,8 @@ type GetActivityReport struct {
 	// Array of the number of views by users outside of the team to shared links
 	// created by the team.
 	SharedLinksViewedByOutsideUser []uint64 `json:"shared_links_viewed_by_outside_user"`
-	// Array of the number of views by non-logged-in users to shared links created
-	// by the team.
+	// Array of the number of views by non-logged-in users to shared links
+	// created by the team.
 	SharedLinksViewedByNotLoggedIn []uint64 `json:"shared_links_viewed_by_not_logged_in"`
 	// Array of the total number of views to shared links created by the team.
 	SharedLinksViewedTotal []uint64 `json:"shared_links_viewed_total"`
@@ -467,8 +464,7 @@ func NewGetActivityReport(StartDate string, Adds []uint64, Edits []uint64, Delet
 // array of values, one value per day. If there is no data for a day, then the
 // value will be None.
 type GetDevicesReport struct {
-	// First date present in the results as 'YYYY-MM-DD' or None.
-	StartDate string `json:"start_date"`
+	BaseDfbReport
 	// Report of the number of devices active in the last day.
 	Active1Day *DevicesActive `json:"active_1_day"`
 	// Report of the number of devices active in the last 7 days.
@@ -490,8 +486,7 @@ func NewGetDevicesReport(StartDate string, Active1Day *DevicesActive, Active7Day
 // of values, one value per day. If there is no data for a day, then the value
 // will be None.
 type GetMembershipReport struct {
-	// First date present in the results as 'YYYY-MM-DD' or None.
-	StartDate string `json:"start_date"`
+	BaseDfbReport
 	// Team size, for each day.
 	TeamSize []uint64 `json:"team_size"`
 	// The number of pending invites to the team, for each day.
@@ -519,23 +514,24 @@ func NewGetMembershipReport(StartDate string, TeamSize []uint64, PendingInvites 
 // values, one value per day. If there is no data for a day, then the value will
 // be None.
 type GetStorageReport struct {
-	// First date present in the results as 'YYYY-MM-DD' or None.
-	StartDate string `json:"start_date"`
+	BaseDfbReport
 	// Sum of the shared, unshared, and datastore usages, for each day.
 	TotalUsage []uint64 `json:"total_usage"`
-	// Array of the combined size (bytes) of team members' shared folders, for each
-	// day.
+	// Array of the combined size (bytes) of team members' shared folders, for
+	// each day.
 	SharedUsage []uint64 `json:"shared_usage"`
 	// Array of the combined size (bytes) of team members' root namespaces, for
 	// each day.
 	UnsharedUsage []uint64 `json:"unshared_usage"`
-	// Array of the number of shared folders owned by team members, for each day.
+	// Array of the number of shared folders owned by team members, for each
+	// day.
 	SharedFolders []uint64 `json:"shared_folders"`
 	// Array of storage summaries of team members' account sizes. Each storage
-	// summary is an array of key, value pairs, where each pair describes a storage
-	// bucket. The key indicates the upper bound of the bucket and the value is the
-	// number of users in that bucket. There is one such summary per day. If there
-	// is no data for a day, the storage summary will be empty.
+	// summary is an array of key, value pairs, where each pair describes a
+	// storage bucket. The key indicates the upper bound of the bucket and the
+	// value is the number of users in that bucket. There is one such summary
+	// per day. If there is no data for a day, the storage summary will be
+	// empty.
 	MemberStorageMap [][]*StorageBucket `json:"member_storage_map"`
 }
 
@@ -552,36 +548,51 @@ func NewGetStorageReport(StartDate string, TotalUsage []uint64, SharedUsage []ui
 
 // Role of a user in group.
 type GroupAccessType struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	GroupAccessType_Member = "member"
+	GroupAccessType_Owner  = "owner"
+)
+
 type GroupCreateError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupCreateError_GroupNameAlreadyUsed   = "group_name_already_used"
+	GroupCreateError_GroupNameInvalid       = "group_name_invalid"
+	GroupCreateError_ExternalIdAlreadyInUse = "external_id_already_in_use"
+	GroupCreateError_Other                  = "other"
+)
 
 // Error that can be raised when `GroupSelector` is used.
 type GroupSelectorError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	GroupSelectorError_GroupNotFound = "group_not_found"
+	GroupSelectorError_Other         = "other"
+)
+
 type GroupDeleteError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupDeleteError_GroupAlreadyDeleted = "group_already_deleted"
+)
 
 // Full description of a group.
 type GroupFullInfo struct {
-	GroupName string `json:"group_name"`
-	GroupId   string `json:"group_id"`
+	team_common.GroupSummary
+	// List of group members.
+	Members []*GroupMemberInfo `json:"members,omitempty"`
 	// The group creation time as a UTC timestamp in milliseconds since the Unix
 	// epoch.
 	Created uint64 `json:"created"`
-	// External ID of group. This is an arbitrary ID that an admin can attach to a
-	// group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
-	// The number of members in the group.
-	MemberCount uint32 `json:"member_count,omitempty"`
-	// List of group members.
-	Members []*GroupMemberInfo `json:"members,omitempty"`
 }
 
 func NewGroupFullInfo(GroupName string, GroupId string, Created uint64) *GroupFullInfo {
@@ -625,22 +636,27 @@ func NewGroupMemberSelector(Group *GroupSelector, User *UserSelectorArg) *GroupM
 // Error that can be raised when `GroupMemberSelector` is used, and the user is
 // required to be a member of the specified group.
 type GroupMemberSelectorError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupMemberSelectorError_MemberNotInGroup = "member_not_in_group"
+)
 
 type GroupMemberSetAccessTypeError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	GroupMemberSetAccessTypeError_UserCannotBeManagerOfCompanyManagedGroup = "user_cannot_be_manager_of_company_managed_group"
+)
+
 type GroupMembersAddArg struct {
+	IncludeMembersArg
 	// Group to which users will be added.
 	Group *GroupSelector `json:"group"`
 	// List of users to be added to the group.
 	Members []*MemberAccess `json:"members"`
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
-	ReturnMembers bool `json:"return_members"`
 }
 
 func NewGroupMembersAddArg(Group *GroupSelector, Members []*MemberAccess) *GroupMembersAddArg {
@@ -652,11 +668,11 @@ func NewGroupMembersAddArg(Group *GroupSelector, Members []*MemberAccess) *Group
 }
 
 type GroupMembersAddError struct {
-	Tag string `json:".tag"`
-	// These members are not part of your team. Currently, you cannot add members
-	// to a group if they are not part of your team, though this may change in a
-	// subsequent version. To add new members to your Dropbox Business team, use
-	// the `MembersAdd` endpoint.
+	dropbox.Tagged
+	// These members are not part of your team. Currently, you cannot add
+	// members to a group if they are not part of your team, though this may
+	// change in a subsequent version. To add new members to your Dropbox
+	// Business team, use the `membersAdd` endpoint.
 	MembersNotInTeam []string `json:"members_not_in_team,omitempty"`
 	// These users were not found in Dropbox.
 	UsersNotFound []string `json:"users_not_found,omitempty"`
@@ -664,62 +680,59 @@ type GroupMembersAddError struct {
 	UserCannotBeManagerOfCompanyManagedGroup []string `json:"user_cannot_be_manager_of_company_managed_group,omitempty"`
 }
 
+const (
+	GroupMembersAddError_DuplicateUser                            = "duplicate_user"
+	GroupMembersAddError_GroupNotInTeam                           = "group_not_in_team"
+	GroupMembersAddError_MembersNotInTeam                         = "members_not_in_team"
+	GroupMembersAddError_UsersNotFound                            = "users_not_found"
+	GroupMembersAddError_UserMustBeActiveToBeOwner                = "user_must_be_active_to_be_owner"
+	GroupMembersAddError_UserCannotBeManagerOfCompanyManagedGroup = "user_cannot_be_manager_of_company_managed_group"
+)
+
 func (u *GroupMembersAddError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// These members are not part of your team. Currently, you cannot add members
-		// to a group if they are not part of your team, though this may change in a
-		// subsequent version. To add new members to your Dropbox Business team, use
-		// the `MembersAdd` endpoint.
-		MembersNotInTeam json.RawMessage `json:"members_not_in_team"`
+		dropbox.Tagged
+		// These members are not part of your team. Currently, you cannot add
+		// members to a group if they are not part of your team, though this may
+		// change in a subsequent version. To add new members to your Dropbox
+		// Business team, use the `membersAdd` endpoint.
+		MembersNotInTeam json.RawMessage `json:"members_not_in_team,omitempty"`
 		// These users were not found in Dropbox.
-		UsersNotFound json.RawMessage `json:"users_not_found"`
+		UsersNotFound json.RawMessage `json:"users_not_found,omitempty"`
 		// A company-managed group cannot be managed by a user.
-		UserCannotBeManagerOfCompanyManagedGroup json.RawMessage `json:"user_cannot_be_manager_of_company_managed_group"`
+		UserCannotBeManagerOfCompanyManagedGroup json.RawMessage `json:"user_cannot_be_manager_of_company_managed_group,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "members_not_in_team":
-		{
-			if len(w.MembersNotInTeam) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.MembersNotInTeam, &u.MembersNotInTeam); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.MembersNotInTeam); err != nil {
+			return err
 		}
+
 	case "users_not_found":
-		{
-			if len(w.UsersNotFound) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UsersNotFound, &u.UsersNotFound); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UsersNotFound); err != nil {
+			return err
 		}
+
 	case "user_cannot_be_manager_of_company_managed_group":
-		{
-			if len(w.UserCannotBeManagerOfCompanyManagedGroup) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserCannotBeManagerOfCompanyManagedGroup, &u.UserCannotBeManagerOfCompanyManagedGroup); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserCannotBeManagerOfCompanyManagedGroup); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
-// Result returned by `GroupsMembersAdd` and `GroupsMembersRemove`.
+// Result returned by `groupsMembersAdd` and `groupsMembersRemove`.
 type GroupMembersChangeResult struct {
 	// The group info after member change operation has been performed.
 	GroupInfo *GroupFullInfo `json:"group_info"`
-	// An ID that can be used to obtain the status of granting/revoking group-owned
-	// resources.
+	// An ID that can be used to obtain the status of granting/revoking
+	// group-owned resources.
 	AsyncJobId string `json:"async_job_id"`
 }
 
@@ -731,14 +744,11 @@ func NewGroupMembersChangeResult(GroupInfo *GroupFullInfo, AsyncJobId string) *G
 }
 
 type GroupMembersRemoveArg struct {
+	IncludeMembersArg
 	// Group from which users will be removed.
 	Group *GroupSelector `json:"group"`
 	// List of users to be removed from the group.
 	Users []*UserSelectorArg `json:"users"`
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
-	ReturnMembers bool `json:"return_members"`
 }
 
 func NewGroupMembersRemoveArg(Group *GroupSelector, Users []*UserSelectorArg) *GroupMembersRemoveArg {
@@ -752,12 +762,20 @@ func NewGroupMembersRemoveArg(Group *GroupSelector, Users []*UserSelectorArg) *G
 // Error that can be raised when `GroupMembersSelector` is used, and the users
 // are required to be members of the specified group.
 type GroupMembersSelectorError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	GroupMembersSelectorError_MemberNotInGroup = "member_not_in_group"
+)
+
 type GroupMembersRemoveError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupMembersRemoveError_GroupNotInTeam = "group_not_in_team"
+)
 
 // Argument for selecting a group and a list of users.
 type GroupMembersSelector struct {
@@ -775,15 +793,12 @@ func NewGroupMembersSelector(Group *GroupSelector, Users *UsersSelectorArg) *Gro
 }
 
 type GroupMembersSetAccessTypeArg struct {
-	// Specify a group.
-	Group *GroupSelector `json:"group"`
-	// Identity of a user that is a member of `group`.
-	User *UserSelectorArg `json:"user"`
+	GroupMemberSelector
 	// New group access type the user will have.
 	AccessType *GroupAccessType `json:"access_type"`
-	// Whether to return the list of members in the group.  Note that the default
-	// value will cause all the group members  to be returned in the response. This
-	// may take a long time for large groups.
+	// Whether to return the list of members in the group.  Note that the
+	// default value will cause all the group members  to be returned in the
+	// response. This may take a long time for large groups.
 	ReturnMembers bool `json:"return_members"`
 }
 
@@ -799,98 +814,96 @@ func NewGroupMembersSetAccessTypeArg(Group *GroupSelector, User *UserSelectorArg
 // Argument for selecting a single group, either by group_id or by external
 // group ID.
 type GroupSelector struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// Group ID.
 	GroupId string `json:"group_id,omitempty"`
 	// External ID of the group.
 	GroupExternalId string `json:"group_external_id,omitempty"`
 }
 
+const (
+	GroupSelector_GroupId         = "group_id"
+	GroupSelector_GroupExternalId = "group_external_id"
+)
+
 func (u *GroupSelector) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// Group ID.
-		GroupId json.RawMessage `json:"group_id"`
-		// External ID of the group.
-		GroupExternalId json.RawMessage `json:"group_external_id"`
+		dropbox.Tagged
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "group_id":
-		{
-			if len(w.GroupId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.GroupId, &u.GroupId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupId); err != nil {
+			return err
 		}
+
 	case "group_external_id":
-		{
-			if len(w.GroupExternalId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.GroupExternalId, &u.GroupExternalId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupExternalId); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
 type GroupUpdateError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupUpdateError_ExternalIdAlreadyInUse = "external_id_already_in_use"
+)
 
 type GroupsGetInfoError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	GroupsGetInfoError_GroupNotOnTeam = "group_not_on_team"
+	GroupsGetInfoError_Other          = "other"
+)
+
 type GroupsGetInfoItem struct {
-	Tag string `json:".tag"`
-	// An ID that was provided as a parameter to `GroupsGetInfo`, and did not match
-	// a corresponding group. The ID can be a group ID, or an external ID,
+	dropbox.Tagged
+	// An ID that was provided as a parameter to `groupsGetInfo`, and did not
+	// match a corresponding group. The ID can be a group ID, or an external ID,
 	// depending on how the method was called.
 	IdNotFound string `json:"id_not_found,omitempty"`
 	// Info about a group.
 	GroupInfo *GroupFullInfo `json:"group_info,omitempty"`
 }
 
+const (
+	GroupsGetInfoItem_IdNotFound = "id_not_found"
+	GroupsGetInfoItem_GroupInfo  = "group_info"
+)
+
 func (u *GroupsGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// An ID that was provided as a parameter to `GroupsGetInfo`, and did not
-		// match a corresponding group. The ID can be a group ID, or an external ID,
-		// depending on how the method was called.
-		IdNotFound json.RawMessage `json:"id_not_found"`
+		dropbox.Tagged
 		// Info about a group.
-		GroupInfo json.RawMessage `json:"group_info"`
+		GroupInfo json.RawMessage `json:"group_info,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "id_not_found":
-		{
-			if len(w.IdNotFound) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.IdNotFound, &u.IdNotFound); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+			return err
 		}
+
 	case "group_info":
-		{
-			if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -918,15 +931,21 @@ func NewGroupsListContinueArg(Cursor string) *GroupsListContinueArg {
 }
 
 type GroupsListContinueError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupsListContinueError_InvalidCursor = "invalid_cursor"
+	GroupsListContinueError_Other         = "other"
+)
 
 type GroupsListResult struct {
 	Groups []*team_common.GroupSummary `json:"groups"`
-	// Pass the cursor into `GroupsListContinue` to obtain the additional groups.
+	// Pass the cursor into `groupsListContinue` to obtain the additional
+	// groups.
 	Cursor string `json:"cursor"`
-	// Is true if there are additional groups that have not been returned yet. An
-	// additional call to `GroupsListContinue` can retrieve them.
+	// Is true if there are additional groups that have not been returned yet.
+	// An additional call to `groupsListContinue` can retrieve them.
 	HasMore bool `json:"has_more"`
 }
 
@@ -964,16 +983,21 @@ func NewGroupsMembersListContinueArg(Cursor string) *GroupsMembersListContinueAr
 }
 
 type GroupsMembersListContinueError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupsMembersListContinueError_InvalidCursor = "invalid_cursor"
+	GroupsMembersListContinueError_Other         = "other"
+)
 
 type GroupsMembersListResult struct {
 	Members []*GroupMemberInfo `json:"members"`
-	// Pass the cursor into `GroupsMembersListContinue` to obtain additional group
-	// members.
+	// Pass the cursor into `groupsMembersListContinue` to obtain additional
+	// group members.
 	Cursor string `json:"cursor"`
 	// Is true if there are additional group members that have not been returned
-	// yet. An additional call to `GroupsMembersListContinue` can retrieve them.
+	// yet. An additional call to `groupsMembersListContinue` can retrieve them.
 	HasMore bool `json:"has_more"`
 }
 
@@ -986,51 +1010,52 @@ func NewGroupsMembersListResult(Members []*GroupMemberInfo, Cursor string, HasMo
 }
 
 type GroupsPollError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	GroupsPollError_AccessDenied = "access_denied"
+)
 
 // Argument for selecting a list of groups, either by group_ids, or external
 // group IDs.
 type GroupsSelector struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// List of group IDs.
 	GroupIds []string `json:"group_ids,omitempty"`
 	// List of external IDs of groups.
 	GroupExternalIds []string `json:"group_external_ids,omitempty"`
 }
 
+const (
+	GroupsSelector_GroupIds         = "group_ids"
+	GroupsSelector_GroupExternalIds = "group_external_ids"
+)
+
 func (u *GroupsSelector) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
+		dropbox.Tagged
 		// List of group IDs.
-		GroupIds json.RawMessage `json:"group_ids"`
+		GroupIds json.RawMessage `json:"group_ids,omitempty"`
 		// List of external IDs of groups.
-		GroupExternalIds json.RawMessage `json:"group_external_ids"`
+		GroupExternalIds json.RawMessage `json:"group_external_ids,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "group_ids":
-		{
-			if len(w.GroupIds) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.GroupIds, &u.GroupIds); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupIds); err != nil {
+			return err
 		}
+
 	case "group_external_ids":
-		{
-			if len(w.GroupExternalIds) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.GroupExternalIds, &u.GroupExternalIds); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.GroupExternalIds); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -1046,10 +1071,15 @@ func NewListMemberAppsArg(TeamMemberId string) *ListMemberAppsArg {
 	return s
 }
 
-// Error returned by `LinkedAppsListMemberLinkedApps`.
+// Error returned by `linkedAppsListMemberLinkedApps`.
 type ListMemberAppsError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	ListMemberAppsError_MemberNotFound = "member_not_found"
+	ListMemberAppsError_Other          = "other"
+)
 
 type ListMemberAppsResult struct {
 	// List of third party applications linked by this team member
@@ -1083,8 +1113,13 @@ func NewListMemberDevicesArg(TeamMemberId string) *ListMemberDevicesArg {
 }
 
 type ListMemberDevicesError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	ListMemberDevicesError_MemberNotFound = "member_not_found"
+	ListMemberDevicesError_Other          = "other"
+)
 
 type ListMemberDevicesResult struct {
 	// List of web sessions made by this team member
@@ -1100,12 +1135,12 @@ func NewListMemberDevicesResult() *ListMemberDevicesResult {
 	return s
 }
 
-// Arguments for `LinkedAppsListMembersLinkedApps`.
+// Arguments for `linkedAppsListMembersLinkedApps`.
 type ListMembersAppsArg struct {
-	// At the first call to the `LinkedAppsListMembersLinkedApps` the cursor
-	// shouldn't be passed. Then, if the result of the call includes a cursor, the
-	// following requests should include the received cursors in order to receive
-	// the next sub list of the team applications
+	// At the first call to the `linkedAppsListMembersLinkedApps` the cursor
+	// shouldn't be passed. Then, if the result of the call includes a cursor,
+	// the following requests should include the received cursors in order to
+	// receive the next sub list of the team applications
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1114,20 +1149,25 @@ func NewListMembersAppsArg() *ListMembersAppsArg {
 	return s
 }
 
-// Error returned by `LinkedAppsListMembersLinkedApps`
+// Error returned by `linkedAppsListMembersLinkedApps`
 type ListMembersAppsError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
-// Information returned by `LinkedAppsListMembersLinkedApps`.
+const (
+	ListMembersAppsError_Reset = "reset"
+	ListMembersAppsError_Other = "other"
+)
+
+// Information returned by `linkedAppsListMembersLinkedApps`.
 type ListMembersAppsResult struct {
 	// The linked applications of each member of the team
 	Apps []*MemberLinkedApps `json:"apps"`
 	// If true, then there are more apps available. Pass the cursor to
-	// `LinkedAppsListMembersLinkedApps` to retrieve the rest.
+	// `linkedAppsListMembersLinkedApps` to retrieve the rest.
 	HasMore bool `json:"has_more"`
-	// Pass the cursor into `LinkedAppsListMembersLinkedApps` to receive the next
-	// sub list of team's applications.
+	// Pass the cursor into `linkedAppsListMembersLinkedApps` to receive the
+	// next sub list of team's applications.
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1139,10 +1179,10 @@ func NewListMembersAppsResult(Apps []*MemberLinkedApps, HasMore bool) *ListMembe
 }
 
 type ListMembersDevicesArg struct {
-	// At the first call to the `DevicesListMembersDevices` the cursor shouldn't be
-	// passed. Then, if the result of the call includes a cursor, the following
-	// requests should include the received cursors in order to receive the next
-	// sub list of team devices
+	// At the first call to the `devicesListMembersDevices` the cursor shouldn't
+	// be passed. Then, if the result of the call includes a cursor, the
+	// following requests should include the received cursors in order to
+	// receive the next sub list of team devices
 	Cursor string `json:"cursor,omitempty"`
 	// Whether to list web sessions of the team members
 	IncludeWebSessions bool `json:"include_web_sessions"`
@@ -1161,16 +1201,21 @@ func NewListMembersDevicesArg() *ListMembersDevicesArg {
 }
 
 type ListMembersDevicesError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	ListMembersDevicesError_Reset = "reset"
+	ListMembersDevicesError_Other = "other"
+)
 
 type ListMembersDevicesResult struct {
 	// The devices of each member of the team
 	Devices []*MemberDevices `json:"devices"`
 	// If true, then there are more devices available. Pass the cursor to
-	// `DevicesListMembersDevices` to retrieve the rest.
+	// `devicesListMembersDevices` to retrieve the rest.
 	HasMore bool `json:"has_more"`
-	// Pass the cursor into `DevicesListMembersDevices` to receive the next sub
+	// Pass the cursor into `devicesListMembersDevices` to receive the next sub
 	// list of team's devices.
 	Cursor string `json:"cursor,omitempty"`
 }
@@ -1182,12 +1227,12 @@ func NewListMembersDevicesResult(Devices []*MemberDevices, HasMore bool) *ListMe
 	return s
 }
 
-// Arguments for `LinkedAppsListTeamLinkedApps`.
+// Arguments for `linkedAppsListTeamLinkedApps`.
 type ListTeamAppsArg struct {
-	// At the first call to the `LinkedAppsListTeamLinkedApps` the cursor shouldn't
-	// be passed. Then, if the result of the call includes a cursor, the following
-	// requests should include the received cursors in order to receive the next
-	// sub list of the team applications
+	// At the first call to the `linkedAppsListTeamLinkedApps` the cursor
+	// shouldn't be passed. Then, if the result of the call includes a cursor,
+	// the following requests should include the received cursors in order to
+	// receive the next sub list of the team applications
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1196,20 +1241,25 @@ func NewListTeamAppsArg() *ListTeamAppsArg {
 	return s
 }
 
-// Error returned by `LinkedAppsListTeamLinkedApps`
+// Error returned by `linkedAppsListTeamLinkedApps`
 type ListTeamAppsError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
-// Information returned by `LinkedAppsListTeamLinkedApps`.
+const (
+	ListTeamAppsError_Reset = "reset"
+	ListTeamAppsError_Other = "other"
+)
+
+// Information returned by `linkedAppsListTeamLinkedApps`.
 type ListTeamAppsResult struct {
 	// The linked applications of each member of the team
 	Apps []*MemberLinkedApps `json:"apps"`
 	// If true, then there are more apps available. Pass the cursor to
-	// `LinkedAppsListTeamLinkedApps` to retrieve the rest.
+	// `linkedAppsListTeamLinkedApps` to retrieve the rest.
 	HasMore bool `json:"has_more"`
-	// Pass the cursor into `LinkedAppsListTeamLinkedApps` to receive the next sub
-	// list of team's applications.
+	// Pass the cursor into `linkedAppsListTeamLinkedApps` to receive the next
+	// sub list of team's applications.
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1221,7 +1271,7 @@ func NewListTeamAppsResult(Apps []*MemberLinkedApps, HasMore bool) *ListTeamApps
 }
 
 type ListTeamDevicesArg struct {
-	// At the first call to the `DevicesListTeamDevices` the cursor shouldn't be
+	// At the first call to the `devicesListTeamDevices` the cursor shouldn't be
 	// passed. Then, if the result of the call includes a cursor, the following
 	// requests should include the received cursors in order to receive the next
 	// sub list of team devices
@@ -1243,17 +1293,22 @@ func NewListTeamDevicesArg() *ListTeamDevicesArg {
 }
 
 type ListTeamDevicesError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	ListTeamDevicesError_Reset = "reset"
+	ListTeamDevicesError_Other = "other"
+)
 
 type ListTeamDevicesResult struct {
 	// The devices of each member of the team
 	Devices []*MemberDevices `json:"devices"`
 	// If true, then there are more devices available. Pass the cursor to
-	// `DevicesListTeamDevices` to retrieve the rest.
+	// `devicesListTeamDevices` to retrieve the rest.
 	HasMore bool `json:"has_more"`
-	// Pass the cursor into `DevicesListTeamDevices` to receive the next sub list
-	// of team's devices.
+	// Pass the cursor into `devicesListTeamDevices` to receive the next sub
+	// list of team's devices.
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -1288,9 +1343,9 @@ type MemberAddArg struct {
 	// External ID for member.
 	MemberExternalId string `json:"member_external_id,omitempty"`
 	// Whether to send a welcome email to the member. If send_welcome_email is
-	// false, no email invitation will be sent to the user. This may be useful for
-	// apps using single sign-on (SSO) flows for onboarding that want to handle
-	// announcements themselves.
+	// false, no email invitation will be sent to the user. This may be useful
+	// for apps using single sign-on (SSO) flows for onboarding that want to
+	// handle announcements themselves.
 	SendWelcomeEmail bool       `json:"send_welcome_email"`
 	Role             *AdminTier `json:"role"`
 }
@@ -1301,7 +1356,7 @@ func NewMemberAddArg(MemberEmail string, MemberGivenName string, MemberSurname s
 	s.MemberGivenName = MemberGivenName
 	s.MemberSurname = MemberSurname
 	s.SendWelcomeEmail = true
-	s.Role = &AdminTier{Tag: "member_only"}
+	s.Role = &AdminTier{Tagged: dropbox.Tagged{"member_only"}}
 	return s
 }
 
@@ -1310,15 +1365,15 @@ func NewMemberAddArg(MemberEmail string, MemberGivenName string, MemberSurname s
 // team - the other values explain the type of failure that occurred, and
 // include the email of the user for which the operation has failed.
 type MemberAddResult struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// Describes a user that was successfully added to the team.
 	Success *TeamMemberInfo `json:"success,omitempty"`
 	// Team is already full. The organization has no available licenses.
 	TeamLicenseLimit string `json:"team_license_limit,omitempty"`
 	// Team is already full. The free team member limit has been reached.
 	FreeTeamMemberLimitReached string `json:"free_team_member_limit_reached,omitempty"`
-	// User is already on this team. The provided email address is associated with
-	// a user who is already a member of or invited to the team.
+	// User is already on this team. The provided email address is associated
+	// with a user who is already a member of or invited to the team.
 	UserAlreadyOnTeam string `json:"user_already_on_team,omitempty"`
 	// User is already on another team. The provided email address is associated
 	// with a user that is already a member or invited to another team.
@@ -1333,114 +1388,75 @@ type MemberAddResult struct {
 	UserCreationFailed string `json:"user_creation_failed,omitempty"`
 }
 
+const (
+	MemberAddResult_Success                    = "success"
+	MemberAddResult_TeamLicenseLimit           = "team_license_limit"
+	MemberAddResult_FreeTeamMemberLimitReached = "free_team_member_limit_reached"
+	MemberAddResult_UserAlreadyOnTeam          = "user_already_on_team"
+	MemberAddResult_UserOnAnotherTeam          = "user_on_another_team"
+	MemberAddResult_UserAlreadyPaired          = "user_already_paired"
+	MemberAddResult_UserMigrationFailed        = "user_migration_failed"
+	MemberAddResult_DuplicateExternalMemberId  = "duplicate_external_member_id"
+	MemberAddResult_UserCreationFailed         = "user_creation_failed"
+)
+
 func (u *MemberAddResult) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
+		dropbox.Tagged
 		// Describes a user that was successfully added to the team.
-		Success json.RawMessage `json:"success"`
-		// Team is already full. The organization has no available licenses.
-		TeamLicenseLimit json.RawMessage `json:"team_license_limit"`
-		// Team is already full. The free team member limit has been reached.
-		FreeTeamMemberLimitReached json.RawMessage `json:"free_team_member_limit_reached"`
-		// User is already on this team. The provided email address is associated with
-		// a user who is already a member of or invited to the team.
-		UserAlreadyOnTeam json.RawMessage `json:"user_already_on_team"`
-		// User is already on another team. The provided email address is associated
-		// with a user that is already a member or invited to another team.
-		UserOnAnotherTeam json.RawMessage `json:"user_on_another_team"`
-		// User is already paired.
-		UserAlreadyPaired json.RawMessage `json:"user_already_paired"`
-		// User migration has failed.
-		UserMigrationFailed json.RawMessage `json:"user_migration_failed"`
-		// A user with the given external member ID already exists on the team.
-		DuplicateExternalMemberId json.RawMessage `json:"duplicate_external_member_id"`
-		// User creation has failed.
-		UserCreationFailed json.RawMessage `json:"user_creation_failed"`
+		Success json.RawMessage `json:"success,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "success":
-		{
-			if err := json.Unmarshal(body, &u.Success); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Success); err != nil {
+			return err
 		}
+
 	case "team_license_limit":
-		{
-			if len(w.TeamLicenseLimit) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.TeamLicenseLimit, &u.TeamLicenseLimit); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.TeamLicenseLimit); err != nil {
+			return err
 		}
+
 	case "free_team_member_limit_reached":
-		{
-			if len(w.FreeTeamMemberLimitReached) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.FreeTeamMemberLimitReached, &u.FreeTeamMemberLimitReached); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.FreeTeamMemberLimitReached); err != nil {
+			return err
 		}
+
 	case "user_already_on_team":
-		{
-			if len(w.UserAlreadyOnTeam) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserAlreadyOnTeam, &u.UserAlreadyOnTeam); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserAlreadyOnTeam); err != nil {
+			return err
 		}
+
 	case "user_on_another_team":
-		{
-			if len(w.UserOnAnotherTeam) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserOnAnotherTeam, &u.UserOnAnotherTeam); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserOnAnotherTeam); err != nil {
+			return err
 		}
+
 	case "user_already_paired":
-		{
-			if len(w.UserAlreadyPaired) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserAlreadyPaired, &u.UserAlreadyPaired); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserAlreadyPaired); err != nil {
+			return err
 		}
+
 	case "user_migration_failed":
-		{
-			if len(w.UserMigrationFailed) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserMigrationFailed, &u.UserMigrationFailed); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserMigrationFailed); err != nil {
+			return err
 		}
+
 	case "duplicate_external_member_id":
-		{
-			if len(w.DuplicateExternalMemberId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.DuplicateExternalMemberId, &u.DuplicateExternalMemberId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.DuplicateExternalMemberId); err != nil {
+			return err
 		}
+
 	case "user_creation_failed":
-		{
-			if len(w.UserCreationFailed) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.UserCreationFailed, &u.UserCreationFailed); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.UserCreationFailed); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -1482,6 +1498,12 @@ func NewMemberLinkedApps(TeamMemberId string, LinkedApiApps []*ApiApp) *MemberLi
 type MemberProfile struct {
 	// ID of user as a member of a team.
 	TeamMemberId string `json:"team_member_id"`
+	// External ID that a team can attach to the user. An application using the
+	// API may find it easier to use their own IDs instead of Dropbox IDs like
+	// account_id or team_member_id.
+	ExternalId string `json:"external_id,omitempty"`
+	// A user's account identifier.
+	AccountId string `json:"account_id,omitempty"`
 	// Email address of user.
 	Email string `json:"email"`
 	// Is true if the user's email is verified to be owned by the user.
@@ -1490,15 +1512,9 @@ type MemberProfile struct {
 	Status *TeamMemberStatus `json:"status"`
 	// Representations for a person's name.
 	Name *users.Name `json:"name"`
-	// The user's membership type: full (normal team member) vs limited (does not
-	// use a license; no access to the team's shared quota).
+	// The user's membership type: full (normal team member) vs limited (does
+	// not use a license; no access to the team's shared quota).
 	MembershipType *TeamMembershipType `json:"membership_type"`
-	// External ID that a team can attach to the user. An application using the API
-	// may find it easier to use their own IDs instead of Dropbox IDs like
-	// account_id or team_member_id.
-	ExternalId string `json:"external_id,omitempty"`
-	// A user's account identifier.
-	AccountId string `json:"account_id,omitempty"`
 }
 
 func NewMemberProfile(TeamMemberId string, Email string, EmailVerified bool, Status *TeamMemberStatus, Name *users.Name, MembershipType *TeamMembershipType) *MemberProfile {
@@ -1515,12 +1531,20 @@ func NewMemberProfile(TeamMemberId string, Email string, EmailVerified bool, Sta
 // Error that can be returned whenever a struct derived from `UserSelectorArg`
 // is used.
 type UserSelectorError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	UserSelectorError_UserNotFound = "user_not_found"
+)
+
 type MemberSelectorError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MemberSelectorError_UserNotInTeam = "user_not_in_team"
+)
 
 type MembersAddArg struct {
 	// Details of new members to be added to the team.
@@ -1537,80 +1561,74 @@ func NewMembersAddArg(NewMembers []*MemberAddArg) *MembersAddArg {
 }
 
 type MembersAddJobStatus struct {
-	Tag string `json:".tag"`
-	// The asynchronous job has finished. For each member that was specified in the
-	// parameter `MembersAddArg` that was provided to `MembersAdd`, a corresponding
-	// item is returned in this list.
+	dropbox.Tagged
+	// The asynchronous job has finished. For each member that was specified in
+	// the parameter `MembersAddArg` that was provided to `membersAdd`, a
+	// corresponding item is returned in this list.
 	Complete []*MemberAddResult `json:"complete,omitempty"`
 	// The asynchronous job returned an error. The string contains an error
 	// message.
 	Failed string `json:"failed,omitempty"`
 }
 
+const (
+	MembersAddJobStatus_Complete = "complete"
+	MembersAddJobStatus_Failed   = "failed"
+)
+
 func (u *MembersAddJobStatus) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// The asynchronous job has finished. For each member that was specified in
-		// the parameter `MembersAddArg` that was provided to `MembersAdd`, a
+		dropbox.Tagged
+		// The asynchronous job has finished. For each member that was specified
+		// in the parameter `MembersAddArg` that was provided to `membersAdd`, a
 		// corresponding item is returned in this list.
-		Complete json.RawMessage `json:"complete"`
-		// The asynchronous job returned an error. The string contains an error
-		// message.
-		Failed json.RawMessage `json:"failed"`
+		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "complete":
-		{
-			if len(w.Complete) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.Complete, &u.Complete); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
 		}
+
 	case "failed":
-		{
-			if len(w.Failed) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Failed); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
 type MembersAddLaunch struct {
-	Tag      string             `json:".tag"`
+	dropbox.Tagged
 	Complete []*MemberAddResult `json:"complete,omitempty"`
 }
 
+const (
+	MembersAddLaunch_Complete = "complete"
+)
+
 func (u *MembersAddLaunch) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag      string          `json:".tag"`
-		Complete json.RawMessage `json:"complete"`
+		dropbox.Tagged
+		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "complete":
-		{
-			if len(w.Complete) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.Complete, &u.Complete); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -1633,8 +1651,13 @@ func NewMembersDeactivateArg(User *UserSelectorArg) *MembersDeactivateArg {
 }
 
 type MembersDeactivateError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MembersDeactivateError_UserNotInTeam = "user_not_in_team"
+	MembersDeactivateError_Other         = "other"
+)
 
 type MembersGetInfoArgs struct {
 	// List of team members.
@@ -1648,52 +1671,52 @@ func NewMembersGetInfoArgs(Members []*UserSelectorArg) *MembersGetInfoArgs {
 }
 
 type MembersGetInfoError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	MembersGetInfoError_Other = "other"
+)
+
 // Describes a result obtained for a single user whose id was specified in the
-// parameter of `MembersGetInfo`.
+// parameter of `membersGetInfo`.
 type MembersGetInfoItem struct {
-	Tag string `json:".tag"`
-	// An ID that was provided as a parameter to `MembersGetInfo`, and did not
-	// match a corresponding user. This might be a team_member_id, an email, or an
-	// external ID, depending on how the method was called.
+	dropbox.Tagged
+	// An ID that was provided as a parameter to `membersGetInfo`, and did not
+	// match a corresponding user. This might be a team_member_id, an email, or
+	// an external ID, depending on how the method was called.
 	IdNotFound string `json:"id_not_found,omitempty"`
 	// Info about a team member.
 	MemberInfo *TeamMemberInfo `json:"member_info,omitempty"`
 }
 
+const (
+	MembersGetInfoItem_IdNotFound = "id_not_found"
+	MembersGetInfoItem_MemberInfo = "member_info"
+)
+
 func (u *MembersGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// An ID that was provided as a parameter to `MembersGetInfo`, and did not
-		// match a corresponding user. This might be a team_member_id, an email, or an
-		// external ID, depending on how the method was called.
-		IdNotFound json.RawMessage `json:"id_not_found"`
+		dropbox.Tagged
 		// Info about a team member.
-		MemberInfo json.RawMessage `json:"member_info"`
+		MemberInfo json.RawMessage `json:"member_info,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "id_not_found":
-		{
-			if len(w.IdNotFound) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.IdNotFound, &u.IdNotFound); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+			return err
 		}
+
 	case "member_info":
-		{
-			if err := json.Unmarshal(body, &u.MemberInfo); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.MemberInfo); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -1721,20 +1744,30 @@ func NewMembersListContinueArg(Cursor string) *MembersListContinueArg {
 }
 
 type MembersListContinueError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	MembersListContinueError_InvalidCursor = "invalid_cursor"
+	MembersListContinueError_Other         = "other"
+)
+
 type MembersListError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MembersListError_Other = "other"
+)
 
 type MembersListResult struct {
 	// List of team members.
 	Members []*TeamMemberInfo `json:"members"`
-	// Pass the cursor into `MembersListContinue` to obtain the additional members.
+	// Pass the cursor into `membersListContinue` to obtain the additional
+	// members.
 	Cursor string `json:"cursor"`
 	// Is true if there are additional team members that have not been returned
-	// yet. An additional call to `MembersListContinue` can retrieve them.
+	// yet. An additional call to `membersListContinue` can retrieve them.
 	HasMore bool `json:"has_more"`
 }
 
@@ -1747,17 +1780,13 @@ func NewMembersListResult(Members []*TeamMemberInfo, Cursor string, HasMore bool
 }
 
 type MembersRemoveArg struct {
-	// Identity of user to remove/suspend.
-	User *UserSelectorArg `json:"user"`
-	// If provided, controls if the user's data will be deleted on their linked
-	// devices.
-	WipeData bool `json:"wipe_data"`
+	MembersDeactivateArg
 	// If provided, files from the deleted member account will be transferred to
 	// this user.
 	TransferDestId *UserSelectorArg `json:"transfer_dest_id,omitempty"`
 	// If provided, errors during the transfer process will be sent via email to
-	// this user. If the transfer_dest_id argument was provided, then this argument
-	// must be provided as well.
+	// this user. If the transfer_dest_id argument was provided, then this
+	// argument must be provided as well.
 	TransferAdminId *UserSelectorArg `json:"transfer_admin_id,omitempty"`
 	// Downgrade the member to a Basic account. The user will retain the email
 	// address associated with their Dropbox  account and data in their account
@@ -1774,12 +1803,30 @@ func NewMembersRemoveArg(User *UserSelectorArg) *MembersRemoveArg {
 }
 
 type MembersRemoveError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	MembersRemoveError_RemoveLastAdmin                     = "remove_last_admin"
+	MembersRemoveError_RemovedAndTransferDestShouldDiffer  = "removed_and_transfer_dest_should_differ"
+	MembersRemoveError_RemovedAndTransferAdminShouldDiffer = "removed_and_transfer_admin_should_differ"
+	MembersRemoveError_TransferDestUserNotFound            = "transfer_dest_user_not_found"
+	MembersRemoveError_TransferDestUserNotInTeam           = "transfer_dest_user_not_in_team"
+	MembersRemoveError_TransferAdminUserNotFound           = "transfer_admin_user_not_found"
+	MembersRemoveError_TransferAdminUserNotInTeam          = "transfer_admin_user_not_in_team"
+	MembersRemoveError_UnspecifiedTransferAdminId          = "unspecified_transfer_admin_id"
+	MembersRemoveError_TransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
+	MembersRemoveError_CannotKeepAccountAndTransfer        = "cannot_keep_account_and_transfer"
+	MembersRemoveError_CannotKeepAccountAndDeleteData      = "cannot_keep_account_and_delete_data"
+)
+
 type MembersSendWelcomeError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MembersSendWelcomeError_Other = "other"
+)
 
 // Exactly one of team_member_id, email, or external_id must be provided to
 // identify the user account.
@@ -1798,8 +1845,16 @@ func NewMembersSetPermissionsArg(User *UserSelectorArg, NewRole *AdminTier) *Mem
 }
 
 type MembersSetPermissionsError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MembersSetPermissionsError_LastAdmin            = "last_admin"
+	MembersSetPermissionsError_UserNotInTeam        = "user_not_in_team"
+	MembersSetPermissionsError_CannotSetPermissions = "cannot_set_permissions"
+	MembersSetPermissionsError_TeamLicenseLimit     = "team_license_limit"
+	MembersSetPermissionsError_Other                = "other"
+)
 
 type MembersSetPermissionsResult struct {
 	// The member ID of the user to which the change was applied.
@@ -1838,12 +1893,28 @@ func NewMembersSetProfileArg(User *UserSelectorArg) *MembersSetProfileArg {
 }
 
 type MembersSetProfileError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	MembersSetProfileError_ExternalIdAndNewExternalIdUnsafe = "external_id_and_new_external_id_unsafe"
+	MembersSetProfileError_NoNewDataSpecified               = "no_new_data_specified"
+	MembersSetProfileError_EmailReservedForOtherUser        = "email_reserved_for_other_user"
+	MembersSetProfileError_ExternalIdUsedByOtherUser        = "external_id_used_by_other_user"
+	MembersSetProfileError_SetProfileDisallowed             = "set_profile_disallowed"
+	MembersSetProfileError_ParamCannotBeEmpty               = "param_cannot_be_empty"
+	MembersSetProfileError_Other                            = "other"
+)
+
 type MembersSuspendError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MembersSuspendError_SuspendInactiveUser = "suspend_inactive_user"
+	MembersSuspendError_SuspendLastAdmin    = "suspend_last_admin"
+	MembersSuspendError_TeamLicenseLimit    = "team_license_limit"
+)
 
 // Exactly one of team_member_id, email, or external_id must be provided to
 // identify the user account.
@@ -1859,29 +1930,34 @@ func NewMembersUnsuspendArg(User *UserSelectorArg) *MembersUnsuspendArg {
 }
 
 type MembersUnsuspendError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	MembersUnsuspendError_UnsuspendNonSuspendedMember = "unsuspend_non_suspended_member"
+	MembersUnsuspendError_TeamLicenseLimit            = "team_license_limit"
+)
+
 type MobileClientPlatform struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	MobileClientPlatform_Iphone       = "iphone"
+	MobileClientPlatform_Ipad         = "ipad"
+	MobileClientPlatform_Android      = "android"
+	MobileClientPlatform_WindowsPhone = "windows_phone"
+	MobileClientPlatform_Blackberry   = "blackberry"
+	MobileClientPlatform_Other        = "other"
+)
 
 // Information about linked Dropbox mobile client sessions
 type MobileClientSession struct {
-	// The session id
-	SessionId string `json:"session_id"`
+	DeviceSession
 	// The device name
 	DeviceName string `json:"device_name"`
 	// The mobile application type
 	ClientType *MobileClientPlatform `json:"client_type"`
-	// The IP address of the last activity from this session
-	IpAddress string `json:"ip_address,omitempty"`
-	// The country from which the last activity from this session was made
-	Country string `json:"country,omitempty"`
-	// The time this session was created
-	Created time.Time `json:"created,omitempty"`
-	// The time of the last activity from this session
-	Updated time.Time `json:"updated,omitempty"`
 	// The dropbox client version
 	ClientVersion string `json:"client_version,omitempty"`
 	// The hosting OS version
@@ -1899,13 +1975,10 @@ func NewMobileClientSession(SessionId string, DeviceName string, ClientType *Mob
 }
 
 type RevokeDesktopClientArg struct {
-	// The session id
-	SessionId string `json:"session_id"`
-	// The unique id of the member owning the device
-	TeamMemberId string `json:"team_member_id"`
+	DeviceSessionArg
 	// Whether to delete all files of the account (this is possible only if
-	// supported by the desktop client and  will be made the next time the client
-	// access the account)
+	// supported by the desktop client and  will be made the next time the
+	// client access the account)
 	DeleteOnUnlink bool `json:"delete_on_unlink"`
 }
 
@@ -1918,7 +1991,7 @@ func NewRevokeDesktopClientArg(SessionId string, TeamMemberId string) *RevokeDes
 }
 
 type RevokeDeviceSessionArg struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// End an active session
 	WebSession *DeviceSessionArg `json:"web_session,omitempty"`
 	// Unlink a linked desktop device
@@ -1927,40 +2000,43 @@ type RevokeDeviceSessionArg struct {
 	MobileClient *DeviceSessionArg `json:"mobile_client,omitempty"`
 }
 
+const (
+	RevokeDeviceSessionArg_WebSession    = "web_session"
+	RevokeDeviceSessionArg_DesktopClient = "desktop_client"
+	RevokeDeviceSessionArg_MobileClient  = "mobile_client"
+)
+
 func (u *RevokeDeviceSessionArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
+		dropbox.Tagged
 		// End an active session
-		WebSession json.RawMessage `json:"web_session"`
+		WebSession json.RawMessage `json:"web_session,omitempty"`
 		// Unlink a linked desktop device
-		DesktopClient json.RawMessage `json:"desktop_client"`
+		DesktopClient json.RawMessage `json:"desktop_client,omitempty"`
 		// Unlink a linked mobile device
-		MobileClient json.RawMessage `json:"mobile_client"`
+		MobileClient json.RawMessage `json:"mobile_client,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "web_session":
-		{
-			if err := json.Unmarshal(body, &u.WebSession); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.WebSession); err != nil {
+			return err
 		}
+
 	case "desktop_client":
-		{
-			if err := json.Unmarshal(body, &u.DesktopClient); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.DesktopClient); err != nil {
+			return err
 		}
+
 	case "mobile_client":
-		{
-			if err := json.Unmarshal(body, &u.MobileClient); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.MobileClient); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -1976,8 +2052,12 @@ func NewRevokeDeviceSessionBatchArg(RevokeDevices []*RevokeDeviceSessionArg) *Re
 }
 
 type RevokeDeviceSessionBatchError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	RevokeDeviceSessionBatchError_Unspecified = "unspecified"
+)
 
 type RevokeDeviceSessionBatchResult struct {
 	RevokeDevicesStatus []*RevokeDeviceSessionStatus `json:"revoke_devices_status"`
@@ -1990,8 +2070,14 @@ func NewRevokeDeviceSessionBatchResult(RevokeDevicesStatus []*RevokeDeviceSessio
 }
 
 type RevokeDeviceSessionError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	RevokeDeviceSessionError_DeviceSessionNotFound = "device_session_not_found"
+	RevokeDeviceSessionError_MemberNotFound        = "member_not_found"
+	RevokeDeviceSessionError_Other                 = "other"
+)
 
 type RevokeDeviceSessionStatus struct {
 	// Result of the revoking request
@@ -2034,10 +2120,14 @@ func NewRevokeLinkedApiAppBatchArg(RevokeLinkedApp []*RevokeLinkedApiAppArg) *Re
 	return s
 }
 
-// Error returned by `LinkedAppsRevokeLinkedAppBatch`.
+// Error returned by `linkedAppsRevokeLinkedAppBatch`.
 type RevokeLinkedAppBatchError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	RevokeLinkedAppBatchError_Unspecified = "unspecified"
+)
 
 type RevokeLinkedAppBatchResult struct {
 	RevokeLinkedAppStatus []*RevokeLinkedAppStatus `json:"revoke_linked_app_status"`
@@ -2049,10 +2139,16 @@ func NewRevokeLinkedAppBatchResult(RevokeLinkedAppStatus []*RevokeLinkedAppStatu
 	return s
 }
 
-// Error returned by `LinkedAppsRevokeLinkedApp`.
+// Error returned by `linkedAppsRevokeLinkedApp`.
 type RevokeLinkedAppError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
+
+const (
+	RevokeLinkedAppError_AppNotFound    = "app_not_found"
+	RevokeLinkedAppError_MemberNotFound = "member_not_found"
+	RevokeLinkedAppError_Other          = "other"
+)
 
 type RevokeLinkedAppStatus struct {
 	// Result of the revoking request
@@ -2069,10 +2165,11 @@ func NewRevokeLinkedAppStatus(Success bool) *RevokeLinkedAppStatus {
 
 // Describes the number of users in a specific storage bucket.
 type StorageBucket struct {
-	// The name of the storage bucket. For example, '1G' is a bucket of users with
-	// storage size up to 1 Giga.
+	// The name of the storage bucket. For example, '1G' is a bucket of users
+	// with storage size up to 1 Giga.
 	Bucket string `json:"bucket"`
-	// The number of people whose storage is in the range of this storage bucket.
+	// The number of people whose storage is in the range of this storage
+	// bucket.
 	Users uint64 `json:"users"`
 }
 
@@ -2090,8 +2187,8 @@ type TeamGetInfoResult struct {
 	TeamId string `json:"team_id"`
 	// The number of licenses available to the team.
 	NumLicensedUsers uint32 `json:"num_licensed_users"`
-	// The number of accounts that have been invited or are already active members
-	// of the team.
+	// The number of accounts that have been invited or are already active
+	// members of the team.
 	NumProvisionedUsers uint32                            `json:"num_provisioned_users"`
 	Policies            *team_policies.TeamMemberPolicies `json:"policies"`
 }
@@ -2123,27 +2220,9 @@ func NewTeamMemberInfo(Profile *TeamMemberProfile, Role *AdminTier) *TeamMemberI
 
 // Profile of a user as a member of a team.
 type TeamMemberProfile struct {
-	// ID of user as a member of a team.
-	TeamMemberId string `json:"team_member_id"`
-	// Email address of user.
-	Email string `json:"email"`
-	// Is true if the user's email is verified to be owned by the user.
-	EmailVerified bool `json:"email_verified"`
-	// The user's status as a member of a specific team.
-	Status *TeamMemberStatus `json:"status"`
-	// Representations for a person's name.
-	Name *users.Name `json:"name"`
-	// The user's membership type: full (normal team member) vs limited (does not
-	// use a license; no access to the team's shared quota).
-	MembershipType *TeamMembershipType `json:"membership_type"`
+	MemberProfile
 	// List of group IDs of groups that the user belongs to.
 	Groups []string `json:"groups"`
-	// External ID that a team can attach to the user. An application using the API
-	// may find it easier to use their own IDs instead of Dropbox IDs like
-	// account_id or team_member_id.
-	ExternalId string `json:"external_id,omitempty"`
-	// A user's account identifier.
-	AccountId string `json:"account_id,omitempty"`
 }
 
 func NewTeamMemberProfile(TeamMemberId string, Email string, EmailVerified bool, Status *TeamMemberStatus, Name *users.Name, MembershipType *TeamMembershipType, Groups []string) *TeamMemberProfile {
@@ -2160,62 +2239,95 @@ func NewTeamMemberProfile(TeamMemberId string, Email string, EmailVerified bool,
 
 // The user's status as a member of a specific team.
 type TeamMemberStatus struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
+const (
+	TeamMemberStatus_Active    = "active"
+	TeamMemberStatus_Invited   = "invited"
+	TeamMemberStatus_Suspended = "suspended"
+)
+
 type TeamMembershipType struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
+}
+
+const (
+	TeamMembershipType_Full    = "full"
+	TeamMembershipType_Limited = "limited"
+)
+
+type UpdatePropertyTemplateArg struct {
+	// An identifier for property template added by `propertiesTemplateAdd`.
+	TemplateId string `json:"template_id"`
+	// A display name for the property template. Property template names can be
+	// up to 256 bytes.
+	Name string `json:"name,omitempty"`
+	// Description for new property template. Property template descriptions can
+	// be up to 1024 bytes.
+	Description string `json:"description,omitempty"`
+	// This is a list of custom properties to add to the property template.
+	// There can be up to 64 properties in a single property template.
+	AddFields []*properties.PropertyFieldTemplate `json:"add_fields,omitempty"`
+}
+
+func NewUpdatePropertyTemplateArg(TemplateId string) *UpdatePropertyTemplateArg {
+	s := new(UpdatePropertyTemplateArg)
+	s.TemplateId = TemplateId
+	return s
+}
+
+type UpdatePropertyTemplateResult struct {
+	// An identifier for property template added by `propertiesTemplateAdd`.
+	TemplateId string `json:"template_id"`
+}
+
+func NewUpdatePropertyTemplateResult(TemplateId string) *UpdatePropertyTemplateResult {
+	s := new(UpdatePropertyTemplateResult)
+	s.TemplateId = TemplateId
+	return s
 }
 
 // Argument for selecting a single user, either by team_member_id, external_id
 // or email.
 type UserSelectorArg struct {
-	Tag          string `json:".tag"`
+	dropbox.Tagged
 	TeamMemberId string `json:"team_member_id,omitempty"`
 	ExternalId   string `json:"external_id,omitempty"`
 	Email        string `json:"email,omitempty"`
 }
 
+const (
+	UserSelectorArg_TeamMemberId = "team_member_id"
+	UserSelectorArg_ExternalId   = "external_id"
+	UserSelectorArg_Email        = "email"
+)
+
 func (u *UserSelectorArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag          string          `json:".tag"`
-		TeamMemberId json.RawMessage `json:"team_member_id"`
-		ExternalId   json.RawMessage `json:"external_id"`
-		Email        json.RawMessage `json:"email"`
+		dropbox.Tagged
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "team_member_id":
-		{
-			if len(w.TeamMemberId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.TeamMemberId, &u.TeamMemberId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.TeamMemberId); err != nil {
+			return err
 		}
+
 	case "external_id":
-		{
-			if len(w.ExternalId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.ExternalId, &u.ExternalId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.ExternalId); err != nil {
+			return err
 		}
+
 	case "email":
-		{
-			if len(w.Email) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.Email, &u.Email); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Email); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -2223,7 +2335,7 @@ func (u *UserSelectorArg) UnmarshalJSON(body []byte) error {
 // Argument for selecting a list of users, either by team_member_ids,
 // external_ids or emails.
 type UsersSelectorArg struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 	// List of member IDs.
 	TeamMemberIds []string `json:"team_member_ids,omitempty"`
 	// List of external user IDs.
@@ -2232,192 +2344,43 @@ type UsersSelectorArg struct {
 	Emails []string `json:"emails,omitempty"`
 }
 
+const (
+	UsersSelectorArg_TeamMemberIds = "team_member_ids"
+	UsersSelectorArg_ExternalIds   = "external_ids"
+	UsersSelectorArg_Emails        = "emails"
+)
+
 func (u *UsersSelectorArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
+		dropbox.Tagged
 		// List of member IDs.
-		TeamMemberIds json.RawMessage `json:"team_member_ids"`
+		TeamMemberIds json.RawMessage `json:"team_member_ids,omitempty"`
 		// List of external user IDs.
-		ExternalIds json.RawMessage `json:"external_ids"`
+		ExternalIds json.RawMessage `json:"external_ids,omitempty"`
 		// List of email addresses.
-		Emails json.RawMessage `json:"emails"`
+		Emails json.RawMessage `json:"emails,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "team_member_ids":
-		{
-			if len(w.TeamMemberIds) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.TeamMemberIds, &u.TeamMemberIds); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.TeamMemberIds); err != nil {
+			return err
 		}
+
 	case "external_ids":
-		{
-			if len(w.ExternalIds) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.ExternalIds, &u.ExternalIds); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.ExternalIds); err != nil {
+			return err
 		}
+
 	case "emails":
-		{
-			if len(w.Emails) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.Emails, &u.Emails); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.Emails); err != nil {
+			return err
 		}
+
 	}
 	return nil
-}
-
-type Team interface {
-	// Creates a new, empty group, with a requested name. Permission : Team member
-	// management
-	AlphaGroupsCreate(arg *AlphaGroupCreateArg) (res *AlphaGroupFullInfo, err error)
-	// Retrieves information about one or more groups. Permission : Team
-	// Information
-	AlphaGroupsGetInfo(arg *GroupsSelector) (res []*AlphaGroupsGetInfoItem, err error)
-	// Lists groups on a team. Permission : Team Information
-	AlphaGroupsList(arg *GroupsListArg) (res *AlphaGroupsListResult, err error)
-	// Once a cursor has been retrieved from `AlphaGroupsList`, use this to
-	// paginate through all groups. Permission : Team information
-	AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *AlphaGroupsListResult, err error)
-	// Updates a group's name, external ID or management type. Permission : Team
-	// member management
-	AlphaGroupsUpdate(arg *AlphaGroupUpdateArgs) (res *AlphaGroupFullInfo, err error)
-	// List all device sessions of a team's member.
-	DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *ListMemberDevicesResult, err error)
-	// List all device sessions of a team.
-	DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *ListMembersDevicesResult, err error)
-	// List all device sessions of a team.
-	DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTeamDevicesResult, err error)
-	// Revoke a device session of a team's member
-	DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err error)
-	// Revoke a list of device sessions of team members
-	DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatchArg) (res *RevokeDeviceSessionBatchResult, err error)
-	// Retrieves information about a team.
-	GetInfo() (res *TeamGetInfoResult, err error)
-	// Creates a new, empty group, with a requested name. Permission : Team member
-	// management
-	GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err error)
-	// Deletes a group. The group is deleted immediately. However the revoking of
-	// group-owned resources may take additional time. Use the `GroupsJobStatusGet`
-	// to determine whether this process has completed. Permission : Team member
-	// management
-	GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResult, err error)
-	// Retrieves information about one or more groups. Permission : Team
-	// Information
-	GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem, err error)
-	// Once an async_job_id is returned from `GroupsDelete`, `GroupsMembersAdd` ,
-	// or `GroupsMembersRemove` use this method to poll the status of
-	// granting/revoking group members' access to group-owned resources. Permission
-	// : Team member management
-	GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
-	// Lists groups on a team. Permission : Team Information
-	GroupsList(arg *GroupsListArg) (res *GroupsListResult, err error)
-	// Once a cursor has been retrieved from `GroupsList`, use this to paginate
-	// through all groups. Permission : Team information
-	GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsListResult, err error)
-	// Adds members to a group. The members are added immediately. However the
-	// granting of group-owned resources may take additional time. Use the
-	// `GroupsJobStatusGet` to determine whether this process has completed.
-	// Permission : Team member management
-	GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembersChangeResult, err error)
-	// Lists members of a group. Permission : Team Information
-	GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMembersListResult, err error)
-	// Once a cursor has been retrieved from `GroupsMembersList`, use this to
-	// paginate through all members of the group. Permission : Team information
-	GroupsMembersListContinue(arg *GroupsMembersListContinueArg) (res *GroupsMembersListResult, err error)
-	// Removes members from a group. The members are removed immediately. However
-	// the revoking of group-owned resources may take additional time. Use the
-	// `GroupsJobStatusGet` to determine whether this process has completed.
-	// Permission : Team member management
-	GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupMembersChangeResult, err error)
-	// Sets a member's access type in a group. Permission : Team member management
-	GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg) (res []*GroupsGetInfoItem, err error)
-	// Updates a group's name and/or external ID. Permission : Team member
-	// management
-	GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err error)
-	// List all linked applications of the team member. Note, this endpoint does
-	// not list any team-linked applications.
-	LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res *ListMemberAppsResult, err error)
-	// List all applications linked to the team members' accounts. Note, this
-	// endpoint does not list any team-linked applications.
-	LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (res *ListMembersAppsResult, err error)
-	// List all applications linked to the team members' accounts. Note, this
-	// endpoint doesn't list any team-linked applications.
-	LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *ListTeamAppsResult, err error)
-	// Revoke a linked application of the team member
-	LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err error)
-	// Revoke a list of linked applications of the team members
-	LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchArg) (res *RevokeLinkedAppBatchResult, err error)
-	// Adds members to a team. Permission : Team member management A maximum of 20
-	// members can be specified in a single call. If no Dropbox account exists with
-	// the email address specified, a new Dropbox account will be created with the
-	// given email address, and that account will be invited to the team. If a
-	// personal Dropbox account exists with the email address specified in the
-	// call, this call will create a placeholder Dropbox account for the user on
-	// the team and send an email inviting the user to migrate their existing
-	// personal account onto the team. Team member management apps are required to
-	// set an initial given_name and surname for a user to use in the team
-	// invitation and for 'Perform as team member' actions taken on the user before
-	// they become 'active'.
-	MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err error)
-	// Once an async_job_id is returned from `MembersAdd` , use this to poll the
-	// status of the asynchronous request. Permission : Team member management
-	MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJobStatus, err error)
-	// Returns information about multiple team members. Permission : Team
-	// information This endpoint will return `MembersGetInfoItem.id_not_found`, for
-	// IDs (or emails) that cannot be matched to a valid team member.
-	MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetInfoItem, err error)
-	// Lists members of a team. Permission : Team information
-	MembersList(arg *MembersListArg) (res *MembersListResult, err error)
-	// Once a cursor has been retrieved from `MembersList`, use this to paginate
-	// through all team members. Permission : Team information
-	MembersListContinue(arg *MembersListContinueArg) (res *MembersListResult, err error)
-	// Removes a member from a team. Permission : Team member management Exactly
-	// one of team_member_id, email, or external_id must be provided to identify
-	// the user account. This is not a deactivation where the account can be
-	// re-activated again. Calling `MembersAdd` with the removed user's email
-	// address will create a new account with a new team_member_id that will not
-	// have access to any content that was shared with the initial account. This
-	// endpoint may initiate an asynchronous job. To obtain the final result of the
-	// job, the client should periodically poll `MembersRemoveJobStatusGet`.
-	MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmptyResult, err error)
-	// Once an async_job_id is returned from `MembersRemove` , use this to poll the
-	// status of the asynchronous request. Permission : Team member management
-	MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
-	// Sends welcome email to pending team member. Permission : Team member
-	// management Exactly one of team_member_id, email, or external_id must be
-	// provided to identify the user account. No-op if team member is not pending.
-	MembersSendWelcomeEmail(arg *UserSelectorArg) (err error)
-	// Updates a team member's permissions. Permission : Team member management
-	MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (res *MembersSetPermissionsResult, err error)
-	// Updates a team member's profile. Permission : Team member management
-	MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMemberInfo, err error)
-	// Suspend a member from a team. Permission : Team member management Exactly
-	// one of team_member_id, email, or external_id must be provided to identify
-	// the user account.
-	MembersSuspend(arg *MembersDeactivateArg) (err error)
-	// Unsuspend a member from a team. Permission : Team member management Exactly
-	// one of team_member_id, email, or external_id must be provided to identify
-	// the user account.
-	MembersUnsuspend(arg *MembersUnsuspendArg) (err error)
-	// Retrieves reporting data about a team's user activity.
-	ReportsGetActivity(arg *DateRange) (res *GetActivityReport, err error)
-	// Retrieves reporting data about a team's linked devices.
-	ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, err error)
-	// Retrieves reporting data about a team's membership.
-	ReportsGetMembership(arg *DateRange) (res *GetMembershipReport, err error)
-	// Retrieves reporting data about a team's storage usage.
-	ReportsGetStorage(arg *DateRange) (res *GetStorageReport, err error)
 }

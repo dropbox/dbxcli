@@ -25,8 +25,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
@@ -40,9 +40,6 @@ const (
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
-
-	folder = "folder"
-	file   = "file"
 )
 
 var (
@@ -58,6 +55,8 @@ var (
 // For each domain, we want to save different tokens depending on the
 // command type: personal, team access and team manage
 type TokenMap map[string]map[string]string
+
+var config dropbox.Config
 
 func oauthConfig(tokenType string, domain string) *oauth2.Config {
 	var appKey, appSecret string
@@ -102,8 +101,6 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 
 	return
 }
-
-var dbx dropbox.Api
 
 func readTokens(filePath string) (TokenMap, error) {
 	b, err := ioutil.ReadFile(filePath)
@@ -154,11 +151,6 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
 
-	var options dropbox.Options
-	options.Verbose = verbose
-	options.AsMemberId = asMember
-	options.Domain = domain
-
 	dir, err := homedir.Dir()
 	if err != nil {
 		return
@@ -195,7 +187,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		writeTokens(filePath, tokenMap)
 	}
 
-	dbx = dropbox.Client(tokens[tokType], options)
+	config = dropbox.Config{tokens[tokType], verbose, asMember, domain}
 
 	return
 }

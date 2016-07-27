@@ -21,7 +21,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
@@ -49,6 +49,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewDownloadArg(src)
 
+	dbx := files.New(config)
 	res, contents, err := dbx.Download(arg)
 	defer contents.Close()
 	if err != nil {

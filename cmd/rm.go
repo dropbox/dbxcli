@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
@@ -32,11 +32,12 @@ func rm(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	pathMetaData, err := getFileMetadata(path)
+	dbx := files.New(config)
+	pathMetaData, err := getFileMetadata(dbx, path)
 	if err != nil {
 		return
 	}
-	if pathMetaData.Tag == folder {
+	if _, ok := pathMetaData.(*files.FileMetadata); !ok {
 		return fmt.Errorf("rm: cannot remove ‘%s’: Is a directory", path)
 	}
 

@@ -19,11 +19,12 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team"
 	"github.com/spf13/cobra"
 )
 
 func listMembers(cmd *cobra.Command, args []string) (err error) {
+	dbx := team.New(config)
 	arg := team.NewMembersListArg()
 	res, err := dbx.MembersList(arg)
 	if err != nil {

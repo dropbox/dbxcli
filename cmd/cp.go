@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +50,7 @@ func cp(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	dbx := files.New(config)
 	for _, arg := range relocationArgs {
 		if _, err := dbx.Copy(arg); err != nil {
 			copyError := fmt.Errorf("Copy error: %v", arg)

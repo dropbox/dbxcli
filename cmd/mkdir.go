@@ -17,7 +17,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
@@ -33,6 +33,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewCreateFolderArg(dst)
 
+	dbx := files.New(config)
 	if _, err = dbx.CreateFolder(arg); err != nil {
 		return
 	}
