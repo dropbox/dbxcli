@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// This namespace contains endpoints and data types for user management.
+// Package users : This namespace contains endpoints and data types for user
+// management.
 package users
 
 import (
@@ -31,21 +32,25 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 )
 
+// Client interface describes all routes in this namespace
 type Client interface {
-	// Get information about a user's account.
+	// GetAccount : Get information about a user's account.
 	GetAccount(arg *GetAccountArg) (res *BasicAccount, err error)
-	// Get information about multiple user accounts.  At most 300 accounts may
-	// be queried per request.
+	// GetAccountBatch : Get information about multiple user accounts.  At most
+	// 300 accounts may be queried per request.
 	GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccount, err error)
-	// Get information about the current user's account.
+	// GetCurrentAccount : Get information about the current user's account.
 	GetCurrentAccount() (res *FullAccount, err error)
-	// Get the space usage information for the current user's account.
+	// GetSpaceUsage : Get the space usage information for the current user's
+	// account.
 	GetSpaceUsage() (res *SpaceUsage, err error)
 }
 
 type apiImpl dropbox.Context
-type GetAccountApiError struct {
-	dropbox.ApiError
+
+//GetAccountAPIError is an error-wrapper for the get_account route
+type GetAccountAPIError struct {
+	dropbox.APIError
 	EndpointError *GetAccountError `json:"error"`
 }
 
@@ -66,8 +71,8 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -91,7 +96,7 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetAccountApiError
+			var apiError GetAccountAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -99,7 +104,7 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -120,8 +125,9 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 	return
 }
 
-type GetAccountBatchApiError struct {
-	dropbox.ApiError
+//GetAccountBatchAPIError is an error-wrapper for the get_account_batch route
+type GetAccountBatchAPIError struct {
+	dropbox.APIError
 	EndpointError *GetAccountBatchError `json:"error"`
 }
 
@@ -142,8 +148,8 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -167,7 +173,7 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetAccountBatchApiError
+			var apiError GetAccountBatchAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -175,7 +181,7 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -196,8 +202,9 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 	return
 }
 
-type GetCurrentAccountApiError struct {
-	dropbox.ApiError
+//GetCurrentAccountAPIError is an error-wrapper for the get_current_account route
+type GetCurrentAccountAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -209,8 +216,8 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 		return
 	}
 
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -234,7 +241,7 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetCurrentAccountApiError
+			var apiError GetCurrentAccountAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -242,7 +249,7 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -263,8 +270,9 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 	return
 }
 
-type GetSpaceUsageApiError struct {
-	dropbox.ApiError
+//GetSpaceUsageAPIError is an error-wrapper for the get_space_usage route
+type GetSpaceUsageAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -276,8 +284,8 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 		return
 	}
 
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -301,7 +309,7 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetSpaceUsageApiError
+			var apiError GetSpaceUsageAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -309,7 +317,7 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -330,6 +338,7 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 	return
 }
 
+// New returns a Client implementation for this namespace
 func New(c dropbox.Config) *apiImpl {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx

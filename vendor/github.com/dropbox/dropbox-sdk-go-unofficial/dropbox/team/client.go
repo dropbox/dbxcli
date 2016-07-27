@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// Package team : has no documentation (yet)
 package team
 
 import (
@@ -32,166 +33,188 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
 )
 
+// Client interface describes all routes in this namespace
 type Client interface {
-	// Creates a new, empty group, with a requested name. Permission : Team
-	// member management
+	// AlphaGroupsCreate : Creates a new, empty group, with a requested name.
+	// Permission : Team member management
 	AlphaGroupsCreate(arg *AlphaGroupCreateArg) (res *AlphaGroupFullInfo, err error)
-	// Retrieves information about one or more groups. Permission : Team
-	// Information
+	// AlphaGroupsGetInfo : Retrieves information about one or more groups.
+	// Permission : Team Information
 	AlphaGroupsGetInfo(arg *GroupsSelector) (res []*AlphaGroupsGetInfoItem, err error)
-	// Lists groups on a team. Permission : Team Information
+	// AlphaGroupsList : Lists groups on a team. Permission : Team Information
 	AlphaGroupsList(arg *GroupsListArg) (res *AlphaGroupsListResult, err error)
-	// Once a cursor has been retrieved from `alphaGroupsList`, use this to
-	// paginate through all groups. Permission : Team information
+	// AlphaGroupsListContinue : Once a cursor has been retrieved from
+	// `alphaGroupsList`, use this to paginate through all groups. Permission :
+	// Team information
 	AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *AlphaGroupsListResult, err error)
-	// Updates a group's name, external ID or management type. Permission : Team
-	// member management
+	// AlphaGroupsUpdate : Updates a group's name, external ID or management
+	// type. Permission : Team member management
 	AlphaGroupsUpdate(arg *AlphaGroupUpdateArgs) (res *AlphaGroupFullInfo, err error)
-	// List all device sessions of a team's member.
+	// DevicesListMemberDevices : List all device sessions of a team's member.
 	DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *ListMemberDevicesResult, err error)
-	// List all device sessions of a team.
+	// DevicesListMembersDevices : List all device sessions of a team.
 	DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *ListMembersDevicesResult, err error)
-	// List all device sessions of a team.
+	// DevicesListTeamDevices : List all device sessions of a team.
 	DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTeamDevicesResult, err error)
-	// Revoke a device session of a team's member
+	// DevicesRevokeDeviceSession : Revoke a device session of a team's member
 	DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err error)
-	// Revoke a list of device sessions of team members
+	// DevicesRevokeDeviceSessionBatch : Revoke a list of device sessions of
+	// team members
 	DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatchArg) (res *RevokeDeviceSessionBatchResult, err error)
-	// Retrieves information about a team.
+	// GetInfo : Retrieves information about a team.
 	GetInfo() (res *TeamGetInfoResult, err error)
-	// Creates a new, empty group, with a requested name. Permission : Team
-	// member management
+	// GroupsCreate : Creates a new, empty group, with a requested name.
+	// Permission : Team member management
 	GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err error)
-	// Deletes a group. The group is deleted immediately. However the revoking
-	// of group-owned resources may take additional time. Use the
+	// GroupsDelete : Deletes a group. The group is deleted immediately. However
+	// the revoking of group-owned resources may take additional time. Use the
 	// `groupsJobStatusGet` to determine whether this process has completed.
 	// Permission : Team member management
 	GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResult, err error)
-	// Retrieves information about one or more groups. Permission : Team
-	// Information
+	// GroupsGetInfo : Retrieves information about one or more groups.
+	// Permission : Team Information
 	GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem, err error)
-	// Once an async_job_id is returned from `groupsDelete`, `groupsMembersAdd`
-	// , or `groupsMembersRemove` use this method to poll the status of
-	// granting/revoking group members' access to group-owned resources.
-	// Permission : Team member management
+	// GroupsJobStatusGet : Once an async_job_id is returned from
+	// `groupsDelete`, `groupsMembersAdd` , or `groupsMembersRemove` use this
+	// method to poll the status of granting/revoking group members' access to
+	// group-owned resources. Permission : Team member management
 	GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
-	// Lists groups on a team. Permission : Team Information
+	// GroupsList : Lists groups on a team. Permission : Team Information
 	GroupsList(arg *GroupsListArg) (res *GroupsListResult, err error)
-	// Once a cursor has been retrieved from `groupsList`, use this to paginate
-	// through all groups. Permission : Team information
+	// GroupsListContinue : Once a cursor has been retrieved from `groupsList`,
+	// use this to paginate through all groups. Permission : Team information
 	GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsListResult, err error)
-	// Adds members to a group. The members are added immediately. However the
-	// granting of group-owned resources may take additional time. Use the
-	// `groupsJobStatusGet` to determine whether this process has completed.
-	// Permission : Team member management
+	// GroupsMembersAdd : Adds members to a group. The members are added
+	// immediately. However the granting of group-owned resources may take
+	// additional time. Use the `groupsJobStatusGet` to determine whether this
+	// process has completed. Permission : Team member management
 	GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembersChangeResult, err error)
-	// Lists members of a group. Permission : Team Information
+	// GroupsMembersList : Lists members of a group. Permission : Team
+	// Information
 	GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMembersListResult, err error)
-	// Once a cursor has been retrieved from `groupsMembersList`, use this to
-	// paginate through all members of the group. Permission : Team information
+	// GroupsMembersListContinue : Once a cursor has been retrieved from
+	// `groupsMembersList`, use this to paginate through all members of the
+	// group. Permission : Team information
 	GroupsMembersListContinue(arg *GroupsMembersListContinueArg) (res *GroupsMembersListResult, err error)
-	// Removes members from a group. The members are removed immediately.
-	// However the revoking of group-owned resources may take additional time.
-	// Use the `groupsJobStatusGet` to determine whether this process has
-	// completed. Permission : Team member management
+	// GroupsMembersRemove : Removes members from a group. The members are
+	// removed immediately. However the revoking of group-owned resources may
+	// take additional time. Use the `groupsJobStatusGet` to determine whether
+	// this process has completed. Permission : Team member management
 	GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupMembersChangeResult, err error)
-	// Sets a member's access type in a group. Permission : Team member
-	// management
+	// GroupsMembersSetAccessType : Sets a member's access type in a group.
+	// Permission : Team member management
 	GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg) (res []*GroupsGetInfoItem, err error)
-	// Updates a group's name and/or external ID. Permission : Team member
-	// management
+	// GroupsUpdate : Updates a group's name and/or external ID. Permission :
+	// Team member management
 	GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err error)
-	// List all linked applications of the team member. Note, this endpoint does
-	// not list any team-linked applications.
+	// LinkedAppsListMemberLinkedApps : List all linked applications of the team
+	// member. Note, this endpoint does not list any team-linked applications.
 	LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res *ListMemberAppsResult, err error)
-	// List all applications linked to the team members' accounts. Note, this
-	// endpoint does not list any team-linked applications.
+	// LinkedAppsListMembersLinkedApps : List all applications linked to the
+	// team members' accounts. Note, this endpoint does not list any team-linked
+	// applications.
 	LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (res *ListMembersAppsResult, err error)
-	// List all applications linked to the team members' accounts. Note, this
-	// endpoint doesn't list any team-linked applications.
+	// LinkedAppsListTeamLinkedApps : List all applications linked to the team
+	// members' accounts. Note, this endpoint doesn't list any team-linked
+	// applications.
 	LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *ListTeamAppsResult, err error)
-	// Revoke a linked application of the team member
+	// LinkedAppsRevokeLinkedApp : Revoke a linked application of the team
+	// member
 	LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err error)
-	// Revoke a list of linked applications of the team members
+	// LinkedAppsRevokeLinkedAppBatch : Revoke a list of linked applications of
+	// the team members
 	LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchArg) (res *RevokeLinkedAppBatchResult, err error)
-	// Adds members to a team. Permission : Team member management A maximum of
-	// 20 members can be specified in a single call. If no Dropbox account
-	// exists with the email address specified, a new Dropbox account will be
-	// created with the given email address, and that account will be invited to
-	// the team. If a personal Dropbox account exists with the email address
-	// specified in the call, this call will create a placeholder Dropbox
-	// account for the user on the team and send an email inviting the user to
-	// migrate their existing personal account onto the team. Team member
-	// management apps are required to set an initial given_name and surname for
-	// a user to use in the team invitation and for 'Perform as team member'
-	// actions taken on the user before they become 'active'.
+	// MembersAdd : Adds members to a team. Permission : Team member management
+	// A maximum of 20 members can be specified in a single call. If no Dropbox
+	// account exists with the email address specified, a new Dropbox account
+	// will be created with the given email address, and that account will be
+	// invited to the team. If a personal Dropbox account exists with the email
+	// address specified in the call, this call will create a placeholder
+	// Dropbox account for the user on the team and send an email inviting the
+	// user to migrate their existing personal account onto the team. Team
+	// member management apps are required to set an initial given_name and
+	// surname for a user to use in the team invitation and for 'Perform as team
+	// member' actions taken on the user before they become 'active'.
 	MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err error)
-	// Once an async_job_id is returned from `membersAdd` , use this to poll the
-	// status of the asynchronous request. Permission : Team member management
+	// MembersAddJobStatusGet : Once an async_job_id is returned from
+	// `membersAdd` , use this to poll the status of the asynchronous request.
+	// Permission : Team member management
 	MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJobStatus, err error)
-	// Returns information about multiple team members. Permission : Team
-	// information This endpoint will return `MembersGetInfoItem.id_not_found`,
-	// for IDs (or emails) that cannot be matched to a valid team member.
+	// MembersGetInfo : Returns information about multiple team members.
+	// Permission : Team information This endpoint will return
+	// `MembersGetInfoItem.id_not_found`, for IDs (or emails) that cannot be
+	// matched to a valid team member.
 	MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetInfoItem, err error)
-	// Lists members of a team. Permission : Team information
+	// MembersList : Lists members of a team. Permission : Team information
 	MembersList(arg *MembersListArg) (res *MembersListResult, err error)
-	// Once a cursor has been retrieved from `membersList`, use this to paginate
-	// through all team members. Permission : Team information
+	// MembersListContinue : Once a cursor has been retrieved from
+	// `membersList`, use this to paginate through all team members. Permission
+	// : Team information
 	MembersListContinue(arg *MembersListContinueArg) (res *MembersListResult, err error)
-	// Removes a member from a team. Permission : Team member management Exactly
-	// one of team_member_id, email, or external_id must be provided to identify
-	// the user account. This is not a deactivation where the account can be
-	// re-activated again. Calling `membersAdd` with the removed user's email
-	// address will create a new account with a new team_member_id that will not
-	// have access to any content that was shared with the initial account. This
-	// endpoint may initiate an asynchronous job. To obtain the final result of
-	// the job, the client should periodically poll `membersRemoveJobStatusGet`.
-	MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmptyResult, err error)
-	// Once an async_job_id is returned from `membersRemove` , use this to poll
-	// the status of the asynchronous request. Permission : Team member
-	// management
-	MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
-	// Sends welcome email to pending team member. Permission : Team member
+	// MembersRemove : Removes a member from a team. Permission : Team member
 	// management Exactly one of team_member_id, email, or external_id must be
-	// provided to identify the user account. No-op if team member is not
-	// pending.
+	// provided to identify the user account. This is not a deactivation where
+	// the account can be re-activated again. Calling `membersAdd` with the
+	// removed user's email address will create a new account with a new
+	// team_member_id that will not have access to any content that was shared
+	// with the initial account. This endpoint may initiate an asynchronous job.
+	// To obtain the final result of the job, the client should periodically
+	// poll `membersRemoveJobStatusGet`.
+	MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmptyResult, err error)
+	// MembersRemoveJobStatusGet : Once an async_job_id is returned from
+	// `membersRemove` , use this to poll the status of the asynchronous
+	// request. Permission : Team member management
+	MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
+	// MembersSendWelcomeEmail : Sends welcome email to pending team member.
+	// Permission : Team member management Exactly one of team_member_id, email,
+	// or external_id must be provided to identify the user account. No-op if
+	// team member is not pending.
 	MembersSendWelcomeEmail(arg *UserSelectorArg) (err error)
-	// Updates a team member's permissions. Permission : Team member management
+	// MembersSetAdminPermissions : Updates a team member's permissions.
+	// Permission : Team member management
 	MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (res *MembersSetPermissionsResult, err error)
-	// Updates a team member's profile. Permission : Team member management
+	// MembersSetProfile : Updates a team member's profile. Permission : Team
+	// member management
 	MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMemberInfo, err error)
-	// Suspend a member from a team. Permission : Team member management Exactly
-	// one of team_member_id, email, or external_id must be provided to identify
-	// the user account.
+	// MembersSuspend : Suspend a member from a team. Permission : Team member
+	// management Exactly one of team_member_id, email, or external_id must be
+	// provided to identify the user account.
 	MembersSuspend(arg *MembersDeactivateArg) (err error)
-	// Unsuspend a member from a team. Permission : Team member management
-	// Exactly one of team_member_id, email, or external_id must be provided to
-	// identify the user account.
+	// MembersUnsuspend : Unsuspend a member from a team. Permission : Team
+	// member management Exactly one of team_member_id, email, or external_id
+	// must be provided to identify the user account.
 	MembersUnsuspend(arg *MembersUnsuspendArg) (err error)
-	// Add a property template. See route files/properties/add to add properties
-	// to a file.
+	// PropertiesTemplateAdd : Add a property template. See route
+	// files/properties/add to add properties to a file.
 	PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *AddPropertyTemplateResult, err error)
-	// Get the schema for a specified template.
+	// PropertiesTemplateGet : Get the schema for a specified template.
 	PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg) (res *properties.GetPropertyTemplateResult, err error)
-	// Get the property template identifiers for a team. To get the schema of
-	// each template use `propertiesTemplateGet`.
+	// PropertiesTemplateList : Get the property template identifiers for a
+	// team. To get the schema of each template use `propertiesTemplateGet`.
 	PropertiesTemplateList() (res *properties.ListPropertyTemplateIds, err error)
-	// Update a property template. This route can update the template name, the
-	// template description and add optional properties to templates.
+	// PropertiesTemplateUpdate : Update a property template. This route can
+	// update the template name, the template description and add optional
+	// properties to templates.
 	PropertiesTemplateUpdate(arg *UpdatePropertyTemplateArg) (res *UpdatePropertyTemplateResult, err error)
-	// Retrieves reporting data about a team's user activity.
+	// ReportsGetActivity : Retrieves reporting data about a team's user
+	// activity.
 	ReportsGetActivity(arg *DateRange) (res *GetActivityReport, err error)
-	// Retrieves reporting data about a team's linked devices.
+	// ReportsGetDevices : Retrieves reporting data about a team's linked
+	// devices.
 	ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, err error)
-	// Retrieves reporting data about a team's membership.
+	// ReportsGetMembership : Retrieves reporting data about a team's
+	// membership.
 	ReportsGetMembership(arg *DateRange) (res *GetMembershipReport, err error)
-	// Retrieves reporting data about a team's storage usage.
+	// ReportsGetStorage : Retrieves reporting data about a team's storage
+	// usage.
 	ReportsGetStorage(arg *DateRange) (res *GetStorageReport, err error)
 }
 
 type apiImpl dropbox.Context
-type AlphaGroupsCreateApiError struct {
-	dropbox.ApiError
+
+//AlphaGroupsCreateAPIError is an error-wrapper for the alpha/groups/create route
+type AlphaGroupsCreateAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupCreateError `json:"error"`
 }
 
@@ -234,7 +257,7 @@ func (dbx *apiImpl) AlphaGroupsCreate(arg *AlphaGroupCreateArg) (res *AlphaGroup
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGroupsCreateApiError
+			var apiError AlphaGroupsCreateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -242,7 +265,7 @@ func (dbx *apiImpl) AlphaGroupsCreate(arg *AlphaGroupCreateArg) (res *AlphaGroup
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -263,8 +286,9 @@ func (dbx *apiImpl) AlphaGroupsCreate(arg *AlphaGroupCreateArg) (res *AlphaGroup
 	return
 }
 
-type AlphaGroupsGetInfoApiError struct {
-	dropbox.ApiError
+//AlphaGroupsGetInfoAPIError is an error-wrapper for the alpha/groups/get_info route
+type AlphaGroupsGetInfoAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsGetInfoError `json:"error"`
 }
 
@@ -307,7 +331,7 @@ func (dbx *apiImpl) AlphaGroupsGetInfo(arg *GroupsSelector) (res []*AlphaGroupsG
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGroupsGetInfoApiError
+			var apiError AlphaGroupsGetInfoAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -315,7 +339,7 @@ func (dbx *apiImpl) AlphaGroupsGetInfo(arg *GroupsSelector) (res []*AlphaGroupsG
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -336,8 +360,9 @@ func (dbx *apiImpl) AlphaGroupsGetInfo(arg *GroupsSelector) (res []*AlphaGroupsG
 	return
 }
 
-type AlphaGroupsListApiError struct {
-	dropbox.ApiError
+//AlphaGroupsListAPIError is an error-wrapper for the alpha/groups/list route
+type AlphaGroupsListAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -380,7 +405,7 @@ func (dbx *apiImpl) AlphaGroupsList(arg *GroupsListArg) (res *AlphaGroupsListRes
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGroupsListApiError
+			var apiError AlphaGroupsListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -388,7 +413,7 @@ func (dbx *apiImpl) AlphaGroupsList(arg *GroupsListArg) (res *AlphaGroupsListRes
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -409,8 +434,9 @@ func (dbx *apiImpl) AlphaGroupsList(arg *GroupsListArg) (res *AlphaGroupsListRes
 	return
 }
 
-type AlphaGroupsListContinueApiError struct {
-	dropbox.ApiError
+//AlphaGroupsListContinueAPIError is an error-wrapper for the alpha/groups/list/continue route
+type AlphaGroupsListContinueAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsListContinueError `json:"error"`
 }
 
@@ -453,7 +479,7 @@ func (dbx *apiImpl) AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *Al
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGroupsListContinueApiError
+			var apiError AlphaGroupsListContinueAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -461,7 +487,7 @@ func (dbx *apiImpl) AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *Al
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -482,8 +508,9 @@ func (dbx *apiImpl) AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *Al
 	return
 }
 
-type AlphaGroupsUpdateApiError struct {
-	dropbox.ApiError
+//AlphaGroupsUpdateAPIError is an error-wrapper for the alpha/groups/update route
+type AlphaGroupsUpdateAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupUpdateError `json:"error"`
 }
 
@@ -526,7 +553,7 @@ func (dbx *apiImpl) AlphaGroupsUpdate(arg *AlphaGroupUpdateArgs) (res *AlphaGrou
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGroupsUpdateApiError
+			var apiError AlphaGroupsUpdateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -534,7 +561,7 @@ func (dbx *apiImpl) AlphaGroupsUpdate(arg *AlphaGroupUpdateArgs) (res *AlphaGrou
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -555,8 +582,9 @@ func (dbx *apiImpl) AlphaGroupsUpdate(arg *AlphaGroupUpdateArgs) (res *AlphaGrou
 	return
 }
 
-type DevicesListMemberDevicesApiError struct {
-	dropbox.ApiError
+//DevicesListMemberDevicesAPIError is an error-wrapper for the devices/list_member_devices route
+type DevicesListMemberDevicesAPIError struct {
+	dropbox.APIError
 	EndpointError *ListMemberDevicesError `json:"error"`
 }
 
@@ -599,7 +627,7 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *Li
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DevicesListMemberDevicesApiError
+			var apiError DevicesListMemberDevicesAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -607,7 +635,7 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *Li
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -628,8 +656,9 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *Li
 	return
 }
 
-type DevicesListMembersDevicesApiError struct {
-	dropbox.ApiError
+//DevicesListMembersDevicesAPIError is an error-wrapper for the devices/list_members_devices route
+type DevicesListMembersDevicesAPIError struct {
+	dropbox.APIError
 	EndpointError *ListMembersDevicesError `json:"error"`
 }
 
@@ -672,7 +701,7 @@ func (dbx *apiImpl) DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DevicesListMembersDevicesApiError
+			var apiError DevicesListMembersDevicesAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -680,7 +709,7 @@ func (dbx *apiImpl) DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -701,8 +730,9 @@ func (dbx *apiImpl) DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *
 	return
 }
 
-type DevicesListTeamDevicesApiError struct {
-	dropbox.ApiError
+//DevicesListTeamDevicesAPIError is an error-wrapper for the devices/list_team_devices route
+type DevicesListTeamDevicesAPIError struct {
+	dropbox.APIError
 	EndpointError *ListTeamDevicesError `json:"error"`
 }
 
@@ -745,7 +775,7 @@ func (dbx *apiImpl) DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTe
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DevicesListTeamDevicesApiError
+			var apiError DevicesListTeamDevicesAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -753,7 +783,7 @@ func (dbx *apiImpl) DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTe
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -774,8 +804,9 @@ func (dbx *apiImpl) DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTe
 	return
 }
 
-type DevicesRevokeDeviceSessionApiError struct {
-	dropbox.ApiError
+//DevicesRevokeDeviceSessionAPIError is an error-wrapper for the devices/revoke_device_session route
+type DevicesRevokeDeviceSessionAPIError struct {
+	dropbox.APIError
 	EndpointError *RevokeDeviceSessionError `json:"error"`
 }
 
@@ -818,7 +849,7 @@ func (dbx *apiImpl) DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DevicesRevokeDeviceSessionApiError
+			var apiError DevicesRevokeDeviceSessionAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -826,7 +857,7 @@ func (dbx *apiImpl) DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -842,8 +873,9 @@ func (dbx *apiImpl) DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err
 	return
 }
 
-type DevicesRevokeDeviceSessionBatchApiError struct {
-	dropbox.ApiError
+//DevicesRevokeDeviceSessionBatchAPIError is an error-wrapper for the devices/revoke_device_session_batch route
+type DevicesRevokeDeviceSessionBatchAPIError struct {
+	dropbox.APIError
 	EndpointError *RevokeDeviceSessionBatchError `json:"error"`
 }
 
@@ -886,7 +918,7 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatc
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DevicesRevokeDeviceSessionBatchApiError
+			var apiError DevicesRevokeDeviceSessionBatchAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -894,7 +926,7 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatc
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -915,8 +947,9 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatc
 	return
 }
 
-type GetInfoApiError struct {
-	dropbox.ApiError
+//GetInfoAPIError is an error-wrapper for the get_info route
+type GetInfoAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -950,7 +983,7 @@ func (dbx *apiImpl) GetInfo() (res *TeamGetInfoResult, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetInfoApiError
+			var apiError GetInfoAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -958,7 +991,7 @@ func (dbx *apiImpl) GetInfo() (res *TeamGetInfoResult, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -979,8 +1012,9 @@ func (dbx *apiImpl) GetInfo() (res *TeamGetInfoResult, err error) {
 	return
 }
 
-type GroupsCreateApiError struct {
-	dropbox.ApiError
+//GroupsCreateAPIError is an error-wrapper for the groups/create route
+type GroupsCreateAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupCreateError `json:"error"`
 }
 
@@ -1023,7 +1057,7 @@ func (dbx *apiImpl) GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err e
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsCreateApiError
+			var apiError GroupsCreateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1031,7 +1065,7 @@ func (dbx *apiImpl) GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err e
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1052,8 +1086,9 @@ func (dbx *apiImpl) GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err e
 	return
 }
 
-type GroupsDeleteApiError struct {
-	dropbox.ApiError
+//GroupsDeleteAPIError is an error-wrapper for the groups/delete route
+type GroupsDeleteAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupDeleteError `json:"error"`
 }
 
@@ -1096,7 +1131,7 @@ func (dbx *apiImpl) GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResu
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsDeleteApiError
+			var apiError GroupsDeleteAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1104,7 +1139,7 @@ func (dbx *apiImpl) GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResu
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1125,8 +1160,9 @@ func (dbx *apiImpl) GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResu
 	return
 }
 
-type GroupsGetInfoApiError struct {
-	dropbox.ApiError
+//GroupsGetInfoAPIError is an error-wrapper for the groups/get_info route
+type GroupsGetInfoAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsGetInfoError `json:"error"`
 }
 
@@ -1169,7 +1205,7 @@ func (dbx *apiImpl) GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsGetInfoApiError
+			var apiError GroupsGetInfoAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1177,7 +1213,7 @@ func (dbx *apiImpl) GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1198,8 +1234,9 @@ func (dbx *apiImpl) GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem
 	return
 }
 
-type GroupsJobStatusGetApiError struct {
-	dropbox.ApiError
+//GroupsJobStatusGetAPIError is an error-wrapper for the groups/job_status/get route
+type GroupsJobStatusGetAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsPollError `json:"error"`
 }
 
@@ -1242,7 +1279,7 @@ func (dbx *apiImpl) GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmpty
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsJobStatusGetApiError
+			var apiError GroupsJobStatusGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1250,7 +1287,7 @@ func (dbx *apiImpl) GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmpty
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1271,8 +1308,9 @@ func (dbx *apiImpl) GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmpty
 	return
 }
 
-type GroupsListApiError struct {
-	dropbox.ApiError
+//GroupsListAPIError is an error-wrapper for the groups/list route
+type GroupsListAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -1315,7 +1353,7 @@ func (dbx *apiImpl) GroupsList(arg *GroupsListArg) (res *GroupsListResult, err e
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsListApiError
+			var apiError GroupsListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1323,7 +1361,7 @@ func (dbx *apiImpl) GroupsList(arg *GroupsListArg) (res *GroupsListResult, err e
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1344,8 +1382,9 @@ func (dbx *apiImpl) GroupsList(arg *GroupsListArg) (res *GroupsListResult, err e
 	return
 }
 
-type GroupsListContinueApiError struct {
-	dropbox.ApiError
+//GroupsListContinueAPIError is an error-wrapper for the groups/list/continue route
+type GroupsListContinueAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsListContinueError `json:"error"`
 }
 
@@ -1388,7 +1427,7 @@ func (dbx *apiImpl) GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsL
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsListContinueApiError
+			var apiError GroupsListContinueAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1396,7 +1435,7 @@ func (dbx *apiImpl) GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsL
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1417,8 +1456,9 @@ func (dbx *apiImpl) GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsL
 	return
 }
 
-type GroupsMembersAddApiError struct {
-	dropbox.ApiError
+//GroupsMembersAddAPIError is an error-wrapper for the groups/members/add route
+type GroupsMembersAddAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupMembersAddError `json:"error"`
 }
 
@@ -1461,7 +1501,7 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembers
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsMembersAddApiError
+			var apiError GroupsMembersAddAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1469,7 +1509,7 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembers
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1490,8 +1530,9 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembers
 	return
 }
 
-type GroupsMembersListApiError struct {
-	dropbox.ApiError
+//GroupsMembersListAPIError is an error-wrapper for the groups/members/list route
+type GroupsMembersListAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupSelectorError `json:"error"`
 }
 
@@ -1534,7 +1575,7 @@ func (dbx *apiImpl) GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMem
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsMembersListApiError
+			var apiError GroupsMembersListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1542,7 +1583,7 @@ func (dbx *apiImpl) GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMem
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1563,8 +1604,9 @@ func (dbx *apiImpl) GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMem
 	return
 }
 
-type GroupsMembersListContinueApiError struct {
-	dropbox.ApiError
+//GroupsMembersListContinueAPIError is an error-wrapper for the groups/members/list/continue route
+type GroupsMembersListContinueAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupsMembersListContinueError `json:"error"`
 }
 
@@ -1607,7 +1649,7 @@ func (dbx *apiImpl) GroupsMembersListContinue(arg *GroupsMembersListContinueArg)
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsMembersListContinueApiError
+			var apiError GroupsMembersListContinueAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1615,7 +1657,7 @@ func (dbx *apiImpl) GroupsMembersListContinue(arg *GroupsMembersListContinueArg)
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1636,8 +1678,9 @@ func (dbx *apiImpl) GroupsMembersListContinue(arg *GroupsMembersListContinueArg)
 	return
 }
 
-type GroupsMembersRemoveApiError struct {
-	dropbox.ApiError
+//GroupsMembersRemoveAPIError is an error-wrapper for the groups/members/remove route
+type GroupsMembersRemoveAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupMembersRemoveError `json:"error"`
 }
 
@@ -1680,7 +1723,7 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupM
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsMembersRemoveApiError
+			var apiError GroupsMembersRemoveAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1688,7 +1731,7 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupM
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1709,8 +1752,9 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupM
 	return
 }
 
-type GroupsMembersSetAccessTypeApiError struct {
-	dropbox.ApiError
+//GroupsMembersSetAccessTypeAPIError is an error-wrapper for the groups/members/set_access_type route
+type GroupsMembersSetAccessTypeAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupMemberSetAccessTypeError `json:"error"`
 }
 
@@ -1753,7 +1797,7 @@ func (dbx *apiImpl) GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsMembersSetAccessTypeApiError
+			var apiError GroupsMembersSetAccessTypeAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1761,7 +1805,7 @@ func (dbx *apiImpl) GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1782,8 +1826,9 @@ func (dbx *apiImpl) GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg
 	return
 }
 
-type GroupsUpdateApiError struct {
-	dropbox.ApiError
+//GroupsUpdateAPIError is an error-wrapper for the groups/update route
+type GroupsUpdateAPIError struct {
+	dropbox.APIError
 	EndpointError *GroupUpdateError `json:"error"`
 }
 
@@ -1826,7 +1871,7 @@ func (dbx *apiImpl) GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GroupsUpdateApiError
+			var apiError GroupsUpdateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1834,7 +1879,7 @@ func (dbx *apiImpl) GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1855,8 +1900,9 @@ func (dbx *apiImpl) GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err 
 	return
 }
 
-type LinkedAppsListMemberLinkedAppsApiError struct {
-	dropbox.ApiError
+//LinkedAppsListMemberLinkedAppsAPIError is an error-wrapper for the linked_apps/list_member_linked_apps route
+type LinkedAppsListMemberLinkedAppsAPIError struct {
+	dropbox.APIError
 	EndpointError *ListMemberAppsError `json:"error"`
 }
 
@@ -1899,7 +1945,7 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError LinkedAppsListMemberLinkedAppsApiError
+			var apiError LinkedAppsListMemberLinkedAppsAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1907,7 +1953,7 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1928,8 +1974,9 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res 
 	return
 }
 
-type LinkedAppsListMembersLinkedAppsApiError struct {
-	dropbox.ApiError
+//LinkedAppsListMembersLinkedAppsAPIError is an error-wrapper for the linked_apps/list_members_linked_apps route
+type LinkedAppsListMembersLinkedAppsAPIError struct {
+	dropbox.APIError
 	EndpointError *ListMembersAppsError `json:"error"`
 }
 
@@ -1972,7 +2019,7 @@ func (dbx *apiImpl) LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (re
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError LinkedAppsListMembersLinkedAppsApiError
+			var apiError LinkedAppsListMembersLinkedAppsAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1980,7 +2027,7 @@ func (dbx *apiImpl) LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (re
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2001,8 +2048,9 @@ func (dbx *apiImpl) LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (re
 	return
 }
 
-type LinkedAppsListTeamLinkedAppsApiError struct {
-	dropbox.ApiError
+//LinkedAppsListTeamLinkedAppsAPIError is an error-wrapper for the linked_apps/list_team_linked_apps route
+type LinkedAppsListTeamLinkedAppsAPIError struct {
+	dropbox.APIError
 	EndpointError *ListTeamAppsError `json:"error"`
 }
 
@@ -2045,7 +2093,7 @@ func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *Lis
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError LinkedAppsListTeamLinkedAppsApiError
+			var apiError LinkedAppsListTeamLinkedAppsAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2053,7 +2101,7 @@ func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *Lis
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2074,8 +2122,9 @@ func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *Lis
 	return
 }
 
-type LinkedAppsRevokeLinkedAppApiError struct {
-	dropbox.ApiError
+//LinkedAppsRevokeLinkedAppAPIError is an error-wrapper for the linked_apps/revoke_linked_app route
+type LinkedAppsRevokeLinkedAppAPIError struct {
+	dropbox.APIError
 	EndpointError *RevokeLinkedAppError `json:"error"`
 }
 
@@ -2118,7 +2167,7 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err e
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError LinkedAppsRevokeLinkedAppApiError
+			var apiError LinkedAppsRevokeLinkedAppAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2126,7 +2175,7 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err e
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2142,8 +2191,9 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err e
 	return
 }
 
-type LinkedAppsRevokeLinkedAppBatchApiError struct {
-	dropbox.ApiError
+//LinkedAppsRevokeLinkedAppBatchAPIError is an error-wrapper for the linked_apps/revoke_linked_app_batch route
+type LinkedAppsRevokeLinkedAppBatchAPIError struct {
+	dropbox.APIError
 	EndpointError *RevokeLinkedAppBatchError `json:"error"`
 }
 
@@ -2186,7 +2236,7 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchA
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError LinkedAppsRevokeLinkedAppBatchApiError
+			var apiError LinkedAppsRevokeLinkedAppBatchAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2194,7 +2244,7 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchA
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2215,8 +2265,9 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchA
 	return
 }
 
-type MembersAddApiError struct {
-	dropbox.ApiError
+//MembersAddAPIError is an error-wrapper for the members/add route
+type MembersAddAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -2259,7 +2310,7 @@ func (dbx *apiImpl) MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err e
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersAddApiError
+			var apiError MembersAddAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2267,7 +2318,7 @@ func (dbx *apiImpl) MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err e
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2288,8 +2339,9 @@ func (dbx *apiImpl) MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err e
 	return
 }
 
-type MembersAddJobStatusGetApiError struct {
-	dropbox.ApiError
+//MembersAddJobStatusGetAPIError is an error-wrapper for the members/add/job_status/get route
+type MembersAddJobStatusGetAPIError struct {
+	dropbox.APIError
 	EndpointError *async.PollError `json:"error"`
 }
 
@@ -2332,7 +2384,7 @@ func (dbx *apiImpl) MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJ
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersAddJobStatusGetApiError
+			var apiError MembersAddJobStatusGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2340,7 +2392,7 @@ func (dbx *apiImpl) MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJ
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2361,8 +2413,9 @@ func (dbx *apiImpl) MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJ
 	return
 }
 
-type MembersGetInfoApiError struct {
-	dropbox.ApiError
+//MembersGetInfoAPIError is an error-wrapper for the members/get_info route
+type MembersGetInfoAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersGetInfoError `json:"error"`
 }
 
@@ -2405,7 +2458,7 @@ func (dbx *apiImpl) MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetIn
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersGetInfoApiError
+			var apiError MembersGetInfoAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2413,7 +2466,7 @@ func (dbx *apiImpl) MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetIn
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2434,8 +2487,9 @@ func (dbx *apiImpl) MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetIn
 	return
 }
 
-type MembersListApiError struct {
-	dropbox.ApiError
+//MembersListAPIError is an error-wrapper for the members/list route
+type MembersListAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersListError `json:"error"`
 }
 
@@ -2478,7 +2532,7 @@ func (dbx *apiImpl) MembersList(arg *MembersListArg) (res *MembersListResult, er
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersListApiError
+			var apiError MembersListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2486,7 +2540,7 @@ func (dbx *apiImpl) MembersList(arg *MembersListArg) (res *MembersListResult, er
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2507,8 +2561,9 @@ func (dbx *apiImpl) MembersList(arg *MembersListArg) (res *MembersListResult, er
 	return
 }
 
-type MembersListContinueApiError struct {
-	dropbox.ApiError
+//MembersListContinueAPIError is an error-wrapper for the members/list/continue route
+type MembersListContinueAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersListContinueError `json:"error"`
 }
 
@@ -2551,7 +2606,7 @@ func (dbx *apiImpl) MembersListContinue(arg *MembersListContinueArg) (res *Membe
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersListContinueApiError
+			var apiError MembersListContinueAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2559,7 +2614,7 @@ func (dbx *apiImpl) MembersListContinue(arg *MembersListContinueArg) (res *Membe
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2580,8 +2635,9 @@ func (dbx *apiImpl) MembersListContinue(arg *MembersListContinueArg) (res *Membe
 	return
 }
 
-type MembersRemoveApiError struct {
-	dropbox.ApiError
+//MembersRemoveAPIError is an error-wrapper for the members/remove route
+type MembersRemoveAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersRemoveError `json:"error"`
 }
 
@@ -2624,7 +2680,7 @@ func (dbx *apiImpl) MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmpty
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersRemoveApiError
+			var apiError MembersRemoveAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2632,7 +2688,7 @@ func (dbx *apiImpl) MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmpty
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2653,8 +2709,9 @@ func (dbx *apiImpl) MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmpty
 	return
 }
 
-type MembersRemoveJobStatusGetApiError struct {
-	dropbox.ApiError
+//MembersRemoveJobStatusGetAPIError is an error-wrapper for the members/remove/job_status/get route
+type MembersRemoveJobStatusGetAPIError struct {
+	dropbox.APIError
 	EndpointError *async.PollError `json:"error"`
 }
 
@@ -2697,7 +2754,7 @@ func (dbx *apiImpl) MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.Po
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersRemoveJobStatusGetApiError
+			var apiError MembersRemoveJobStatusGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2705,7 +2762,7 @@ func (dbx *apiImpl) MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.Po
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2726,8 +2783,9 @@ func (dbx *apiImpl) MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.Po
 	return
 }
 
-type MembersSendWelcomeEmailApiError struct {
-	dropbox.ApiError
+//MembersSendWelcomeEmailAPIError is an error-wrapper for the members/send_welcome_email route
+type MembersSendWelcomeEmailAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersSendWelcomeError `json:"error"`
 }
 
@@ -2770,7 +2828,7 @@ func (dbx *apiImpl) MembersSendWelcomeEmail(arg *UserSelectorArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersSendWelcomeEmailApiError
+			var apiError MembersSendWelcomeEmailAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2778,7 +2836,7 @@ func (dbx *apiImpl) MembersSendWelcomeEmail(arg *UserSelectorArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2794,8 +2852,9 @@ func (dbx *apiImpl) MembersSendWelcomeEmail(arg *UserSelectorArg) (err error) {
 	return
 }
 
-type MembersSetAdminPermissionsApiError struct {
-	dropbox.ApiError
+//MembersSetAdminPermissionsAPIError is an error-wrapper for the members/set_admin_permissions route
+type MembersSetAdminPermissionsAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersSetPermissionsError `json:"error"`
 }
 
@@ -2838,7 +2897,7 @@ func (dbx *apiImpl) MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (r
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersSetAdminPermissionsApiError
+			var apiError MembersSetAdminPermissionsAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2846,7 +2905,7 @@ func (dbx *apiImpl) MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (r
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2867,8 +2926,9 @@ func (dbx *apiImpl) MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (r
 	return
 }
 
-type MembersSetProfileApiError struct {
-	dropbox.ApiError
+//MembersSetProfileAPIError is an error-wrapper for the members/set_profile route
+type MembersSetProfileAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersSetProfileError `json:"error"`
 }
 
@@ -2911,7 +2971,7 @@ func (dbx *apiImpl) MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMembe
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersSetProfileApiError
+			var apiError MembersSetProfileAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2919,7 +2979,7 @@ func (dbx *apiImpl) MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMembe
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2940,8 +3000,9 @@ func (dbx *apiImpl) MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMembe
 	return
 }
 
-type MembersSuspendApiError struct {
-	dropbox.ApiError
+//MembersSuspendAPIError is an error-wrapper for the members/suspend route
+type MembersSuspendAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersSuspendError `json:"error"`
 }
 
@@ -2984,7 +3045,7 @@ func (dbx *apiImpl) MembersSuspend(arg *MembersDeactivateArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersSuspendApiError
+			var apiError MembersSuspendAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2992,7 +3053,7 @@ func (dbx *apiImpl) MembersSuspend(arg *MembersDeactivateArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3008,8 +3069,9 @@ func (dbx *apiImpl) MembersSuspend(arg *MembersDeactivateArg) (err error) {
 	return
 }
 
-type MembersUnsuspendApiError struct {
-	dropbox.ApiError
+//MembersUnsuspendAPIError is an error-wrapper for the members/unsuspend route
+type MembersUnsuspendAPIError struct {
+	dropbox.APIError
 	EndpointError *MembersUnsuspendError `json:"error"`
 }
 
@@ -3052,7 +3114,7 @@ func (dbx *apiImpl) MembersUnsuspend(arg *MembersUnsuspendArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MembersUnsuspendApiError
+			var apiError MembersUnsuspendAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3060,7 +3122,7 @@ func (dbx *apiImpl) MembersUnsuspend(arg *MembersUnsuspendArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3076,8 +3138,9 @@ func (dbx *apiImpl) MembersUnsuspend(arg *MembersUnsuspendArg) (err error) {
 	return
 }
 
-type PropertiesTemplateAddApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateAddAPIError is an error-wrapper for the properties/template/add route
+type PropertiesTemplateAddAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.ModifyPropertyTemplateError `json:"error"`
 }
 
@@ -3120,7 +3183,7 @@ func (dbx *apiImpl) PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *Add
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateAddApiError
+			var apiError PropertiesTemplateAddAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3128,7 +3191,7 @@ func (dbx *apiImpl) PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *Add
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3149,8 +3212,9 @@ func (dbx *apiImpl) PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *Add
 	return
 }
 
-type PropertiesTemplateGetApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateGetAPIError is an error-wrapper for the properties/template/get route
+type PropertiesTemplateGetAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.PropertyTemplateError `json:"error"`
 }
 
@@ -3193,7 +3257,7 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateGetApiError
+			var apiError PropertiesTemplateGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3201,7 +3265,7 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3222,8 +3286,9 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 	return
 }
 
-type PropertiesTemplateListApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateListAPIError is an error-wrapper for the properties/template/list route
+type PropertiesTemplateListAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.PropertyTemplateError `json:"error"`
 }
 
@@ -3257,7 +3322,7 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateListApiError
+			var apiError PropertiesTemplateListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3265,7 +3330,7 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3286,8 +3351,9 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 	return
 }
 
-type PropertiesTemplateUpdateApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateUpdateAPIError is an error-wrapper for the properties/template/update route
+type PropertiesTemplateUpdateAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.ModifyPropertyTemplateError `json:"error"`
 }
 
@@ -3330,7 +3396,7 @@ func (dbx *apiImpl) PropertiesTemplateUpdate(arg *UpdatePropertyTemplateArg) (re
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateUpdateApiError
+			var apiError PropertiesTemplateUpdateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3338,7 +3404,7 @@ func (dbx *apiImpl) PropertiesTemplateUpdate(arg *UpdatePropertyTemplateArg) (re
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3359,8 +3425,9 @@ func (dbx *apiImpl) PropertiesTemplateUpdate(arg *UpdatePropertyTemplateArg) (re
 	return
 }
 
-type ReportsGetActivityApiError struct {
-	dropbox.ApiError
+//ReportsGetActivityAPIError is an error-wrapper for the reports/get_activity route
+type ReportsGetActivityAPIError struct {
+	dropbox.APIError
 	EndpointError *DateRangeError `json:"error"`
 }
 
@@ -3403,7 +3470,7 @@ func (dbx *apiImpl) ReportsGetActivity(arg *DateRange) (res *GetActivityReport, 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ReportsGetActivityApiError
+			var apiError ReportsGetActivityAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3411,7 +3478,7 @@ func (dbx *apiImpl) ReportsGetActivity(arg *DateRange) (res *GetActivityReport, 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3432,8 +3499,9 @@ func (dbx *apiImpl) ReportsGetActivity(arg *DateRange) (res *GetActivityReport, 
 	return
 }
 
-type ReportsGetDevicesApiError struct {
-	dropbox.ApiError
+//ReportsGetDevicesAPIError is an error-wrapper for the reports/get_devices route
+type ReportsGetDevicesAPIError struct {
+	dropbox.APIError
 	EndpointError *DateRangeError `json:"error"`
 }
 
@@ -3476,7 +3544,7 @@ func (dbx *apiImpl) ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, er
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ReportsGetDevicesApiError
+			var apiError ReportsGetDevicesAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3484,7 +3552,7 @@ func (dbx *apiImpl) ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, er
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3505,8 +3573,9 @@ func (dbx *apiImpl) ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, er
 	return
 }
 
-type ReportsGetMembershipApiError struct {
-	dropbox.ApiError
+//ReportsGetMembershipAPIError is an error-wrapper for the reports/get_membership route
+type ReportsGetMembershipAPIError struct {
+	dropbox.APIError
 	EndpointError *DateRangeError `json:"error"`
 }
 
@@ -3549,7 +3618,7 @@ func (dbx *apiImpl) ReportsGetMembership(arg *DateRange) (res *GetMembershipRepo
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ReportsGetMembershipApiError
+			var apiError ReportsGetMembershipAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3557,7 +3626,7 @@ func (dbx *apiImpl) ReportsGetMembership(arg *DateRange) (res *GetMembershipRepo
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3578,8 +3647,9 @@ func (dbx *apiImpl) ReportsGetMembership(arg *DateRange) (res *GetMembershipRepo
 	return
 }
 
-type ReportsGetStorageApiError struct {
-	dropbox.ApiError
+//ReportsGetStorageAPIError is an error-wrapper for the reports/get_storage route
+type ReportsGetStorageAPIError struct {
+	dropbox.APIError
 	EndpointError *DateRangeError `json:"error"`
 }
 
@@ -3622,7 +3692,7 @@ func (dbx *apiImpl) ReportsGetStorage(arg *DateRange) (res *GetStorageReport, er
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ReportsGetStorageApiError
+			var apiError ReportsGetStorageAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -3630,7 +3700,7 @@ func (dbx *apiImpl) ReportsGetStorage(arg *DateRange) (res *GetStorageReport, er
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -3651,6 +3721,7 @@ func (dbx *apiImpl) ReportsGetStorage(arg *DateRange) (res *GetStorageReport, er
 	return
 }
 
+// New returns a Client implementation for this namespace
 func New(c dropbox.Config) *apiImpl {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx

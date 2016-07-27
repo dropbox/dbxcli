@@ -18,68 +18,78 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// Package team_policies : has no documentation (yet)
 package team_policies
 
 import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 
+// EmmState : has no documentation (yet)
 type EmmState struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for EmmState
 const (
-	EmmState_Disabled = "disabled"
-	EmmState_Optional = "optional"
-	EmmState_Required = "required"
-	EmmState_Other    = "other"
+	EmmStateDisabled = "disabled"
+	EmmStateOptional = "optional"
+	EmmStateRequired = "required"
+	EmmStateOther    = "other"
 )
 
-// Policy governing which shared folders a team member can join.
+// SharedFolderJoinPolicy : Policy governing which shared folders a team member
+// can join.
 type SharedFolderJoinPolicy struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for SharedFolderJoinPolicy
 const (
-	SharedFolderJoinPolicy_FromTeamOnly = "from_team_only"
-	SharedFolderJoinPolicy_FromAnyone   = "from_anyone"
-	SharedFolderJoinPolicy_Other        = "other"
+	SharedFolderJoinPolicyFromTeamOnly = "from_team_only"
+	SharedFolderJoinPolicyFromAnyone   = "from_anyone"
+	SharedFolderJoinPolicyOther        = "other"
 )
 
-// Policy governing who can be a member of a folder shared by a team member.
+// SharedFolderMemberPolicy : Policy governing who can be a member of a folder
+// shared by a team member.
 type SharedFolderMemberPolicy struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for SharedFolderMemberPolicy
 const (
-	SharedFolderMemberPolicy_Team   = "team"
-	SharedFolderMemberPolicy_Anyone = "anyone"
-	SharedFolderMemberPolicy_Other  = "other"
+	SharedFolderMemberPolicyTeam   = "team"
+	SharedFolderMemberPolicyAnyone = "anyone"
+	SharedFolderMemberPolicyOther  = "other"
 )
 
-// Policy governing the visibility of newly created shared links.
+// SharedLinkCreatePolicy : Policy governing the visibility of newly created
+// shared links.
 type SharedLinkCreatePolicy struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for SharedLinkCreatePolicy
 const (
-	SharedLinkCreatePolicy_DefaultPublic   = "default_public"
-	SharedLinkCreatePolicy_DefaultTeamOnly = "default_team_only"
-	SharedLinkCreatePolicy_TeamOnly        = "team_only"
-	SharedLinkCreatePolicy_Other           = "other"
+	SharedLinkCreatePolicyDefaultPublic   = "default_public"
+	SharedLinkCreatePolicyDefaultTeamOnly = "default_team_only"
+	SharedLinkCreatePolicyTeamOnly        = "team_only"
+	SharedLinkCreatePolicyOther           = "other"
 )
 
-// Policies governing team members.
+// TeamMemberPolicies : Policies governing team members.
 type TeamMemberPolicies struct {
-	// Policies governing sharing.
+	// Sharing : Policies governing sharing.
 	Sharing *TeamSharingPolicies `json:"sharing"`
-	// This describes the Enterprise Mobility Management (EMM) state for this
-	// team. This information can be used to understand if an organization is
-	// integrating with a third-party EMM vendor to further manage and apply
-	// restrictions upon the team's Dropbox usage on mobile devices. This is a
-	// new feature and in the future we'll be adding more new fields and
-	// additional documentation.
+	// EmmState : This describes the Enterprise Mobility Management (EMM) state
+	// for this team. This information can be used to understand if an
+	// organization is integrating with a third-party EMM vendor to further
+	// manage and apply restrictions upon the team's Dropbox usage on mobile
+	// devices. This is a new feature and in the future we'll be adding more new
+	// fields and additional documentation.
 	EmmState *EmmState `json:"emm_state"`
 }
 
+// NewTeamMemberPolicies returns a new TeamMemberPolicies instance
 func NewTeamMemberPolicies(Sharing *TeamSharingPolicies, EmmState *EmmState) *TeamMemberPolicies {
 	s := new(TeamMemberPolicies)
 	s.Sharing = Sharing
@@ -87,16 +97,19 @@ func NewTeamMemberPolicies(Sharing *TeamSharingPolicies, EmmState *EmmState) *Te
 	return s
 }
 
-// Policies governing sharing within and outside of the team.
+// TeamSharingPolicies : Policies governing sharing within and outside of the
+// team.
 type TeamSharingPolicies struct {
-	// Who can join folders shared by team members.
+	// SharedFolderMemberPolicy : Who can join folders shared by team members.
 	SharedFolderMemberPolicy *SharedFolderMemberPolicy `json:"shared_folder_member_policy"`
-	// Which shared folders team members can join.
+	// SharedFolderJoinPolicy : Which shared folders team members can join.
 	SharedFolderJoinPolicy *SharedFolderJoinPolicy `json:"shared_folder_join_policy"`
-	// What is the visibility of newly created shared links.
+	// SharedLinkCreatePolicy : What is the visibility of newly created shared
+	// links.
 	SharedLinkCreatePolicy *SharedLinkCreatePolicy `json:"shared_link_create_policy"`
 }
 
+// NewTeamSharingPolicies returns a new TeamSharingPolicies instance
 func NewTeamSharingPolicies(SharedFolderMemberPolicy *SharedFolderMemberPolicy, SharedFolderJoinPolicy *SharedFolderJoinPolicy, SharedLinkCreatePolicy *SharedLinkCreatePolicy) *TeamSharingPolicies {
 	s := new(TeamSharingPolicies)
 	s.SharedFolderMemberPolicy = SharedFolderMemberPolicy

@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// Package async : has no documentation (yet)
 package async
 
 import (
@@ -26,21 +27,25 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 )
 
-// Result returned by methods that launch an asynchronous job. A method who may
-// either launch an asynchronous job, or complete the request synchronously, can
-// use this union by extending it, and adding a 'complete' field with the type
-// of the synchronous response. See `LaunchEmptyResult` for an example.
+// LaunchResultBase : Result returned by methods that launch an asynchronous
+// job. A method who may either launch an asynchronous job, or complete the
+// request synchronously, can use this union by extending it, and adding a
+// 'complete' field with the type of the synchronous response. See
+// `LaunchEmptyResult` for an example.
 type LaunchResultBase struct {
 	dropbox.Tagged
-	// This response indicates that the processing is asynchronous. The string
-	// is an id that can be used to obtain the status of the asynchronous job.
+	// AsyncJobId : This response indicates that the processing is asynchronous.
+	// The string is an id that can be used to obtain the status of the
+	// asynchronous job.
 	AsyncJobId string `json:"async_job_id,omitempty"`
 }
 
+// Valid tag values for LaunchResultBase
 const (
-	LaunchResultBase_AsyncJobId = "async_job_id"
+	LaunchResultBaseAsyncJobId = "async_job_id"
 )
 
+// UnmarshalJSON deserializes into a LaunchResultBase instance
 func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -60,59 +65,66 @@ func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// Result returned by methods that may either launch an asynchronous job or
-// complete synchronously. Upon synchronous completion of the job, no additional
-// information is returned.
+// LaunchEmptyResult : Result returned by methods that may either launch an
+// asynchronous job or complete synchronously. Upon synchronous completion of
+// the job, no additional information is returned.
 type LaunchEmptyResult struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for LaunchEmptyResult
 const (
-	LaunchEmptyResult_Complete = "complete"
+	LaunchEmptyResultComplete = "complete"
 )
 
-// Arguments for methods that poll the status of an asynchronous job.
+// PollArg : Arguments for methods that poll the status of an asynchronous job.
 type PollArg struct {
-	// Id of the asynchronous job. This is the value of a response returned from
-	// the method that launched the job.
+	// AsyncJobId : Id of the asynchronous job. This is the value of a response
+	// returned from the method that launched the job.
 	AsyncJobId string `json:"async_job_id"`
 }
 
+// NewPollArg returns a new PollArg instance
 func NewPollArg(AsyncJobId string) *PollArg {
 	s := new(PollArg)
 	s.AsyncJobId = AsyncJobId
 	return s
 }
 
-// Result returned by methods that poll for the status of an asynchronous job.
-// Unions that extend this union should add a 'complete' field with a type of
-// the information returned upon job completion. See `PollEmptyResult` for an
-// example.
+// PollResultBase : Result returned by methods that poll for the status of an
+// asynchronous job. Unions that extend this union should add a 'complete' field
+// with a type of the information returned upon job completion. See
+// `PollEmptyResult` for an example.
 type PollResultBase struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for PollResultBase
 const (
-	PollResultBase_InProgress = "in_progress"
+	PollResultBaseInProgress = "in_progress"
 )
 
-// Result returned by methods that poll for the status of an asynchronous job.
-// Upon completion of the job, no additional information is returned.
+// PollEmptyResult : Result returned by methods that poll for the status of an
+// asynchronous job. Upon completion of the job, no additional information is
+// returned.
 type PollEmptyResult struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for PollEmptyResult
 const (
-	PollEmptyResult_Complete = "complete"
+	PollEmptyResultComplete = "complete"
 )
 
-// Error returned by methods for polling the status of asynchronous job.
+// PollError : Error returned by methods for polling the status of asynchronous
+// job.
 type PollError struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for PollError
 const (
-	PollError_InvalidAsyncJobId = "invalid_async_job_id"
-	PollError_InternalError     = "internal_error"
-	PollError_Other             = "other"
+	PollErrorInvalidAsyncJobId = "invalid_async_job_id"
+	PollErrorInternalError     = "internal_error"
+	PollErrorOther             = "other"
 )

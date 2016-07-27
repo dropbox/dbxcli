@@ -28,6 +28,7 @@ type listFolderResult struct {
 	HasMore bool            `json:"has_more"`
 }
 
+// UnmarshalJSON deserializes into a ListFolderResult instance
 func (r *ListFolderResult) UnmarshalJSON(b []byte) error {
 	var l listFolderResult
 	if err := json.Unmarshal(b, &l); err != nil {
@@ -54,6 +55,7 @@ type searchMatch struct {
 	Metadata  metadataUnion    `json:"metadata"`
 }
 
+// UnmarshalJSON deserializes into a SearchMatch instance
 func (s *SearchMatch) UnmarshalJSON(b []byte) error {
 	var m searchMatch
 	if err := json.Unmarshal(b, &m); err != nil {

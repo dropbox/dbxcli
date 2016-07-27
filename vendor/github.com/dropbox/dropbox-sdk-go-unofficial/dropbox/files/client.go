@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// This namespace contains endpoints and data types for basic file operations.
+// Package files : This namespace contains endpoints and data types for basic
+// file operations.
 package files
 
 import (
@@ -34,138 +35,145 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
 )
 
+// Client interface describes all routes in this namespace
 type Client interface {
-	// Returns the metadata for a file or folder. This is an alpha endpoint
-	// compatible with the properties API. Note: Metadata for the root folder is
-	// unsupported.
+	// AlphaGetMetadata : Returns the metadata for a file or folder. This is an
+	// alpha endpoint compatible with the properties API. Note: Metadata for the
+	// root folder is unsupported.
 	AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, err error)
-	// Create a new file with the contents provided in the request. Note that
-	// this endpoint is part of the properties API alpha and is slightly
-	// different from `upload`. Do not use this to upload a file larger than 150
-	// MB. Instead, create an upload session with `uploadSessionStart`.
+	// AlphaUpload : Create a new file with the contents provided in the
+	// request. Note that this endpoint is part of the properties API alpha and
+	// is slightly different from `upload`. Do not use this to upload a file
+	// larger than 150 MB. Instead, create an upload session with
+	// `uploadSessionStart`.
 	AlphaUpload(arg *CommitInfoWithProperties, content io.Reader) (res *FileMetadata, err error)
-	// Copy a file or folder to a different location in the user's Dropbox. If
-	// the source path is a folder all its contents will be copied.
+	// Copy : Copy a file or folder to a different location in the user's
+	// Dropbox. If the source path is a folder all its contents will be copied.
 	Copy(arg *RelocationArg) (res IsMetadata, err error)
-	// Get a copy reference to a file or folder. This reference string can be
-	// used to save that file or folder to another user's Dropbox by passing it
-	// to `copyReferenceSave`.
+	// CopyReferenceGet : Get a copy reference to a file or folder. This
+	// reference string can be used to save that file or folder to another
+	// user's Dropbox by passing it to `copyReferenceSave`.
 	CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyReferenceResult, err error)
-	// Save a copy reference returned by `copyReferenceGet` to the user's
-	// Dropbox.
+	// CopyReferenceSave : Save a copy reference returned by `copyReferenceGet`
+	// to the user's Dropbox.
 	CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyReferenceResult, err error)
-	// Create a folder at a given path.
+	// CreateFolder : Create a folder at a given path.
 	CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err error)
-	// Delete the file or folder at a given path. If the path is a folder, all
-	// its contents will be deleted too. A successful response indicates that
-	// the file or folder was deleted. The returned metadata will be the
-	// corresponding `FileMetadata` or `FolderMetadata` for the item at time of
-	// deletion, and not a `DeletedMetadata` object.
+	// Delete : Delete the file or folder at a given path. If the path is a
+	// folder, all its contents will be deleted too. A successful response
+	// indicates that the file or folder was deleted. The returned metadata will
+	// be the corresponding `FileMetadata` or `FolderMetadata` for the item at
+	// time of deletion, and not a `DeletedMetadata` object.
 	Delete(arg *DeleteArg) (res IsMetadata, err error)
-	// Download a file from a user's Dropbox.
+	// Download : Download a file from a user's Dropbox.
 	Download(arg *DownloadArg) (res *FileMetadata, content io.ReadCloser, err error)
-	// Returns the metadata for a file or folder. Note: Metadata for the root
-	// folder is unsupported.
+	// GetMetadata : Returns the metadata for a file or folder. Note: Metadata
+	// for the root folder is unsupported.
 	GetMetadata(arg *GetMetadataArg) (res IsMetadata, err error)
-	// Get a preview for a file. Currently previews are only generated for the
-	// files with  the following extensions: .doc, .docx, .docm, .ppt, .pps,
-	// .ppsx, .ppsm, .pptx, .pptm,  .xls, .xlsx, .xlsm, .rtf
+	// GetPreview : Get a preview for a file. Currently previews are only
+	// generated for the files with  the following extensions: .doc, .docx,
+	// .docm, .ppt, .pps, .ppsx, .ppsm, .pptx, .pptm,  .xls, .xlsx, .xlsm, .rtf
 	GetPreview(arg *PreviewArg) (res *FileMetadata, content io.ReadCloser, err error)
-	// Get a temporary link to stream content of a file. This link will expire
-	// in four hours and afterwards you will get 410 Gone. Content-Type of the
-	// link is determined automatically by the file's mime type.
+	// GetTemporaryLink : Get a temporary link to stream content of a file. This
+	// link will expire in four hours and afterwards you will get 410 Gone.
+	// Content-Type of the link is determined automatically by the file's mime
+	// type.
 	GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporaryLinkResult, err error)
-	// Get a thumbnail for an image. This method currently supports files with
-	// the following file extensions: jpg, jpeg, png, tiff, tif, gif and bmp.
-	// Photos that are larger than 20MB in size won't be converted to a
-	// thumbnail.
+	// GetThumbnail : Get a thumbnail for an image. This method currently
+	// supports files with the following file extensions: jpg, jpeg, png, tiff,
+	// tif, gif and bmp. Photos that are larger than 20MB in size won't be
+	// converted to a thumbnail.
 	GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content io.ReadCloser, err error)
-	// Returns the contents of a folder.
+	// ListFolder : Returns the contents of a folder.
 	ListFolder(arg *ListFolderArg) (res *ListFolderResult, err error)
-	// Once a cursor has been retrieved from `listFolder`, use this to paginate
-	// through all files and retrieve updates to the folder.
+	// ListFolderContinue : Once a cursor has been retrieved from `listFolder`,
+	// use this to paginate through all files and retrieve updates to the
+	// folder.
 	ListFolderContinue(arg *ListFolderContinueArg) (res *ListFolderResult, err error)
-	// A way to quickly get a cursor for the folder's state. Unlike
-	// `listFolder`, `listFolderGetLatestCursor` doesn't return any entries.
-	// This endpoint is for app which only needs to know about new files and
-	// modifications and doesn't need to know about files that already exist in
-	// Dropbox.
+	// ListFolderGetLatestCursor : A way to quickly get a cursor for the
+	// folder's state. Unlike `listFolder`, `listFolderGetLatestCursor` doesn't
+	// return any entries. This endpoint is for app which only needs to know
+	// about new files and modifications and doesn't need to know about files
+	// that already exist in Dropbox.
 	ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFolderGetLatestCursorResult, err error)
-	// A longpoll endpoint to wait for changes on an account. In conjunction
-	// with `listFolderContinue`, this call gives you a low-latency way to
-	// monitor an account for file changes. The connection will block until
-	// there are changes available or a timeout occurs. This endpoint is useful
-	// mostly for client-side apps. If you're looking for server-side
-	// notifications, check out our `webhooks documentation`
+	// ListFolderLongpoll : A longpoll endpoint to wait for changes on an
+	// account. In conjunction with `listFolderContinue`, this call gives you a
+	// low-latency way to monitor an account for file changes. The connection
+	// will block until there are changes available or a timeout occurs. This
+	// endpoint is useful mostly for client-side apps. If you're looking for
+	// server-side notifications, check out our `webhooks documentation`
 	// <https://www.dropbox.com/developers/reference/webhooks>.
 	ListFolderLongpoll(arg *ListFolderLongpollArg) (res *ListFolderLongpollResult, err error)
-	// Return revisions of a file
+	// ListRevisions : Return revisions of a file
 	ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResult, err error)
-	// Move a file or folder to a different location in the user's Dropbox. If
-	// the source path is a folder all its contents will be moved.
+	// Move : Move a file or folder to a different location in the user's
+	// Dropbox. If the source path is a folder all its contents will be moved.
 	Move(arg *RelocationArg) (res IsMetadata, err error)
-	// Permanently delete the file or folder at a given path (see
-	// https://www.dropbox.com/en/help/40). Note: This endpoint is only
+	// PermanentlyDelete : Permanently delete the file or folder at a given path
+	// (see https://www.dropbox.com/en/help/40). Note: This endpoint is only
 	// available for Dropbox Business apps.
 	PermanentlyDelete(arg *DeleteArg) (err error)
-	// Add custom properties to a file using a filled property template. See
-	// properties/template/add to create new property templates.
+	// PropertiesAdd : Add custom properties to a file using a filled property
+	// template. See properties/template/add to create new property templates.
 	PropertiesAdd(arg *PropertyGroupWithPath) (err error)
-	// Overwrite custom properties from a specified template associated with a
-	// file.
+	// PropertiesOverwrite : Overwrite custom properties from a specified
+	// template associated with a file.
 	PropertiesOverwrite(arg *PropertyGroupWithPath) (err error)
-	// Remove all custom properties from a specified template associated with a
-	// file. To remove specific property key value pairs, see
+	// PropertiesRemove : Remove all custom properties from a specified template
+	// associated with a file. To remove specific property key value pairs, see
 	// `propertiesUpdate`. To update a property template, see
 	// properties/template/update. Property templates can't be removed once
 	// created.
 	PropertiesRemove(arg *RemovePropertiesArg) (err error)
-	// Get the schema for a specified template.
+	// PropertiesTemplateGet : Get the schema for a specified template.
 	PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg) (res *properties.GetPropertyTemplateResult, err error)
-	// Get the property template identifiers for a user. To get the schema of
-	// each template use `propertiesTemplateGet`.
+	// PropertiesTemplateList : Get the property template identifiers for a
+	// user. To get the schema of each template use `propertiesTemplateGet`.
 	PropertiesTemplateList() (res *properties.ListPropertyTemplateIds, err error)
-	// Add, update or remove custom properties from a specified template
-	// associated with a file. Fields that already exist and not described in
-	// the request will not be modified.
+	// PropertiesUpdate : Add, update or remove custom properties from a
+	// specified template associated with a file. Fields that already exist and
+	// not described in the request will not be modified.
 	PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error)
-	// Restore a file to a specific revision
+	// Restore : Restore a file to a specific revision
 	Restore(arg *RestoreArg) (res *FileMetadata, err error)
-	// Save a specified URL into a file in user's Dropbox. If the given path
-	// already exists, the file will be renamed to avoid the conflict (e.g.
-	// myfile (1).txt).
+	// SaveUrl : Save a specified URL into a file in user's Dropbox. If the
+	// given path already exists, the file will be renamed to avoid the conflict
+	// (e.g. myfile (1).txt).
 	SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error)
-	// Check the status of a `saveUrl` job.
+	// SaveUrlCheckJobStatus : Check the status of a `saveUrl` job.
 	SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobStatus, err error)
-	// Searches for files and folders. Note: Recent changes may not immediately
-	// be reflected in search results due to a short delay in indexing.
+	// Search : Searches for files and folders. Note: Recent changes may not
+	// immediately be reflected in search results due to a short delay in
+	// indexing.
 	Search(arg *SearchArg) (res *SearchResult, err error)
-	// Create a new file with the contents provided in the request. Do not use
-	// this to upload a file larger than 150 MB. Instead, create an upload
-	// session with `uploadSessionStart`.
+	// Upload : Create a new file with the contents provided in the request. Do
+	// not use this to upload a file larger than 150 MB. Instead, create an
+	// upload session with `uploadSessionStart`.
 	Upload(arg *CommitInfo, content io.Reader) (res *FileMetadata, err error)
-	// Append more data to an upload session. A single request should not upload
-	// more than 150 MB of file contents.
-	UploadSessionAppend(arg *UploadSessionCursor, content io.Reader) (err error)
-	// Append more data to an upload session. When the parameter close is set,
-	// this call will close the session. A single request should not upload more
-	// than 150 MB of file contents.
-	UploadSessionAppendV2(arg *UploadSessionAppendArg, content io.Reader) (err error)
-	// Finish an upload session and save the uploaded data to the given file
-	// path. A single request should not upload more than 150 MB of file
-	// contents.
-	UploadSessionFinish(arg *UploadSessionFinishArg, content io.Reader) (res *FileMetadata, err error)
-	// Upload sessions allow you to upload a single file using multiple
-	// requests. This call starts a new upload session with the given data.  You
-	// can then use `uploadSessionAppendV2` to add more data and
-	// `uploadSessionFinish` to save all the data to a file in Dropbox. A single
+	// UploadSessionAppend : Append more data to an upload session. A single
 	// request should not upload more than 150 MB of file contents.
+	UploadSessionAppend(arg *UploadSessionCursor, content io.Reader) (err error)
+	// UploadSessionAppendV2 : Append more data to an upload session. When the
+	// parameter close is set, this call will close the session. A single
+	// request should not upload more than 150 MB of file contents.
+	UploadSessionAppendV2(arg *UploadSessionAppendArg, content io.Reader) (err error)
+	// UploadSessionFinish : Finish an upload session and save the uploaded data
+	// to the given file path. A single request should not upload more than 150
+	// MB of file contents.
+	UploadSessionFinish(arg *UploadSessionFinishArg, content io.Reader) (res *FileMetadata, err error)
+	// UploadSessionStart : Upload sessions allow you to upload a single file
+	// using multiple requests. This call starts a new upload session with the
+	// given data.  You can then use `uploadSessionAppendV2` to add more data
+	// and `uploadSessionFinish` to save all the data to a file in Dropbox. A
+	// single request should not upload more than 150 MB of file contents.
 	UploadSessionStart(arg *UploadSessionStartArg, content io.Reader) (res *UploadSessionStartResult, err error)
 }
 
 type apiImpl dropbox.Context
-type AlphaGetMetadataApiError struct {
-	dropbox.ApiError
+
+//AlphaGetMetadataAPIError is an error-wrapper for the alpha/get_metadata route
+type AlphaGetMetadataAPIError struct {
+	dropbox.APIError
 	EndpointError *AlphaGetMetadataError `json:"error"`
 }
 
@@ -186,8 +194,8 @@ func (dbx *apiImpl) AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -211,7 +219,7 @@ func (dbx *apiImpl) AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaGetMetadataApiError
+			var apiError AlphaGetMetadataAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -219,7 +227,7 @@ func (dbx *apiImpl) AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -251,8 +259,9 @@ func (dbx *apiImpl) AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, 
 	return
 }
 
-type AlphaUploadApiError struct {
-	dropbox.ApiError
+//AlphaUploadAPIError is an error-wrapper for the alpha/upload route
+type AlphaUploadAPIError struct {
+	dropbox.APIError
 	EndpointError *UploadErrorWithProperties `json:"error"`
 }
 
@@ -274,8 +283,8 @@ func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -299,7 +308,7 @@ func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError AlphaUploadApiError
+			var apiError AlphaUploadAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -307,7 +316,7 @@ func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -328,8 +337,9 @@ func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader
 	return
 }
 
-type CopyApiError struct {
-	dropbox.ApiError
+//CopyAPIError is an error-wrapper for the copy route
+type CopyAPIError struct {
+	dropbox.APIError
 	EndpointError *RelocationError `json:"error"`
 }
 
@@ -350,8 +360,8 @@ func (dbx *apiImpl) Copy(arg *RelocationArg) (res IsMetadata, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -375,7 +385,7 @@ func (dbx *apiImpl) Copy(arg *RelocationArg) (res IsMetadata, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError CopyApiError
+			var apiError CopyAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -383,7 +393,7 @@ func (dbx *apiImpl) Copy(arg *RelocationArg) (res IsMetadata, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -415,8 +425,9 @@ func (dbx *apiImpl) Copy(arg *RelocationArg) (res IsMetadata, err error) {
 	return
 }
 
-type CopyReferenceGetApiError struct {
-	dropbox.ApiError
+//CopyReferenceGetAPIError is an error-wrapper for the copy_reference/get route
+type CopyReferenceGetAPIError struct {
+	dropbox.APIError
 	EndpointError *GetCopyReferenceError `json:"error"`
 }
 
@@ -437,8 +448,8 @@ func (dbx *apiImpl) CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyRefe
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -462,7 +473,7 @@ func (dbx *apiImpl) CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyRefe
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError CopyReferenceGetApiError
+			var apiError CopyReferenceGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -470,7 +481,7 @@ func (dbx *apiImpl) CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyRefe
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -491,8 +502,9 @@ func (dbx *apiImpl) CopyReferenceGet(arg *GetCopyReferenceArg) (res *GetCopyRefe
 	return
 }
 
-type CopyReferenceSaveApiError struct {
-	dropbox.ApiError
+//CopyReferenceSaveAPIError is an error-wrapper for the copy_reference/save route
+type CopyReferenceSaveAPIError struct {
+	dropbox.APIError
 	EndpointError *SaveCopyReferenceError `json:"error"`
 }
 
@@ -513,8 +525,8 @@ func (dbx *apiImpl) CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyR
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -538,7 +550,7 @@ func (dbx *apiImpl) CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyR
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError CopyReferenceSaveApiError
+			var apiError CopyReferenceSaveAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -546,7 +558,7 @@ func (dbx *apiImpl) CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyR
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -567,8 +579,9 @@ func (dbx *apiImpl) CopyReferenceSave(arg *SaveCopyReferenceArg) (res *SaveCopyR
 	return
 }
 
-type CreateFolderApiError struct {
-	dropbox.ApiError
+//CreateFolderAPIError is an error-wrapper for the create_folder route
+type CreateFolderAPIError struct {
+	dropbox.APIError
 	EndpointError *CreateFolderError `json:"error"`
 }
 
@@ -589,8 +602,8 @@ func (dbx *apiImpl) CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -614,7 +627,7 @@ func (dbx *apiImpl) CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError CreateFolderApiError
+			var apiError CreateFolderAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -622,7 +635,7 @@ func (dbx *apiImpl) CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -643,8 +656,9 @@ func (dbx *apiImpl) CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err
 	return
 }
 
-type DeleteApiError struct {
-	dropbox.ApiError
+//DeleteAPIError is an error-wrapper for the delete route
+type DeleteAPIError struct {
+	dropbox.APIError
 	EndpointError *DeleteError `json:"error"`
 }
 
@@ -665,8 +679,8 @@ func (dbx *apiImpl) Delete(arg *DeleteArg) (res IsMetadata, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -690,7 +704,7 @@ func (dbx *apiImpl) Delete(arg *DeleteArg) (res IsMetadata, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DeleteApiError
+			var apiError DeleteAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -698,7 +712,7 @@ func (dbx *apiImpl) Delete(arg *DeleteArg) (res IsMetadata, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -730,8 +744,9 @@ func (dbx *apiImpl) Delete(arg *DeleteArg) (res IsMetadata, err error) {
 	return
 }
 
-type DownloadApiError struct {
-	dropbox.ApiError
+//DownloadAPIError is an error-wrapper for the download route
+type DownloadAPIError struct {
+	dropbox.APIError
 	EndpointError *DownloadError `json:"error"`
 }
 
@@ -752,8 +767,8 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -773,7 +788,7 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError DownloadApiError
+			var apiError DownloadAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -781,7 +796,7 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -802,8 +817,9 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 	return
 }
 
-type GetMetadataApiError struct {
-	dropbox.ApiError
+//GetMetadataAPIError is an error-wrapper for the get_metadata route
+type GetMetadataAPIError struct {
+	dropbox.APIError
 	EndpointError *GetMetadataError `json:"error"`
 }
 
@@ -824,8 +840,8 @@ func (dbx *apiImpl) GetMetadata(arg *GetMetadataArg) (res IsMetadata, err error)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -849,7 +865,7 @@ func (dbx *apiImpl) GetMetadata(arg *GetMetadataArg) (res IsMetadata, err error)
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetMetadataApiError
+			var apiError GetMetadataAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -857,7 +873,7 @@ func (dbx *apiImpl) GetMetadata(arg *GetMetadataArg) (res IsMetadata, err error)
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -889,8 +905,9 @@ func (dbx *apiImpl) GetMetadata(arg *GetMetadataArg) (res IsMetadata, err error)
 	return
 }
 
-type GetPreviewApiError struct {
-	dropbox.ApiError
+//GetPreviewAPIError is an error-wrapper for the get_preview route
+type GetPreviewAPIError struct {
+	dropbox.APIError
 	EndpointError *PreviewError `json:"error"`
 }
 
@@ -911,8 +928,8 @@ func (dbx *apiImpl) GetPreview(arg *PreviewArg) (res *FileMetadata, content io.R
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -932,7 +949,7 @@ func (dbx *apiImpl) GetPreview(arg *PreviewArg) (res *FileMetadata, content io.R
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetPreviewApiError
+			var apiError GetPreviewAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -940,7 +957,7 @@ func (dbx *apiImpl) GetPreview(arg *PreviewArg) (res *FileMetadata, content io.R
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -961,8 +978,9 @@ func (dbx *apiImpl) GetPreview(arg *PreviewArg) (res *FileMetadata, content io.R
 	return
 }
 
-type GetTemporaryLinkApiError struct {
-	dropbox.ApiError
+//GetTemporaryLinkAPIError is an error-wrapper for the get_temporary_link route
+type GetTemporaryLinkAPIError struct {
+	dropbox.APIError
 	EndpointError *GetTemporaryLinkError `json:"error"`
 }
 
@@ -983,8 +1001,8 @@ func (dbx *apiImpl) GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporar
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1008,7 +1026,7 @@ func (dbx *apiImpl) GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporar
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetTemporaryLinkApiError
+			var apiError GetTemporaryLinkAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1016,7 +1034,7 @@ func (dbx *apiImpl) GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporar
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1037,8 +1055,9 @@ func (dbx *apiImpl) GetTemporaryLink(arg *GetTemporaryLinkArg) (res *GetTemporar
 	return
 }
 
-type GetThumbnailApiError struct {
-	dropbox.ApiError
+//GetThumbnailAPIError is an error-wrapper for the get_thumbnail route
+type GetThumbnailAPIError struct {
+	dropbox.APIError
 	EndpointError *ThumbnailError `json:"error"`
 }
 
@@ -1059,8 +1078,8 @@ func (dbx *apiImpl) GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1080,7 +1099,7 @@ func (dbx *apiImpl) GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError GetThumbnailApiError
+			var apiError GetThumbnailAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1088,7 +1107,7 @@ func (dbx *apiImpl) GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1109,8 +1128,9 @@ func (dbx *apiImpl) GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content 
 	return
 }
 
-type ListFolderApiError struct {
-	dropbox.ApiError
+//ListFolderAPIError is an error-wrapper for the list_folder route
+type ListFolderAPIError struct {
+	dropbox.APIError
 	EndpointError *ListFolderError `json:"error"`
 }
 
@@ -1131,8 +1151,8 @@ func (dbx *apiImpl) ListFolder(arg *ListFolderArg) (res *ListFolderResult, err e
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1156,7 +1176,7 @@ func (dbx *apiImpl) ListFolder(arg *ListFolderArg) (res *ListFolderResult, err e
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ListFolderApiError
+			var apiError ListFolderAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1164,7 +1184,7 @@ func (dbx *apiImpl) ListFolder(arg *ListFolderArg) (res *ListFolderResult, err e
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1185,8 +1205,9 @@ func (dbx *apiImpl) ListFolder(arg *ListFolderArg) (res *ListFolderResult, err e
 	return
 }
 
-type ListFolderContinueApiError struct {
-	dropbox.ApiError
+//ListFolderContinueAPIError is an error-wrapper for the list_folder/continue route
+type ListFolderContinueAPIError struct {
+	dropbox.APIError
 	EndpointError *ListFolderContinueError `json:"error"`
 }
 
@@ -1207,8 +1228,8 @@ func (dbx *apiImpl) ListFolderContinue(arg *ListFolderContinueArg) (res *ListFol
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1232,7 +1253,7 @@ func (dbx *apiImpl) ListFolderContinue(arg *ListFolderContinueArg) (res *ListFol
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ListFolderContinueApiError
+			var apiError ListFolderContinueAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1240,7 +1261,7 @@ func (dbx *apiImpl) ListFolderContinue(arg *ListFolderContinueArg) (res *ListFol
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1261,8 +1282,9 @@ func (dbx *apiImpl) ListFolderContinue(arg *ListFolderContinueArg) (res *ListFol
 	return
 }
 
-type ListFolderGetLatestCursorApiError struct {
-	dropbox.ApiError
+//ListFolderGetLatestCursorAPIError is an error-wrapper for the list_folder/get_latest_cursor route
+type ListFolderGetLatestCursorAPIError struct {
+	dropbox.APIError
 	EndpointError *ListFolderError `json:"error"`
 }
 
@@ -1283,8 +1305,8 @@ func (dbx *apiImpl) ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFold
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1308,7 +1330,7 @@ func (dbx *apiImpl) ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFold
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ListFolderGetLatestCursorApiError
+			var apiError ListFolderGetLatestCursorAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1316,7 +1338,7 @@ func (dbx *apiImpl) ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFold
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1337,8 +1359,9 @@ func (dbx *apiImpl) ListFolderGetLatestCursor(arg *ListFolderArg) (res *ListFold
 	return
 }
 
-type ListFolderLongpollApiError struct {
-	dropbox.ApiError
+//ListFolderLongpollAPIError is an error-wrapper for the list_folder/longpoll route
+type ListFolderLongpollAPIError struct {
+	dropbox.APIError
 	EndpointError *ListFolderLongpollError `json:"error"`
 }
 
@@ -1382,7 +1405,7 @@ func (dbx *apiImpl) ListFolderLongpoll(arg *ListFolderLongpollArg) (res *ListFol
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ListFolderLongpollApiError
+			var apiError ListFolderLongpollAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1390,7 +1413,7 @@ func (dbx *apiImpl) ListFolderLongpoll(arg *ListFolderLongpollArg) (res *ListFol
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1411,8 +1434,9 @@ func (dbx *apiImpl) ListFolderLongpoll(arg *ListFolderLongpollArg) (res *ListFol
 	return
 }
 
-type ListRevisionsApiError struct {
-	dropbox.ApiError
+//ListRevisionsAPIError is an error-wrapper for the list_revisions route
+type ListRevisionsAPIError struct {
+	dropbox.APIError
 	EndpointError *ListRevisionsError `json:"error"`
 }
 
@@ -1433,8 +1457,8 @@ func (dbx *apiImpl) ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResu
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1458,7 +1482,7 @@ func (dbx *apiImpl) ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResu
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError ListRevisionsApiError
+			var apiError ListRevisionsAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1466,7 +1490,7 @@ func (dbx *apiImpl) ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResu
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1487,8 +1511,9 @@ func (dbx *apiImpl) ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResu
 	return
 }
 
-type MoveApiError struct {
-	dropbox.ApiError
+//MoveAPIError is an error-wrapper for the move route
+type MoveAPIError struct {
+	dropbox.APIError
 	EndpointError *RelocationError `json:"error"`
 }
 
@@ -1509,8 +1534,8 @@ func (dbx *apiImpl) Move(arg *RelocationArg) (res IsMetadata, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1534,7 +1559,7 @@ func (dbx *apiImpl) Move(arg *RelocationArg) (res IsMetadata, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError MoveApiError
+			var apiError MoveAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1542,7 +1567,7 @@ func (dbx *apiImpl) Move(arg *RelocationArg) (res IsMetadata, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1574,8 +1599,9 @@ func (dbx *apiImpl) Move(arg *RelocationArg) (res IsMetadata, err error) {
 	return
 }
 
-type PermanentlyDeleteApiError struct {
-	dropbox.ApiError
+//PermanentlyDeleteAPIError is an error-wrapper for the permanently_delete route
+type PermanentlyDeleteAPIError struct {
+	dropbox.APIError
 	EndpointError *DeleteError `json:"error"`
 }
 
@@ -1596,8 +1622,8 @@ func (dbx *apiImpl) PermanentlyDelete(arg *DeleteArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1621,7 +1647,7 @@ func (dbx *apiImpl) PermanentlyDelete(arg *DeleteArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PermanentlyDeleteApiError
+			var apiError PermanentlyDeleteAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1629,7 +1655,7 @@ func (dbx *apiImpl) PermanentlyDelete(arg *DeleteArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1645,8 +1671,9 @@ func (dbx *apiImpl) PermanentlyDelete(arg *DeleteArg) (err error) {
 	return
 }
 
-type PropertiesAddApiError struct {
-	dropbox.ApiError
+//PropertiesAddAPIError is an error-wrapper for the properties/add route
+type PropertiesAddAPIError struct {
+	dropbox.APIError
 	EndpointError *AddPropertiesError `json:"error"`
 }
 
@@ -1667,8 +1694,8 @@ func (dbx *apiImpl) PropertiesAdd(arg *PropertyGroupWithPath) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1692,7 +1719,7 @@ func (dbx *apiImpl) PropertiesAdd(arg *PropertyGroupWithPath) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesAddApiError
+			var apiError PropertiesAddAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1700,7 +1727,7 @@ func (dbx *apiImpl) PropertiesAdd(arg *PropertyGroupWithPath) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1716,8 +1743,9 @@ func (dbx *apiImpl) PropertiesAdd(arg *PropertyGroupWithPath) (err error) {
 	return
 }
 
-type PropertiesOverwriteApiError struct {
-	dropbox.ApiError
+//PropertiesOverwriteAPIError is an error-wrapper for the properties/overwrite route
+type PropertiesOverwriteAPIError struct {
+	dropbox.APIError
 	EndpointError *InvalidPropertyGroupError `json:"error"`
 }
 
@@ -1738,8 +1766,8 @@ func (dbx *apiImpl) PropertiesOverwrite(arg *PropertyGroupWithPath) (err error) 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1763,7 +1791,7 @@ func (dbx *apiImpl) PropertiesOverwrite(arg *PropertyGroupWithPath) (err error) 
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesOverwriteApiError
+			var apiError PropertiesOverwriteAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1771,7 +1799,7 @@ func (dbx *apiImpl) PropertiesOverwrite(arg *PropertyGroupWithPath) (err error) 
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1787,8 +1815,9 @@ func (dbx *apiImpl) PropertiesOverwrite(arg *PropertyGroupWithPath) (err error) 
 	return
 }
 
-type PropertiesRemoveApiError struct {
-	dropbox.ApiError
+//PropertiesRemoveAPIError is an error-wrapper for the properties/remove route
+type PropertiesRemoveAPIError struct {
+	dropbox.APIError
 	EndpointError *RemovePropertiesError `json:"error"`
 }
 
@@ -1809,8 +1838,8 @@ func (dbx *apiImpl) PropertiesRemove(arg *RemovePropertiesArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1834,7 +1863,7 @@ func (dbx *apiImpl) PropertiesRemove(arg *RemovePropertiesArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesRemoveApiError
+			var apiError PropertiesRemoveAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1842,7 +1871,7 @@ func (dbx *apiImpl) PropertiesRemove(arg *RemovePropertiesArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1858,8 +1887,9 @@ func (dbx *apiImpl) PropertiesRemove(arg *RemovePropertiesArg) (err error) {
 	return
 }
 
-type PropertiesTemplateGetApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateGetAPIError is an error-wrapper for the properties/template/get route
+type PropertiesTemplateGetAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.PropertyTemplateError `json:"error"`
 }
 
@@ -1880,8 +1910,8 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1905,7 +1935,7 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateGetApiError
+			var apiError PropertiesTemplateGetAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1913,7 +1943,7 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -1934,8 +1964,9 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 	return
 }
 
-type PropertiesTemplateListApiError struct {
-	dropbox.ApiError
+//PropertiesTemplateListAPIError is an error-wrapper for the properties/template/list route
+type PropertiesTemplateListAPIError struct {
+	dropbox.APIError
 	EndpointError *properties.PropertyTemplateError `json:"error"`
 }
 
@@ -1947,8 +1978,8 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 		return
 	}
 
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -1972,7 +2003,7 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesTemplateListApiError
+			var apiError PropertiesTemplateListAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -1980,7 +2011,7 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2001,8 +2032,9 @@ func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTempla
 	return
 }
 
-type PropertiesUpdateApiError struct {
-	dropbox.ApiError
+//PropertiesUpdateAPIError is an error-wrapper for the properties/update route
+type PropertiesUpdateAPIError struct {
+	dropbox.APIError
 	EndpointError *UpdatePropertiesError `json:"error"`
 }
 
@@ -2023,8 +2055,8 @@ func (dbx *apiImpl) PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2048,7 +2080,7 @@ func (dbx *apiImpl) PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError PropertiesUpdateApiError
+			var apiError PropertiesUpdateAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2056,7 +2088,7 @@ func (dbx *apiImpl) PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2072,8 +2104,9 @@ func (dbx *apiImpl) PropertiesUpdate(arg *UpdatePropertyGroupArg) (err error) {
 	return
 }
 
-type RestoreApiError struct {
-	dropbox.ApiError
+//RestoreAPIError is an error-wrapper for the restore route
+type RestoreAPIError struct {
+	dropbox.APIError
 	EndpointError *RestoreError `json:"error"`
 }
 
@@ -2094,8 +2127,8 @@ func (dbx *apiImpl) Restore(arg *RestoreArg) (res *FileMetadata, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2119,7 +2152,7 @@ func (dbx *apiImpl) Restore(arg *RestoreArg) (res *FileMetadata, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError RestoreApiError
+			var apiError RestoreAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2127,7 +2160,7 @@ func (dbx *apiImpl) Restore(arg *RestoreArg) (res *FileMetadata, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2148,8 +2181,9 @@ func (dbx *apiImpl) Restore(arg *RestoreArg) (res *FileMetadata, err error) {
 	return
 }
 
-type SaveUrlApiError struct {
-	dropbox.ApiError
+//SaveUrlAPIError is an error-wrapper for the save_url route
+type SaveUrlAPIError struct {
+	dropbox.APIError
 	EndpointError *SaveUrlError `json:"error"`
 }
 
@@ -2170,8 +2204,8 @@ func (dbx *apiImpl) SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2195,7 +2229,7 @@ func (dbx *apiImpl) SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError SaveUrlApiError
+			var apiError SaveUrlAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2203,7 +2237,7 @@ func (dbx *apiImpl) SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2224,8 +2258,9 @@ func (dbx *apiImpl) SaveUrl(arg *SaveUrlArg) (res *SaveUrlResult, err error) {
 	return
 }
 
-type SaveUrlCheckJobStatusApiError struct {
-	dropbox.ApiError
+//SaveUrlCheckJobStatusAPIError is an error-wrapper for the save_url/check_job_status route
+type SaveUrlCheckJobStatusAPIError struct {
+	dropbox.APIError
 	EndpointError *async.PollError `json:"error"`
 }
 
@@ -2246,8 +2281,8 @@ func (dbx *apiImpl) SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobSt
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2271,7 +2306,7 @@ func (dbx *apiImpl) SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobSt
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError SaveUrlCheckJobStatusApiError
+			var apiError SaveUrlCheckJobStatusAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2279,7 +2314,7 @@ func (dbx *apiImpl) SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobSt
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2300,8 +2335,9 @@ func (dbx *apiImpl) SaveUrlCheckJobStatus(arg *async.PollArg) (res *SaveUrlJobSt
 	return
 }
 
-type SearchApiError struct {
-	dropbox.ApiError
+//SearchAPIError is an error-wrapper for the search route
+type SearchAPIError struct {
+	dropbox.APIError
 	EndpointError *SearchError `json:"error"`
 }
 
@@ -2322,8 +2358,8 @@ func (dbx *apiImpl) Search(arg *SearchArg) (res *SearchResult, err error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2347,7 +2383,7 @@ func (dbx *apiImpl) Search(arg *SearchArg) (res *SearchResult, err error) {
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError SearchApiError
+			var apiError SearchAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2355,7 +2391,7 @@ func (dbx *apiImpl) Search(arg *SearchArg) (res *SearchResult, err error) {
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2376,8 +2412,9 @@ func (dbx *apiImpl) Search(arg *SearchArg) (res *SearchResult, err error) {
 	return
 }
 
-type UploadApiError struct {
-	dropbox.ApiError
+//UploadAPIError is an error-wrapper for the upload route
+type UploadAPIError struct {
+	dropbox.APIError
 	EndpointError *UploadError `json:"error"`
 }
 
@@ -2399,8 +2436,8 @@ func (dbx *apiImpl) Upload(arg *CommitInfo, content io.Reader) (res *FileMetadat
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2424,7 +2461,7 @@ func (dbx *apiImpl) Upload(arg *CommitInfo, content io.Reader) (res *FileMetadat
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError UploadApiError
+			var apiError UploadAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2432,7 +2469,7 @@ func (dbx *apiImpl) Upload(arg *CommitInfo, content io.Reader) (res *FileMetadat
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2453,8 +2490,9 @@ func (dbx *apiImpl) Upload(arg *CommitInfo, content io.Reader) (res *FileMetadat
 	return
 }
 
-type UploadSessionAppendApiError struct {
-	dropbox.ApiError
+//UploadSessionAppendAPIError is an error-wrapper for the upload_session/append route
+type UploadSessionAppendAPIError struct {
+	dropbox.APIError
 	EndpointError *UploadSessionLookupError `json:"error"`
 }
 
@@ -2476,8 +2514,8 @@ func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Rea
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2501,7 +2539,7 @@ func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Rea
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError UploadSessionAppendApiError
+			var apiError UploadSessionAppendAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2509,7 +2547,7 @@ func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Rea
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2525,8 +2563,9 @@ func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Rea
 	return
 }
 
-type UploadSessionAppendV2ApiError struct {
-	dropbox.ApiError
+//UploadSessionAppendV2APIError is an error-wrapper for the upload_session/append_v2 route
+type UploadSessionAppendV2APIError struct {
+	dropbox.APIError
 	EndpointError *UploadSessionLookupError `json:"error"`
 }
 
@@ -2548,8 +2587,8 @@ func (dbx *apiImpl) UploadSessionAppendV2(arg *UploadSessionAppendArg, content i
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2573,7 +2612,7 @@ func (dbx *apiImpl) UploadSessionAppendV2(arg *UploadSessionAppendArg, content i
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError UploadSessionAppendV2ApiError
+			var apiError UploadSessionAppendV2APIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2581,7 +2620,7 @@ func (dbx *apiImpl) UploadSessionAppendV2(arg *UploadSessionAppendArg, content i
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2597,8 +2636,9 @@ func (dbx *apiImpl) UploadSessionAppendV2(arg *UploadSessionAppendArg, content i
 	return
 }
 
-type UploadSessionFinishApiError struct {
-	dropbox.ApiError
+//UploadSessionFinishAPIError is an error-wrapper for the upload_session/finish route
+type UploadSessionFinishAPIError struct {
+	dropbox.APIError
 	EndpointError *UploadSessionFinishError `json:"error"`
 }
 
@@ -2620,8 +2660,8 @@ func (dbx *apiImpl) UploadSessionFinish(arg *UploadSessionFinishArg, content io.
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2645,7 +2685,7 @@ func (dbx *apiImpl) UploadSessionFinish(arg *UploadSessionFinishArg, content io.
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError UploadSessionFinishApiError
+			var apiError UploadSessionFinishAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2653,7 +2693,7 @@ func (dbx *apiImpl) UploadSessionFinish(arg *UploadSessionFinishArg, content io.
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2674,8 +2714,9 @@ func (dbx *apiImpl) UploadSessionFinish(arg *UploadSessionFinishArg, content io.
 	return
 }
 
-type UploadSessionStartApiError struct {
-	dropbox.ApiError
+//UploadSessionStartAPIError is an error-wrapper for the upload_session/start route
+type UploadSessionStartAPIError struct {
+	dropbox.APIError
 	EndpointError struct{} `json:"error"`
 }
 
@@ -2697,8 +2738,8 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 
 	req.Header.Set("Dropbox-API-Arg", string(b))
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if dbx.Config.AsMemberId != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberId)
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
@@ -2722,7 +2763,7 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 	}
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 409 {
-			var apiError UploadSessionStartApiError
+			var apiError UploadSessionStartAPIError
 			err = json.Unmarshal(body, &apiError)
 			if err != nil {
 				return
@@ -2730,7 +2771,7 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 			err = apiError
 			return
 		}
-		var apiError dropbox.ApiError
+		var apiError dropbox.APIError
 		if resp.StatusCode == 400 {
 			apiError.ErrorSummary = string(body)
 			err = apiError
@@ -2751,6 +2792,7 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 	return
 }
 
+// New returns a Client implementation for this namespace
 func New(c dropbox.Config) *apiImpl {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx

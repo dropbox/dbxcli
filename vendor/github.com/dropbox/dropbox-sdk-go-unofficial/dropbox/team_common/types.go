@@ -18,21 +18,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// Package team_common : has no documentation (yet)
 package team_common
 
 import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 
-// Information about a group.
+// GroupSummary : Information about a group.
 type GroupSummary struct {
+	// GroupName : has no documentation (yet)
 	GroupName string `json:"group_name"`
-	GroupId   string `json:"group_id"`
-	// External ID of group. This is an arbitrary ID that an admin can attach to
-	// a group.
+	// GroupId : has no documentation (yet)
+	GroupId string `json:"group_id"`
+	// GroupExternalId : External ID of group. This is an arbitrary ID that an
+	// admin can attach to a group.
 	GroupExternalId string `json:"group_external_id,omitempty"`
-	// The number of members in the group.
+	// MemberCount : The number of members in the group.
 	MemberCount uint32 `json:"member_count,omitempty"`
 }
 
+// NewGroupSummary returns a new GroupSummary instance
 func NewGroupSummary(GroupName string, GroupId string) *GroupSummary {
 	s := new(GroupSummary)
 	s.GroupName = GroupName
@@ -40,13 +44,14 @@ func NewGroupSummary(GroupName string, GroupId string) *GroupSummary {
 	return s
 }
 
-// Information about a group.
+// AlphaGroupSummary : Information about a group.
 type AlphaGroupSummary struct {
 	GroupSummary
-	// Who is allowed to manage the group.
+	// GroupManagementType : Who is allowed to manage the group.
 	GroupManagementType *GroupManagementType `json:"group_management_type"`
 }
 
+// NewAlphaGroupSummary returns a new AlphaGroupSummary instance
 func NewAlphaGroupSummary(GroupName string, GroupId string, GroupManagementType *GroupManagementType) *AlphaGroupSummary {
 	s := new(AlphaGroupSummary)
 	s.GroupName = GroupName
@@ -55,24 +60,26 @@ func NewAlphaGroupSummary(GroupName string, GroupId string, GroupManagementType 
 	return s
 }
 
-// The group type determines how a group is managed.
+// GroupManagementType : The group type determines how a group is managed.
 type GroupManagementType struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for GroupManagementType
 const (
-	GroupManagementType_CompanyManaged = "company_managed"
-	GroupManagementType_UserManaged    = "user_managed"
-	GroupManagementType_Other          = "other"
+	GroupManagementTypeCompanyManaged = "company_managed"
+	GroupManagementTypeUserManaged    = "user_managed"
+	GroupManagementTypeOther          = "other"
 )
 
-// The group type determines how a group is created and managed.
+// GroupType : The group type determines how a group is created and managed.
 type GroupType struct {
 	dropbox.Tagged
 }
 
+// Valid tag values for GroupType
 const (
-	GroupType_Team        = "team"
-	GroupType_UserManaged = "user_managed"
-	GroupType_Other       = "other"
+	GroupTypeTeam        = "team"
+	GroupTypeUserManaged = "user_managed"
+	GroupTypeOther       = "other"
 )

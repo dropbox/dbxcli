@@ -35,24 +35,28 @@ const (
 	hostNotify    = "notify"
 )
 
+// Config contains parameters for configuring the SDK.
 type Config struct {
 	Token      string
 	Verbose    bool
-	AsMemberId string
+	AsMemberID string
 	Domain     string
 }
 
+// Context is the base client context used to implement per-namespace clients.
 type Context struct {
 	Client  *http.Client
 	Config  Config
 	hostMap map[string]string
 }
 
+// GenerateURL returns the appropriate URL for given namespace/route.
 func (c *Context) GenerateURL(host string, namespace string, route string) string {
 	fqHost := c.hostMap[host]
 	return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
 }
 
+// NewContext returns a new Context with the given Config.
 func NewContext(c Config) Context {
 	domain := c.Domain
 	if domain == "" {
@@ -74,24 +78,25 @@ func OAuthEndpoint(domain string) oauth2.Endpoint {
 	if domain == "" {
 		domain = defaultDomain
 	}
-	authUrl := fmt.Sprintf("https://meta%s/1/oauth2/authorize", domain)
-	tokenUrl := fmt.Sprintf("https://api%s/1/oauth2/token", domain)
+	authURL := fmt.Sprintf("https://meta%s/1/oauth2/authorize", domain)
+	tokenURL := fmt.Sprintf("https://api%s/1/oauth2/token", domain)
 	if domain == defaultDomain {
-		authUrl = "https://www.dropbox.com/1/oauth2/authorize"
+		authURL = "https://www.dropbox.com/1/oauth2/authorize"
 	}
-	return oauth2.Endpoint{AuthURL: authUrl, TokenURL: tokenUrl}
+	return oauth2.Endpoint{AuthURL: authURL, TokenURL: tokenURL}
 }
 
+// Tagged is used for tagged unions.
 type Tagged struct {
 	Tag string `json:".tag"`
 }
 
-type ApiError struct {
+// APIError is the base type for endpoint-specific errors.
+type APIError struct {
 	ErrorSummary string `json:"error_summary"`
 }
 
-// implement the error interface
-func (e ApiError) Error() string {
+func (e APIError) Error() string {
 	return e.ErrorSummary
 }
 
