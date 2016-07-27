@@ -62,6 +62,12 @@ type AccountType struct {
 	dropbox.Tagged
 }
 
+const (
+	AccountType_Basic    = "basic"
+	AccountType_Pro      = "pro"
+	AccountType_Business = "business"
+)
+
 // Basic information about any account.
 type BasicAccount struct {
 	Account
@@ -182,6 +188,11 @@ type GetAccountBatchError struct {
 	NoAccount string `json:"no_account,omitempty"`
 }
 
+const (
+	GetAccountBatchError_NoAccount = "no_account"
+	GetAccountBatchError_Other     = "other"
+)
+
 func (u *GetAccountBatchError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -204,6 +215,11 @@ func (u *GetAccountBatchError) UnmarshalJSON(body []byte) error {
 type GetAccountError struct {
 	dropbox.Tagged
 }
+
+const (
+	GetAccountError_NoAccount = "no_account"
+	GetAccountError_Unknown   = "unknown"
+)
 
 type IndividualSpaceAllocation struct {
 	// The total space allocated to the user's account (bytes).
@@ -248,6 +264,12 @@ type SpaceAllocation struct {
 	// The user shares space with other members of their team.
 	Team *TeamSpaceAllocation `json:"team,omitempty"`
 }
+
+const (
+	SpaceAllocation_Individual = "individual"
+	SpaceAllocation_Team       = "team"
+	SpaceAllocation_Other      = "other"
+)
 
 func (u *SpaceAllocation) UnmarshalJSON(body []byte) error {
 	type wrap struct {

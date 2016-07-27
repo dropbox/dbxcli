@@ -37,6 +37,10 @@ type LaunchResultBase struct {
 	AsyncJobId string `json:"async_job_id,omitempty"`
 }
 
+const (
+	LaunchResultBase_AsyncJobId = "async_job_id"
+)
+
 func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -63,6 +67,10 @@ type LaunchEmptyResult struct {
 	dropbox.Tagged
 }
 
+const (
+	LaunchEmptyResult_Complete = "complete"
+)
+
 // Arguments for methods that poll the status of an asynchronous job.
 type PollArg struct {
 	// Id of the asynchronous job. This is the value of a response returned from
@@ -84,13 +92,27 @@ type PollResultBase struct {
 	dropbox.Tagged
 }
 
+const (
+	PollResultBase_InProgress = "in_progress"
+)
+
 // Result returned by methods that poll for the status of an asynchronous job.
 // Upon completion of the job, no additional information is returned.
 type PollEmptyResult struct {
 	dropbox.Tagged
 }
 
+const (
+	PollEmptyResult_Complete = "complete"
+)
+
 // Error returned by methods for polling the status of asynchronous job.
 type PollError struct {
 	dropbox.Tagged
 }
+
+const (
+	PollError_InvalidAsyncJobId = "invalid_async_job_id"
+	PollError_InternalError     = "internal_error"
+	PollError_Other             = "other"
+)

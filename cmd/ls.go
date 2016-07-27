@@ -71,7 +71,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		case files.ListFolderApiError:
 			// Don't treat a "not_folder" error as fatal; recover by sending a
 			// get_metadata request for the same path and using that response instead.
-			if e.EndpointError.Path.Tag == "not_folder" {
+			if e.EndpointError.Path.Tag == files.LookupError_NotFolder {
 				var metaRes files.IsMetadata
 				metaRes, err = getFileMetadata(dbx, path)
 				entries = []files.IsMetadata{metaRes}

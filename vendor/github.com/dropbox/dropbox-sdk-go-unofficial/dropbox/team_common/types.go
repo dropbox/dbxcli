@@ -60,7 +60,19 @@ type GroupManagementType struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupManagementType_CompanyManaged = "company_managed"
+	GroupManagementType_UserManaged    = "user_managed"
+	GroupManagementType_Other          = "other"
+)
+
 // The group type determines how a group is created and managed.
 type GroupType struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupType_Team        = "team"
+	GroupType_UserManaged = "user_managed"
+	GroupType_Other       = "other"
+)

@@ -34,6 +34,10 @@ type PropertiesError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	PropertiesError_Path = "path"
+)
+
 func (u *PropertiesError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -58,9 +62,18 @@ type InvalidPropertyGroupError struct {
 	dropbox.Tagged
 }
 
+const (
+	InvalidPropertyGroupError_PropertyFieldTooLarge = "property_field_too_large"
+	InvalidPropertyGroupError_DoesNotFitTemplate    = "does_not_fit_template"
+)
+
 type AddPropertiesError struct {
 	dropbox.Tagged
 }
+
+const (
+	AddPropertiesError_PropertyGroupAlreadyExists = "property_group_already_exists"
+)
 
 type GetMetadataArg struct {
 	// The path of a file or folder on Dropbox.
@@ -105,6 +118,10 @@ type GetMetadataError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	GetMetadataError_Path = "path"
+)
+
 func (u *GetMetadataError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -129,6 +146,10 @@ type AlphaGetMetadataError struct {
 	dropbox.Tagged
 	PropertiesError *LookUpPropertiesError `json:"properties_error,omitempty"`
 }
+
+const (
+	AlphaGetMetadataError_PropertiesError = "properties_error"
+)
 
 func (u *AlphaGetMetadataError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -211,6 +232,10 @@ type CreateFolderError struct {
 	Path *WriteError `json:"path,omitempty"`
 }
 
+const (
+	CreateFolderError_Path = "path"
+)
+
 func (u *CreateFolderError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -247,6 +272,12 @@ type DeleteError struct {
 	PathLookup *LookupError `json:"path_lookup,omitempty"`
 	PathWrite  *WriteError  `json:"path_write,omitempty"`
 }
+
+const (
+	DeleteError_PathLookup = "path_lookup"
+	DeleteError_PathWrite  = "path_write"
+	DeleteError_Other      = "other"
+)
 
 func (u *DeleteError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -311,6 +342,12 @@ type metadataUnion struct {
 	Folder  *FolderMetadata  `json:"folder,omitempty"`
 	Deleted *DeletedMetadata `json:"deleted,omitempty"`
 }
+
+const (
+	Metadata_File    = "file"
+	Metadata_Folder  = "folder"
+	Metadata_Deleted = "deleted"
+)
 
 func (u *metadataUnion) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -388,6 +425,11 @@ type DownloadError struct {
 	dropbox.Tagged
 	Path *LookupError `json:"path,omitempty"`
 }
+
+const (
+	DownloadError_Path  = "path"
+	DownloadError_Other = "other"
+)
 
 func (u *DownloadError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -536,6 +578,11 @@ type GetCopyReferenceError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	GetCopyReferenceError_Path  = "path"
+	GetCopyReferenceError_Other = "other"
+)
+
 func (u *GetCopyReferenceError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -590,6 +637,11 @@ type GetTemporaryLinkError struct {
 	dropbox.Tagged
 	Path *LookupError `json:"path,omitempty"`
 }
+
+const (
+	GetTemporaryLinkError_Path  = "path"
+	GetTemporaryLinkError_Other = "other"
+)
 
 func (u *GetTemporaryLinkError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -683,6 +735,12 @@ type ListFolderContinueError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	ListFolderContinueError_Path  = "path"
+	ListFolderContinueError_Reset = "reset"
+	ListFolderContinueError_Other = "other"
+)
+
 func (u *ListFolderContinueError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -707,6 +765,11 @@ type ListFolderError struct {
 	dropbox.Tagged
 	Path *LookupError `json:"path,omitempty"`
 }
+
+const (
+	ListFolderError_Path  = "path"
+	ListFolderError_Other = "other"
+)
 
 func (u *ListFolderError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -763,6 +826,11 @@ type ListFolderLongpollError struct {
 	dropbox.Tagged
 }
 
+const (
+	ListFolderLongpollError_Reset = "reset"
+	ListFolderLongpollError_Other = "other"
+)
+
 type ListFolderLongpollResult struct {
 	// Indicates whether new changes are available. If true, call
 	// `listFolderContinue` to retrieve the changes.
@@ -816,6 +884,11 @@ type ListRevisionsError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	ListRevisionsError_Path  = "path"
+	ListRevisionsError_Other = "other"
+)
+
 func (u *ListRevisionsError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -854,10 +927,23 @@ type LookUpPropertiesError struct {
 	dropbox.Tagged
 }
 
+const (
+	LookUpPropertiesError_PropertyGroupNotFound = "property_group_not_found"
+)
+
 type LookupError struct {
 	dropbox.Tagged
 	MalformedPath string `json:"malformed_path,omitempty"`
 }
+
+const (
+	LookupError_MalformedPath     = "malformed_path"
+	LookupError_NotFound          = "not_found"
+	LookupError_NotFile           = "not_file"
+	LookupError_NotFolder         = "not_folder"
+	LookupError_RestrictedContent = "restricted_content"
+	LookupError_Other             = "other"
+)
 
 func (u *LookupError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -884,6 +970,11 @@ type MediaInfo struct {
 	// The metadata for the photo/video.
 	Metadata IsMediaMetadata `json:"metadata,omitempty"`
 }
+
+const (
+	MediaInfo_Pending  = "pending"
+	MediaInfo_Metadata = "metadata"
+)
 
 func (u *MediaInfo) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -932,6 +1023,11 @@ type mediaMetadataUnion struct {
 	Photo *PhotoMetadata `json:"photo,omitempty"`
 	Video *VideoMetadata `json:"video,omitempty"`
 }
+
+const (
+	MediaMetadata_Photo = "photo"
+	MediaMetadata_Video = "video"
+)
 
 func (u *mediaMetadataUnion) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -987,6 +1083,13 @@ type PreviewError struct {
 	// An error occurs when downloading metadata for the file.
 	Path *LookupError `json:"path,omitempty"`
 }
+
+const (
+	PreviewError_Path                 = "path"
+	PreviewError_InProgress           = "in_progress"
+	PreviewError_UnsupportedExtension = "unsupported_extension"
+	PreviewError_UnsupportedContent   = "unsupported_content"
+)
 
 func (u *PreviewError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1061,6 +1164,17 @@ type RelocationError struct {
 	To         *WriteError  `json:"to,omitempty"`
 }
 
+const (
+	RelocationError_FromLookup               = "from_lookup"
+	RelocationError_FromWrite                = "from_write"
+	RelocationError_To                       = "to"
+	RelocationError_CantCopySharedFolder     = "cant_copy_shared_folder"
+	RelocationError_CantNestSharedFolder     = "cant_nest_shared_folder"
+	RelocationError_CantMoveFolderIntoItself = "cant_move_folder_into_itself"
+	RelocationError_TooManyFiles             = "too_many_files"
+	RelocationError_Other                    = "other"
+)
+
 func (u *RelocationError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1113,6 +1227,10 @@ type RemovePropertiesError struct {
 	PropertyGroupLookup *LookUpPropertiesError `json:"property_group_lookup,omitempty"`
 }
 
+const (
+	RemovePropertiesError_PropertyGroupLookup = "property_group_lookup"
+)
+
 func (u *RemovePropertiesError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1154,6 +1272,13 @@ type RestoreError struct {
 	// An error occurs when trying to restore the file to that path.
 	PathWrite *WriteError `json:"path_write,omitempty"`
 }
+
+const (
+	RestoreError_PathLookup      = "path_lookup"
+	RestoreError_PathWrite       = "path_write"
+	RestoreError_InvalidRevision = "invalid_revision"
+	RestoreError_Other           = "other"
+)
 
 func (u *RestoreError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1201,6 +1326,15 @@ type SaveCopyReferenceError struct {
 	dropbox.Tagged
 	Path *WriteError `json:"path,omitempty"`
 }
+
+const (
+	SaveCopyReferenceError_Path                 = "path"
+	SaveCopyReferenceError_InvalidCopyReference = "invalid_copy_reference"
+	SaveCopyReferenceError_NoPermission         = "no_permission"
+	SaveCopyReferenceError_NotFound             = "not_found"
+	SaveCopyReferenceError_TooManyFiles         = "too_many_files"
+	SaveCopyReferenceError_Other                = "other"
+)
 
 func (u *SaveCopyReferenceError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1252,6 +1386,14 @@ type SaveUrlError struct {
 	Path *WriteError `json:"path,omitempty"`
 }
 
+const (
+	SaveUrlError_Path           = "path"
+	SaveUrlError_DownloadFailed = "download_failed"
+	SaveUrlError_InvalidUrl     = "invalid_url"
+	SaveUrlError_NotFound       = "not_found"
+	SaveUrlError_Other          = "other"
+)
+
 func (u *SaveUrlError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1278,6 +1420,11 @@ type SaveUrlJobStatus struct {
 	Complete *FileMetadata `json:"complete,omitempty"`
 	Failed   *SaveUrlError `json:"failed,omitempty"`
 }
+
+const (
+	SaveUrlJobStatus_Complete = "complete"
+	SaveUrlJobStatus_Failed   = "failed"
+)
 
 func (u *SaveUrlJobStatus) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1311,6 +1458,10 @@ type SaveUrlResult struct {
 	// Metadata of the file where the URL is saved to.
 	Complete *FileMetadata `json:"complete,omitempty"`
 }
+
+const (
+	SaveUrlResult_Complete = "complete"
+)
 
 func (u *SaveUrlResult) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1365,6 +1516,11 @@ type SearchError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	SearchError_Path  = "path"
+	SearchError_Other = "other"
+)
+
 func (u *SearchError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1404,9 +1560,21 @@ type SearchMatchType struct {
 	dropbox.Tagged
 }
 
+const (
+	SearchMatchType_Filename = "filename"
+	SearchMatchType_Content  = "content"
+	SearchMatchType_Both     = "both"
+)
+
 type SearchMode struct {
 	dropbox.Tagged
 }
+
+const (
+	SearchMode_Filename           = "filename"
+	SearchMode_FilenameAndContent = "filename_and_content"
+	SearchMode_DeletedFilename    = "deleted_filename"
+)
 
 type SearchResult struct {
 	// A list (possibly empty) of matches for the query.
@@ -1452,6 +1620,13 @@ type ThumbnailError struct {
 	Path *LookupError `json:"path,omitempty"`
 }
 
+const (
+	ThumbnailError_Path                 = "path"
+	ThumbnailError_UnsupportedExtension = "unsupported_extension"
+	ThumbnailError_UnsupportedImage     = "unsupported_image"
+	ThumbnailError_ConversionError      = "conversion_error"
+)
+
 func (u *ThumbnailError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1477,14 +1652,31 @@ type ThumbnailFormat struct {
 	dropbox.Tagged
 }
 
+const (
+	ThumbnailFormat_Jpeg = "jpeg"
+	ThumbnailFormat_Png  = "png"
+)
+
 type ThumbnailSize struct {
 	dropbox.Tagged
 }
+
+const (
+	ThumbnailSize_W32h32    = "w32h32"
+	ThumbnailSize_W64h64    = "w64h64"
+	ThumbnailSize_W128h128  = "w128h128"
+	ThumbnailSize_W640h480  = "w640h480"
+	ThumbnailSize_W1024h768 = "w1024h768"
+)
 
 type UpdatePropertiesError struct {
 	dropbox.Tagged
 	PropertyGroupLookup *LookUpPropertiesError `json:"property_group_lookup,omitempty"`
 }
+
+const (
+	UpdatePropertiesError_PropertyGroupLookup = "property_group_lookup"
+)
 
 func (u *UpdatePropertiesError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1526,6 +1718,11 @@ type UploadError struct {
 	Path *UploadWriteFailed `json:"path,omitempty"`
 }
 
+const (
+	UploadError_Path  = "path"
+	UploadError_Other = "other"
+)
+
 func (u *UploadError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1551,6 +1748,10 @@ type UploadErrorWithProperties struct {
 	dropbox.Tagged
 	PropertiesError *InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
+
+const (
+	UploadErrorWithProperties_PropertiesError = "properties_error"
+)
 
 func (u *UploadErrorWithProperties) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1625,6 +1826,13 @@ type UploadSessionFinishError struct {
 	Path *WriteError `json:"path,omitempty"`
 }
 
+const (
+	UploadSessionFinishError_LookupFailed               = "lookup_failed"
+	UploadSessionFinishError_Path                       = "path"
+	UploadSessionFinishError_TooManySharedFolderTargets = "too_many_shared_folder_targets"
+	UploadSessionFinishError_Other                      = "other"
+)
+
 func (u *UploadSessionFinishError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1661,6 +1869,14 @@ type UploadSessionLookupError struct {
 	// network error.)
 	IncorrectOffset *UploadSessionOffsetError `json:"incorrect_offset,omitempty"`
 }
+
+const (
+	UploadSessionLookupError_NotFound        = "not_found"
+	UploadSessionLookupError_IncorrectOffset = "incorrect_offset"
+	UploadSessionLookupError_Closed          = "closed"
+	UploadSessionLookupError_NotClosed       = "not_closed"
+	UploadSessionLookupError_Other           = "other"
+)
 
 func (u *UploadSessionLookupError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1751,12 +1967,28 @@ type WriteConflictError struct {
 	dropbox.Tagged
 }
 
+const (
+	WriteConflictError_File         = "file"
+	WriteConflictError_Folder       = "folder"
+	WriteConflictError_FileAncestor = "file_ancestor"
+	WriteConflictError_Other        = "other"
+)
+
 type WriteError struct {
 	dropbox.Tagged
 	MalformedPath string `json:"malformed_path,omitempty"`
 	// Couldn't write to the target path because there was something in the way.
 	Conflict *WriteConflictError `json:"conflict,omitempty"`
 }
+
+const (
+	WriteError_MalformedPath     = "malformed_path"
+	WriteError_Conflict          = "conflict"
+	WriteError_NoWritePermission = "no_write_permission"
+	WriteError_InsufficientSpace = "insufficient_space"
+	WriteError_DisallowedName    = "disallowed_name"
+	WriteError_Other             = "other"
+)
 
 func (u *WriteError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1802,6 +2034,12 @@ type WriteMode struct {
 	// copy).txt" or "document (Panda's conflicted copy).txt".
 	Update string `json:"update,omitempty"`
 }
+
+const (
+	WriteMode_Add       = "add"
+	WriteMode_Overwrite = "overwrite"
+	WriteMode_Update    = "update"
+)
 
 func (u *WriteMode) UnmarshalJSON(body []byte) error {
 	type wrap struct {

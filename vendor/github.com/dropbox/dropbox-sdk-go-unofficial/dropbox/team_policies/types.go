@@ -26,20 +26,46 @@ type EmmState struct {
 	dropbox.Tagged
 }
 
+const (
+	EmmState_Disabled = "disabled"
+	EmmState_Optional = "optional"
+	EmmState_Required = "required"
+	EmmState_Other    = "other"
+)
+
 // Policy governing which shared folders a team member can join.
 type SharedFolderJoinPolicy struct {
 	dropbox.Tagged
 }
+
+const (
+	SharedFolderJoinPolicy_FromTeamOnly = "from_team_only"
+	SharedFolderJoinPolicy_FromAnyone   = "from_anyone"
+	SharedFolderJoinPolicy_Other        = "other"
+)
 
 // Policy governing who can be a member of a folder shared by a team member.
 type SharedFolderMemberPolicy struct {
 	dropbox.Tagged
 }
 
+const (
+	SharedFolderMemberPolicy_Team   = "team"
+	SharedFolderMemberPolicy_Anyone = "anyone"
+	SharedFolderMemberPolicy_Other  = "other"
+)
+
 // Policy governing the visibility of newly created shared links.
 type SharedLinkCreatePolicy struct {
 	dropbox.Tagged
 }
+
+const (
+	SharedLinkCreatePolicy_DefaultPublic   = "default_public"
+	SharedLinkCreatePolicy_DefaultTeamOnly = "default_team_only"
+	SharedLinkCreatePolicy_TeamOnly        = "team_only"
+	SharedLinkCreatePolicy_Other           = "other"
+)
 
 // Policies governing team members.
 type TeamMemberPolicies struct {

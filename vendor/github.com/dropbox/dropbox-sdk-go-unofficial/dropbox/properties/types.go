@@ -91,6 +91,12 @@ type PropertyTemplateError struct {
 	TemplateNotFound string `json:"template_not_found,omitempty"`
 }
 
+const (
+	PropertyTemplateError_TemplateNotFound  = "template_not_found"
+	PropertyTemplateError_RestrictedContent = "restricted_content"
+	PropertyTemplateError_Other             = "other"
+)
+
 func (u *PropertyTemplateError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -113,6 +119,13 @@ func (u *PropertyTemplateError) UnmarshalJSON(body []byte) error {
 type ModifyPropertyTemplateError struct {
 	dropbox.Tagged
 }
+
+const (
+	ModifyPropertyTemplateError_ConflictingPropertyNames  = "conflicting_property_names"
+	ModifyPropertyTemplateError_TooManyProperties         = "too_many_properties"
+	ModifyPropertyTemplateError_TooManyTemplates          = "too_many_templates"
+	ModifyPropertyTemplateError_TemplateAttributeTooLarge = "template_attribute_too_large"
+)
 
 type PropertyField struct {
 	// This is the name or key of a custom property in a property template. File
@@ -173,3 +186,8 @@ func NewPropertyGroup(TemplateId string, Fields []*PropertyField) *PropertyGroup
 type PropertyType struct {
 	dropbox.Tagged
 }
+
+const (
+	PropertyType_String = "string"
+	PropertyType_Other  = "other"
+)

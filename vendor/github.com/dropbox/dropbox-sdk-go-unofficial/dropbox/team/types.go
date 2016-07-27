@@ -99,6 +99,13 @@ type AdminTier struct {
 	dropbox.Tagged
 }
 
+const (
+	AdminTier_TeamAdmin           = "team_admin"
+	AdminTier_UserManagementAdmin = "user_management_admin"
+	AdminTier_SupportAdmin        = "support_admin"
+	AdminTier_MemberOnly          = "member_only"
+)
+
 type GroupCreateArg struct {
 	// Group name.
 	GroupName string `json:"group_name"`
@@ -200,6 +207,11 @@ type AlphaGroupsGetInfoItem struct {
 	GroupInfo *AlphaGroupFullInfo `json:"group_info,omitempty"`
 }
 
+const (
+	AlphaGroupsGetInfoItem_IdNotFound = "id_not_found"
+	AlphaGroupsGetInfoItem_GroupInfo  = "group_info"
+)
+
 func (u *AlphaGroupsGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -298,6 +310,10 @@ type DateRangeError struct {
 	dropbox.Tagged
 }
 
+const (
+	DateRangeError_Other = "other"
+)
+
 // Information about linked Dropbox desktop client sessions
 type DesktopClientSession struct {
 	DeviceSession
@@ -327,6 +343,13 @@ func NewDesktopClientSession(SessionId string, HostName string, ClientType *Desk
 type DesktopPlatform struct {
 	dropbox.Tagged
 }
+
+const (
+	DesktopPlatform_Windows = "windows"
+	DesktopPlatform_Mac     = "mac"
+	DesktopPlatform_Linux   = "linux"
+	DesktopPlatform_Other   = "other"
+)
 
 type DeviceSessionArg struct {
 	// The session id
@@ -528,18 +551,39 @@ type GroupAccessType struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupAccessType_Member = "member"
+	GroupAccessType_Owner  = "owner"
+)
+
 type GroupCreateError struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupCreateError_GroupNameAlreadyUsed   = "group_name_already_used"
+	GroupCreateError_GroupNameInvalid       = "group_name_invalid"
+	GroupCreateError_ExternalIdAlreadyInUse = "external_id_already_in_use"
+	GroupCreateError_Other                  = "other"
+)
 
 // Error that can be raised when `GroupSelector` is used.
 type GroupSelectorError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupSelectorError_GroupNotFound = "group_not_found"
+	GroupSelectorError_Other         = "other"
+)
+
 type GroupDeleteError struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupDeleteError_GroupAlreadyDeleted = "group_already_deleted"
+)
 
 // Full description of a group.
 type GroupFullInfo struct {
@@ -595,9 +639,17 @@ type GroupMemberSelectorError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupMemberSelectorError_MemberNotInGroup = "member_not_in_group"
+)
+
 type GroupMemberSetAccessTypeError struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupMemberSetAccessTypeError_UserCannotBeManagerOfCompanyManagedGroup = "user_cannot_be_manager_of_company_managed_group"
+)
 
 type GroupMembersAddArg struct {
 	IncludeMembersArg
@@ -627,6 +679,15 @@ type GroupMembersAddError struct {
 	// A company-managed group cannot be managed by a user.
 	UserCannotBeManagerOfCompanyManagedGroup []string `json:"user_cannot_be_manager_of_company_managed_group,omitempty"`
 }
+
+const (
+	GroupMembersAddError_DuplicateUser                            = "duplicate_user"
+	GroupMembersAddError_GroupNotInTeam                           = "group_not_in_team"
+	GroupMembersAddError_MembersNotInTeam                         = "members_not_in_team"
+	GroupMembersAddError_UsersNotFound                            = "users_not_found"
+	GroupMembersAddError_UserMustBeActiveToBeOwner                = "user_must_be_active_to_be_owner"
+	GroupMembersAddError_UserCannotBeManagerOfCompanyManagedGroup = "user_cannot_be_manager_of_company_managed_group"
+)
 
 func (u *GroupMembersAddError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -704,9 +765,17 @@ type GroupMembersSelectorError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupMembersSelectorError_MemberNotInGroup = "member_not_in_group"
+)
+
 type GroupMembersRemoveError struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupMembersRemoveError_GroupNotInTeam = "group_not_in_team"
+)
 
 // Argument for selecting a group and a list of users.
 type GroupMembersSelector struct {
@@ -752,6 +821,11 @@ type GroupSelector struct {
 	GroupExternalId string `json:"group_external_id,omitempty"`
 }
 
+const (
+	GroupSelector_GroupId         = "group_id"
+	GroupSelector_GroupExternalId = "group_external_id"
+)
+
 func (u *GroupSelector) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -780,9 +854,18 @@ type GroupUpdateError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupUpdateError_ExternalIdAlreadyInUse = "external_id_already_in_use"
+)
+
 type GroupsGetInfoError struct {
 	dropbox.Tagged
 }
+
+const (
+	GroupsGetInfoError_GroupNotOnTeam = "group_not_on_team"
+	GroupsGetInfoError_Other          = "other"
+)
 
 type GroupsGetInfoItem struct {
 	dropbox.Tagged
@@ -793,6 +876,11 @@ type GroupsGetInfoItem struct {
 	// Info about a group.
 	GroupInfo *GroupFullInfo `json:"group_info,omitempty"`
 }
+
+const (
+	GroupsGetInfoItem_IdNotFound = "id_not_found"
+	GroupsGetInfoItem_GroupInfo  = "group_info"
+)
 
 func (u *GroupsGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -846,6 +934,11 @@ type GroupsListContinueError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupsListContinueError_InvalidCursor = "invalid_cursor"
+	GroupsListContinueError_Other         = "other"
+)
+
 type GroupsListResult struct {
 	Groups []*team_common.GroupSummary `json:"groups"`
 	// Pass the cursor into `groupsListContinue` to obtain the additional
@@ -893,6 +986,11 @@ type GroupsMembersListContinueError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupsMembersListContinueError_InvalidCursor = "invalid_cursor"
+	GroupsMembersListContinueError_Other         = "other"
+)
+
 type GroupsMembersListResult struct {
 	Members []*GroupMemberInfo `json:"members"`
 	// Pass the cursor into `groupsMembersListContinue` to obtain additional
@@ -915,6 +1013,10 @@ type GroupsPollError struct {
 	dropbox.Tagged
 }
 
+const (
+	GroupsPollError_AccessDenied = "access_denied"
+)
+
 // Argument for selecting a list of groups, either by group_ids, or external
 // group IDs.
 type GroupsSelector struct {
@@ -924,6 +1026,11 @@ type GroupsSelector struct {
 	// List of external IDs of groups.
 	GroupExternalIds []string `json:"group_external_ids,omitempty"`
 }
+
+const (
+	GroupsSelector_GroupIds         = "group_ids"
+	GroupsSelector_GroupExternalIds = "group_external_ids"
+)
 
 func (u *GroupsSelector) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -969,6 +1076,11 @@ type ListMemberAppsError struct {
 	dropbox.Tagged
 }
 
+const (
+	ListMemberAppsError_MemberNotFound = "member_not_found"
+	ListMemberAppsError_Other          = "other"
+)
+
 type ListMemberAppsResult struct {
 	// List of third party applications linked by this team member
 	LinkedApiApps []*ApiApp `json:"linked_api_apps"`
@@ -1004,6 +1116,11 @@ type ListMemberDevicesError struct {
 	dropbox.Tagged
 }
 
+const (
+	ListMemberDevicesError_MemberNotFound = "member_not_found"
+	ListMemberDevicesError_Other          = "other"
+)
+
 type ListMemberDevicesResult struct {
 	// List of web sessions made by this team member
 	ActiveWebSessions []*ActiveWebSession `json:"active_web_sessions,omitempty"`
@@ -1036,6 +1153,11 @@ func NewListMembersAppsArg() *ListMembersAppsArg {
 type ListMembersAppsError struct {
 	dropbox.Tagged
 }
+
+const (
+	ListMembersAppsError_Reset = "reset"
+	ListMembersAppsError_Other = "other"
+)
 
 // Information returned by `linkedAppsListMembersLinkedApps`.
 type ListMembersAppsResult struct {
@@ -1082,6 +1204,11 @@ type ListMembersDevicesError struct {
 	dropbox.Tagged
 }
 
+const (
+	ListMembersDevicesError_Reset = "reset"
+	ListMembersDevicesError_Other = "other"
+)
+
 type ListMembersDevicesResult struct {
 	// The devices of each member of the team
 	Devices []*MemberDevices `json:"devices"`
@@ -1118,6 +1245,11 @@ func NewListTeamAppsArg() *ListTeamAppsArg {
 type ListTeamAppsError struct {
 	dropbox.Tagged
 }
+
+const (
+	ListTeamAppsError_Reset = "reset"
+	ListTeamAppsError_Other = "other"
+)
 
 // Information returned by `linkedAppsListTeamLinkedApps`.
 type ListTeamAppsResult struct {
@@ -1163,6 +1295,11 @@ func NewListTeamDevicesArg() *ListTeamDevicesArg {
 type ListTeamDevicesError struct {
 	dropbox.Tagged
 }
+
+const (
+	ListTeamDevicesError_Reset = "reset"
+	ListTeamDevicesError_Other = "other"
+)
 
 type ListTeamDevicesResult struct {
 	// The devices of each member of the team
@@ -1250,6 +1387,18 @@ type MemberAddResult struct {
 	// User creation has failed.
 	UserCreationFailed string `json:"user_creation_failed,omitempty"`
 }
+
+const (
+	MemberAddResult_Success                    = "success"
+	MemberAddResult_TeamLicenseLimit           = "team_license_limit"
+	MemberAddResult_FreeTeamMemberLimitReached = "free_team_member_limit_reached"
+	MemberAddResult_UserAlreadyOnTeam          = "user_already_on_team"
+	MemberAddResult_UserOnAnotherTeam          = "user_on_another_team"
+	MemberAddResult_UserAlreadyPaired          = "user_already_paired"
+	MemberAddResult_UserMigrationFailed        = "user_migration_failed"
+	MemberAddResult_DuplicateExternalMemberId  = "duplicate_external_member_id"
+	MemberAddResult_UserCreationFailed         = "user_creation_failed"
+)
 
 func (u *MemberAddResult) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1385,9 +1534,17 @@ type UserSelectorError struct {
 	dropbox.Tagged
 }
 
+const (
+	UserSelectorError_UserNotFound = "user_not_found"
+)
+
 type MemberSelectorError struct {
 	dropbox.Tagged
 }
+
+const (
+	MemberSelectorError_UserNotInTeam = "user_not_in_team"
+)
 
 type MembersAddArg struct {
 	// Details of new members to be added to the team.
@@ -1413,6 +1570,11 @@ type MembersAddJobStatus struct {
 	// message.
 	Failed string `json:"failed,omitempty"`
 }
+
+const (
+	MembersAddJobStatus_Complete = "complete"
+	MembersAddJobStatus_Failed   = "failed"
+)
 
 func (u *MembersAddJobStatus) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1446,6 +1608,10 @@ type MembersAddLaunch struct {
 	dropbox.Tagged
 	Complete []*MemberAddResult `json:"complete,omitempty"`
 }
+
+const (
+	MembersAddLaunch_Complete = "complete"
+)
 
 func (u *MembersAddLaunch) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1488,6 +1654,11 @@ type MembersDeactivateError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersDeactivateError_UserNotInTeam = "user_not_in_team"
+	MembersDeactivateError_Other         = "other"
+)
+
 type MembersGetInfoArgs struct {
 	// List of team members.
 	Members []*UserSelectorArg `json:"members"`
@@ -1503,6 +1674,10 @@ type MembersGetInfoError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersGetInfoError_Other = "other"
+)
+
 // Describes a result obtained for a single user whose id was specified in the
 // parameter of `membersGetInfo`.
 type MembersGetInfoItem struct {
@@ -1514,6 +1689,11 @@ type MembersGetInfoItem struct {
 	// Info about a team member.
 	MemberInfo *TeamMemberInfo `json:"member_info,omitempty"`
 }
+
+const (
+	MembersGetInfoItem_IdNotFound = "id_not_found"
+	MembersGetInfoItem_MemberInfo = "member_info"
+)
 
 func (u *MembersGetInfoItem) UnmarshalJSON(body []byte) error {
 	type wrap struct {
@@ -1567,9 +1747,18 @@ type MembersListContinueError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersListContinueError_InvalidCursor = "invalid_cursor"
+	MembersListContinueError_Other         = "other"
+)
+
 type MembersListError struct {
 	dropbox.Tagged
 }
+
+const (
+	MembersListError_Other = "other"
+)
 
 type MembersListResult struct {
 	// List of team members.
@@ -1617,9 +1806,27 @@ type MembersRemoveError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersRemoveError_RemoveLastAdmin                     = "remove_last_admin"
+	MembersRemoveError_RemovedAndTransferDestShouldDiffer  = "removed_and_transfer_dest_should_differ"
+	MembersRemoveError_RemovedAndTransferAdminShouldDiffer = "removed_and_transfer_admin_should_differ"
+	MembersRemoveError_TransferDestUserNotFound            = "transfer_dest_user_not_found"
+	MembersRemoveError_TransferDestUserNotInTeam           = "transfer_dest_user_not_in_team"
+	MembersRemoveError_TransferAdminUserNotFound           = "transfer_admin_user_not_found"
+	MembersRemoveError_TransferAdminUserNotInTeam          = "transfer_admin_user_not_in_team"
+	MembersRemoveError_UnspecifiedTransferAdminId          = "unspecified_transfer_admin_id"
+	MembersRemoveError_TransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
+	MembersRemoveError_CannotKeepAccountAndTransfer        = "cannot_keep_account_and_transfer"
+	MembersRemoveError_CannotKeepAccountAndDeleteData      = "cannot_keep_account_and_delete_data"
+)
+
 type MembersSendWelcomeError struct {
 	dropbox.Tagged
 }
+
+const (
+	MembersSendWelcomeError_Other = "other"
+)
 
 // Exactly one of team_member_id, email, or external_id must be provided to
 // identify the user account.
@@ -1640,6 +1847,14 @@ func NewMembersSetPermissionsArg(User *UserSelectorArg, NewRole *AdminTier) *Mem
 type MembersSetPermissionsError struct {
 	dropbox.Tagged
 }
+
+const (
+	MembersSetPermissionsError_LastAdmin            = "last_admin"
+	MembersSetPermissionsError_UserNotInTeam        = "user_not_in_team"
+	MembersSetPermissionsError_CannotSetPermissions = "cannot_set_permissions"
+	MembersSetPermissionsError_TeamLicenseLimit     = "team_license_limit"
+	MembersSetPermissionsError_Other                = "other"
+)
 
 type MembersSetPermissionsResult struct {
 	// The member ID of the user to which the change was applied.
@@ -1681,9 +1896,25 @@ type MembersSetProfileError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersSetProfileError_ExternalIdAndNewExternalIdUnsafe = "external_id_and_new_external_id_unsafe"
+	MembersSetProfileError_NoNewDataSpecified               = "no_new_data_specified"
+	MembersSetProfileError_EmailReservedForOtherUser        = "email_reserved_for_other_user"
+	MembersSetProfileError_ExternalIdUsedByOtherUser        = "external_id_used_by_other_user"
+	MembersSetProfileError_SetProfileDisallowed             = "set_profile_disallowed"
+	MembersSetProfileError_ParamCannotBeEmpty               = "param_cannot_be_empty"
+	MembersSetProfileError_Other                            = "other"
+)
+
 type MembersSuspendError struct {
 	dropbox.Tagged
 }
+
+const (
+	MembersSuspendError_SuspendInactiveUser = "suspend_inactive_user"
+	MembersSuspendError_SuspendLastAdmin    = "suspend_last_admin"
+	MembersSuspendError_TeamLicenseLimit    = "team_license_limit"
+)
 
 // Exactly one of team_member_id, email, or external_id must be provided to
 // identify the user account.
@@ -1702,9 +1933,23 @@ type MembersUnsuspendError struct {
 	dropbox.Tagged
 }
 
+const (
+	MembersUnsuspendError_UnsuspendNonSuspendedMember = "unsuspend_non_suspended_member"
+	MembersUnsuspendError_TeamLicenseLimit            = "team_license_limit"
+)
+
 type MobileClientPlatform struct {
 	dropbox.Tagged
 }
+
+const (
+	MobileClientPlatform_Iphone       = "iphone"
+	MobileClientPlatform_Ipad         = "ipad"
+	MobileClientPlatform_Android      = "android"
+	MobileClientPlatform_WindowsPhone = "windows_phone"
+	MobileClientPlatform_Blackberry   = "blackberry"
+	MobileClientPlatform_Other        = "other"
+)
 
 // Information about linked Dropbox mobile client sessions
 type MobileClientSession struct {
@@ -1755,6 +2000,12 @@ type RevokeDeviceSessionArg struct {
 	MobileClient *DeviceSessionArg `json:"mobile_client,omitempty"`
 }
 
+const (
+	RevokeDeviceSessionArg_WebSession    = "web_session"
+	RevokeDeviceSessionArg_DesktopClient = "desktop_client"
+	RevokeDeviceSessionArg_MobileClient  = "mobile_client"
+)
+
 func (u *RevokeDeviceSessionArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -1804,6 +2055,10 @@ type RevokeDeviceSessionBatchError struct {
 	dropbox.Tagged
 }
 
+const (
+	RevokeDeviceSessionBatchError_Unspecified = "unspecified"
+)
+
 type RevokeDeviceSessionBatchResult struct {
 	RevokeDevicesStatus []*RevokeDeviceSessionStatus `json:"revoke_devices_status"`
 }
@@ -1817,6 +2072,12 @@ func NewRevokeDeviceSessionBatchResult(RevokeDevicesStatus []*RevokeDeviceSessio
 type RevokeDeviceSessionError struct {
 	dropbox.Tagged
 }
+
+const (
+	RevokeDeviceSessionError_DeviceSessionNotFound = "device_session_not_found"
+	RevokeDeviceSessionError_MemberNotFound        = "member_not_found"
+	RevokeDeviceSessionError_Other                 = "other"
+)
 
 type RevokeDeviceSessionStatus struct {
 	// Result of the revoking request
@@ -1864,6 +2125,10 @@ type RevokeLinkedAppBatchError struct {
 	dropbox.Tagged
 }
 
+const (
+	RevokeLinkedAppBatchError_Unspecified = "unspecified"
+)
+
 type RevokeLinkedAppBatchResult struct {
 	RevokeLinkedAppStatus []*RevokeLinkedAppStatus `json:"revoke_linked_app_status"`
 }
@@ -1878,6 +2143,12 @@ func NewRevokeLinkedAppBatchResult(RevokeLinkedAppStatus []*RevokeLinkedAppStatu
 type RevokeLinkedAppError struct {
 	dropbox.Tagged
 }
+
+const (
+	RevokeLinkedAppError_AppNotFound    = "app_not_found"
+	RevokeLinkedAppError_MemberNotFound = "member_not_found"
+	RevokeLinkedAppError_Other          = "other"
+)
 
 type RevokeLinkedAppStatus struct {
 	// Result of the revoking request
@@ -1971,9 +2242,20 @@ type TeamMemberStatus struct {
 	dropbox.Tagged
 }
 
+const (
+	TeamMemberStatus_Active    = "active"
+	TeamMemberStatus_Invited   = "invited"
+	TeamMemberStatus_Suspended = "suspended"
+)
+
 type TeamMembershipType struct {
 	dropbox.Tagged
 }
+
+const (
+	TeamMembershipType_Full    = "full"
+	TeamMembershipType_Limited = "limited"
+)
 
 type UpdatePropertyTemplateArg struct {
 	// An identifier for property template added by `propertiesTemplateAdd`.
@@ -2015,6 +2297,12 @@ type UserSelectorArg struct {
 	Email        string `json:"email,omitempty"`
 }
 
+const (
+	UserSelectorArg_TeamMemberId = "team_member_id"
+	UserSelectorArg_ExternalId   = "external_id"
+	UserSelectorArg_Email        = "email"
+)
+
 func (u *UserSelectorArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
@@ -2055,6 +2343,12 @@ type UsersSelectorArg struct {
 	// List of email addresses.
 	Emails []string `json:"emails,omitempty"`
 }
+
+const (
+	UsersSelectorArg_TeamMemberIds = "team_member_ids"
+	UsersSelectorArg_ExternalIds   = "external_ids"
+	UsersSelectorArg_Emails        = "emails"
+)
 
 func (u *UsersSelectorArg) UnmarshalJSON(body []byte) error {
 	type wrap struct {
