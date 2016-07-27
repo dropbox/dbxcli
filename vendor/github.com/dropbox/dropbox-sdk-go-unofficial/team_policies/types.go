@@ -20,34 +20,37 @@
 
 package team_policies
 
+import dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+
 type EmmState struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Policy governing which shared folders a team member can join.
 type SharedFolderJoinPolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Policy governing who can be a member of a folder shared by a team member.
 type SharedFolderMemberPolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Policy governing the visibility of newly created shared links.
 type SharedLinkCreatePolicy struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Policies governing team members.
 type TeamMemberPolicies struct {
 	// Policies governing sharing.
 	Sharing *TeamSharingPolicies `json:"sharing"`
-	// This describes the Enterprise Mobility Management (EMM) state for this team.
-	// This information can be used to understand if an organization is integrating
-	// with a third-party EMM vendor to further manage and apply restrictions upon
-	// the team's Dropbox usage on mobile devices. This is a new feature and in the
-	// future we'll be adding more new fields and additional documentation.
+	// This describes the Enterprise Mobility Management (EMM) state for this
+	// team. This information can be used to understand if an organization is
+	// integrating with a third-party EMM vendor to further manage and apply
+	// restrictions upon the team's Dropbox usage on mobile devices. This is a
+	// new feature and in the future we'll be adding more new fields and
+	// additional documentation.
 	EmmState *EmmState `json:"emm_state"`
 }
 

@@ -20,12 +20,14 @@
 
 package team_common
 
+import dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+
 // Information about a group.
 type GroupSummary struct {
 	GroupName string `json:"group_name"`
 	GroupId   string `json:"group_id"`
-	// External ID of group. This is an arbitrary ID that an admin can attach to a
-	// group.
+	// External ID of group. This is an arbitrary ID that an admin can attach to
+	// a group.
 	GroupExternalId string `json:"group_external_id,omitempty"`
 	// The number of members in the group.
 	MemberCount uint32 `json:"member_count,omitempty"`
@@ -40,15 +42,9 @@ func NewGroupSummary(GroupName string, GroupId string) *GroupSummary {
 
 // Information about a group.
 type AlphaGroupSummary struct {
-	GroupName string `json:"group_name"`
-	GroupId   string `json:"group_id"`
+	GroupSummary
 	// Who is allowed to manage the group.
 	GroupManagementType *GroupManagementType `json:"group_management_type"`
-	// External ID of group. This is an arbitrary ID that an admin can attach to a
-	// group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
-	// The number of members in the group.
-	MemberCount uint32 `json:"member_count,omitempty"`
 }
 
 func NewAlphaGroupSummary(GroupName string, GroupId string, GroupManagementType *GroupManagementType) *AlphaGroupSummary {
@@ -61,10 +57,10 @@ func NewAlphaGroupSummary(GroupName string, GroupId string, GroupManagementType 
 
 // The group type determines how a group is managed.
 type GroupManagementType struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // The group type determines how a group is created and managed.
 type GroupType struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }

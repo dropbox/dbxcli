@@ -20,41 +20,38 @@
 
 package async
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+)
 
 // Result returned by methods that launch an asynchronous job. A method who may
 // either launch an asynchronous job, or complete the request synchronously, can
 // use this union by extending it, and adding a 'complete' field with the type
 // of the synchronous response. See `LaunchEmptyResult` for an example.
 type LaunchResultBase struct {
-	Tag string `json:".tag"`
-	// This response indicates that the processing is asynchronous. The string is
-	// an id that can be used to obtain the status of the asynchronous job.
+	dropbox.Tagged
+	// This response indicates that the processing is asynchronous. The string
+	// is an id that can be used to obtain the status of the asynchronous job.
 	AsyncJobId string `json:"async_job_id,omitempty"`
 }
 
 func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 	type wrap struct {
-		Tag string `json:".tag"`
-		// This response indicates that the processing is asynchronous. The string is
-		// an id that can be used to obtain the status of the asynchronous job.
-		AsyncJobId json.RawMessage `json:"async_job_id"`
+		dropbox.Tagged
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
-	switch w.Tag {
+	switch u.Tag {
 	case "async_job_id":
-		{
-			if len(w.AsyncJobId) == 0 {
-				break
-			}
-			if err := json.Unmarshal(w.AsyncJobId, &u.AsyncJobId); err != nil {
-				return err
-			}
+		if err := json.Unmarshal(body, &u.AsyncJobId); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -63,7 +60,7 @@ func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 // complete synchronously. Upon synchronous completion of the job, no additional
 // information is returned.
 type LaunchEmptyResult struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Arguments for methods that poll the status of an asynchronous job.
@@ -84,16 +81,16 @@ func NewPollArg(AsyncJobId string) *PollArg {
 // the information returned upon job completion. See `PollEmptyResult` for an
 // example.
 type PollResultBase struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Result returned by methods that poll for the status of an asynchronous job.
 // Upon completion of the job, no additional information is returned.
 type PollEmptyResult struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }
 
 // Error returned by methods for polling the status of asynchronous job.
 type PollError struct {
-	Tag string `json:".tag"`
+	dropbox.Tagged
 }

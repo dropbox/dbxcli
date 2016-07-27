@@ -27,8 +27,11 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 		return errors.New("`remove-member` requires an `email` argument")
 	}
 
+	dbx := team.New(config)
 	email := args[0]
-	arg := team.NewMembersRemoveArg(&team.UserSelectorArg{Tag: "email", Email: email})
+	selector := &team.UserSelectorArg{Email: email}
+	selector.Tag = "email"
+	arg := team.NewMembersRemoveArg(selector)
 	res, err := dbx.MembersRemove(arg)
 	if err != nil {
 		return err

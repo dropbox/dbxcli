@@ -19,7 +19,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
@@ -29,10 +28,10 @@ import (
 )
 
 // Sends a get_metadata request for a given path and returns the response
-func getFileMetadata(path string) (*files.Metadata, error) {
+func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 	arg := files.NewGetMetadataArg(path)
 
-	res, err := dbx.GetMetadata(arg)
+	res, err := c.GetMetadata(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -61,18 +60,26 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 	}
+	dbx := files.New(config)
 
 	arg := files.NewListFolderArg(path)
 
 	res, err := dbx.ListFolder(arg)
-	var entries []*files.Metadata
+	var entries []files.IsMetadata
 	if err != nil {
-		// Don't treat a "not_folder" error as fatal; recover by sending a
-		// get_metadata request for the same path and using that response instead.
-		if strings.Contains(err.Error(), "path/not_folder/") {
-			var metaRes *files.Metadata
-			metaRes, err = getFileMetadata(path)
-			entries = []*files.Metadata{metaRes}
+		switch e := err.(type) {
+		case files.ListFolderApiError:
+			// Don't treat a "not_folder" error as fatal; recover by sending a
+			// get_metadata request for the same path and using that response instead.
+			if e.EndpointError.Path.Tag == "not_folder" {
+				var metaRes files.IsMetadata
+				metaRes, err = getFileMetadata(dbx, path)
+				entries = []files.IsMetadata{metaRes}
+			} else {
+				return err
+			}
+		default:
+			return err
 		}
 
 		// Return if there's an error other than "not_folder" or if the follow-up
@@ -101,11 +108,11 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 		for _, entry := range entries {
-			switch entry.Tag {
-			case folder:
-				printFolderMetadata(w, entry.Folder, long)
-			case file:
-				printFileMetadata(w, entry.File, long)
+			switch f := entry.(type) {
+			case *files.FileMetadata:
+				printFileMetadata(w, f, long)
+			case *files.FolderMetadata:
+				printFolderMetadata(w, f, long)
 			}
 		}
 		w.Flush()
@@ -117,15 +124,15 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func listOfEntryNames(entries []*files.Metadata) []string {
+func listOfEntryNames(entries []files.IsMetadata) []string {
 	listOfEntryNames := []string{}
 
 	for _, entry := range entries {
-		switch entry.Tag {
-		case folder:
-			listOfEntryNames = append(listOfEntryNames, entry.Folder.Name)
-		case file:
-			listOfEntryNames = append(listOfEntryNames, entry.File.Name)
+		switch entry.(type) {
+		case *files.FolderMetadata:
+			listOfEntryNames = append(listOfEntryNames, entry.(*files.FolderMetadata).Name)
+		case *files.FileMetadata:
+			listOfEntryNames = append(listOfEntryNames, entry.(*files.FileMetadata).Name)
 		}
 	}
 

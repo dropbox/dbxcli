@@ -24,6 +24,7 @@ import (
 )
 
 func listGroups(cmd *cobra.Command, args []string) (err error) {
+	dbx := team.New(config)
 	arg := team.NewGroupsListArg()
 	res, err := dbx.GroupsList(arg)
 	if err != nil {
@@ -38,7 +39,7 @@ func listGroups(cmd *cobra.Command, args []string) (err error) {
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 	fmt.Fprintf(w, "Name\tId\t# Members\tExternal Id\n")
 	for _, group := range res.Groups {
-		fmt.Fprintf(w, group.GroupName, group.GroupId, group.MemberCount, group.GroupExternalId)
+		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", group.GroupName, group.GroupId, group.MemberCount, group.GroupExternalId)
 	}
 	w.Flush()
 	return
@@ -53,15 +54,4 @@ var listGroupsCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(listGroupsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listGroupsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listGroupsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

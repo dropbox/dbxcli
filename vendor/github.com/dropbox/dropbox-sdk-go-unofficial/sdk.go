@@ -35,16 +35,38 @@ const (
 	hostNotify    = "notify"
 )
 
-type Options struct {
+type Config struct {
+	Token      string
 	Verbose    bool
 	AsMemberId string
 	Domain     string
 }
 
-type apiImpl struct {
-	client  *http.Client
-	options Options
+type Context struct {
+	Client  *http.Client
+	Config  Config
 	hostMap map[string]string
+}
+
+func (c *Context) GenerateURL(host string, namespace string, route string) string {
+	fqHost := c.hostMap[host]
+	return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
+}
+
+func NewContext(c Config) Context {
+	domain := c.Domain
+	if domain == "" {
+		domain = defaultDomain
+	}
+
+	hostMap := map[string]string{
+		hostAPI:     hostAPI + domain,
+		hostContent: hostContent + domain,
+		hostNotify:  hostNotify + domain,
+	}
+	var conf = &oauth2.Config{Endpoint: OAuthEndpoint(domain)}
+	tok := &oauth2.Token{AccessToken: c.Token}
+	return Context{conf.Client(oauth2.NoContext, tok), c, hostMap}
 }
 
 // OAuthEndpoint constructs an `oauth2.Endpoint` for the given domain
@@ -60,26 +82,17 @@ func OAuthEndpoint(domain string) oauth2.Endpoint {
 	return oauth2.Endpoint{AuthURL: authUrl, TokenURL: tokenUrl}
 }
 
-func (dbx *apiImpl) generateURL(host string, namespace string, route string) string {
-	fqHost := dbx.hostMap[host]
-	return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
+type Tagged struct {
+	Tag string `json:".tag"`
 }
 
-// Client returns an `Api` instance for Dropbox using the given OAuth token.
-func Client(token string, options Options) Api {
-	domain := options.Domain
-	if domain == "" {
-		domain = defaultDomain
-	}
+type ApiError struct {
+	ErrorSummary string `json:"error_summary"`
+}
 
-	hostMap := map[string]string{
-		hostAPI:     hostAPI + domain,
-		hostContent: hostContent + domain,
-		hostNotify:  hostNotify + domain,
-	}
-	var conf = &oauth2.Config{Endpoint: OAuthEndpoint(domain)}
-	tok := &oauth2.Token{AccessToken: token}
-	return &apiImpl{conf.Client(oauth2.NoContext, tok), options, hostMap}
+// implement the error interface
+func (e ApiError) Error() string {
+	return e.ErrorSummary
 }
 
 func init() {

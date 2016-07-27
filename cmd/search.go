@@ -30,6 +30,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewSearchArg("", args[0])
 
+	dbx := files.New(config)
 	res, err := dbx.Search(arg)
 	if err != nil {
 		return
@@ -41,12 +42,11 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	for _, m := range res.Matches {
-		e := m.Metadata
-		switch e.Tag {
-		case folder:
-			printFolderMetadata(os.Stdout, e.Folder, long)
-		case file:
-			printFileMetadata(os.Stdout, e.File, long)
+		switch f := m.Metadata.(type) {
+		case *files.FileMetadata:
+			printFileMetadata(os.Stdout, f, long)
+		case *files.FolderMetadata:
+			printFolderMetadata(os.Stdout, f, long)
 		}
 	}
 
