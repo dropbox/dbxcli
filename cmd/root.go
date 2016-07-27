@@ -40,9 +40,6 @@ const (
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
-
-	folder = "folder"
-	file   = "file"
 )
 
 var (
