@@ -12,7 +12,7 @@ This is *BETA* software -- use with caution!
 
 ## Installation
 
-Download pre-compiled binaries for Mac, Windows and Linux from the https://github.com/dropbox/dbxcli/releases[releases] page.
+Download pre-compiled binaries for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
 
 ## Usage
 
@@ -71,17 +71,17 @@ The `--verbose` option will turn on verbose logging and is useful for debugging.
 
 ## We need your help!
 
-`dbxcli` is under active development! As you can see from the https://www.dropbox.com/developers/documentation/http/documentation[API docs], we only support a small number of features today and have only scratched the surface of what's possible. We would love feedback from you, our users, to guide what to build next and how to improve the tool.
+`dbxcli` is under active development! As you can see from the [API docs](https://www.dropbox.com/developers/documentation/http/documentation), we only support a small number of features today and have only scratched the surface of what's possible. We would love feedback from you, our users, to guide what to build next and how to improve the tool.
 
 So please, file feature requests, report bugs or better yet, send us pull requests! More on contributing below.
 
 ## Contributing
 
- * Step 1: If you're submitting a non-trivial change, please fill out the https://opensource.dropbox.com/cla/[Dropbox Contributor License Agreement] first.
- * Step 2: send a https://help.github.com/articles/using-pull-requests/[pull request]
+ * Step 1: If you're submitting a non-trivial change, please fill out the [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/) first.
+ * Step 2: send a [pull request](https://help.github.com/articles/using-pull-requests/)
  * Step 3: Profit!
  
 ## Useful Resources
 
-* https://godoc.org/github.com/dropbox/dropbox-sdk-go-unofficial[Go SDK documentation]
-* https://www.dropbox.com/developers/documentation/http/documentation[API documentation]
+* [Go SDK documentation](https://godoc.org/github.com/dropbox/dropbox-sdk-go-unofficial)
+* [API documentation](https://www.dropbox.com/developers/documentation/http/documentation)
