@@ -24,6 +24,7 @@ import (
 )
 
 func listMembers(cmd *cobra.Command, args []string) (err error) {
+	dbx := team.New(config)
 	arg := team.NewMembersListArg()
 	res, err := dbx.MembersList(arg)
 	if err != nil {

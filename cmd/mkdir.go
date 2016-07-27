@@ -33,6 +33,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewCreateFolderArg(dst)
 
+	dbx := files.New(config)
 	if _, err = dbx.CreateFolder(arg); err != nil {
 		return
 	}

@@ -30,7 +30,7 @@ import (
 
 const chunkSize int64 = 1 << 24
 
-func uploadChunked(r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (err error) {
+func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (err error) {
 	res, err := dbx.UploadSessionStart(files.NewUploadSessionStartArg(),
 		&io.LimitedReader{R: r, N: chunkSize})
 	if err != nil {
@@ -101,8 +101,9 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	// The Dropbox API only accepts timestamps in UTC with second precision.
 	commitInfo.ClientModified = time.Now().UTC().Round(time.Second)
 
+	dbx := files.New(config)
 	if contentsInfo.Size() > chunkSize {
-		return uploadChunked(progressbar, commitInfo, contentsInfo.Size())
+		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size())
 	}
 
 	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {

@@ -59,6 +59,8 @@ var (
 // command type: personal, team access and team manage
 type TokenMap map[string]map[string]string
 
+var config dropbox.Config
+
 func oauthConfig(tokenType string, domain string) *oauth2.Config {
 	var appKey, appSecret string
 	switch tokenType {
@@ -102,8 +104,6 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 
 	return
 }
-
-var dbx dropbox.Api
 
 func readTokens(filePath string) (TokenMap, error) {
 	b, err := ioutil.ReadFile(filePath)
@@ -154,11 +154,6 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
 
-	var options dropbox.Options
-	options.Verbose = verbose
-	options.AsMemberId = asMember
-	options.Domain = domain
-
 	dir, err := homedir.Dir()
 	if err != nil {
 		return
@@ -195,7 +190,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		writeTokens(filePath, tokenMap)
 	}
 
-	dbx = dropbox.Client(tokens[tokType], options)
+	config = dropbox.Config{tokens[tokType], verbose, asMember, domain}
 
 	return
 }

@@ -35,6 +35,7 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewRestoreArg(path, rev)
 
+	dbx := files.New(config)
 	if _, err = dbx.Restore(arg); err != nil {
 		return
 	}

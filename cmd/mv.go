@@ -49,6 +49,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	dbx := files.New(config)
 	for _, arg := range relocationArgs {
 		if _, err := dbx.Move(arg); err != nil {
 			moveError := fmt.Errorf("Move error: %v", arg)

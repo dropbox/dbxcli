@@ -26,6 +26,7 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 3 {
 		return errors.New("`add-member` requires `email`, `first`, and `last` arguments")
 	}
+	dbx := team.New(config)
 
 	email := args[0]
 	firstName := args[1]

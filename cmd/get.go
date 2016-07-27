@@ -49,6 +49,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewDownloadArg(src)
 
+	dbx := files.New(config)
 	res, contents, err := dbx.Download(arg)
 	defer contents.Close()
 	if err != nil {

@@ -27,16 +27,17 @@ func rmdir(cmd *cobra.Command, args []string) error {
 		return errors.New("`rmdir` requires a `directory` argument")
 	}
 
+	dbx := files.New(config)
 	path, err := validatePath(args[0])
 	if err != nil {
 		return err
 	}
 
-	pathMetaData, err := getFileMetadata(path)
+	pathMetaData, err := getFileMetadata(dbx, path)
 	if err != nil {
 		return err
 	}
-	if pathMetaData.Tag != folder {
+	if _, ok := pathMetaData.(*files.FolderMetadata); !ok {
 		return fmt.Errorf("rmdir: failed to remove ‘%s’: Not a directory", path)
 	}
 

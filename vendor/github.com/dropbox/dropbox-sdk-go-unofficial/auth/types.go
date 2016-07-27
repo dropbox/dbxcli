@@ -20,12 +20,9 @@
 
 package auth
 
+import dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+
 // Errors occurred during authentication.
 type AuthError struct {
-	Tag string `json:".tag"`
-}
-
-type Auth interface {
-	// Disables the access token used to authenticate the call.
-	TokenRevoke() (err error)
+	dropbox.Tagged
 }

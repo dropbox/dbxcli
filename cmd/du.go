@@ -17,11 +17,13 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
 func du(cmd *cobra.Command, args []string) (err error) {
+	dbx := users.New(config)
 	usage, err := dbx.GetSpaceUsage()
 	if err != nil {
 		return
