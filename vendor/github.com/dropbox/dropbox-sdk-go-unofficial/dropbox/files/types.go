@@ -25,8 +25,8 @@ import (
 	"encoding/json"
 	"time"
 
-	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/properties"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
 )
 
 type PropertiesError struct {

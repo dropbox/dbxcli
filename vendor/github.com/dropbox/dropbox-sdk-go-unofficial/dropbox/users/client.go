@@ -28,7 +28,7 @@ import (
 	"log"
 	"net/http"
 
-	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 )
 
 type Client interface {

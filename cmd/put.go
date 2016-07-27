@@ -22,7 +22,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"

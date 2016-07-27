@@ -25,8 +25,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )

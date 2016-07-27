@@ -24,11 +24,11 @@ import (
 	"encoding/json"
 	"time"
 
-	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/properties"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team_common"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team_policies"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
 )
 
 type DeviceSession struct {

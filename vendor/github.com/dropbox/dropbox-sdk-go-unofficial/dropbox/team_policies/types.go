@@ -20,7 +20,7 @@
 
 package team_policies
 
-import dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 
 type EmmState struct {
 	dropbox.Tagged

@@ -27,9 +27,9 @@ import (
 	"log"
 	"net/http"
 
-	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/async"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/properties"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/async"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties"
 )
 
 type Client interface {

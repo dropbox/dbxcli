@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/team"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team"
 	"github.com/spf13/cobra"
 )
 

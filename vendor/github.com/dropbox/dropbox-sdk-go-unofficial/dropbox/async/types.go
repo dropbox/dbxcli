@@ -23,7 +23,7 @@ package async
 import (
 	"encoding/json"
 
-	dropbox "github.com/dropbox/dropbox-sdk-go-unofficial"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 )
 
 // Result returned by methods that launch an asynchronous job. A method who may
