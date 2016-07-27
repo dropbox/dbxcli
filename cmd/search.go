@@ -18,17 +18,27 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
 func search(cmd *cobra.Command, args []string) (err error) {
-	if len(args) != 1 {
+	if len(args) == 0 {
 		return errors.New("`search` requires a `query` argument")
 	}
 
-	arg := files.NewSearchArg("", args[0])
+	// Parse path scope, if provided.
+	var scope string
+	if len(args) == 2 {
+		scope = args[1]
+		if !strings.HasPrefix(scope, "/") {
+			return errors.New("`search` `path-scope` must begin with \"/\"")
+		}
+	}
+
+	arg := files.NewSearchArg(scope, args[0])
 
 	dbx := files.New(config)
 	res, err := dbx.Search(arg)
@@ -55,7 +65,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
-	Use:   "search [flags] <query>",
+	Use:   "search [flags] <query> [path-scope]",
 	Short: "Search",
 	RunE:  search,
 }
