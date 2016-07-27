@@ -1,8 +1,8 @@
-= `dbxcli`: A command line tool for Dropbox users and team admins
+# `dbxcli`: A command line tool for Dropbox users and team admins
 
 This is *BETA* software -- use with caution!
 
-== Features
+## Features
 
   * Supports basic file operations like ls, cp, mkdir, mv (via the Files API)
   * Supports search
@@ -10,16 +10,15 @@ This is *BETA* software -- use with caution!
   * Chunked uploads for large files, paginated listing for large directories
   * Supports a growing set of Team operations
 
-== Installation
+## Installation
 
 Download pre-compiled binaries for Mac, Windows and Linux from the https://github.com/dropbox/dbxcli/releases[releases] page.
 
-== Usage
+## Usage
 
 `dbxcli` is largely self documenting. Run `dbxcli -h` for a list of supported commands:
 
-[source, sh]
-----
+```sh
 $ dbxcli --help
 Use dbxcli to quickly interact with your Dropbox, upload/download files,
 manage your team and more. It is easy, scriptable and works on all platforms!
@@ -66,23 +65,23 @@ Global Flags:
   -v, --verbose            Enable verbose logging
 
 Use "dbxcli team [command] --help" for more information about a command.
-----
+```
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
 
-== We need your help!
+## We need your help!
 
 `dbxcli` is under active development! As you can see from the https://www.dropbox.com/developers/documentation/http/documentation[API docs], we only support a small number of features today and have only scratched the surface of what's possible. We would love feedback from you, our users, to guide what to build next and how to improve the tool.
 
 So please, file feature requests, report bugs or better yet, send us pull requests! More on contributing below.
 
-== Contributing
+## Contributing
 
  * Step 1: If you're submitting a non-trivial change, please fill out the https://opensource.dropbox.com/cla/[Dropbox Contributor License Agreement] first.
  * Step 2: send a https://help.github.com/articles/using-pull-requests/[pull request]
  * Step 3: Profit!
  
-**Useful Resources**
+## Useful Resources
 
 * https://godoc.org/github.com/dropbox/dropbox-sdk-go-unofficial[Go SDK documentation]
 * https://www.dropbox.com/developers/documentation/http/documentation[API documentation]
