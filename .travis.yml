@@ -1,10 +1,10 @@
 language: go
 
 go:
-  - 1.6.2
+  - 1.6.3
 
 before_script:
-  - go get github.com/mitchellh/gox
+  - go get -u github.com/mitchellh/gox
   - go vet github.com/dropbox/dbxcli
 
 script: >
