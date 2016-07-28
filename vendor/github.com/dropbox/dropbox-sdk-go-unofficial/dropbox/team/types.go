@@ -116,175 +116,6 @@ const (
 	AdminTierMemberOnly          = "member_only"
 )
 
-// GroupCreateArg : has no documentation (yet)
-type GroupCreateArg struct {
-	// GroupName : Group name.
-	GroupName string `json:"group_name"`
-	// GroupExternalId : The creator of a team can associate an arbitrary
-	// external ID to the group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
-}
-
-// NewGroupCreateArg returns a new GroupCreateArg instance
-func NewGroupCreateArg(GroupName string) *GroupCreateArg {
-	s := new(GroupCreateArg)
-	s.GroupName = GroupName
-	return s
-}
-
-// AlphaGroupCreateArg : has no documentation (yet)
-type AlphaGroupCreateArg struct {
-	GroupCreateArg
-	// GroupManagementType : Whether the team can be managed by selected users,
-	// or only by team admins
-	GroupManagementType *team_common.GroupManagementType `json:"group_management_type"`
-}
-
-// NewAlphaGroupCreateArg returns a new AlphaGroupCreateArg instance
-func NewAlphaGroupCreateArg(GroupName string) *AlphaGroupCreateArg {
-	s := new(AlphaGroupCreateArg)
-	s.GroupName = GroupName
-	s.GroupManagementType = &team_common.GroupManagementType{Tagged: dropbox.Tagged{"company_managed"}}
-	return s
-}
-
-// AlphaGroupFullInfo : Full description of a group.
-type AlphaGroupFullInfo struct {
-	team_common.AlphaGroupSummary
-	// Members : List of group members.
-	Members []*GroupMemberInfo `json:"members,omitempty"`
-	// Created : The group creation time as a UTC timestamp in milliseconds
-	// since the Unix epoch.
-	Created uint64 `json:"created"`
-}
-
-// NewAlphaGroupFullInfo returns a new AlphaGroupFullInfo instance
-func NewAlphaGroupFullInfo(GroupName string, GroupId string, GroupManagementType *team_common.GroupManagementType, Created uint64) *AlphaGroupFullInfo {
-	s := new(AlphaGroupFullInfo)
-	s.GroupName = GroupName
-	s.GroupId = GroupId
-	s.GroupManagementType = GroupManagementType
-	s.Created = Created
-	return s
-}
-
-// IncludeMembersArg : has no documentation (yet)
-type IncludeMembersArg struct {
-	// ReturnMembers : Whether to return the list of members in the group.  Note
-	// that the default value will cause all the group members  to be returned
-	// in the response. This may take a long time for large groups.
-	ReturnMembers bool `json:"return_members"`
-}
-
-// NewIncludeMembersArg returns a new IncludeMembersArg instance
-func NewIncludeMembersArg() *IncludeMembersArg {
-	s := new(IncludeMembersArg)
-	s.ReturnMembers = true
-	return s
-}
-
-// GroupUpdateArgs : has no documentation (yet)
-type GroupUpdateArgs struct {
-	IncludeMembersArg
-	// Group : Specify a group.
-	Group *GroupSelector `json:"group"`
-	// NewGroupName : Optional argument. Set group name to this if provided.
-	NewGroupName string `json:"new_group_name,omitempty"`
-	// NewGroupExternalId : Optional argument. New group external ID. If the
-	// argument is None, the group's external_id won't be updated. If the
-	// argument is empty string, the group's external id will be cleared.
-	NewGroupExternalId string `json:"new_group_external_id,omitempty"`
-}
-
-// NewGroupUpdateArgs returns a new GroupUpdateArgs instance
-func NewGroupUpdateArgs(Group *GroupSelector) *GroupUpdateArgs {
-	s := new(GroupUpdateArgs)
-	s.Group = Group
-	s.ReturnMembers = true
-	return s
-}
-
-// AlphaGroupUpdateArgs : has no documentation (yet)
-type AlphaGroupUpdateArgs struct {
-	GroupUpdateArgs
-	// NewGroupManagementType : Set new group management type, if provided.
-	NewGroupManagementType *team_common.GroupManagementType `json:"new_group_management_type,omitempty"`
-}
-
-// NewAlphaGroupUpdateArgs returns a new AlphaGroupUpdateArgs instance
-func NewAlphaGroupUpdateArgs(Group *GroupSelector) *AlphaGroupUpdateArgs {
-	s := new(AlphaGroupUpdateArgs)
-	s.Group = Group
-	s.ReturnMembers = true
-	return s
-}
-
-// AlphaGroupsGetInfoItem : has no documentation (yet)
-type AlphaGroupsGetInfoItem struct {
-	dropbox.Tagged
-	// IdNotFound : An ID that was provided as a parameter to
-	// `alphaGroupsGetInfo`, and did not match a corresponding group. The ID can
-	// be a group ID, or an external ID, depending on how the method was called.
-	IdNotFound string `json:"id_not_found,omitempty"`
-	// GroupInfo : Info about a group.
-	GroupInfo *AlphaGroupFullInfo `json:"group_info,omitempty"`
-}
-
-// Valid tag values for AlphaGroupsGetInfoItem
-const (
-	AlphaGroupsGetInfoItemIdNotFound = "id_not_found"
-	AlphaGroupsGetInfoItemGroupInfo  = "group_info"
-)
-
-// UnmarshalJSON deserializes into a AlphaGroupsGetInfoItem instance
-func (u *AlphaGroupsGetInfoItem) UnmarshalJSON(body []byte) error {
-	type wrap struct {
-		dropbox.Tagged
-		// GroupInfo : Info about a group.
-		GroupInfo json.RawMessage `json:"group_info,omitempty"`
-	}
-	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
-		return err
-	}
-	u.Tag = w.Tag
-	switch u.Tag {
-	case "id_not_found":
-		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
-			return err
-		}
-
-	case "group_info":
-		if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
-			return err
-		}
-
-	}
-	return nil
-}
-
-// AlphaGroupsListResult : has no documentation (yet)
-type AlphaGroupsListResult struct {
-	// Groups : has no documentation (yet)
-	Groups []*team_common.AlphaGroupSummary `json:"groups"`
-	// Cursor : Pass the cursor into `alphaGroupsListContinue` to obtain the
-	// additional groups.
-	Cursor string `json:"cursor"`
-	// HasMore : Is true if there are additional groups that have not been
-	// returned yet. An additional call to `alphaGroupsListContinue` can
-	// retrieve them.
-	HasMore bool `json:"has_more"`
-}
-
-// NewAlphaGroupsListResult returns a new AlphaGroupsListResult instance
-func NewAlphaGroupsListResult(Groups []*team_common.AlphaGroupSummary, Cursor string, HasMore bool) *AlphaGroupsListResult {
-	s := new(AlphaGroupsListResult)
-	s.Groups = Groups
-	s.Cursor = Cursor
-	s.HasMore = HasMore
-	return s
-}
-
 // ApiApp : Information on linked third party applications
 type ApiApp struct {
 	// AppId : The application unique id
@@ -610,6 +441,25 @@ const (
 	GroupAccessTypeOwner  = "owner"
 )
 
+// GroupCreateArg : has no documentation (yet)
+type GroupCreateArg struct {
+	// GroupName : Group name.
+	GroupName string `json:"group_name"`
+	// GroupExternalId : The creator of a team can associate an arbitrary
+	// external ID to the group.
+	GroupExternalId string `json:"group_external_id,omitempty"`
+	// GroupManagementType : Whether the team can be managed by selected users,
+	// or only by team admins
+	GroupManagementType *team_common.GroupManagementType `json:"group_management_type,omitempty"`
+}
+
+// NewGroupCreateArg returns a new GroupCreateArg instance
+func NewGroupCreateArg(GroupName string) *GroupCreateArg {
+	s := new(GroupCreateArg)
+	s.GroupName = GroupName
+	return s
+}
+
 // GroupCreateError : has no documentation (yet)
 type GroupCreateError struct {
 	dropbox.Tagged
@@ -655,10 +505,11 @@ type GroupFullInfo struct {
 }
 
 // NewGroupFullInfo returns a new GroupFullInfo instance
-func NewGroupFullInfo(GroupName string, GroupId string, Created uint64) *GroupFullInfo {
+func NewGroupFullInfo(GroupName string, GroupId string, GroupManagementType *team_common.GroupManagementType, Created uint64) *GroupFullInfo {
 	s := new(GroupFullInfo)
 	s.GroupName = GroupName
 	s.GroupId = GroupId
+	s.GroupManagementType = GroupManagementType
 	s.Created = Created
 	return s
 }
@@ -716,6 +567,21 @@ type GroupMemberSetAccessTypeError struct {
 const (
 	GroupMemberSetAccessTypeErrorUserCannotBeManagerOfCompanyManagedGroup = "user_cannot_be_manager_of_company_managed_group"
 )
+
+// IncludeMembersArg : has no documentation (yet)
+type IncludeMembersArg struct {
+	// ReturnMembers : Whether to return the list of members in the group.  Note
+	// that the default value will cause all the group members  to be returned
+	// in the response. This may take a long time for large groups.
+	ReturnMembers bool `json:"return_members"`
+}
+
+// NewIncludeMembersArg returns a new IncludeMembersArg instance
+func NewIncludeMembersArg() *IncludeMembersArg {
+	s := new(IncludeMembersArg)
+	s.ReturnMembers = true
+	return s
+}
 
 // GroupMembersAddArg : has no documentation (yet)
 type GroupMembersAddArg struct {
@@ -935,6 +801,29 @@ func (u *GroupSelector) UnmarshalJSON(body []byte) error {
 
 	}
 	return nil
+}
+
+// GroupUpdateArgs : has no documentation (yet)
+type GroupUpdateArgs struct {
+	IncludeMembersArg
+	// Group : Specify a group.
+	Group *GroupSelector `json:"group"`
+	// NewGroupName : Optional argument. Set group name to this if provided.
+	NewGroupName string `json:"new_group_name,omitempty"`
+	// NewGroupExternalId : Optional argument. New group external ID. If the
+	// argument is None, the group's external_id won't be updated. If the
+	// argument is empty string, the group's external id will be cleared.
+	NewGroupExternalId string `json:"new_group_external_id,omitempty"`
+	// NewGroupManagementType : Set new group management type, if provided.
+	NewGroupManagementType *team_common.GroupManagementType `json:"new_group_management_type,omitempty"`
+}
+
+// NewGroupUpdateArgs returns a new GroupUpdateArgs instance
+func NewGroupUpdateArgs(Group *GroupSelector) *GroupUpdateArgs {
+	s := new(GroupUpdateArgs)
+	s.Group = Group
+	s.ReturnMembers = true
+	return s
 }
 
 // GroupUpdateError : has no documentation (yet)
@@ -1859,7 +1748,7 @@ func NewMembersGetInfoArgs(Members []*UserSelectorArg) *MembersGetInfoArgs {
 	return s
 }
 
-// MembersGetInfoError : has no documentation (yet)
+// MembersGetInfoError :
 type MembersGetInfoError struct {
 	dropbox.Tagged
 }
@@ -1918,12 +1807,15 @@ func (u *MembersGetInfoItem) UnmarshalJSON(body []byte) error {
 type MembersListArg struct {
 	// Limit : Number of results to return per call.
 	Limit uint32 `json:"limit"`
+	// IncludeRemoved : Whether to return removed members.
+	IncludeRemoved bool `json:"include_removed"`
 }
 
 // NewMembersListArg returns a new MembersListArg instance
 func NewMembersListArg() *MembersListArg {
 	s := new(MembersListArg)
 	s.Limit = 1000
+	s.IncludeRemoved = false
 	return s
 }
 
@@ -1951,7 +1843,7 @@ const (
 	MembersListContinueErrorOther         = "other"
 )
 
-// MembersListError : has no documentation (yet)
+// MembersListError :
 type MembersListError struct {
 	dropbox.Tagged
 }
@@ -1982,6 +1874,32 @@ func NewMembersListResult(Members []*TeamMemberInfo, Cursor string, HasMore bool
 	s.HasMore = HasMore
 	return s
 }
+
+// MembersRecoverArg : Exactly one of team_member_id, email, or external_id must
+// be provided to identify the user account.
+type MembersRecoverArg struct {
+	// User : Identity of user to recover.
+	User *UserSelectorArg `json:"user"`
+}
+
+// NewMembersRecoverArg returns a new MembersRecoverArg instance
+func NewMembersRecoverArg(User *UserSelectorArg) *MembersRecoverArg {
+	s := new(MembersRecoverArg)
+	s.User = User
+	return s
+}
+
+// MembersRecoverError : has no documentation (yet)
+type MembersRecoverError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for MembersRecoverError
+const (
+	MembersRecoverErrorUserUnrecoverable = "user_unrecoverable"
+	MembersRecoverErrorUserNotInTeam     = "user_not_in_team"
+	MembersRecoverErrorOther             = "other"
+)
 
 // MembersRemoveArg : has no documentation (yet)
 type MembersRemoveArg struct {
@@ -2026,9 +1944,10 @@ const (
 	MembersRemoveErrorTransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
 	MembersRemoveErrorCannotKeepAccountAndTransfer        = "cannot_keep_account_and_transfer"
 	MembersRemoveErrorCannotKeepAccountAndDeleteData      = "cannot_keep_account_and_delete_data"
+	MembersRemoveErrorEmailAddressTooLongToBeDisabled     = "email_address_too_long_to_be_disabled"
 )
 
-// MembersSendWelcomeError : has no documentation (yet)
+// MembersSendWelcomeError :
 type MembersSendWelcomeError struct {
 	dropbox.Tagged
 }
@@ -2200,6 +2119,19 @@ func NewMobileClientSession(SessionId string, DeviceName string, ClientType *Mob
 	return s
 }
 
+// RemovedStatus : has no documentation (yet)
+type RemovedStatus struct {
+	// IsRecoverable : True if the removed team member is recoverable
+	IsRecoverable bool `json:"is_recoverable"`
+}
+
+// NewRemovedStatus returns a new RemovedStatus instance
+func NewRemovedStatus(IsRecoverable bool) *RemovedStatus {
+	s := new(RemovedStatus)
+	s.IsRecoverable = IsRecoverable
+	return s
+}
+
 // RevokeDesktopClientArg : has no documentation (yet)
 type RevokeDesktopClientArg struct {
 	DeviceSessionArg
@@ -2285,14 +2217,14 @@ func NewRevokeDeviceSessionBatchArg(RevokeDevices []*RevokeDeviceSessionArg) *Re
 	return s
 }
 
-// RevokeDeviceSessionBatchError : has no documentation (yet)
+// RevokeDeviceSessionBatchError :
 type RevokeDeviceSessionBatchError struct {
 	dropbox.Tagged
 }
 
 // Valid tag values for RevokeDeviceSessionBatchError
 const (
-	RevokeDeviceSessionBatchErrorUnspecified = "unspecified"
+	RevokeDeviceSessionBatchErrorOther = "other"
 )
 
 // RevokeDeviceSessionBatchResult : has no documentation (yet)
@@ -2376,7 +2308,7 @@ type RevokeLinkedAppBatchError struct {
 
 // Valid tag values for RevokeLinkedAppBatchError
 const (
-	RevokeLinkedAppBatchErrorUnspecified = "unspecified"
+	RevokeLinkedAppBatchErrorOther = "other"
 )
 
 // RevokeLinkedAppBatchResult : has no documentation (yet)
@@ -2502,6 +2434,9 @@ func NewTeamMemberProfile(TeamMemberId string, Email string, EmailVerified bool,
 // TeamMemberStatus : The user's status as a member of a specific team.
 type TeamMemberStatus struct {
 	dropbox.Tagged
+	// Removed : User is no longer a member of the team. Removed users are only
+	// listed when include_removed is true in members/list.
+	Removed *RemovedStatus `json:"removed,omitempty"`
 }
 
 // Valid tag values for TeamMemberStatus
@@ -2509,7 +2444,31 @@ const (
 	TeamMemberStatusActive    = "active"
 	TeamMemberStatusInvited   = "invited"
 	TeamMemberStatusSuspended = "suspended"
+	TeamMemberStatusRemoved   = "removed"
 )
+
+// UnmarshalJSON deserializes into a TeamMemberStatus instance
+func (u *TeamMemberStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Removed : User is no longer a member of the team. Removed users are
+		// only listed when include_removed is true in members/list.
+		Removed json.RawMessage `json:"removed,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "removed":
+		if err := json.Unmarshal(body, &u.Removed); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
 
 // TeamMembershipType : has no documentation (yet)
 type TeamMembershipType struct {

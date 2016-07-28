@@ -2079,6 +2079,110 @@ func NewUploadSessionFinishArg(Cursor *UploadSessionCursor, Commit *CommitInfo) 
 	return s
 }
 
+// UploadSessionFinishBatchArg : has no documentation (yet)
+type UploadSessionFinishBatchArg struct {
+	// Entries : Commit information for each file in the batch.
+	Entries []*UploadSessionFinishArg `json:"entries"`
+}
+
+// NewUploadSessionFinishBatchArg returns a new UploadSessionFinishBatchArg instance
+func NewUploadSessionFinishBatchArg(Entries []*UploadSessionFinishArg) *UploadSessionFinishBatchArg {
+	s := new(UploadSessionFinishBatchArg)
+	s.Entries = Entries
+	return s
+}
+
+// UploadSessionFinishBatchJobStatus : has no documentation (yet)
+type UploadSessionFinishBatchJobStatus struct {
+	dropbox.Tagged
+	// Complete : The `uploadSessionFinishBatch` has finished.
+	Complete *UploadSessionFinishBatchResult `json:"complete,omitempty"`
+}
+
+// Valid tag values for UploadSessionFinishBatchJobStatus
+const (
+	UploadSessionFinishBatchJobStatusComplete = "complete"
+)
+
+// UnmarshalJSON deserializes into a UploadSessionFinishBatchJobStatus instance
+func (u *UploadSessionFinishBatchJobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : The `uploadSessionFinishBatch` has finished.
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// UploadSessionFinishBatchResult : has no documentation (yet)
+type UploadSessionFinishBatchResult struct {
+	// Entries : Commit result for each file in the batch.
+	Entries []*UploadSessionFinishBatchResultEntry `json:"entries"`
+}
+
+// NewUploadSessionFinishBatchResult returns a new UploadSessionFinishBatchResult instance
+func NewUploadSessionFinishBatchResult(Entries []*UploadSessionFinishBatchResultEntry) *UploadSessionFinishBatchResult {
+	s := new(UploadSessionFinishBatchResult)
+	s.Entries = Entries
+	return s
+}
+
+// UploadSessionFinishBatchResultEntry : has no documentation (yet)
+type UploadSessionFinishBatchResultEntry struct {
+	dropbox.Tagged
+	// Success : has no documentation (yet)
+	Success *FileMetadata `json:"success,omitempty"`
+	// Failure : has no documentation (yet)
+	Failure *UploadSessionFinishError `json:"failure,omitempty"`
+}
+
+// Valid tag values for UploadSessionFinishBatchResultEntry
+const (
+	UploadSessionFinishBatchResultEntrySuccess = "success"
+	UploadSessionFinishBatchResultEntryFailure = "failure"
+)
+
+// UnmarshalJSON deserializes into a UploadSessionFinishBatchResultEntry instance
+func (u *UploadSessionFinishBatchResultEntry) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Success : has no documentation (yet)
+		Success json.RawMessage `json:"success,omitempty"`
+		// Failure : has no documentation (yet)
+		Failure json.RawMessage `json:"failure,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "success":
+		if err := json.Unmarshal(body, &u.Success); err != nil {
+			return err
+		}
+
+	case "failure":
+		if err := json.Unmarshal(w.Failure, &u.Failure); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 // UploadSessionFinishError : has no documentation (yet)
 type UploadSessionFinishError struct {
 	dropbox.Tagged

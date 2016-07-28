@@ -236,7 +236,7 @@ type GetAccountError struct {
 // Valid tag values for GetAccountError
 const (
 	GetAccountErrorNoAccount = "no_account"
-	GetAccountErrorUnknown   = "unknown"
+	GetAccountErrorOther     = "other"
 )
 
 // IndividualSpaceAllocation : has no documentation (yet)

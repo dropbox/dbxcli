@@ -23,43 +23,6 @@ package team_common
 
 import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 
-// GroupSummary : Information about a group.
-type GroupSummary struct {
-	// GroupName : has no documentation (yet)
-	GroupName string `json:"group_name"`
-	// GroupId : has no documentation (yet)
-	GroupId string `json:"group_id"`
-	// GroupExternalId : External ID of group. This is an arbitrary ID that an
-	// admin can attach to a group.
-	GroupExternalId string `json:"group_external_id,omitempty"`
-	// MemberCount : The number of members in the group.
-	MemberCount uint32 `json:"member_count,omitempty"`
-}
-
-// NewGroupSummary returns a new GroupSummary instance
-func NewGroupSummary(GroupName string, GroupId string) *GroupSummary {
-	s := new(GroupSummary)
-	s.GroupName = GroupName
-	s.GroupId = GroupId
-	return s
-}
-
-// AlphaGroupSummary : Information about a group.
-type AlphaGroupSummary struct {
-	GroupSummary
-	// GroupManagementType : Who is allowed to manage the group.
-	GroupManagementType *GroupManagementType `json:"group_management_type"`
-}
-
-// NewAlphaGroupSummary returns a new AlphaGroupSummary instance
-func NewAlphaGroupSummary(GroupName string, GroupId string, GroupManagementType *GroupManagementType) *AlphaGroupSummary {
-	s := new(AlphaGroupSummary)
-	s.GroupName = GroupName
-	s.GroupId = GroupId
-	s.GroupManagementType = GroupManagementType
-	return s
-}
-
 // GroupManagementType : The group type determines how a group is managed.
 type GroupManagementType struct {
 	dropbox.Tagged
@@ -71,6 +34,30 @@ const (
 	GroupManagementTypeUserManaged    = "user_managed"
 	GroupManagementTypeOther          = "other"
 )
+
+// GroupSummary : Information about a group.
+type GroupSummary struct {
+	// GroupName : has no documentation (yet)
+	GroupName string `json:"group_name"`
+	// GroupId : has no documentation (yet)
+	GroupId string `json:"group_id"`
+	// GroupExternalId : External ID of group. This is an arbitrary ID that an
+	// admin can attach to a group.
+	GroupExternalId string `json:"group_external_id,omitempty"`
+	// MemberCount : The number of members in the group.
+	MemberCount uint32 `json:"member_count,omitempty"`
+	// GroupManagementType : Who is allowed to manage the group.
+	GroupManagementType *GroupManagementType `json:"group_management_type"`
+}
+
+// NewGroupSummary returns a new GroupSummary instance
+func NewGroupSummary(GroupName string, GroupId string, GroupManagementType *GroupManagementType) *GroupSummary {
+	s := new(GroupSummary)
+	s.GroupName = GroupName
+	s.GroupId = GroupId
+	s.GroupManagementType = GroupManagementType
+	return s
+}
 
 // GroupType : The group type determines how a group is created and managed.
 type GroupType struct {

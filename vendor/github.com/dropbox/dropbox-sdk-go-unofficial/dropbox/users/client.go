@@ -94,22 +94,16 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 	if dbx.Config.Verbose {
 		log.Printf("body: %s", body)
 	}
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 409 {
-			var apiError GetAccountAPIError
-			err = json.Unmarshal(body, &apiError)
-			if err != nil {
-				return
-			}
-			err = apiError
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
 			return
 		}
-		var apiError dropbox.APIError
-		if resp.StatusCode == 400 {
-			apiError.ErrorSummary = string(body)
-			err = apiError
-			return
-		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError GetAccountAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
@@ -117,11 +111,17 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 		err = apiError
 		return
 	}
-	err = json.Unmarshal(body, &res)
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return
 	}
-
+	err = apiError
 	return
 }
 
@@ -171,22 +171,16 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 	if dbx.Config.Verbose {
 		log.Printf("body: %s", body)
 	}
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 409 {
-			var apiError GetAccountBatchAPIError
-			err = json.Unmarshal(body, &apiError)
-			if err != nil {
-				return
-			}
-			err = apiError
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
 			return
 		}
-		var apiError dropbox.APIError
-		if resp.StatusCode == 400 {
-			apiError.ErrorSummary = string(body)
-			err = apiError
-			return
-		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError GetAccountBatchAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
@@ -194,11 +188,17 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 		err = apiError
 		return
 	}
-	err = json.Unmarshal(body, &res)
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return
 	}
-
+	err = apiError
 	return
 }
 
@@ -239,22 +239,16 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 	if dbx.Config.Verbose {
 		log.Printf("body: %s", body)
 	}
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 409 {
-			var apiError GetCurrentAccountAPIError
-			err = json.Unmarshal(body, &apiError)
-			if err != nil {
-				return
-			}
-			err = apiError
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
 			return
 		}
-		var apiError dropbox.APIError
-		if resp.StatusCode == 400 {
-			apiError.ErrorSummary = string(body)
-			err = apiError
-			return
-		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError GetCurrentAccountAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
@@ -262,11 +256,17 @@ func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 		err = apiError
 		return
 	}
-	err = json.Unmarshal(body, &res)
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return
 	}
-
+	err = apiError
 	return
 }
 
@@ -307,22 +307,16 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 	if dbx.Config.Verbose {
 		log.Printf("body: %s", body)
 	}
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 409 {
-			var apiError GetSpaceUsageAPIError
-			err = json.Unmarshal(body, &apiError)
-			if err != nil {
-				return
-			}
-			err = apiError
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
 			return
 		}
-		var apiError dropbox.APIError
-		if resp.StatusCode == 400 {
-			apiError.ErrorSummary = string(body)
-			err = apiError
-			return
-		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError GetSpaceUsageAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
@@ -330,11 +324,17 @@ func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 		err = apiError
 		return
 	}
-	err = json.Unmarshal(body, &res)
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return
 	}
-
+	err = apiError
 	return
 }
 
