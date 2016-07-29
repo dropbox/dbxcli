@@ -23,6 +23,12 @@ var shareCmd = &cobra.Command{
 	Short: "Sharing commands",
 }
 
+var shareListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List shared things",
+}
+
 func init() {
 	RootCmd.AddCommand(shareCmd)
+	shareCmd.AddCommand(shareListCmd)
 }
