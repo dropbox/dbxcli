@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "appengine test",
+	"ignore": "test",
 	"package": [
 		{
 			"path": "context",
@@ -27,6 +27,12 @@
 		{
 			"checksumSHA1": "+kkeGOV9c8G2mJS0leUT3c+J/Gs=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/properties",
+			"revision": "e4f93d86e474a12800ef249133c00ebf21c4b9b3",
+			"revisionTime": "2016-07-28T23:40:22Z"
+		},
+		{
+			"checksumSHA1": "AqvJMPPYS1U0bnGvR4KsMGVGgO4=",
+			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/sharing",
 			"revision": "e4f93d86e474a12800ef249133c00ebf21c4b9b3",
 			"revisionTime": "2016-07-28T23:40:22Z"
 		},
