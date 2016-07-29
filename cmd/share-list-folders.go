@@ -32,15 +32,9 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 
 	// TODO(bonafidehan): handle paging. Currently uses default limit of 1000.
 
-	var out []string
-	for _, _ = range res.Entries {
-		// TODO(bonafidehan): need access to `path_lower` for /list_folders to
-		// append name.
-		out = append(out, "")
+	for _, f := range res.Entries {
+		fmt.Printf("%v\n", f.PathLower)
 	}
-
-	// TODO(bonafidehan): When names are present, actually print name.
-	fmt.Printf("%v shared folders\n", len(out))
 
 	return
 }
