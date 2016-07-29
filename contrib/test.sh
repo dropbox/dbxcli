@@ -6,33 +6,58 @@ dbxcli=$(realpath $1)
 echo "Testing binary at ${dbxcli}"
 
 echo "Testing version"
-${dbxcli} version > /dev/null
+${dbxcli} version
 
 echo "Testing du"
-${dbxcli} du > /dev/null
+${dbxcli} du
 
 echo "Testing mkdir"
 d=dbxcli-$(date +%s)
-${dbxcli} mkdir ${d} > /dev/null
+${dbxcli} mkdir ${d}
 
 echo "Testing put"
-${dbxcli} put ${dbxcli} ${d}/dbxcli > /dev/null
+${dbxcli} put ${dbxcli} ${d}/dbxcli
 
 echo "Testing get"
-${dbxcli} get ${d}/dbxcli /tmp/dbxcli > /dev/null
+${dbxcli} get ${d}/dbxcli /tmp/dbxcli
 # Make sure files are the same
 cmp --silent ${dbxcli} /tmp/dbxcli
 
 echo "Testing ls -l"
-${dbxcli} ls -l ${d} > /dev/null
+${dbxcli} ls -l ${d}
 
 echo "Testing search"
-${dbxcli} search dropbox /${d} > /dev/null
+${dbxcli} search dropbox /${d}
 
 echo "Testing cp"
 ${dbxcli} cp ${d}/dbxcli ${d}/dbxcli-new
 
+echo "Testing revs"
+rev=$(${dbxcli} revs ${d}/dbxcli)
+
+echo "Testing mv"
+${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old
+
+echo "Testing restore"
+${dbxcli} restore ${d}/dbxcli ${rev}
+
 echo "Testing rmdir"
 ${dbxcli} rmdir ${d}
+
+echo "Testing share commands"
+
+echo "Testing share list-folders"
+${dbxcli} share list-folders
+
+echo "Testing team commands"
+echo "Testing team info"
+${dbxcli} team list-groups
+
+echo "Testing team list-members"
+${dbxcli} team list-members
+
+echo "Testing ls as"
+id=$(${dbxcli} team list-members | grep active | cut -d' ' -f3)
+${dbxcli} ls --as-member ${id}
 
 echo "All tests passed!"
