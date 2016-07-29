@@ -1088,12 +1088,12 @@ func (dbx *apiImpl) GetSharedLinkFile(arg *GetSharedLinkMetadataArg) (res IsShar
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "sharing", "get_shared_link_file"), bytes.NewReader(b))
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "sharing", "get_shared_link_file"), nil)
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Dropbox-API-Arg", string(b))
 	if dbx.Config.AsMemberID != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}

@@ -18,10 +18,10 @@ ${dbxcli} mkdir ${d} > /dev/null
 echo "Testing put"
 ${dbxcli} put ${dbxcli} ${d}/dbxcli > /dev/null
 
-#echo "Testing get"
-#${dbxcli} get ${d}/dbxcli /tmp/dbxcli > /dev/null
+echo "Testing get"
+${dbxcli} get ${d}/dbxcli /tmp/dbxcli > /dev/null
 # Make sure files are the same
-#cmp --silent ${dbxcli} /tmp/dbxcli
+cmp --silent ${dbxcli} /tmp/dbxcli
 
 echo "Testing ls -l"
 ${dbxcli} ls -l ${d} > /dev/null

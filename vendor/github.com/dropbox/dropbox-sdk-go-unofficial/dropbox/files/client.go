@@ -779,12 +779,12 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "download"), bytes.NewReader(b))
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "download"), nil)
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Dropbox-API-Arg", string(b))
 	if dbx.Config.AsMemberID != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
@@ -940,12 +940,12 @@ func (dbx *apiImpl) GetPreview(arg *PreviewArg) (res *FileMetadata, content io.R
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "get_preview"), bytes.NewReader(b))
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "get_preview"), nil)
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Dropbox-API-Arg", string(b))
 	if dbx.Config.AsMemberID != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
@@ -1090,12 +1090,12 @@ func (dbx *apiImpl) GetThumbnail(arg *ThumbnailArg) (res *FileMetadata, content 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "get_thumbnail"), bytes.NewReader(b))
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "files", "get_thumbnail"), nil)
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Dropbox-API-Arg", string(b))
 	if dbx.Config.AsMemberID != "" {
 		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
 	}
