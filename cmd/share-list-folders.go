@@ -33,7 +33,7 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 	// TODO(bonafidehan): handle paging. Currently uses default limit of 1000.
 
 	for _, f := range res.Entries {
-		fmt.Printf("%v\n", f.PathLower)
+		fmt.Printf("%v\t%v\n", f.PathLower, f.PreviewUrl)
 	}
 
 	return

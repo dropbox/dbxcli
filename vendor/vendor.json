@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "appengine test",
 	"package": [
 		{
 			"path": "context",
