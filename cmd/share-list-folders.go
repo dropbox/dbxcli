@@ -30,21 +30,34 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	// TODO(bonafidehan): handle paging. Currently uses default limit of 1000.
+	printFolders(res.Entries)
 
-	for _, f := range res.Entries {
-		fmt.Printf("%v\t%v\n", f.PathLower, f.PreviewUrl)
+	for len(res.Cursor) > 0 {
+		continueArg := sharing.NewListFoldersContinueArg(res.Cursor)
+
+		res, err = dbx.ListFoldersContinue(continueArg)
+		if err != nil {
+			return
+		}
+
+		printFolders(res.Entries)
 	}
 
 	return
 }
 
-var shareListCmd = &cobra.Command{
+func printFolders(entries []*sharing.SharedFolderMetadata) {
+	for _, f := range entries {
+		fmt.Printf("%v\t%v\n", f.PathLower, f.PreviewUrl)
+	}
+}
+
+var shareListFoldersCmd = &cobra.Command{
 	Use:   "list-folders",
 	Short: "List shared folders",
 	RunE:  shareListFolders,
 }
 
 func init() {
-	shareCmd.AddCommand(shareListCmd)
+	shareCmd.AddCommand(shareListFoldersCmd)
 }
