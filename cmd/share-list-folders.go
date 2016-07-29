@@ -30,7 +30,7 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	printEntries(res.Entries)
+	printFolders(res.Entries)
 
 	for len(res.Cursor) > 0 {
 		continueArg := sharing.NewListFoldersContinueArg(res.Cursor)
@@ -40,24 +40,24 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 			return
 		}
 
-		printEntries(res.Entries)
+		printFolders(res.Entries)
 	}
 
 	return
 }
 
-func printEntries(entries []*sharing.SharedFolderMetadata) {
+func printFolders(entries []*sharing.SharedFolderMetadata) {
 	for _, f := range entries {
 		fmt.Printf("%v\t%v\n", f.PathLower, f.PreviewUrl)
 	}
 }
 
-var shareListCmd = &cobra.Command{
+var shareListFoldersCmd = &cobra.Command{
 	Use:   "list-folders",
 	Short: "List shared folders",
 	RunE:  shareListFolders,
 }
 
 func init() {
-	shareCmd.AddCommand(shareListCmd)
+	shareCmd.AddCommand(shareListFoldersCmd)
 }
