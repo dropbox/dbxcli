@@ -53,8 +53,8 @@ func printFiles(entries []*sharing.SharedFileMetadata) {
 }
 
 var shareListFilesCmd = &cobra.Command{
-	Use:   "file",
-	Short: "List shared files (not including those in shared folders)",
+	Use:   "received-file",
+	Short: "List received files (not including those in shared folders)",
 	RunE:  shareListFiles,
 }
 
