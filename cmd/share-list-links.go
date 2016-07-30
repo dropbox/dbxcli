@@ -65,11 +65,11 @@ func printLink(sl sharing.SharedLinkMetadata) {
 }
 
 var shareListLinksCmd = &cobra.Command{
-	Use:   "list-links",
+	Use:   "link",
 	Short: "List shared links",
 	RunE:  shareListLinks,
 }
 
 func init() {
-	shareCmd.AddCommand(shareListLinksCmd)
+	shareListCmd.AddCommand(shareListLinksCmd)
 }

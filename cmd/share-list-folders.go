@@ -53,11 +53,11 @@ func printFolders(entries []*sharing.SharedFolderMetadata) {
 }
 
 var shareListFoldersCmd = &cobra.Command{
-	Use:   "list-folders",
+	Use:   "folder",
 	Short: "List shared folders",
 	RunE:  shareListFolders,
 }
 
 func init() {
-	shareCmd.AddCommand(shareListFoldersCmd)
+	shareListCmd.AddCommand(shareListFoldersCmd)
 }
