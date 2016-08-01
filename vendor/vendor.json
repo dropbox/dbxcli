@@ -117,8 +117,8 @@
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
 			"path": "golang.org/x/net/context",
-			"revision": "6a513affb38dc9788b449d59ffed099b8de18fa0",
-			"revisionTime": "2016-07-26T08:19:14Z"
+			"revision": "35028a49ca5a73b486af60cd20ac21cd6b67bfdb",
+			"revisionTime": "2016-07-31T22:09:09Z"
 		},
 		{
 			"checksumSHA1": "DSW8n4bSrd8JdBINM/DFoRWK64w=",

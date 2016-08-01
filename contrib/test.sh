@@ -46,8 +46,8 @@ ${dbxcli} rmdir ${d}
 
 echo "Testing share commands"
 
-echo "Testing share list-folders"
-${dbxcli} share list-folders
+echo "Testing share list folders"
+${dbxcli} share list folders
 
 echo "Testing team commands"
 echo "Testing team info"
