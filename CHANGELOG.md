@@ -2,13 +2,31 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.2.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.3.0...HEAD)
+
+**Closed issues:**
+
+- Make `ls` list files in multiple columns [\#17](https://github.com/dropbox/dbxcli/issues/17)
+- Add `logout` or `revoke` command [\#16](https://github.com/dropbox/dbxcli/issues/16)
+
+**Merged pull requests:**
+
+- Update golumns package to latest version - major bug fix [\#44](https://github.com/dropbox/dbxcli/pull/44) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Adds another subcommand layer `share list`. [\#39](https://github.com/dropbox/dbxcli/pull/39) ([bonafidehan](https://github.com/bonafidehan))
+- Adds `share list-links`. Paging for `share list-folders`. [\#38](https://github.com/dropbox/dbxcli/pull/38) ([bonafidehan](https://github.com/bonafidehan))
+- Introduces `share` command and `list-folders` subcommand. [\#37](https://github.com/dropbox/dbxcli/pull/37) ([bonafidehan](https://github.com/bonafidehan))
+- Introduces scoped search. A search can be scoped to the provided folder. [\#36](https://github.com/dropbox/dbxcli/pull/36) ([bonafidehan](https://github.com/bonafidehan))
+- Replace strings with consts defined in root.go [\#33](https://github.com/dropbox/dbxcli/pull/33) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Allow for multiple arguments to cp [\#32](https://github.com/dropbox/dbxcli/pull/32) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Add `logout` command [\#23](https://github.com/dropbox/dbxcli/pull/23) ([waits](https://github.com/waits))
+
+## [v1.3.0](https://github.com/dropbox/dbxcli/tree/v1.3.0) (2016-07-17)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.2.0...v1.3.0)
 
 **Closed issues:**
 
 - Have seperate commands for `rm` and `rmdir` [\#25](https://github.com/dropbox/dbxcli/issues/25)
 - `put` command is sending wrong client\_modified timestamp [\#20](https://github.com/dropbox/dbxcli/issues/20)
-- Make `ls` list files in multiple columns [\#17](https://github.com/dropbox/dbxcli/issues/17)
 
 **Merged pull requests:**
 
@@ -51,12 +69,12 @@
 ## [v0.6.0](https://github.com/dropbox/dbxcli/tree/v0.6.0) (2016-03-19)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.5.0...v0.6.0)
 
-## [v0.5.0](https://github.com/dropbox/dbxcli/tree/v0.5.0) (2016-03-16)
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.4.0...v0.5.0)
-
 **Closed issues:**
 
 - Improve \(or add?\) error handling [\#1](https://github.com/dropbox/dbxcli/issues/1)
+
+## [v0.5.0](https://github.com/dropbox/dbxcli/tree/v0.5.0) (2016-03-16)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.4.0...v0.5.0)
 
 ## [v0.4.0](https://github.com/dropbox/dbxcli/tree/v0.4.0) (2016-03-15)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.3.0...v0.4.0)
