@@ -4,6 +4,9 @@ import "fmt"
 
 // Display is the function to actually print to the console
 func Display(entries []string) error {
+	if len(entries) == 0 {
+		return nil
+	}
 	lengths := lengthOfEntryNames(entries)
 	columnLength := columnLength(lengths)
 	entries = resizeEntries(columnLength, entries)
