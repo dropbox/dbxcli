@@ -3,10 +3,6 @@
 	"ignore": "appengine test",
 	"package": [
 		{
-			"path": "context",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "/VtWKyLBaqn7b3yWJi8X/TmpowA=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox",
 			"revision": "13ed6f02d47dc93e1db59be7baf38e23f98115f6",
