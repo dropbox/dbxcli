@@ -1,11 +1,7 @@
 {
 	"comment": "",
-	"ignore": "appengine test",
+	"ignore": "appengine test go1.7",
 	"package": [
-		{
-			"path": "context",
-			"revision": ""
-		},
 		{
 			"checksumSHA1": "5CGdAzLWkSUKONuoJR/f4It6aI8=",
 			"path": "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox",
