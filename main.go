@@ -19,6 +19,7 @@ import (
 	"log"
 
 	"github.com/dropbox/dbxcli/cmd"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +30,10 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version)
+		fmt.Println("dbxcli version:", version)
+		sdkVersion, specVersion := dropbox.Version()
+		fmt.Println("SDK version:", sdkVersion)
+		fmt.Println("Spec version:", specVersion)
 	},
 }
 

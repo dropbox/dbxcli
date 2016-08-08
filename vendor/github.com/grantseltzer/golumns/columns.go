@@ -62,8 +62,5 @@ func numberOfRows(numberOfRows, numberOfNames int) int {
 }
 
 func reverse(input []int) []int {
-	if len(input) == 0 {
-		return input
-	}
 	return append(reverse(input[1:]), input[0])
 }

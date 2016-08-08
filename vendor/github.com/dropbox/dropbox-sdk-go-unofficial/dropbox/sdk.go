@@ -33,7 +33,14 @@ const (
 	hostAPI       = "api"
 	hostContent   = "content"
 	hostNotify    = "notify"
+	sdkVersion    = "1.0.0-beta"
+	specVersion   = "0697bd2"
 )
+
+// Version returns the current SDK version and API Spec version
+func Version() (string, string) {
+	return sdkVersion, specVersion
+}
 
 // Config contains parameters for configuring the SDK.
 type Config struct {
