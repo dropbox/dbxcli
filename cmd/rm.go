@@ -19,35 +19,49 @@ import (
 	"fmt"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
+
 	"github.com/spf13/cobra"
 )
 
-func rm(cmd *cobra.Command, args []string) (err error) {
+func rm(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`rm` requires a `file` argument")
 	}
 
 	path, err := validatePath(args[0])
 	if err != nil {
-		return
+		return err
 	}
 
 	dbx := files.New(config)
 	pathMetaData, err := getFileMetadata(dbx, path)
 	if err != nil {
-		return
+		return err
 	}
+
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+
 	if _, ok := pathMetaData.(*files.FileMetadata); !ok {
-		return fmt.Errorf("rm: cannot remove ‘%s’: Is a directory", path)
+		folderArg := files.NewListFolderArg(path)
+		res, err := dbx.ListFolder(folderArg)
+		if err != nil {
+			return err
+		}
+		if len(res.Entries) != 0 && !force {
+			return fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force` or `-f` to proceed", path)
+		}
 	}
 
 	arg := files.NewDeleteArg(path)
 
 	if _, err = dbx.Delete(arg); err != nil {
-		return
+		return err
 	}
 
-	return
+	return err
 }
 
 // rmCmd represents the rm command
@@ -59,4 +73,5 @@ var rmCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(rmCmd)
+	rmCmd.Flags().BoolP("force", "f", false, "Force removal")
 }
