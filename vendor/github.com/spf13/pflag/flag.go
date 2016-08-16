@@ -455,22 +455,19 @@ func UnquoteUsage(flag *Flag) (name string, usage string) {
 			break // Only one back quote; use type name.
 		}
 	}
-	// No explicit name, so use type if we can find one.
-	name = "value"
-	switch flag.Value.(type) {
-	case boolFlag:
+
+	name = flag.Value.Type()
+	switch name {
+	case "bool":
 		name = ""
-	case *durationValue:
-		name = "duration"
-	case *float64Value:
+	case "float64":
 		name = "float"
-	case *intValue, *int64Value:
+	case "int64":
 		name = "int"
-	case *stringValue:
-		name = "string"
-	case *uintValue, *uint64Value:
+	case "uint64":
 		name = "uint"
 	}
+
 	return
 }
 
