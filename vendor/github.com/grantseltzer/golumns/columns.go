@@ -2,6 +2,7 @@ package golumns
 
 import (
 	"math"
+	"reflect"
 	"sort"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -62,5 +63,9 @@ func numberOfRows(numberOfRows, numberOfNames int) int {
 }
 
 func reverse(input []int) []int {
+	emptyList := []int{}
+	if reflect.DeepEqual(input, emptyList) {
+		return emptyList
+	}
 	return append(reverse(input[1:]), input[0])
 }
