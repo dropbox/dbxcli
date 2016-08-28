@@ -24,44 +24,45 @@ import (
 )
 
 func rm(cmd *cobra.Command, args []string) error {
-	if len(args) != 1 {
-		return errors.New("`rm` requires a `file` argument")
+	if len(args) < 1 {
+		return errors.New("rm: missing operand")
 	}
 
-	path, err := validatePath(args[0])
-	if err != nil {
-		return err
-	}
-
-	dbx := files.New(config)
-	pathMetaData, err := getFileMetadata(dbx, path)
-	if err != nil {
-		return err
-	}
-
-	force, err := cmd.Flags().GetBool("force")
-	if err != nil {
-		return err
-	}
-
-	if _, ok := pathMetaData.(*files.FileMetadata); !ok {
-		folderArg := files.NewListFolderArg(path)
-		res, err := dbx.ListFolder(folderArg)
+	for i := range args {
+		path, err := validatePath(args[i])
 		if err != nil {
 			return err
 		}
-		if len(res.Entries) != 0 && !force {
-			return fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force` or `-f` to proceed", path)
+
+		dbx := files.New(config)
+		pathMetaData, err := getFileMetadata(dbx, path)
+		if err != nil {
+			return err
+		}
+
+		force, err := cmd.Flags().GetBool("force")
+		if err != nil {
+			return err
+		}
+
+		if _, ok := pathMetaData.(*files.FileMetadata); !ok {
+			folderArg := files.NewListFolderArg(path)
+			res, err := dbx.ListFolder(folderArg)
+			if err != nil {
+				return err
+			}
+			if len(res.Entries) != 0 && !force {
+				return fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force` or `-f` to proceed", path)
+			}
+		}
+
+		arg := files.NewDeleteArg(path)
+
+		if _, err = dbx.Delete(arg); err != nil {
+			return err
 		}
 	}
-
-	arg := files.NewDeleteArg(path)
-
-	if _, err = dbx.Delete(arg); err != nil {
-		return err
-	}
-
-	return err
+	return nil
 }
 
 // rmCmd represents the rm command
