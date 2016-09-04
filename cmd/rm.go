@@ -28,19 +28,22 @@ func rm(cmd *cobra.Command, args []string) error {
 		return errors.New("rm: missing operand")
 	}
 
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+
+	deletePaths := []string{}
+	dbx := files.New(config)
+
+	// Validate remove paths before executing removal
 	for i := range args {
 		path, err := validatePath(args[i])
 		if err != nil {
 			return err
 		}
 
-		dbx := files.New(config)
 		pathMetaData, err := getFileMetadata(dbx, path)
-		if err != nil {
-			return err
-		}
-
-		force, err := cmd.Flags().GetBool("force")
 		if err != nil {
 			return err
 		}
@@ -55,13 +58,18 @@ func rm(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force` or `-f` to proceed", path)
 			}
 		}
+		deletePaths = append(deletePaths, path)
+	}
 
+	// Execute removals
+	for _, path := range deletePaths {
 		arg := files.NewDeleteArg(path)
 
 		if _, err = dbx.Delete(arg); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
