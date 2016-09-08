@@ -419,20 +419,26 @@ func (f *FlagSet) PrintDefaults() {
 	fmt.Fprintf(f.out(), "%s", usages)
 }
 
-// isZeroValue guesses whether the string represents the zero
-// value for a flag. It is not accurate but in practice works OK.
-func isZeroValue(value string) bool {
-	switch value {
-	case "false":
-		return true
-	case "<nil>":
-		return true
-	case "":
-		return true
-	case "0":
+// defaultIsZeroValue returns true if the default value for this flag represents
+// a zero value.
+func (f *Flag) defaultIsZeroValue() bool {
+	switch f.Value.(type) {
+	case boolFlag:
+		return f.DefValue == "false"
+	case *durationValue:
+		// Beginning in Go 1.7, duration zero values are "0s"
+		return f.DefValue == "0" || f.DefValue == "0s"
+	case *intValue, *int8Value, *int32Value, *int64Value, *uintValue, *uint8Value, *uint16Value, *uint32Value, *uint64Value, *countValue, *float32Value, *float64Value:
+		return f.DefValue == "0"
+	case *stringValue:
+		return f.DefValue == ""
+	case *ipValue, *ipMaskValue, *ipNetValue:
+		return f.DefValue == "<nil>"
+	case *intSliceValue, *stringSliceValue, *stringArrayValue:
+		return f.DefValue == "[]"
+	default:
 		return true
 	}
-	return false
 }
 
 // UnquoteUsage extracts a back-quoted name from the usage
@@ -516,7 +522,7 @@ func (f *FlagSet) FlagUsages() string {
 		}
 
 		line += usage
-		if !isZeroValue(flag.DefValue) {
+		if !flag.defaultIsZeroValue() {
 			if flag.Value.Type() == "string" {
 				line += fmt.Sprintf(" (default %q)", flag.DefValue)
 			} else {

@@ -1423,8 +1423,8 @@ type MemberAddResult struct {
 	// limit has been reached.
 	FreeTeamMemberLimitReached string `json:"free_team_member_limit_reached,omitempty"`
 	// UserAlreadyOnTeam : User is already on this team. The provided email
-	// address is associated with a user who is already a member of or invited
-	// to the team.
+	// address is associated with a user who is already a member of (including
+	// in recoverable state) or invited to the team.
 	UserAlreadyOnTeam string `json:"user_already_on_team,omitempty"`
 	// UserOnAnotherTeam : User is already on another team. The provided email
 	// address is associated with a user that is already a member or invited to
@@ -1435,7 +1435,7 @@ type MemberAddResult struct {
 	// UserMigrationFailed : User migration has failed.
 	UserMigrationFailed string `json:"user_migration_failed,omitempty"`
 	// DuplicateExternalMemberId : A user with the given external member ID
-	// already exists on the team.
+	// already exists on the team (including in recoverable state).
 	DuplicateExternalMemberId string `json:"duplicate_external_member_id,omitempty"`
 	// UserCreationFailed : User creation has failed.
 	UserCreationFailed string `json:"user_creation_failed,omitempty"`

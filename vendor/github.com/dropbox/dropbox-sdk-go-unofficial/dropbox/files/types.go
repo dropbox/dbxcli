@@ -114,8 +114,8 @@ func NewGetMetadataArg(Path string) *GetMetadataArg {
 // AlphaGetMetadataArg : has no documentation (yet)
 type AlphaGetMetadataArg struct {
 	GetMetadataArg
-	// IncludePropertyTemplates : If true, `FileMetadata.property_groups` is set
-	// for files with custom properties.
+	// IncludePropertyTemplates : If set to a valid list of template IDs,
+	// `FileMetadata.property_groups` is set for files with custom properties.
 	IncludePropertyTemplates []string `json:"include_property_templates,omitempty"`
 }
 
@@ -631,12 +631,21 @@ type FolderSharingInfo struct {
 	// SharedFolderId : If this folder is a shared folder mount point, the ID of
 	// the shared folder mounted at this location.
 	SharedFolderId string `json:"shared_folder_id,omitempty"`
+	// TraverseOnly : Specifies that the folder can only be traversed and the
+	// user can only see a limited subset of the contents of this folder because
+	// they don't have read access to this folder. They do, however, have access
+	// to some sub folder.
+	TraverseOnly bool `json:"traverse_only"`
+	// NoAccess : Specifies that the folder cannot be accessed by the user
+	NoAccess bool `json:"no_access"`
 }
 
 // NewFolderSharingInfo returns a new FolderSharingInfo instance
 func NewFolderSharingInfo(ReadOnly bool) *FolderSharingInfo {
 	s := new(FolderSharingInfo)
 	s.ReadOnly = ReadOnly
+	s.TraverseOnly = false
+	s.NoAccess = false
 	return s
 }
 

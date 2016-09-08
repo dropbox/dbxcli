@@ -266,15 +266,19 @@ type Name struct {
 	// DisplayName : A name that can be used directly to represent the name of a
 	// user's Dropbox account.
 	DisplayName string `json:"display_name"`
+	// AbbreviatedName : An abbreviated form of the person's name. Their
+	// initials in most locales.
+	AbbreviatedName string `json:"abbreviated_name"`
 }
 
 // NewName returns a new Name instance
-func NewName(GivenName string, Surname string, FamiliarName string, DisplayName string) *Name {
+func NewName(GivenName string, Surname string, FamiliarName string, DisplayName string, AbbreviatedName string) *Name {
 	s := new(Name)
 	s.GivenName = GivenName
 	s.Surname = Surname
 	s.FamiliarName = FamiliarName
 	s.DisplayName = DisplayName
+	s.AbbreviatedName = AbbreviatedName
 	return s
 }
 

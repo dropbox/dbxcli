@@ -538,6 +538,7 @@ const (
 	FileActionUnshare               = "unshare"
 	FileActionRelinquishMembership  = "relinquish_membership"
 	FileActionShareLink             = "share_link"
+	FileActionCreateLink            = "create_link"
 	FileActionOther                 = "other"
 )
 
@@ -713,14 +714,40 @@ func NewFileLinkMetadata(Url string, Name string, LinkPermissions *LinkPermissio
 // FileMemberActionError : has no documentation (yet)
 type FileMemberActionError struct {
 	dropbox.Tagged
+	// AccessError : Specified file was invalid or user does not have access.
+	AccessError *SharingFileAccessError `json:"access_error,omitempty"`
 }
 
 // Valid tag values for FileMemberActionError
 const (
 	FileMemberActionErrorInvalidMember = "invalid_member"
 	FileMemberActionErrorNoPermission  = "no_permission"
+	FileMemberActionErrorAccessError   = "access_error"
 	FileMemberActionErrorOther         = "other"
 )
+
+// UnmarshalJSON deserializes into a FileMemberActionError instance
+func (u *FileMemberActionError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : Specified file was invalid or user does not have
+		// access.
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
 
 // FileMemberActionIndividualResult : has no documentation (yet)
 type FileMemberActionIndividualResult struct {
@@ -868,6 +895,7 @@ const (
 	FolderActionUnshare               = "unshare"
 	FolderActionLeaveACopy            = "leave_a_copy"
 	FolderActionShareLink             = "share_link"
+	FolderActionCreateLink            = "create_link"
 	FolderActionOther                 = "other"
 )
 
@@ -2880,6 +2908,11 @@ type SharedFileMetadata struct {
 	Name string `json:"name"`
 	// Id : The ID of the file.
 	Id string `json:"id"`
+	// TimeInvited : Timestamp indicating when the current user was invited to
+	// this shared file. If the user was not invited to the shared file, the
+	// timestamp will indicate when the user was invited to the parent shared
+	// folder. This value may be absent.
+	TimeInvited time.Time `json:"time_invited,omitempty"`
 }
 
 // NewSharedFileMetadata returns a new SharedFileMetadata instance
