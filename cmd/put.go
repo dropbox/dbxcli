@@ -20,6 +20,8 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
@@ -60,68 +62,96 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 }
 
 func put(cmd *cobra.Command, args []string) (err error) {
-	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`put` requires `src` and/or `dst` arguments")
+	if len(args) == 0 {
+		return errors.New("missing operands to `put`")
 	}
 
-	src := args[0]
-
-	// Default `dst` to the base segment of the source path; use the second argument if provided.
-	dst := "/" + path.Base(src)
-	if len(args) == 2 {
-		dst, err = validatePath(args[1])
-		if err != nil {
-			return
-		}
-	}
-
-	contents, err := os.Open(src)
-	defer contents.Close()
+	destination, err := cmd.Flags().GetString("destination")
 	if err != nil {
-		return
+		return err
 	}
 
-	contentsInfo, err := contents.Stat()
-	if err != nil {
-		return
+	var waitGroup sync.WaitGroup
+	for _, arg := range args {
+		waitGroup.Add(1)
+		go func(arg string) error {
+			defer waitGroup.Done()
+			dst := "/" + path.Base(arg)
+
+			if destination != "" {
+				dst, err = validatePath(fullName(arg, destination))
+				if err != nil {
+					return err
+				}
+			}
+
+			contents, err := os.Open(arg)
+			defer contents.Close()
+			if err != nil {
+				return err
+			}
+
+			contentsInfo, err := contents.Stat()
+			if err != nil {
+				return err
+			}
+
+			progressbar := &ioprogress.Reader{
+				Reader: contents,
+				DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
+					return fmt.Sprintf("Uploading %s/%s",
+						humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
+				}),
+				Size: contentsInfo.Size(),
+			}
+
+			commitInfo := files.NewCommitInfo(dst)
+			commitInfo.Mode.Tag = "overwrite"
+
+			// The Dropbox API only accepts timestamps in UTC with second precision.
+			commitInfo.ClientModified = time.Now().UTC().Round(time.Second)
+
+			dbx := files.New(config)
+			if contentsInfo.Size() > chunkSize {
+				err = uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size())
+				if err != nil {
+					return err
+				}
+			}
+
+			if uploadFile(dbx, commitInfo, progressbar) != nil {
+				return fmt.Errorf("Did not upload %s", arg)
+			}
+
+			return nil
+		}(arg)
 	}
+	waitGroup.Wait()
+	return nil
+}
 
-	progressbar := &ioprogress.Reader{
-		Reader: contents,
-		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
-			return fmt.Sprintf("Uploading %s/%s",
-				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
-		}),
-		Size: contentsInfo.Size(),
+func uploadFile(dbx files.Client, commitInfo *files.CommitInfo, progressbar *ioprogress.Reader) error {
+	if _, err := dbx.Upload(commitInfo, progressbar); err != nil {
+		return err
 	}
+	return nil
+}
 
-	commitInfo := files.NewCommitInfo(dst)
-	commitInfo.Mode.Tag = "overwrite"
-
-	// The Dropbox API only accepts timestamps in UTC with second precision.
-	commitInfo.ClientModified = time.Now().UTC().Round(time.Second)
-
-	dbx := files.New(config)
-	if contentsInfo.Size() > chunkSize {
-		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size())
-	}
-
-	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {
-		return
-	}
-
-	return
+func fullName(fileName, destination string) string {
+	return strings.TrimSuffix(destination, "/") + "/" + fileName
 }
 
 // putCmd represents the put command
 var putCmd = &cobra.Command{
-	Use:   "put [flags] <source> [<target>]",
+	Use:   "put [flags] <source>",
 	Short: "Upload files",
 	RunE:  put,
 }
 
 func init() {
 	RootCmd.AddCommand(putCmd)
+	putCmd.Flags().StringP("destination", "d", "", "specify a destination")
+	putCmd.Flags().BoolP("force", "f", false, "specify to overwrite existing files")
 
 	// Here you will define your flags and configuration settings.
 
