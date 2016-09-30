@@ -33,6 +33,7 @@ const (
 	AuthErrorInvalidAccessToken = "invalid_access_token"
 	AuthErrorInvalidSelectUser  = "invalid_select_user"
 	AuthErrorInvalidSelectAdmin = "invalid_select_admin"
+	AuthErrorUserSuspended      = "user_suspended"
 	AuthErrorOther              = "other"
 )
 

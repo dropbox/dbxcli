@@ -82,12 +82,11 @@ type Client interface {
 	// GetSharedLinkMetadata : Get the shared link's metadata.
 	GetSharedLinkMetadata(arg *GetSharedLinkMetadataArg) (res IsSharedLinkMetadata, err error)
 	// GetSharedLinks : Returns a list of `LinkMetadata` objects for this user,
-	// including collection links. If no path is given or the path is empty,
-	// returns a list of all shared links for the current user, including
-	// collection links. If a non-empty path is given, returns a list of all
-	// shared links that allow access to the given path.  Collection links are
-	// never returned in this case. Note that the url field in the response is
-	// never the shortened URL.
+	// including collection links. If no path is given, returns a list of all
+	// shared links for the current user, including collection links. If a
+	// non-empty path is given, returns a list of all shared links that allow
+	// access to the given path.  Collection links are never returned in this
+	// case. Note that the url field in the response is never the shortened URL.
 	GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksResult, err error)
 	// ListFileMembers : Use to obtain the members who have been invited to a
 	// file, both inherited and uninherited members.
@@ -135,12 +134,12 @@ type Client interface {
 	// ListReceivedFilesContinue : Get more results with a cursor from
 	// `listReceivedFiles`.
 	ListReceivedFilesContinue(arg *ListFilesContinueArg) (res *ListFilesResult, err error)
-	// ListSharedLinks : List shared links of this user. If no path is given or
-	// the path is empty, returns a list of all shared links for the current
-	// user. If a non-empty path is given, returns a list of all shared links
-	// that allow access to the given path - direct links to the given path and
-	// links to parent folders of the given path. Links to parent folders can be
-	// suppressed by setting direct_only to true.
+	// ListSharedLinks : List shared links of this user. If no path is given,
+	// returns a list of all shared links for the current user. If a non-empty
+	// path is given, returns a list of all shared links that allow access to
+	// the given path - direct links to the given path and links to parent
+	// folders of the given path. Links to parent folders can be suppressed by
+	// setting direct_only to true.
 	ListSharedLinks(arg *ListSharedLinksArg) (res *ListSharedLinksResult, err error)
 	// ModifySharedLinkSettings : Modify the shared link's settings. If the
 	// requested visibility conflict with the shared links policy of the team or

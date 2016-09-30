@@ -1987,7 +1987,7 @@ type ListSharedLinksResult struct {
 	// returned yet. Pass the cursor into `listSharedLinks` to retrieve them.
 	HasMore bool `json:"has_more"`
 	// Cursor : Pass the cursor into `listSharedLinks` to obtain the additional
-	// links. Cursor is returned only if no path is given or the path is empty.
+	// links. Cursor is returned only if no path is given.
 	Cursor string `json:"cursor,omitempty"`
 }
 
@@ -2813,6 +2813,8 @@ type SharePathError struct {
 	// AlreadyShared : Folder is already shared. Contains metadata about the
 	// existing shared folder.
 	AlreadyShared *SharedFolderMetadata `json:"already_shared,omitempty"`
+	// InvalidPathRoot : The path root parameter provided is invalid.
+	InvalidPathRoot *files.PathRootError `json:"invalid_path_root,omitempty"`
 }
 
 // Valid tag values for SharePathError
@@ -2820,6 +2822,8 @@ const (
 	SharePathErrorIsFile               = "is_file"
 	SharePathErrorInsideSharedFolder   = "inside_shared_folder"
 	SharePathErrorContainsSharedFolder = "contains_shared_folder"
+	SharePathErrorContainsAppFolder    = "contains_app_folder"
+	SharePathErrorContainsTeamFolder   = "contains_team_folder"
 	SharePathErrorIsAppFolder          = "is_app_folder"
 	SharePathErrorInsideAppFolder      = "inside_app_folder"
 	SharePathErrorIsPublicFolder       = "is_public_folder"
@@ -2828,6 +2832,7 @@ const (
 	SharePathErrorInvalidPath          = "invalid_path"
 	SharePathErrorIsOsxPackage         = "is_osx_package"
 	SharePathErrorInsideOsxPackage     = "inside_osx_package"
+	SharePathErrorInvalidPathRoot      = "invalid_path_root"
 	SharePathErrorOther                = "other"
 )
 
@@ -2838,6 +2843,8 @@ func (u *SharePathError) UnmarshalJSON(body []byte) error {
 		// AlreadyShared : Folder is already shared. Contains metadata about the
 		// existing shared folder.
 		AlreadyShared json.RawMessage `json:"already_shared,omitempty"`
+		// InvalidPathRoot : The path root parameter provided is invalid.
+		InvalidPathRoot json.RawMessage `json:"invalid_path_root,omitempty"`
 	}
 	var w wrap
 	if err := json.Unmarshal(body, &w); err != nil {
@@ -2847,6 +2854,11 @@ func (u *SharePathError) UnmarshalJSON(body []byte) error {
 	switch u.Tag {
 	case "already_shared":
 		if err := json.Unmarshal(body, &u.AlreadyShared); err != nil {
+			return err
+		}
+
+	case "invalid_path_root":
+		if err := json.Unmarshal(body, &u.InvalidPathRoot); err != nil {
 			return err
 		}
 

@@ -1898,6 +1898,7 @@ type MembersRecoverError struct {
 const (
 	MembersRecoverErrorUserUnrecoverable = "user_unrecoverable"
 	MembersRecoverErrorUserNotInTeam     = "user_not_in_team"
+	MembersRecoverErrorTeamLicenseLimit  = "team_license_limit"
 	MembersRecoverErrorOther             = "other"
 )
 
