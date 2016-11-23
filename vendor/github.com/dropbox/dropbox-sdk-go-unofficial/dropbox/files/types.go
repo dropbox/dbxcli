@@ -379,6 +379,42 @@ func (u *DeleteBatchJobStatus) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// DeleteBatchLaunch : Result returned by `deleteBatch` that may either launch
+// an asynchronous job or complete synchronously.
+type DeleteBatchLaunch struct {
+	dropbox.Tagged
+	// Complete : has no documentation (yet)
+	Complete *DeleteBatchResult `json:"complete,omitempty"`
+}
+
+// Valid tag values for DeleteBatchLaunch
+const (
+	DeleteBatchLaunchComplete = "complete"
+	DeleteBatchLaunchOther    = "other"
+)
+
+// UnmarshalJSON deserializes into a DeleteBatchLaunch instance
+func (u *DeleteBatchLaunch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 // DeleteBatchResult : has no documentation (yet)
 type DeleteBatchResult struct {
 	// Entries : has no documentation (yet)
@@ -505,9 +541,10 @@ type Metadata struct {
 	PathLower string `json:"path_lower,omitempty"`
 	// PathDisplay : The cased path to be used for display purposes only. In
 	// rare instances the casing will not correctly match the user's filesystem,
-	// but this behavior will match the path provided in the Core API v1.
-	// Changes to the casing of paths won't be returned by `listFolderContinue`.
-	// This field will be null if the file or folder is not mounted.
+	// but this behavior will match the path provided in the Core API v1, and at
+	// least the last path component will have the correct casing. Changes to
+	// only the casing of paths won't be returned by `listFolderContinue`. This
+	// field will be null if the file or folder is not mounted.
 	PathDisplay string `json:"path_display,omitempty"`
 	// ParentSharedFolderId : Deprecated. Please use
 	// `FileSharingInfo.parent_shared_folder_id` or
@@ -1659,6 +1696,42 @@ func (u *RelocationBatchJobStatus) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// RelocationBatchLaunch : Result returned by `copyBatch` or `moveBatch` that
+// may either launch an asynchronous job or complete synchronously.
+type RelocationBatchLaunch struct {
+	dropbox.Tagged
+	// Complete : has no documentation (yet)
+	Complete *RelocationBatchResult `json:"complete,omitempty"`
+}
+
+// Valid tag values for RelocationBatchLaunch
+const (
+	RelocationBatchLaunchComplete = "complete"
+	RelocationBatchLaunchOther    = "other"
+)
+
+// UnmarshalJSON deserializes into a RelocationBatchLaunch instance
+func (u *RelocationBatchLaunch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 // RelocationBatchResult : has no documentation (yet)
 type RelocationBatchResult struct {
 	// Entries : has no documentation (yet)
@@ -2411,6 +2484,43 @@ func (u *UploadSessionFinishBatchJobStatus) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
 		// Complete : The `uploadSessionFinishBatch` has finished.
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// UploadSessionFinishBatchLaunch : Result returned by
+// `uploadSessionFinishBatch` that may either launch an asynchronous job or
+// complete synchronously.
+type UploadSessionFinishBatchLaunch struct {
+	dropbox.Tagged
+	// Complete : has no documentation (yet)
+	Complete *UploadSessionFinishBatchResult `json:"complete,omitempty"`
+}
+
+// Valid tag values for UploadSessionFinishBatchLaunch
+const (
+	UploadSessionFinishBatchLaunchComplete = "complete"
+	UploadSessionFinishBatchLaunchOther    = "other"
+)
+
+// UnmarshalJSON deserializes into a UploadSessionFinishBatchLaunch instance
+func (u *UploadSessionFinishBatchLaunch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap

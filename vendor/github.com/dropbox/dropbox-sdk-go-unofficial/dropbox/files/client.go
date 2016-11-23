@@ -56,7 +56,7 @@ type Client interface {
 	// shared folders to new locations. This route will return job ID
 	// immediately and do the async copy job in background. Please use
 	// `copyBatchCheck` to check the job status.
-	CopyBatch(arg *RelocationBatchArg) (res *async.LaunchEmptyResult, err error)
+	CopyBatch(arg *RelocationBatchArg) (res *RelocationBatchLaunch, err error)
 	// CopyBatchCheck : Returns the status of an asynchronous job for
 	// `copyBatch`. If success, it returns list of results for each entry.
 	CopyBatchCheck(arg *async.PollArg) (res *RelocationBatchJobStatus, err error)
@@ -78,7 +78,7 @@ type Client interface {
 	// DeleteBatch : Delete multiple files/folders at once. This route is
 	// asynchronous, which returns a job ID immediately and runs the delete
 	// batch asynchronously. Use `deleteBatchCheck` to check the job status.
-	DeleteBatch(arg *DeleteBatchArg) (res *async.LaunchEmptyResult, err error)
+	DeleteBatch(arg *DeleteBatchArg) (res *DeleteBatchLaunch, err error)
 	// DeleteBatchCheck : Returns the status of an asynchronous job for
 	// `deleteBatch`. If success, it returns list of result for each entry.
 	DeleteBatchCheck(arg *async.PollArg) (res *DeleteBatchJobStatus, err error)
@@ -147,7 +147,7 @@ type Client interface {
 	// entry fails, the whole transaction will abort. This route will return job
 	// ID immediately and do the async moving job in background. Please use
 	// `moveBatchCheck` to check the job status.
-	MoveBatch(arg *RelocationBatchArg) (res *async.LaunchEmptyResult, err error)
+	MoveBatch(arg *RelocationBatchArg) (res *RelocationBatchLaunch, err error)
 	// MoveBatchCheck : Returns the status of an asynchronous job for
 	// `moveBatch`. If success, it returns list of results for each entry.
 	MoveBatchCheck(arg *async.PollArg) (res *RelocationBatchJobStatus, err error)
@@ -216,7 +216,7 @@ type Client interface {
 	// status. For the same account, this route should be executed serially.
 	// That means you should not start the next job before current job finishes.
 	// We allow up to 1000 entries in a single request.
-	UploadSessionFinishBatch(arg *UploadSessionFinishBatchArg) (res *async.LaunchEmptyResult, err error)
+	UploadSessionFinishBatch(arg *UploadSessionFinishBatchArg) (res *UploadSessionFinishBatchLaunch, err error)
 	// UploadSessionFinishBatchCheck : Returns the status of an asynchronous job
 	// for `uploadSessionFinishBatch`. If success, it returns list of result for
 	// each entry.
@@ -492,7 +492,7 @@ type CopyBatchAPIError struct {
 	EndpointError struct{} `json:"error"`
 }
 
-func (dbx *apiImpl) CopyBatch(arg *RelocationBatchArg) (res *async.LaunchEmptyResult, err error) {
+func (dbx *apiImpl) CopyBatch(arg *RelocationBatchArg) (res *RelocationBatchLaunch, err error) {
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -965,7 +965,7 @@ type DeleteBatchAPIError struct {
 	EndpointError struct{} `json:"error"`
 }
 
-func (dbx *apiImpl) DeleteBatch(arg *DeleteBatchArg) (res *async.LaunchEmptyResult, err error) {
+func (dbx *apiImpl) DeleteBatch(arg *DeleteBatchArg) (res *DeleteBatchLaunch, err error) {
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -1974,7 +1974,7 @@ type MoveBatchAPIError struct {
 	EndpointError struct{} `json:"error"`
 }
 
-func (dbx *apiImpl) MoveBatch(arg *RelocationBatchArg) (res *async.LaunchEmptyResult, err error) {
+func (dbx *apiImpl) MoveBatch(arg *RelocationBatchArg) (res *RelocationBatchLaunch, err error) {
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -3243,7 +3243,7 @@ type UploadSessionFinishBatchAPIError struct {
 	EndpointError struct{} `json:"error"`
 }
 
-func (dbx *apiImpl) UploadSessionFinishBatch(arg *UploadSessionFinishBatchArg) (res *async.LaunchEmptyResult, err error) {
+func (dbx *apiImpl) UploadSessionFinishBatch(arg *UploadSessionFinishBatchArg) (res *UploadSessionFinishBatchLaunch, err error) {
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {

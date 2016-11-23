@@ -833,6 +833,8 @@ type GroupUpdateError struct {
 
 // Valid tag values for GroupUpdateError
 const (
+	GroupUpdateErrorGroupNameAlreadyUsed   = "group_name_already_used"
+	GroupUpdateErrorGroupNameInvalid       = "group_name_invalid"
 	GroupUpdateErrorExternalIdAlreadyInUse = "external_id_already_in_use"
 )
 
@@ -1914,7 +1916,8 @@ type MembersRemoveArg struct {
 	TransferAdminId *UserSelectorArg `json:"transfer_admin_id,omitempty"`
 	// KeepAccount : Downgrade the member to a Basic account. The user will
 	// retain the email address associated with their Dropbox  account and data
-	// in their account that is not restricted to team members.
+	// in their account that is not restricted to team members. In order to keep
+	// the account the argument wipe_data should be set to False.
 	KeepAccount bool `json:"keep_account"`
 }
 
@@ -2369,6 +2372,478 @@ func NewStorageBucket(Bucket string, Users uint64) *StorageBucket {
 	s.Users = Users
 	return s
 }
+
+// TeamFolderAccessError : has no documentation (yet)
+type TeamFolderAccessError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for TeamFolderAccessError
+const (
+	TeamFolderAccessErrorInvalidTeamFolderId = "invalid_team_folder_id"
+	TeamFolderAccessErrorNoAccess            = "no_access"
+	TeamFolderAccessErrorOther               = "other"
+)
+
+// TeamFolderActivateError : has no documentation (yet)
+type TeamFolderActivateError struct {
+	dropbox.Tagged
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error,omitempty"`
+	// StatusError : has no documentation (yet)
+	StatusError *TeamFolderInvalidStatusError `json:"status_error,omitempty"`
+}
+
+// Valid tag values for TeamFolderActivateError
+const (
+	TeamFolderActivateErrorAccessError = "access_error"
+	TeamFolderActivateErrorStatusError = "status_error"
+	TeamFolderActivateErrorOther       = "other"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderActivateError instance
+func (u *TeamFolderActivateError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : has no documentation (yet)
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+		// StatusError : has no documentation (yet)
+		StatusError json.RawMessage `json:"status_error,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+			return err
+		}
+
+	case "status_error":
+		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderIdArg : has no documentation (yet)
+type TeamFolderIdArg struct {
+	// TeamFolderId : The ID of the team folder.
+	TeamFolderId string `json:"team_folder_id"`
+}
+
+// NewTeamFolderIdArg returns a new TeamFolderIdArg instance
+func NewTeamFolderIdArg(TeamFolderId string) *TeamFolderIdArg {
+	s := new(TeamFolderIdArg)
+	s.TeamFolderId = TeamFolderId
+	return s
+}
+
+// TeamFolderArchiveArg : has no documentation (yet)
+type TeamFolderArchiveArg struct {
+	TeamFolderIdArg
+	// ForceAsyncOff : Whether to force the archive to happen synchronously.
+	ForceAsyncOff bool `json:"force_async_off"`
+}
+
+// NewTeamFolderArchiveArg returns a new TeamFolderArchiveArg instance
+func NewTeamFolderArchiveArg(TeamFolderId string) *TeamFolderArchiveArg {
+	s := new(TeamFolderArchiveArg)
+	s.TeamFolderId = TeamFolderId
+	s.ForceAsyncOff = false
+	return s
+}
+
+// TeamFolderArchiveError : has no documentation (yet)
+type TeamFolderArchiveError struct {
+	dropbox.Tagged
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error,omitempty"`
+	// StatusError : has no documentation (yet)
+	StatusError *TeamFolderInvalidStatusError `json:"status_error,omitempty"`
+}
+
+// Valid tag values for TeamFolderArchiveError
+const (
+	TeamFolderArchiveErrorAccessError = "access_error"
+	TeamFolderArchiveErrorStatusError = "status_error"
+	TeamFolderArchiveErrorOther       = "other"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderArchiveError instance
+func (u *TeamFolderArchiveError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : has no documentation (yet)
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+		// StatusError : has no documentation (yet)
+		StatusError json.RawMessage `json:"status_error,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+			return err
+		}
+
+	case "status_error":
+		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderArchiveJobStatus : has no documentation (yet)
+type TeamFolderArchiveJobStatus struct {
+	dropbox.Tagged
+	// Complete : The archive job has finished. The value is the metadata for
+	// the resulting team folder.
+	Complete *TeamFolderMetadata `json:"complete,omitempty"`
+	// Failed : Error occurred while performing an asynchronous job from
+	// `teamFolderArchive`.
+	Failed *TeamFolderArchiveError `json:"failed,omitempty"`
+}
+
+// Valid tag values for TeamFolderArchiveJobStatus
+const (
+	TeamFolderArchiveJobStatusComplete = "complete"
+	TeamFolderArchiveJobStatusFailed   = "failed"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderArchiveJobStatus instance
+func (u *TeamFolderArchiveJobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : The archive job has finished. The value is the metadata
+		// for the resulting team folder.
+		Complete json.RawMessage `json:"complete,omitempty"`
+		// Failed : Error occurred while performing an asynchronous job from
+		// `teamFolderArchive`.
+		Failed json.RawMessage `json:"failed,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	case "failed":
+		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderArchiveLaunch : has no documentation (yet)
+type TeamFolderArchiveLaunch struct {
+	dropbox.Tagged
+	// Complete : has no documentation (yet)
+	Complete *TeamFolderMetadata `json:"complete,omitempty"`
+}
+
+// Valid tag values for TeamFolderArchiveLaunch
+const (
+	TeamFolderArchiveLaunchComplete = "complete"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderArchiveLaunch instance
+func (u *TeamFolderArchiveLaunch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		if err := json.Unmarshal(body, &u.Complete); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderCreateArg : has no documentation (yet)
+type TeamFolderCreateArg struct {
+	// Name : Name for the new team folder.
+	Name string `json:"name"`
+}
+
+// NewTeamFolderCreateArg returns a new TeamFolderCreateArg instance
+func NewTeamFolderCreateArg(Name string) *TeamFolderCreateArg {
+	s := new(TeamFolderCreateArg)
+	s.Name = Name
+	return s
+}
+
+// TeamFolderCreateError : has no documentation (yet)
+type TeamFolderCreateError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for TeamFolderCreateError
+const (
+	TeamFolderCreateErrorInvalidFolderName     = "invalid_folder_name"
+	TeamFolderCreateErrorFolderNameAlreadyUsed = "folder_name_already_used"
+	TeamFolderCreateErrorOther                 = "other"
+)
+
+// TeamFolderGetInfoItem : has no documentation (yet)
+type TeamFolderGetInfoItem struct {
+	dropbox.Tagged
+	// IdNotFound : An ID that was provided as a parameter to
+	// `teamFolderGetInfo` did not match any of the team's team folders.
+	IdNotFound string `json:"id_not_found,omitempty"`
+	// TeamFolderMetadata : Properties of a team folder.
+	TeamFolderMetadata *TeamFolderMetadata `json:"team_folder_metadata,omitempty"`
+}
+
+// Valid tag values for TeamFolderGetInfoItem
+const (
+	TeamFolderGetInfoItemIdNotFound         = "id_not_found"
+	TeamFolderGetInfoItemTeamFolderMetadata = "team_folder_metadata"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderGetInfoItem instance
+func (u *TeamFolderGetInfoItem) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// TeamFolderMetadata : Properties of a team folder.
+		TeamFolderMetadata json.RawMessage `json:"team_folder_metadata,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "id_not_found":
+		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+			return err
+		}
+
+	case "team_folder_metadata":
+		if err := json.Unmarshal(body, &u.TeamFolderMetadata); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderIdListArg : has no documentation (yet)
+type TeamFolderIdListArg struct {
+	// TeamFolderIds : The list of team folder IDs.
+	TeamFolderIds []string `json:"team_folder_ids"`
+}
+
+// NewTeamFolderIdListArg returns a new TeamFolderIdListArg instance
+func NewTeamFolderIdListArg(TeamFolderIds []string) *TeamFolderIdListArg {
+	s := new(TeamFolderIdListArg)
+	s.TeamFolderIds = TeamFolderIds
+	return s
+}
+
+// TeamFolderInvalidStatusError : has no documentation (yet)
+type TeamFolderInvalidStatusError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for TeamFolderInvalidStatusError
+const (
+	TeamFolderInvalidStatusErrorActive   = "active"
+	TeamFolderInvalidStatusErrorArchived = "archived"
+	TeamFolderInvalidStatusErrorOther    = "other"
+)
+
+// TeamFolderListArg : has no documentation (yet)
+type TeamFolderListArg struct {
+	// Limit : The maximum number of results to return per request.
+	Limit uint32 `json:"limit"`
+}
+
+// NewTeamFolderListArg returns a new TeamFolderListArg instance
+func NewTeamFolderListArg() *TeamFolderListArg {
+	s := new(TeamFolderListArg)
+	s.Limit = 1000
+	return s
+}
+
+// TeamFolderListError : has no documentation (yet)
+type TeamFolderListError struct {
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error"`
+}
+
+// NewTeamFolderListError returns a new TeamFolderListError instance
+func NewTeamFolderListError(AccessError *TeamFolderAccessError) *TeamFolderListError {
+	s := new(TeamFolderListError)
+	s.AccessError = AccessError
+	return s
+}
+
+// TeamFolderListResult : Result for `teamFolderList`.
+type TeamFolderListResult struct {
+	// TeamFolders : List of all team folders in the authenticated team.
+	TeamFolders []*TeamFolderMetadata `json:"team_folders"`
+}
+
+// NewTeamFolderListResult returns a new TeamFolderListResult instance
+func NewTeamFolderListResult(TeamFolders []*TeamFolderMetadata) *TeamFolderListResult {
+	s := new(TeamFolderListResult)
+	s.TeamFolders = TeamFolders
+	return s
+}
+
+// TeamFolderMetadata : Properties of a team folder.
+type TeamFolderMetadata struct {
+	// TeamFolderId : The ID of the team folder.
+	TeamFolderId string `json:"team_folder_id"`
+	// Name : The name of the team folder.
+	Name string `json:"name"`
+	// Status : The status of the team folder.
+	Status *TeamFolderStatus `json:"status"`
+}
+
+// NewTeamFolderMetadata returns a new TeamFolderMetadata instance
+func NewTeamFolderMetadata(TeamFolderId string, Name string, Status *TeamFolderStatus) *TeamFolderMetadata {
+	s := new(TeamFolderMetadata)
+	s.TeamFolderId = TeamFolderId
+	s.Name = Name
+	s.Status = Status
+	return s
+}
+
+// TeamFolderPermanentlyDeleteError : has no documentation (yet)
+type TeamFolderPermanentlyDeleteError struct {
+	dropbox.Tagged
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error,omitempty"`
+	// StatusError : has no documentation (yet)
+	StatusError *TeamFolderInvalidStatusError `json:"status_error,omitempty"`
+}
+
+// Valid tag values for TeamFolderPermanentlyDeleteError
+const (
+	TeamFolderPermanentlyDeleteErrorAccessError = "access_error"
+	TeamFolderPermanentlyDeleteErrorStatusError = "status_error"
+	TeamFolderPermanentlyDeleteErrorOther       = "other"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderPermanentlyDeleteError instance
+func (u *TeamFolderPermanentlyDeleteError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : has no documentation (yet)
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+		// StatusError : has no documentation (yet)
+		StatusError json.RawMessage `json:"status_error,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+			return err
+		}
+
+	case "status_error":
+		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderRenameArg : has no documentation (yet)
+type TeamFolderRenameArg struct {
+	TeamFolderIdArg
+	// Name : New team folder name.
+	Name string `json:"name"`
+}
+
+// NewTeamFolderRenameArg returns a new TeamFolderRenameArg instance
+func NewTeamFolderRenameArg(TeamFolderId string, Name string) *TeamFolderRenameArg {
+	s := new(TeamFolderRenameArg)
+	s.TeamFolderId = TeamFolderId
+	s.Name = Name
+	return s
+}
+
+// TeamFolderRenameError : has no documentation (yet)
+type TeamFolderRenameError struct {
+	dropbox.Tagged
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error,omitempty"`
+}
+
+// Valid tag values for TeamFolderRenameError
+const (
+	TeamFolderRenameErrorAccessError           = "access_error"
+	TeamFolderRenameErrorInvalidFolderName     = "invalid_folder_name"
+	TeamFolderRenameErrorFolderNameAlreadyUsed = "folder_name_already_used"
+	TeamFolderRenameErrorOther                 = "other"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderRenameError instance
+func (u *TeamFolderRenameError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : has no documentation (yet)
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+	}
+	var w wrap
+	if err := json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// TeamFolderStatus : has no documentation (yet)
+type TeamFolderStatus struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for TeamFolderStatus
+const (
+	TeamFolderStatusActive   = "active"
+	TeamFolderStatusArchived = "archived"
+	TeamFolderStatusOther    = "other"
+)
 
 // TeamGetInfoResult : has no documentation (yet)
 type TeamGetInfoResult struct {

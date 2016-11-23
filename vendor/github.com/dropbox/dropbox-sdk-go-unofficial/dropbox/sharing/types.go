@@ -1124,6 +1124,7 @@ type SharedLinkError struct {
 const (
 	SharedLinkErrorSharedLinkNotFound     = "shared_link_not_found"
 	SharedLinkErrorSharedLinkAccessDenied = "shared_link_access_denied"
+	SharedLinkErrorUnsupportedLinkType    = "unsupported_link_type"
 	SharedLinkErrorOther                  = "other"
 )
 
@@ -1223,6 +1224,8 @@ type GroupInfo struct {
 	team_common.GroupSummary
 	// GroupType : The type of group.
 	GroupType *team_common.GroupType `json:"group_type"`
+	// IsMember : If the current user is a member of the group.
+	IsMember bool `json:"is_member"`
 	// IsOwner : If the current user is an owner of the group.
 	IsOwner bool `json:"is_owner"`
 	// SameTeam : If the group is owned by the current user's team.
@@ -1230,12 +1233,13 @@ type GroupInfo struct {
 }
 
 // NewGroupInfo returns a new GroupInfo instance
-func NewGroupInfo(GroupName string, GroupId string, GroupManagementType *team_common.GroupManagementType, GroupType *team_common.GroupType, IsOwner bool, SameTeam bool) *GroupInfo {
+func NewGroupInfo(GroupName string, GroupId string, GroupManagementType *team_common.GroupManagementType, GroupType *team_common.GroupType, IsMember bool, IsOwner bool, SameTeam bool) *GroupInfo {
 	s := new(GroupInfo)
 	s.GroupName = GroupName
 	s.GroupId = GroupId
 	s.GroupManagementType = GroupManagementType
 	s.GroupType = GroupType
+	s.IsMember = IsMember
 	s.IsOwner = IsOwner
 	s.SameTeam = SameTeam
 	return s
@@ -2371,13 +2375,14 @@ type RelinquishFolderMembershipError struct {
 
 // Valid tag values for RelinquishFolderMembershipError
 const (
-	RelinquishFolderMembershipErrorAccessError  = "access_error"
-	RelinquishFolderMembershipErrorFolderOwner  = "folder_owner"
-	RelinquishFolderMembershipErrorMounted      = "mounted"
-	RelinquishFolderMembershipErrorGroupAccess  = "group_access"
-	RelinquishFolderMembershipErrorTeamFolder   = "team_folder"
-	RelinquishFolderMembershipErrorNoPermission = "no_permission"
-	RelinquishFolderMembershipErrorOther        = "other"
+	RelinquishFolderMembershipErrorAccessError      = "access_error"
+	RelinquishFolderMembershipErrorFolderOwner      = "folder_owner"
+	RelinquishFolderMembershipErrorMounted          = "mounted"
+	RelinquishFolderMembershipErrorGroupAccess      = "group_access"
+	RelinquishFolderMembershipErrorTeamFolder       = "team_folder"
+	RelinquishFolderMembershipErrorNoPermission     = "no_permission"
+	RelinquishFolderMembershipErrorNoExplicitAccess = "no_explicit_access"
+	RelinquishFolderMembershipErrorOther            = "other"
 )
 
 // UnmarshalJSON deserializes into a RelinquishFolderMembershipError instance
@@ -3372,6 +3377,7 @@ const (
 	UnshareFolderErrorAccessError  = "access_error"
 	UnshareFolderErrorTeamFolder   = "team_folder"
 	UnshareFolderErrorNoPermission = "no_permission"
+	UnshareFolderErrorTooManyFiles = "too_many_files"
 	UnshareFolderErrorOther        = "other"
 )
 

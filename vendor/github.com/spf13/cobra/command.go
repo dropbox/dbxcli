@@ -109,10 +109,11 @@ type Command struct {
 
 	flagErrorBuf *bytes.Buffer
 
-	args          []string                 // actual args parsed from flags
-	output        *io.Writer               // out writer if set in SetOutput(w)
-	usageFunc     func(*Command) error     // Usage can be defined by application
-	usageTemplate string                   // Can be defined by Application
+	args          []string             // actual args parsed from flags
+	output        *io.Writer           // out writer if set in SetOutput(w)
+	usageFunc     func(*Command) error // Usage can be defined by application
+	usageTemplate string               // Can be defined by Application
+	flagErrorFunc func(*Command, error) error
 	helpTemplate  string                   // Can be defined by Application
 	helpFunc      func(*Command, []string) // Help can be defined by application
 	helpCommand   *Command                 // The help command
@@ -150,7 +151,13 @@ func (c *Command) SetUsageTemplate(s string) {
 	c.usageTemplate = s
 }
 
-// Can be defined by Application.
+// SetFlagErrorFunc sets a function to generate an error when flag parsing
+// fails
+func (c *Command) SetFlagErrorFunc(f func(*Command, error) error) {
+	c.flagErrorFunc = f
+}
+
+// Can be defined by Application
 func (c *Command) SetHelpFunc(f func(*Command, []string)) {
 	c.helpFunc = f
 }
@@ -224,12 +231,8 @@ func (c *Command) Usage() error {
 // HelpFunc returns either the function set by SetHelpFunc for this command
 // or a parent, or it returns a function with default help behavior.
 func (c *Command) HelpFunc() func(*Command, []string) {
-	cmd := c
-	for cmd != nil {
-		if cmd.helpFunc != nil {
-			return cmd.helpFunc
-		}
-		cmd = cmd.parent
+	if helpFunc := c.checkHelpFunc(); helpFunc != nil {
+		return helpFunc
 	}
 	return func(*Command, []string) {
 		c.mergePersistentFlags()
@@ -238,6 +241,20 @@ func (c *Command) HelpFunc() func(*Command, []string) {
 			c.Println(err)
 		}
 	}
+}
+
+// checkHelpFunc checks if there is helpFunc in ancestors of c.
+func (c *Command) checkHelpFunc() func(*Command, []string) {
+	if c == nil {
+		return nil
+	}
+	if c.helpFunc != nil {
+		return c.helpFunc
+	}
+	if c.HasParent() {
+		return c.parent.checkHelpFunc()
+	}
+	return nil
 }
 
 // Help puts out the help for the command.
@@ -255,6 +272,22 @@ func (c *Command) UsageString() string {
 	c.Usage()
 	c.output = tmpOutput
 	return bb.String()
+}
+
+// FlagErrorFunc returns either the function set by SetFlagErrorFunc for this
+// command or a parent, or it returns a function which returns the original
+// error.
+func (c *Command) FlagErrorFunc() (f func(*Command, error) error) {
+	if c.flagErrorFunc != nil {
+		return c.flagErrorFunc
+	}
+
+	if c.HasParent() {
+		return c.parent.FlagErrorFunc()
+	}
+	return func(c *Command, err error) error {
+		return err
+	}
 }
 
 var minUsagePadding = 25
@@ -553,7 +586,7 @@ func (c *Command) execute(a []string) (err error) {
 
 	err = c.ParseFlags(a)
 	if err != nil {
-		return err
+		return c.FlagErrorFunc()(c, err)
 	}
 	// If help is called, regardless of other flags, return we want help
 	// Also say we need help if the command isn't runnable.
@@ -712,6 +745,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 }
 
 func (c *Command) initHelpFlag() {
+	c.mergePersistentFlags()
 	if c.Flags().Lookup("help") == nil {
 		c.Flags().BoolP("help", "h", false, "help for "+c.Name())
 	}

@@ -21,6 +21,7 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -31,11 +32,91 @@ import (
 
 // Client interface describes all routes in this namespace
 type Client interface {
+	// TokenFromOauth1 : Creates an OAuth 2.0 access token from the supplied
+	// OAuth 1.0 access token.
+	TokenFromOauth1(arg *TokenFromOAuth1Arg) (res *TokenFromOAuth1Result, err error)
 	// TokenRevoke : Disables the access token used to authenticate the call.
 	TokenRevoke() (err error)
 }
 
 type apiImpl dropbox.Context
+
+//TokenFromOauth1APIError is an error-wrapper for the token/from_oauth1 route
+type TokenFromOauth1APIError struct {
+	dropbox.APIError
+	EndpointError *TokenFromOAuth1Error `json:"error"`
+}
+
+func (dbx *apiImpl) TokenFromOauth1(arg *TokenFromOAuth1Arg) (res *TokenFromOAuth1Result, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "auth", "token/from_oauth1"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.AsMemberID != "" {
+		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TokenFromOauth1APIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
 
 //TokenRevokeAPIError is an error-wrapper for the token/revoke route
 type TokenRevokeAPIError struct {

@@ -94,8 +94,8 @@ type Client interface {
 	// ListFileMembersBatch : Get members of multiple files at once. The
 	// arguments to this route are more limited, and the limit on query result
 	// size per file is more strict. To customize the results more, use the
-	// individual file endpoint. Inherited users are not included in the result,
-	// and permissions are not returned for this endpoint.
+	// individual file endpoint. Inherited users and groups are not included in
+	// the result, and permissions are not returned for this endpoint.
 	ListFileMembersBatch(arg *ListFileMembersBatchArg) (res []*ListFileMembersBatchResult, err error)
 	// ListFileMembersContinue : Once a cursor has been retrieved from
 	// `listFileMembers` or `listFileMembersBatch`, use this to paginate through

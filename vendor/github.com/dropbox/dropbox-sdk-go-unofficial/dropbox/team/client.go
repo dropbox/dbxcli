@@ -213,6 +213,40 @@ type Client interface {
 	// ReportsGetStorage : Retrieves reporting data about a team's storage
 	// usage.
 	ReportsGetStorage(arg *DateRange) (res *GetStorageReport, err error)
+	// TeamFolderActivate : Sets an archived team folder's status to active.
+	// This endpoint is only available to teams with `improved team folders`
+	// </help/986>. Permission : Team member file access.
+	TeamFolderActivate(arg *TeamFolderIdArg) (res *TeamFolderMetadata, err error)
+	// TeamFolderArchive : Sets an active team folder's status to archived and
+	// removes all folder and file members. This endpoint is only available to
+	// teams with `improved team folders` </help/986>. Permission : Team member
+	// file access.
+	TeamFolderArchive(arg *TeamFolderArchiveArg) (res *TeamFolderArchiveLaunch, err error)
+	// TeamFolderArchiveCheck : Returns the status of an asynchronous job for
+	// archiving a team folder. This endpoint is only available to teams with
+	// `improved team folders` </help/986>. Permission : Team member file
+	// access.
+	TeamFolderArchiveCheck(arg *async.PollArg) (res *TeamFolderArchiveJobStatus, err error)
+	// TeamFolderCreate : Creates a new, active, team folder. This endpoint is
+	// only available to teams with `improved team folders` </help/986>.
+	// Permission : Team member file access.
+	TeamFolderCreate(arg *TeamFolderCreateArg) (res *TeamFolderMetadata, err error)
+	// TeamFolderGetInfo : Retrieves metadata for team folders. This endpoint is
+	// only available to teams with `improved team folders` </help/986>.
+	// Permission : Team member file access.
+	TeamFolderGetInfo(arg *TeamFolderIdListArg) (res []*TeamFolderGetInfoItem, err error)
+	// TeamFolderList : Lists all team folders. This endpoint is only available
+	// to teams with `improved team folders` </help/986>. Permission : Team
+	// member file access.
+	TeamFolderList(arg *TeamFolderListArg) (res *TeamFolderListResult, err error)
+	// TeamFolderPermanentlyDelete : Permanently deletes an archived team
+	// folder. This endpoint is only available to teams with `improved team
+	// folders` </help/986>. Permission : Team member file access.
+	TeamFolderPermanentlyDelete(arg *TeamFolderIdArg) (err error)
+	// TeamFolderRename : Changes an active team folder's name. This endpoint is
+	// only available to teams with `improved team folders` </help/986>.
+	// Permission : Team member file access.
+	TeamFolderRename(arg *TeamFolderRenameArg) (res *TeamFolderMetadata, err error)
 }
 
 type apiImpl dropbox.Context
@@ -3774,6 +3808,593 @@ func (dbx *apiImpl) ReportsGetStorage(arg *DateRange) (res *GetStorageReport, er
 	}
 	if resp.StatusCode == http.StatusConflict {
 		var apiError ReportsGetStorageAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderActivateAPIError is an error-wrapper for the team_folder/activate route
+type TeamFolderActivateAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderActivateError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderActivate(arg *TeamFolderIdArg) (res *TeamFolderMetadata, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/activate"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderActivateAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderArchiveAPIError is an error-wrapper for the team_folder/archive route
+type TeamFolderArchiveAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderArchiveError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderArchive(arg *TeamFolderArchiveArg) (res *TeamFolderArchiveLaunch, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/archive"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderArchiveAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderArchiveCheckAPIError is an error-wrapper for the team_folder/archive/check route
+type TeamFolderArchiveCheckAPIError struct {
+	dropbox.APIError
+	EndpointError *async.PollError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderArchiveCheck(arg *async.PollArg) (res *TeamFolderArchiveJobStatus, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/archive/check"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderArchiveCheckAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderCreateAPIError is an error-wrapper for the team_folder/create route
+type TeamFolderCreateAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderCreateError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderCreate(arg *TeamFolderCreateArg) (res *TeamFolderMetadata, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/create"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderCreateAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderGetInfoAPIError is an error-wrapper for the team_folder/get_info route
+type TeamFolderGetInfoAPIError struct {
+	dropbox.APIError
+	EndpointError struct{} `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderGetInfo(arg *TeamFolderIdListArg) (res []*TeamFolderGetInfoItem, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/get_info"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderGetInfoAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderListAPIError is an error-wrapper for the team_folder/list route
+type TeamFolderListAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderListError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderList(arg *TeamFolderListArg) (res *TeamFolderListResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/list"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderListAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderPermanentlyDeleteAPIError is an error-wrapper for the team_folder/permanently_delete route
+type TeamFolderPermanentlyDeleteAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderPermanentlyDeleteError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderPermanentlyDelete(arg *TeamFolderIdArg) (err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/permanently_delete"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderPermanentlyDeleteAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TeamFolderRenameAPIError is an error-wrapper for the team_folder/rename route
+type TeamFolderRenameAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderRenameError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderRename(arg *TeamFolderRenameArg) (res *TeamFolderMetadata, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/rename"), bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderRenameAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
