@@ -41,13 +41,15 @@ ${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old
 echo "Testing restore"
 ${dbxcli} restore ${d}/dbxcli ${rev}
 
-echo "Testing rmdir"
-${dbxcli} rmdir ${d}
+echo "Testing rm -f"
+${dbxcli} rm -f ${d}
 
 echo "Testing share commands"
 
-echo "Testing share list folders"
-${dbxcli} share list folders
+echo "Testing share list folder"
+${dbxcli} share list folder
+echo "Testing share list link"
+${dbxcli} share list link
 
 echo "Testing team commands"
 echo "Testing team info"
