@@ -2,12 +2,24 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.3.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.4.0...HEAD)
 
 **Closed issues:**
 
-- Make `ls` list files in multiple columns [\#17](https://github.com/dropbox/dbxcli/issues/17)
-- Add `logout` or `revoke` command [\#16](https://github.com/dropbox/dbxcli/issues/16)
+- build instructions in readme [\#57](https://github.com/dropbox/dbxcli/issues/57)
+- Authorization error - app has reached its team limit [\#47](https://github.com/dropbox/dbxcli/issues/47)
+- `search` should show a full path to matching files [\#42](https://github.com/dropbox/dbxcli/issues/42)
+- Recursive and force flags for rm [\#26](https://github.com/dropbox/dbxcli/issues/26)
+
+**Merged pull requests:**
+
+- Display full path [\#55](https://github.com/dropbox/dbxcli/pull/55) ([hut8](https://github.com/hut8))
+- Add multiple args to rm [\#49](https://github.com/dropbox/dbxcli/pull/49) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Update Golumns package [\#48](https://github.com/dropbox/dbxcli/pull/48) ([GrantSeltzer](https://github.com/GrantSeltzer))
+- Add force flag for `rm`ing non-empty directories, remove `rmdir` [\#43](https://github.com/dropbox/dbxcli/pull/43) ([GrantSeltzer](https://github.com/GrantSeltzer))
+
+## [v1.4.0](https://github.com/dropbox/dbxcli/tree/v1.4.0) (2016-08-01)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.3.0...v1.4.0)
 
 **Merged pull requests:**
 
@@ -27,6 +39,8 @@
 
 - Have seperate commands for `rm` and `rmdir` [\#25](https://github.com/dropbox/dbxcli/issues/25)
 - `put` command is sending wrong client\_modified timestamp [\#20](https://github.com/dropbox/dbxcli/issues/20)
+- Make `ls` list files in multiple columns [\#17](https://github.com/dropbox/dbxcli/issues/17)
+- Add `logout` or `revoke` command [\#16](https://github.com/dropbox/dbxcli/issues/16)
 
 **Merged pull requests:**
 
@@ -69,12 +83,12 @@
 ## [v0.6.0](https://github.com/dropbox/dbxcli/tree/v0.6.0) (2016-03-19)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.5.0...v0.6.0)
 
+## [v0.5.0](https://github.com/dropbox/dbxcli/tree/v0.5.0) (2016-03-16)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.4.0...v0.5.0)
+
 **Closed issues:**
 
 - Improve \(or add?\) error handling [\#1](https://github.com/dropbox/dbxcli/issues/1)
-
-## [v0.5.0](https://github.com/dropbox/dbxcli/tree/v0.5.0) (2016-03-16)
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.4.0...v0.5.0)
 
 ## [v0.4.0](https://github.com/dropbox/dbxcli/tree/v0.4.0) (2016-03-15)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v0.3.0...v0.4.0)
