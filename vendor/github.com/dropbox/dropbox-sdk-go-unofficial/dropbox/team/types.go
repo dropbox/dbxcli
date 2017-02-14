@@ -642,26 +642,30 @@ func (u *GroupMembersAddError) UnmarshalJSON(body []byte) error {
 		UserCannotBeManagerOfCompanyManagedGroup json.RawMessage `json:"user_cannot_be_manager_of_company_managed_group,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "members_not_in_team":
-		if err := json.Unmarshal(body, &u.MembersNotInTeam); err != nil {
+		err = json.Unmarshal(body, &u.MembersNotInTeam)
+
+		if err != nil {
 			return err
 		}
-
 	case "users_not_found":
-		if err := json.Unmarshal(body, &u.UsersNotFound); err != nil {
+		err = json.Unmarshal(body, &u.UsersNotFound)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_cannot_be_manager_of_company_managed_group":
-		if err := json.Unmarshal(body, &u.UserCannotBeManagerOfCompanyManagedGroup); err != nil {
+		err = json.Unmarshal(body, &u.UserCannotBeManagerOfCompanyManagedGroup)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -784,21 +788,24 @@ func (u *GroupSelector) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "group_id":
-		if err := json.Unmarshal(body, &u.GroupId); err != nil {
+		err = json.Unmarshal(body, &u.GroupId)
+
+		if err != nil {
 			return err
 		}
-
 	case "group_external_id":
-		if err := json.Unmarshal(body, &u.GroupExternalId); err != nil {
+		err = json.Unmarshal(body, &u.GroupExternalId)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -874,21 +881,24 @@ func (u *GroupsGetInfoItem) UnmarshalJSON(body []byte) error {
 		GroupInfo json.RawMessage `json:"group_info,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "id_not_found":
-		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+		err = json.Unmarshal(body, &u.IdNotFound)
+
+		if err != nil {
 			return err
 		}
-
 	case "group_info":
-		if err := json.Unmarshal(body, &u.GroupInfo); err != nil {
+		err = json.Unmarshal(body, &u.GroupInfo)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1050,21 +1060,24 @@ func (u *GroupsSelector) UnmarshalJSON(body []byte) error {
 		GroupExternalIds json.RawMessage `json:"group_external_ids,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "group_ids":
-		if err := json.Unmarshal(body, &u.GroupIds); err != nil {
+		err = json.Unmarshal(body, &u.GroupIds)
+
+		if err != nil {
 			return err
 		}
-
 	case "group_external_ids":
-		if err := json.Unmarshal(body, &u.GroupExternalIds); err != nil {
+		err = json.Unmarshal(body, &u.GroupExternalIds)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1464,56 +1477,66 @@ func (u *MemberAddResult) UnmarshalJSON(body []byte) error {
 		Success json.RawMessage `json:"success,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "success":
-		if err := json.Unmarshal(body, &u.Success); err != nil {
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
 			return err
 		}
-
 	case "team_license_limit":
-		if err := json.Unmarshal(body, &u.TeamLicenseLimit); err != nil {
+		err = json.Unmarshal(body, &u.TeamLicenseLimit)
+
+		if err != nil {
 			return err
 		}
-
 	case "free_team_member_limit_reached":
-		if err := json.Unmarshal(body, &u.FreeTeamMemberLimitReached); err != nil {
+		err = json.Unmarshal(body, &u.FreeTeamMemberLimitReached)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_already_on_team":
-		if err := json.Unmarshal(body, &u.UserAlreadyOnTeam); err != nil {
+		err = json.Unmarshal(body, &u.UserAlreadyOnTeam)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_on_another_team":
-		if err := json.Unmarshal(body, &u.UserOnAnotherTeam); err != nil {
+		err = json.Unmarshal(body, &u.UserOnAnotherTeam)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_already_paired":
-		if err := json.Unmarshal(body, &u.UserAlreadyPaired); err != nil {
+		err = json.Unmarshal(body, &u.UserAlreadyPaired)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_migration_failed":
-		if err := json.Unmarshal(body, &u.UserMigrationFailed); err != nil {
+		err = json.Unmarshal(body, &u.UserMigrationFailed)
+
+		if err != nil {
 			return err
 		}
-
 	case "duplicate_external_member_id":
-		if err := json.Unmarshal(body, &u.DuplicateExternalMemberId); err != nil {
+		err = json.Unmarshal(body, &u.DuplicateExternalMemberId)
+
+		if err != nil {
 			return err
 		}
-
 	case "user_creation_failed":
-		if err := json.Unmarshal(body, &u.UserCreationFailed); err != nil {
+		err = json.Unmarshal(body, &u.UserCreationFailed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1655,21 +1678,24 @@ func (u *MembersAddJobStatus) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(body, &u.Failed); err != nil {
+		err = json.Unmarshal(body, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1694,16 +1720,18 @@ func (u *MembersAddLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1786,21 +1814,24 @@ func (u *MembersGetInfoItem) UnmarshalJSON(body []byte) error {
 		MemberInfo json.RawMessage `json:"member_info,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "id_not_found":
-		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+		err = json.Unmarshal(body, &u.IdNotFound)
+
+		if err != nil {
 			return err
 		}
-
 	case "member_info":
-		if err := json.Unmarshal(body, &u.MemberInfo); err != nil {
+		err = json.Unmarshal(body, &u.MemberInfo)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2184,26 +2215,30 @@ func (u *RevokeDeviceSessionArg) UnmarshalJSON(body []byte) error {
 		MobileClient json.RawMessage `json:"mobile_client,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "web_session":
-		if err := json.Unmarshal(body, &u.WebSession); err != nil {
+		err = json.Unmarshal(body, &u.WebSession)
+
+		if err != nil {
 			return err
 		}
-
 	case "desktop_client":
-		if err := json.Unmarshal(body, &u.DesktopClient); err != nil {
+		err = json.Unmarshal(body, &u.DesktopClient)
+
+		if err != nil {
 			return err
 		}
-
 	case "mobile_client":
-		if err := json.Unmarshal(body, &u.MobileClient); err != nil {
+		err = json.Unmarshal(body, &u.MobileClient)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2411,21 +2446,24 @@ func (u *TeamFolderActivateError) UnmarshalJSON(body []byte) error {
 		StatusError json.RawMessage `json:"status_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "status_error":
-		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+		err = json.Unmarshal(w.StatusError, &u.StatusError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2484,21 +2522,24 @@ func (u *TeamFolderArchiveError) UnmarshalJSON(body []byte) error {
 		StatusError json.RawMessage `json:"status_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "status_error":
-		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+		err = json.Unmarshal(w.StatusError, &u.StatusError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2532,21 +2573,24 @@ func (u *TeamFolderArchiveJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2571,16 +2615,18 @@ func (u *TeamFolderArchiveLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2634,21 +2680,24 @@ func (u *TeamFolderGetInfoItem) UnmarshalJSON(body []byte) error {
 		TeamFolderMetadata json.RawMessage `json:"team_folder_metadata,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "id_not_found":
-		if err := json.Unmarshal(body, &u.IdNotFound); err != nil {
+		err = json.Unmarshal(body, &u.IdNotFound)
+
+		if err != nil {
 			return err
 		}
-
 	case "team_folder_metadata":
-		if err := json.Unmarshal(body, &u.TeamFolderMetadata); err != nil {
+		err = json.Unmarshal(body, &u.TeamFolderMetadata)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2762,21 +2811,24 @@ func (u *TeamFolderPermanentlyDeleteError) UnmarshalJSON(body []byte) error {
 		StatusError json.RawMessage `json:"status_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "status_error":
-		if err := json.Unmarshal(w.StatusError, &u.StatusError); err != nil {
+		err = json.Unmarshal(w.StatusError, &u.StatusError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2819,16 +2871,18 @@ func (u *TeamFolderRenameError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2932,16 +2986,18 @@ func (u *TeamMemberStatus) UnmarshalJSON(body []byte) error {
 		Removed json.RawMessage `json:"removed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "removed":
-		if err := json.Unmarshal(body, &u.Removed); err != nil {
+		err = json.Unmarshal(body, &u.Removed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3019,26 +3075,30 @@ func (u *UserSelectorArg) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "team_member_id":
-		if err := json.Unmarshal(body, &u.TeamMemberId); err != nil {
+		err = json.Unmarshal(body, &u.TeamMemberId)
+
+		if err != nil {
 			return err
 		}
-
 	case "external_id":
-		if err := json.Unmarshal(body, &u.ExternalId); err != nil {
+		err = json.Unmarshal(body, &u.ExternalId)
+
+		if err != nil {
 			return err
 		}
-
 	case "email":
-		if err := json.Unmarshal(body, &u.Email); err != nil {
+		err = json.Unmarshal(body, &u.Email)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3074,26 +3134,30 @@ func (u *UsersSelectorArg) UnmarshalJSON(body []byte) error {
 		Emails json.RawMessage `json:"emails,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "team_member_ids":
-		if err := json.Unmarshal(body, &u.TeamMemberIds); err != nil {
+		err = json.Unmarshal(body, &u.TeamMemberIds)
+
+		if err != nil {
 			return err
 		}
-
 	case "external_ids":
-		if err := json.Unmarshal(body, &u.ExternalIds); err != nil {
+		err = json.Unmarshal(body, &u.ExternalIds)
+
+		if err != nil {
 			return err
 		}
-
 	case "emails":
-		if err := json.Unmarshal(body, &u.Emails); err != nil {
+		err = json.Unmarshal(body, &u.Emails)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

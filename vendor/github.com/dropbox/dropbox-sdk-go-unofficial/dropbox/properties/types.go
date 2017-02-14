@@ -113,16 +113,18 @@ func (u *PropertyTemplateError) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "template_not_found":
-		if err := json.Unmarshal(body, &u.TemplateNotFound); err != nil {
+		err = json.Unmarshal(body, &u.TemplateNotFound)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

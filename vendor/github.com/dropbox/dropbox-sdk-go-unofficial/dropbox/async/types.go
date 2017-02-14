@@ -51,16 +51,18 @@ func (u *LaunchResultBase) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "async_job_id":
-		if err := json.Unmarshal(body, &u.AsyncJobId); err != nil {
+		err = json.Unmarshal(body, &u.AsyncJobId)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

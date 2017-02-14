@@ -50,16 +50,18 @@ func (u *PropertiesError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -149,16 +151,18 @@ func (u *GetMetadataError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -183,16 +187,18 @@ func (u *AlphaGetMetadataError) UnmarshalJSON(body []byte) error {
 		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "properties_error":
-		if err := json.Unmarshal(w.PropertiesError, &u.PropertiesError); err != nil {
+		err = json.Unmarshal(w.PropertiesError, &u.PropertiesError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -283,16 +289,18 @@ func (u *CreateFolderError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -360,21 +368,24 @@ func (u *DeleteBatchJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -401,16 +412,18 @@ func (u *DeleteBatchLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -453,21 +466,24 @@ func (u *DeleteBatchResultEntry) UnmarshalJSON(body []byte) error {
 		Failure json.RawMessage `json:"failure,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "success":
-		if err := json.Unmarshal(body, &u.Success); err != nil {
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
 			return err
 		}
-
 	case "failure":
-		if err := json.Unmarshal(w.Failure, &u.Failure); err != nil {
+		err = json.Unmarshal(w.Failure, &u.Failure)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -498,21 +514,24 @@ func (u *DeleteError) UnmarshalJSON(body []byte) error {
 		PathWrite json.RawMessage `json:"path_write,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path_lookup":
-		if err := json.Unmarshal(w.PathLookup, &u.PathLookup); err != nil {
+		err = json.Unmarshal(w.PathLookup, &u.PathLookup)
+
+		if err != nil {
 			return err
 		}
-
 	case "path_write":
-		if err := json.Unmarshal(w.PathWrite, &u.PathWrite); err != nil {
+		err = json.Unmarshal(w.PathWrite, &u.PathWrite)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -596,28 +615,52 @@ func (u *metadataUnion) UnmarshalJSON(body []byte) error {
 		Deleted json.RawMessage `json:"deleted,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "file":
-		if err := json.Unmarshal(body, &u.File); err != nil {
+		err = json.Unmarshal(body, &u.File)
+
+		if err != nil {
 			return err
 		}
-
 	case "folder":
-		if err := json.Unmarshal(body, &u.Folder); err != nil {
+		err = json.Unmarshal(body, &u.Folder)
+
+		if err != nil {
 			return err
 		}
-
 	case "deleted":
-		if err := json.Unmarshal(body, &u.Deleted); err != nil {
+		err = json.Unmarshal(body, &u.Deleted)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
+}
+
+// IsMetadataFromJSON converts JSON to a concrete IsMetadata instance
+func IsMetadataFromJSON(data []byte) (IsMetadata, error) {
+	var t metadataUnion
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil, err
+	}
+	switch t.Tag {
+	case "file":
+		return t.File, nil
+
+	case "folder":
+		return t.Folder, nil
+
+	case "deleted":
+		return t.Deleted, nil
+
+	}
+	return nil, nil
 }
 
 // DeletedMetadata : Indicates that there used to be a file or folder at this
@@ -685,16 +728,18 @@ func (u *DownloadError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -864,16 +909,18 @@ func (u *GetCopyReferenceError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -933,16 +980,18 @@ func (u *GetTemporaryLinkError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1046,16 +1095,18 @@ func (u *ListFolderContinueError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1081,16 +1132,18 @@ func (u *ListFolderError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1216,16 +1269,18 @@ func (u *ListRevisionsError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1287,21 +1342,24 @@ func (u *LookupError) UnmarshalJSON(body []byte) error {
 		InvalidPathRoot json.RawMessage `json:"invalid_path_root,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "malformed_path":
-		if err := json.Unmarshal(body, &u.MalformedPath); err != nil {
+		err = json.Unmarshal(body, &u.MalformedPath)
+
+		if err != nil {
 			return err
 		}
-
 	case "invalid_path_root":
-		if err := json.Unmarshal(body, &u.InvalidPathRoot); err != nil {
+		err = json.Unmarshal(body, &u.InvalidPathRoot)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1327,16 +1385,18 @@ func (u *MediaInfo) UnmarshalJSON(body []byte) error {
 		Metadata json.RawMessage `json:"metadata,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "metadata":
-		if err := json.Unmarshal(body, &u.Metadata); err != nil {
+		u.Metadata, err = IsMediaMetadataFromJSON(body)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1389,23 +1449,43 @@ func (u *mediaMetadataUnion) UnmarshalJSON(body []byte) error {
 		Video json.RawMessage `json:"video,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "photo":
-		if err := json.Unmarshal(body, &u.Photo); err != nil {
+		err = json.Unmarshal(body, &u.Photo)
+
+		if err != nil {
 			return err
 		}
-
 	case "video":
-		if err := json.Unmarshal(body, &u.Video); err != nil {
+		err = json.Unmarshal(body, &u.Video)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
+}
+
+// IsMediaMetadataFromJSON converts JSON to a concrete IsMediaMetadata instance
+func IsMediaMetadataFromJSON(data []byte) (IsMediaMetadata, error) {
+	var t mediaMetadataUnion
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil, err
+	}
+	switch t.Tag {
+	case "photo":
+		return t.Photo, nil
+
+	case "video":
+		return t.Video, nil
+
+	}
+	return nil, nil
 }
 
 // PathRootError : has no documentation (yet)
@@ -1470,16 +1550,18 @@ func (u *PreviewError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1617,26 +1699,30 @@ func (u *RelocationError) UnmarshalJSON(body []byte) error {
 		To json.RawMessage `json:"to,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "from_lookup":
-		if err := json.Unmarshal(w.FromLookup, &u.FromLookup); err != nil {
+		err = json.Unmarshal(w.FromLookup, &u.FromLookup)
+
+		if err != nil {
 			return err
 		}
-
 	case "from_write":
-		if err := json.Unmarshal(w.FromWrite, &u.FromWrite); err != nil {
+		err = json.Unmarshal(w.FromWrite, &u.FromWrite)
+
+		if err != nil {
 			return err
 		}
-
 	case "to":
-		if err := json.Unmarshal(w.To, &u.To); err != nil {
+		err = json.Unmarshal(w.To, &u.To)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1677,21 +1763,24 @@ func (u *RelocationBatchJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1718,16 +1807,18 @@ func (u *RelocationBatchLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1795,16 +1886,18 @@ func (u *RemovePropertiesError) UnmarshalJSON(body []byte) error {
 		PropertyGroupLookup json.RawMessage `json:"property_group_lookup,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "property_group_lookup":
-		if err := json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup); err != nil {
+		err = json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1853,21 +1946,24 @@ func (u *RestoreError) UnmarshalJSON(body []byte) error {
 		PathWrite json.RawMessage `json:"path_write,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path_lookup":
-		if err := json.Unmarshal(w.PathLookup, &u.PathLookup); err != nil {
+		err = json.Unmarshal(w.PathLookup, &u.PathLookup)
+
+		if err != nil {
 			return err
 		}
-
 	case "path_write":
-		if err := json.Unmarshal(w.PathWrite, &u.PathWrite); err != nil {
+		err = json.Unmarshal(w.PathWrite, &u.PathWrite)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1913,16 +2009,18 @@ func (u *SaveCopyReferenceError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1981,16 +2079,18 @@ func (u *SaveUrlError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2020,21 +2120,24 @@ func (u *SaveUrlJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2059,16 +2162,18 @@ func (u *SaveUrlResult) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2124,16 +2229,18 @@ func (u *SearchError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2243,16 +2350,18 @@ func (u *ThumbnailError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2302,16 +2411,18 @@ func (u *UpdatePropertiesError) UnmarshalJSON(body []byte) error {
 		PropertyGroupLookup json.RawMessage `json:"property_group_lookup,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "property_group_lookup":
-		if err := json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup); err != nil {
+		err = json.Unmarshal(w.PropertyGroupLookup, &u.PropertyGroupLookup)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2354,16 +2465,18 @@ func (u *UploadError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(body, &u.Path); err != nil {
+		err = json.Unmarshal(body, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2388,16 +2501,18 @@ func (u *UploadErrorWithProperties) UnmarshalJSON(body []byte) error {
 		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "properties_error":
-		if err := json.Unmarshal(w.PropertiesError, &u.PropertiesError); err != nil {
+		err = json.Unmarshal(w.PropertiesError, &u.PropertiesError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2487,16 +2602,18 @@ func (u *UploadSessionFinishBatchJobStatus) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2524,16 +2641,18 @@ func (u *UploadSessionFinishBatchLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2576,21 +2695,24 @@ func (u *UploadSessionFinishBatchResultEntry) UnmarshalJSON(body []byte) error {
 		Failure json.RawMessage `json:"failure,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "success":
-		if err := json.Unmarshal(body, &u.Success); err != nil {
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
 			return err
 		}
-
 	case "failure":
-		if err := json.Unmarshal(w.Failure, &u.Failure); err != nil {
+		err = json.Unmarshal(w.Failure, &u.Failure)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2624,21 +2746,24 @@ func (u *UploadSessionFinishError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "lookup_failed":
-		if err := json.Unmarshal(w.LookupFailed, &u.LookupFailed); err != nil {
+		err = json.Unmarshal(w.LookupFailed, &u.LookupFailed)
+
+		if err != nil {
 			return err
 		}
-
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2673,16 +2798,18 @@ func (u *UploadSessionLookupError) UnmarshalJSON(body []byte) error {
 		IncorrectOffset json.RawMessage `json:"incorrect_offset,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "incorrect_offset":
-		if err := json.Unmarshal(body, &u.IncorrectOffset); err != nil {
+		err = json.Unmarshal(body, &u.IncorrectOffset)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2803,21 +2930,24 @@ func (u *WriteError) UnmarshalJSON(body []byte) error {
 		Conflict json.RawMessage `json:"conflict,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "malformed_path":
-		if err := json.Unmarshal(body, &u.MalformedPath); err != nil {
+		err = json.Unmarshal(body, &u.MalformedPath)
+
+		if err != nil {
 			return err
 		}
-
 	case "conflict":
-		if err := json.Unmarshal(w.Conflict, &u.Conflict); err != nil {
+		err = json.Unmarshal(w.Conflict, &u.Conflict)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2852,16 +2982,18 @@ func (u *WriteMode) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "update":
-		if err := json.Unmarshal(body, &u.Update); err != nil {
+		err = json.Unmarshal(body, &u.Update)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

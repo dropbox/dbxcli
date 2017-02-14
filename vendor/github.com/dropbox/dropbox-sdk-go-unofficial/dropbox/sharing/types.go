@@ -120,21 +120,24 @@ func (u *AddFileMemberError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -205,31 +208,36 @@ func (u *AddFolderMemberError) UnmarshalJSON(body []byte) error {
 		BadMember json.RawMessage `json:"bad_member,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "bad_member":
-		if err := json.Unmarshal(w.BadMember, &u.BadMember); err != nil {
+		err = json.Unmarshal(w.BadMember, &u.BadMember)
+
+		if err != nil {
 			return err
 		}
-
 	case "too_many_members":
-		if err := json.Unmarshal(body, &u.TooManyMembers); err != nil {
+		err = json.Unmarshal(body, &u.TooManyMembers)
+
+		if err != nil {
 			return err
 		}
-
 	case "too_many_pending_invites":
-		if err := json.Unmarshal(body, &u.TooManyPendingInvites); err != nil {
+		err = json.Unmarshal(body, &u.TooManyPendingInvites)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -282,26 +290,30 @@ func (u *AddMemberSelectorError) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "invalid_dropbox_id":
-		if err := json.Unmarshal(body, &u.InvalidDropboxId); err != nil {
+		err = json.Unmarshal(body, &u.InvalidDropboxId)
+
+		if err != nil {
 			return err
 		}
-
 	case "invalid_email":
-		if err := json.Unmarshal(body, &u.InvalidEmail); err != nil {
+		err = json.Unmarshal(body, &u.InvalidEmail)
+
+		if err != nil {
 			return err
 		}
-
 	case "unverified_dropbox_id":
-		if err := json.Unmarshal(body, &u.UnverifiedDropboxId); err != nil {
+		err = json.Unmarshal(body, &u.UnverifiedDropboxId)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -376,23 +388,43 @@ func (u *linkMetadataUnion) UnmarshalJSON(body []byte) error {
 		Collection json.RawMessage `json:"collection,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(body, &u.Path); err != nil {
+		err = json.Unmarshal(body, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	case "collection":
-		if err := json.Unmarshal(body, &u.Collection); err != nil {
+		err = json.Unmarshal(body, &u.Collection)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
+}
+
+// IsLinkMetadataFromJSON converts JSON to a concrete IsLinkMetadata instance
+func IsLinkMetadataFromJSON(data []byte) (IsLinkMetadata, error) {
+	var t linkMetadataUnion
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil, err
+	}
+	switch t.Tag {
+	case "path":
+		return t.Path, nil
+
+	case "collection":
+		return t.Collection, nil
+
+	}
+	return nil, nil
 }
 
 // CollectionLinkMetadata : Metadata for a collection-based shared link.
@@ -449,16 +481,18 @@ func (u *CreateSharedLinkError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -506,21 +540,24 @@ func (u *CreateSharedLinkWithSettingsError) UnmarshalJSON(body []byte) error {
 		SettingsError json.RawMessage `json:"settings_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	case "settings_error":
-		if err := json.Unmarshal(w.SettingsError, &u.SettingsError); err != nil {
+		err = json.Unmarshal(w.SettingsError, &u.SettingsError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -569,26 +606,30 @@ func (u *FileErrorResult) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "file_not_found_error":
-		if err := json.Unmarshal(body, &u.FileNotFoundError); err != nil {
+		err = json.Unmarshal(body, &u.FileNotFoundError)
+
+		if err != nil {
 			return err
 		}
-
 	case "invalid_file_action_error":
-		if err := json.Unmarshal(body, &u.InvalidFileActionError); err != nil {
+		err = json.Unmarshal(body, &u.InvalidFileActionError)
+
+		if err != nil {
 			return err
 		}
-
 	case "permission_denied_error":
-		if err := json.Unmarshal(body, &u.PermissionDeniedError); err != nil {
+		err = json.Unmarshal(body, &u.PermissionDeniedError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -660,23 +701,43 @@ func (u *sharedLinkMetadataUnion) UnmarshalJSON(body []byte) error {
 		Folder json.RawMessage `json:"folder,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "file":
-		if err := json.Unmarshal(body, &u.File); err != nil {
+		err = json.Unmarshal(body, &u.File)
+
+		if err != nil {
 			return err
 		}
-
 	case "folder":
-		if err := json.Unmarshal(body, &u.Folder); err != nil {
+		err = json.Unmarshal(body, &u.Folder)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
+}
+
+// IsSharedLinkMetadataFromJSON converts JSON to a concrete IsSharedLinkMetadata instance
+func IsSharedLinkMetadataFromJSON(data []byte) (IsSharedLinkMetadata, error) {
+	var t sharedLinkMetadataUnion
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil, err
+	}
+	switch t.Tag {
+	case "file":
+		return t.File, nil
+
+	case "folder":
+		return t.Folder, nil
+
+	}
+	return nil, nil
 }
 
 // FileLinkMetadata : The metadata of a file shared link
@@ -735,16 +796,18 @@ func (u *FileMemberActionError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -777,21 +840,24 @@ func (u *FileMemberActionIndividualResult) UnmarshalJSON(body []byte) error {
 		MemberError json.RawMessage `json:"member_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "success":
-		if err := json.Unmarshal(body, &u.Success); err != nil {
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
 			return err
 		}
-
 	case "member_error":
-		if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+		err = json.Unmarshal(w.MemberError, &u.MemberError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -839,21 +905,24 @@ func (u *FileMemberRemoveActionResult) UnmarshalJSON(body []byte) error {
 		MemberError json.RawMessage `json:"member_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "success":
-		if err := json.Unmarshal(body, &u.Success); err != nil {
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
 			return err
 		}
-
 	case "member_error":
-		if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+		err = json.Unmarshal(w.MemberError, &u.MemberError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1034,21 +1103,24 @@ func (u *GetFileMetadataError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1079,21 +1151,24 @@ func (u *GetFileMetadataIndividualResult) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "metadata":
-		if err := json.Unmarshal(body, &u.Metadata); err != nil {
+		err = json.Unmarshal(body, &u.Metadata)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1191,16 +1266,18 @@ func (u *GetSharedLinksError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(body, &u.Path); err != nil {
+		err = json.Unmarshal(body, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1323,16 +1400,18 @@ func (u *InviteeInfo) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "email":
-		if err := json.Unmarshal(body, &u.Email); err != nil {
+		err = json.Unmarshal(body, &u.Email)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1394,26 +1473,30 @@ func (u *JobError) UnmarshalJSON(body []byte) error {
 		RelinquishFolderMembershipError json.RawMessage `json:"relinquish_folder_membership_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "unshare_folder_error":
-		if err := json.Unmarshal(w.UnshareFolderError, &u.UnshareFolderError); err != nil {
+		err = json.Unmarshal(w.UnshareFolderError, &u.UnshareFolderError)
+
+		if err != nil {
 			return err
 		}
-
 	case "remove_folder_member_error":
-		if err := json.Unmarshal(w.RemoveFolderMemberError, &u.RemoveFolderMemberError); err != nil {
+		err = json.Unmarshal(w.RemoveFolderMemberError, &u.RemoveFolderMemberError)
+
+		if err != nil {
 			return err
 		}
-
 	case "relinquish_folder_membership_error":
-		if err := json.Unmarshal(w.RelinquishFolderMembershipError, &u.RelinquishFolderMembershipError); err != nil {
+		err = json.Unmarshal(w.RelinquishFolderMembershipError, &u.RelinquishFolderMembershipError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1439,16 +1522,18 @@ func (u *JobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1577,21 +1662,24 @@ func (u *ListFileMembersContinueError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1639,21 +1727,24 @@ func (u *ListFileMembersError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1685,21 +1776,24 @@ func (u *ListFileMembersIndividualResult) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "result":
-		if err := json.Unmarshal(body, &u.Result); err != nil {
+		err = json.Unmarshal(body, &u.Result)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1755,16 +1849,18 @@ func (u *ListFilesContinueError) UnmarshalJSON(body []byte) error {
 		UserError json.RawMessage `json:"user_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1853,16 +1949,18 @@ func (u *ListFolderMembersContinueError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -1969,16 +2067,18 @@ func (u *ListSharedLinksError) UnmarshalJSON(body []byte) error {
 		Path json.RawMessage `json:"path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "path":
-		if err := json.Unmarshal(w.Path, &u.Path); err != nil {
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2096,21 +2196,24 @@ func (u *MemberSelector) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "dropbox_id":
-		if err := json.Unmarshal(body, &u.DropboxId); err != nil {
+		err = json.Unmarshal(body, &u.DropboxId)
+
+		if err != nil {
 			return err
 		}
-
 	case "email":
-		if err := json.Unmarshal(body, &u.Email); err != nil {
+		err = json.Unmarshal(body, &u.Email)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2156,16 +2259,18 @@ func (u *ModifySharedLinkSettingsError) UnmarshalJSON(body []byte) error {
 		SettingsError json.RawMessage `json:"settings_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "settings_error":
-		if err := json.Unmarshal(w.SettingsError, &u.SettingsError); err != nil {
+		err = json.Unmarshal(w.SettingsError, &u.SettingsError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2215,21 +2320,24 @@ func (u *MountFolderError) UnmarshalJSON(body []byte) error {
 		InsufficientQuota json.RawMessage `json:"insufficient_quota,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "insufficient_quota":
-		if err := json.Unmarshal(body, &u.InsufficientQuota); err != nil {
+		err = json.Unmarshal(body, &u.InsufficientQuota)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2335,16 +2443,18 @@ func (u *RelinquishFileMembershipError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2393,16 +2503,18 @@ func (u *RelinquishFolderMembershipError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2460,26 +2572,30 @@ func (u *RemoveFileMemberError) UnmarshalJSON(body []byte) error {
 		NoExplicitAccess json.RawMessage `json:"no_explicit_access,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "no_explicit_access":
-		if err := json.Unmarshal(body, &u.NoExplicitAccess); err != nil {
+		err = json.Unmarshal(body, &u.NoExplicitAccess)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2536,21 +2652,24 @@ func (u *RemoveFolderMemberError) UnmarshalJSON(body []byte) error {
 		MemberError json.RawMessage `json:"member_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "member_error":
-		if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+		err = json.Unmarshal(w.MemberError, &u.MemberError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2582,21 +2701,24 @@ func (u *RemoveMemberJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2708,16 +2830,18 @@ func (u *ShareFolderErrorBase) UnmarshalJSON(body []byte) error {
 		BadPath json.RawMessage `json:"bad_path,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "bad_path":
-		if err := json.Unmarshal(w.BadPath, &u.BadPath); err != nil {
+		err = json.Unmarshal(w.BadPath, &u.BadPath)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2759,21 +2883,24 @@ func (u *ShareFolderJobStatus) UnmarshalJSON(body []byte) error {
 		Failed json.RawMessage `json:"failed,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	case "failed":
-		if err := json.Unmarshal(w.Failed, &u.Failed); err != nil {
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2798,16 +2925,18 @@ func (u *ShareFolderLaunch) UnmarshalJSON(body []byte) error {
 		Complete json.RawMessage `json:"complete,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "complete":
-		if err := json.Unmarshal(body, &u.Complete); err != nil {
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2852,21 +2981,24 @@ func (u *SharePathError) UnmarshalJSON(body []byte) error {
 		InvalidPathRoot json.RawMessage `json:"invalid_path_root,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "already_shared":
-		if err := json.Unmarshal(body, &u.AlreadyShared); err != nil {
+		err = json.Unmarshal(body, &u.AlreadyShared)
+
+		if err != nil {
 			return err
 		}
-
 	case "invalid_path_root":
-		if err := json.Unmarshal(body, &u.InvalidPathRoot); err != nil {
+		err = json.Unmarshal(body, &u.InvalidPathRoot)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -2981,16 +3113,18 @@ func (u *SharedFolderMemberError) UnmarshalJSON(body []byte) error {
 		NoExplicitAccess json.RawMessage `json:"no_explicit_access,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "no_explicit_access":
-		if err := json.Unmarshal(body, &u.NoExplicitAccess); err != nil {
+		err = json.Unmarshal(body, &u.NoExplicitAccess)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3224,16 +3358,18 @@ func (u *TransferFolderError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3274,16 +3410,18 @@ func (u *UnmountFolderError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3327,21 +3465,24 @@ func (u *UnshareFileError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "user_error":
-		if err := json.Unmarshal(w.UserError, &u.UserError); err != nil {
+		err = json.Unmarshal(w.UserError, &u.UserError)
+
+		if err != nil {
 			return err
 		}
-
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3389,16 +3530,18 @@ func (u *UnshareFolderError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3460,26 +3603,30 @@ func (u *UpdateFolderMemberError) UnmarshalJSON(body []byte) error {
 		NoExplicitAccess json.RawMessage `json:"no_explicit_access,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	case "member_error":
-		if err := json.Unmarshal(w.MemberError, &u.MemberError); err != nil {
+		err = json.Unmarshal(w.MemberError, &u.MemberError)
+
+		if err != nil {
 			return err
 		}
-
 	case "no_explicit_access":
-		if err := json.Unmarshal(w.NoExplicitAccess, &u.NoExplicitAccess); err != nil {
+		err = json.Unmarshal(w.NoExplicitAccess, &u.NoExplicitAccess)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -3532,16 +3679,18 @@ func (u *UpdateFolderPolicyError) UnmarshalJSON(body []byte) error {
 		AccessError json.RawMessage `json:"access_error,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "access_error":
-		if err := json.Unmarshal(w.AccessError, &u.AccessError); err != nil {
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

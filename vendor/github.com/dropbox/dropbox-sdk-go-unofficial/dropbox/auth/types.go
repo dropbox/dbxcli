@@ -54,21 +54,24 @@ func (u *AccessError) UnmarshalJSON(body []byte) error {
 		PaperAccessDenied json.RawMessage `json:"paper_access_denied,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "invalid_account_type":
-		if err := json.Unmarshal(w.InvalidAccountType, &u.InvalidAccountType); err != nil {
+		err = json.Unmarshal(w.InvalidAccountType, &u.InvalidAccountType)
+
+		if err != nil {
 			return err
 		}
-
 	case "paper_access_denied":
-		if err := json.Unmarshal(w.PaperAccessDenied, &u.PaperAccessDenied); err != nil {
+		err = json.Unmarshal(w.PaperAccessDenied, &u.PaperAccessDenied)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

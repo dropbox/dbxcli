@@ -214,16 +214,18 @@ func (u *GetAccountBatchError) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "no_account":
-		if err := json.Unmarshal(body, &u.NoAccount); err != nil {
+		err = json.Unmarshal(body, &u.NoAccount)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
@@ -311,21 +313,24 @@ func (u *SpaceAllocation) UnmarshalJSON(body []byte) error {
 		Team json.RawMessage `json:"team,omitempty"`
 	}
 	var w wrap
-	if err := json.Unmarshal(body, &w); err != nil {
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
 		return err
 	}
 	u.Tag = w.Tag
 	switch u.Tag {
 	case "individual":
-		if err := json.Unmarshal(body, &u.Individual); err != nil {
+		err = json.Unmarshal(body, &u.Individual)
+
+		if err != nil {
 			return err
 		}
-
 	case "team":
-		if err := json.Unmarshal(body, &u.Team); err != nil {
+		err = json.Unmarshal(body, &u.Team)
+
+		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
