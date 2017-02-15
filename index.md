@@ -1,6 +1,5 @@
 # `dbxcli`: A command line tool for Dropbox users and team admins
 
-This is *BETA* software -- use with caution!
 
 ## Features
 
