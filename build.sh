@@ -8,5 +8,5 @@ LDFLAGS+=" -X github.com/dropbox/dbxcli/cmd.teamAccessAppSecret=${ACCESS_SECRET}
 LDFLAGS+=" -X github.com/dropbox/dbxcli/cmd.teamManageAppKey=${MANAGE_KEY}"
 LDFLAGS+=" -X github.com/dropbox/dbxcli/cmd.teamManageAppSecret=${MANAGE_SECRET}"
 gox -ldflags="${LDFLAGS}" \
-    -osarch="darwin/amd64 linux/amd64 windows/amd64" \
+    -osarch="darwin/amd64 linux/amd64 windows/amd64 linux/arm" \
     -output "dist/{{.Dir}}-{{.OS}}-{{.Arch}}"
