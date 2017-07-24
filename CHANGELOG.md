@@ -2,7 +2,42 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.4.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.2...HEAD)
+
+**Closed issues:**
+
+- How do I install this program? [\#67](https://github.com/dropbox/dbxcli/issues/67)
+- Unable to Authorize App [\#64](https://github.com/dropbox/dbxcli/issues/64)
+
+**Merged pull requests:**
+
+- Switch to `dep` and update dependencies [\#73](https://github.com/dropbox/dbxcli/pull/73) ([diwakergupta](https://github.com/diwakergupta))
+
+## [v2.0.2](https://github.com/dropbox/dbxcli/tree/v2.0.2) (2017-02-27)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.1...v2.0.2)
+
+**Fixed bugs:**
+
+- `get` does not work on JPG files [\#59](https://github.com/dropbox/dbxcli/issues/59)
+
+**Closed issues:**
+
+- Can't authorize team management  [\#58](https://github.com/dropbox/dbxcli/issues/58)
+
+**Merged pull requests:**
+
+- add build support for raspberry pi \(ARM\) [\#65](https://github.com/dropbox/dbxcli/pull/65) ([garyemerson](https://github.com/garyemerson))
+
+## [v2.0.1](https://github.com/dropbox/dbxcli/tree/v2.0.1) (2017-02-14)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.0...v2.0.1)
+
+**Closed issues:**
+
+- Invalid client\_id when trying to get authorization code [\#62](https://github.com/dropbox/dbxcli/issues/62)
+- Generating authorization code no longer works [\#61](https://github.com/dropbox/dbxcli/issues/61)
+
+## [v2.0.0](https://github.com/dropbox/dbxcli/tree/v2.0.0) (2017-01-26)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v1.4.0...v2.0.0)
 
 **Closed issues:**
 
