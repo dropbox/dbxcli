@@ -34,21 +34,6 @@ import (
 
 // Client interface describes all routes in this namespace
 type Client interface {
-	// AlphaGroupsCreate : Creates a new, empty group, with a requested name.
-	// Permission : Team member management
-	AlphaGroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err error)
-	// AlphaGroupsGetInfo : Retrieves information about one or more groups.
-	// Permission : Team Information
-	AlphaGroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem, err error)
-	// AlphaGroupsList : Lists groups on a team. Permission : Team Information
-	AlphaGroupsList(arg *GroupsListArg) (res *GroupsListResult, err error)
-	// AlphaGroupsListContinue : Once a cursor has been retrieved from
-	// `alphaGroupsList`, use this to paginate through all groups. Permission :
-	// Team information
-	AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *GroupsListResult, err error)
-	// AlphaGroupsUpdate : Updates a group's name, external ID or management
-	// type. Permission : Team member management
-	AlphaGroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err error)
 	// DevicesListMemberDevices : List all device sessions of a team's member.
 	DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *ListMemberDevicesResult, err error)
 	// DevicesListMembersDevices : List all device sessions of a team.
@@ -60,53 +45,59 @@ type Client interface {
 	// DevicesRevokeDeviceSessionBatch : Revoke a list of device sessions of
 	// team members
 	DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatchArg) (res *RevokeDeviceSessionBatchResult, err error)
+	// FeaturesGetValues : Get the values for one or more featues. This route
+	// allows you to check your account's capability for what feature you can
+	// access or what value you have for certain features. Permission : Team
+	// information.
+	FeaturesGetValues(arg *FeaturesGetValuesBatchArg) (res *FeaturesGetValuesBatchResult, err error)
 	// GetInfo : Retrieves information about a team.
 	GetInfo() (res *TeamGetInfoResult, err error)
 	// GroupsCreate : Creates a new, empty group, with a requested name.
-	// Permission : Team member management
+	// Permission : Team member management.
 	GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err error)
 	// GroupsDelete : Deletes a group. The group is deleted immediately. However
 	// the revoking of group-owned resources may take additional time. Use the
 	// `groupsJobStatusGet` to determine whether this process has completed.
-	// Permission : Team member management
+	// Permission : Team member management.
 	GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResult, err error)
-	// GroupsGetInfo : Retrieves information about one or more groups.
-	// Permission : Team Information
+	// GroupsGetInfo : Retrieves information about one or more groups. Note that
+	// the optional field  `GroupFullInfo.members` is not returned for
+	// system-managed groups. Permission : Team Information.
 	GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem, err error)
 	// GroupsJobStatusGet : Once an async_job_id is returned from
 	// `groupsDelete`, `groupsMembersAdd` , or `groupsMembersRemove` use this
 	// method to poll the status of granting/revoking group members' access to
-	// group-owned resources. Permission : Team member management
+	// group-owned resources. Permission : Team member management.
 	GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmptyResult, err error)
-	// GroupsList : Lists groups on a team. Permission : Team Information
+	// GroupsList : Lists groups on a team. Permission : Team Information.
 	GroupsList(arg *GroupsListArg) (res *GroupsListResult, err error)
 	// GroupsListContinue : Once a cursor has been retrieved from `groupsList`,
-	// use this to paginate through all groups. Permission : Team information
+	// use this to paginate through all groups. Permission : Team Information.
 	GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsListResult, err error)
 	// GroupsMembersAdd : Adds members to a group. The members are added
 	// immediately. However the granting of group-owned resources may take
 	// additional time. Use the `groupsJobStatusGet` to determine whether this
-	// process has completed. Permission : Team member management
+	// process has completed. Permission : Team member management.
 	GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembersChangeResult, err error)
 	// GroupsMembersList : Lists members of a group. Permission : Team
-	// Information
+	// Information.
 	GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMembersListResult, err error)
 	// GroupsMembersListContinue : Once a cursor has been retrieved from
 	// `groupsMembersList`, use this to paginate through all members of the
-	// group. Permission : Team information
+	// group. Permission : Team information.
 	GroupsMembersListContinue(arg *GroupsMembersListContinueArg) (res *GroupsMembersListResult, err error)
 	// GroupsMembersRemove : Removes members from a group. The members are
 	// removed immediately. However the revoking of group-owned resources may
 	// take additional time. Use the `groupsJobStatusGet` to determine whether
 	// this process has completed. This method permits removing the only owner
 	// of a group, even in cases where this is not possible via the web client.
-	// Permission : Team member management
+	// Permission : Team member management.
 	GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupMembersChangeResult, err error)
 	// GroupsMembersSetAccessType : Sets a member's access type in a group.
-	// Permission : Team member management
+	// Permission : Team member management.
 	GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg) (res []*GroupsGetInfoItem, err error)
 	// GroupsUpdate : Updates a group's name and/or external ID. Permission :
-	// Team member management
+	// Team member management.
 	GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err error)
 	// LinkedAppsListMemberLinkedApps : List all linked applications of the team
 	// member. Note, this endpoint does not list any team-linked applications.
@@ -158,13 +149,13 @@ type Client interface {
 	MembersRecover(arg *MembersRecoverArg) (err error)
 	// MembersRemove : Removes a member from a team. Permission : Team member
 	// management Exactly one of team_member_id, email, or external_id must be
-	// provided to identify the user account. This is not a deactivation where
-	// the account can be re-activated again. Calling `membersAdd` with the
-	// removed user's email address will create a new account with a new
-	// team_member_id that will not have access to any content that was shared
-	// with the initial account. This endpoint may initiate an asynchronous job.
-	// To obtain the final result of the job, the client should periodically
-	// poll `membersRemoveJobStatusGet`.
+	// provided to identify the user account. Accounts can be recovered via
+	// `membersRecover` for a 7 day period or until the account has been
+	// permanently deleted or transferred to another account (whichever comes
+	// first). Calling `membersAdd` while a user is still recoverable on your
+	// team will return with `MemberAddResult.user_already_on_team`. This
+	// endpoint may initiate an asynchronous job. To obtain the final result of
+	// the job, the client should periodically poll `membersRemoveJobStatusGet`.
 	MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmptyResult, err error)
 	// MembersRemoveJobStatusGet : Once an async_job_id is returned from
 	// `membersRemove` , use this to poll the status of the asynchronous
@@ -189,6 +180,17 @@ type Client interface {
 	// member management Exactly one of team_member_id, email, or external_id
 	// must be provided to identify the user account.
 	MembersUnsuspend(arg *MembersUnsuspendArg) (err error)
+	// NamespacesList : Returns a list of all team-accessible namespaces. This
+	// list includes team folders, shared folders containing team members, team
+	// members' home namespaces, and team members' app folders. Home namespaces
+	// and app folders are always owned by this team or members of the team, but
+	// shared folders may be owned by other users or other teams. Duplicates may
+	// occur in the list.
+	NamespacesList(arg *TeamNamespacesListArg) (res *TeamNamespacesListResult, err error)
+	// NamespacesListContinue : Once a cursor has been retrieved from
+	// `namespacesList`, use this to paginate through all team-accessible
+	// namespaces. Duplicates may occur in the list.
+	NamespacesListContinue(arg *TeamNamespacesListContinueArg) (res *TeamNamespacesListResult, err error)
 	// PropertiesTemplateAdd : Add a property template. See route
 	// files/properties/add to add properties to a file.
 	PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *AddPropertyTemplateResult, err error)
@@ -214,412 +216,40 @@ type Client interface {
 	// usage.
 	ReportsGetStorage(arg *DateRange) (res *GetStorageReport, err error)
 	// TeamFolderActivate : Sets an archived team folder's status to active.
-	// This endpoint is only available to teams with `improved team folders`
-	// </help/986>. Permission : Team member file access.
+	// Permission : Team member file access.
 	TeamFolderActivate(arg *TeamFolderIdArg) (res *TeamFolderMetadata, err error)
 	// TeamFolderArchive : Sets an active team folder's status to archived and
-	// removes all folder and file members. This endpoint is only available to
-	// teams with `improved team folders` </help/986>. Permission : Team member
-	// file access.
+	// removes all folder and file members. Permission : Team member file
+	// access.
 	TeamFolderArchive(arg *TeamFolderArchiveArg) (res *TeamFolderArchiveLaunch, err error)
 	// TeamFolderArchiveCheck : Returns the status of an asynchronous job for
-	// archiving a team folder. This endpoint is only available to teams with
-	// `improved team folders` </help/986>. Permission : Team member file
-	// access.
+	// archiving a team folder. Permission : Team member file access.
 	TeamFolderArchiveCheck(arg *async.PollArg) (res *TeamFolderArchiveJobStatus, err error)
-	// TeamFolderCreate : Creates a new, active, team folder. This endpoint is
-	// only available to teams with `improved team folders` </help/986>.
-	// Permission : Team member file access.
-	TeamFolderCreate(arg *TeamFolderCreateArg) (res *TeamFolderMetadata, err error)
-	// TeamFolderGetInfo : Retrieves metadata for team folders. This endpoint is
-	// only available to teams with `improved team folders` </help/986>.
-	// Permission : Team member file access.
-	TeamFolderGetInfo(arg *TeamFolderIdListArg) (res []*TeamFolderGetInfoItem, err error)
-	// TeamFolderList : Lists all team folders. This endpoint is only available
-	// to teams with `improved team folders` </help/986>. Permission : Team
+	// TeamFolderCreate : Creates a new, active, team folder. Permission : Team
 	// member file access.
+	TeamFolderCreate(arg *TeamFolderCreateArg) (res *TeamFolderMetadata, err error)
+	// TeamFolderGetInfo : Retrieves metadata for team folders. Permission :
+	// Team member file access.
+	TeamFolderGetInfo(arg *TeamFolderIdListArg) (res []*TeamFolderGetInfoItem, err error)
+	// TeamFolderList : Lists all team folders. Permission : Team member file
+	// access.
 	TeamFolderList(arg *TeamFolderListArg) (res *TeamFolderListResult, err error)
-	// TeamFolderPermanentlyDelete : Permanently deletes an archived team
-	// folder. This endpoint is only available to teams with `improved team
-	// folders` </help/986>. Permission : Team member file access.
-	TeamFolderPermanentlyDelete(arg *TeamFolderIdArg) (err error)
-	// TeamFolderRename : Changes an active team folder's name. This endpoint is
-	// only available to teams with `improved team folders` </help/986>.
+	// TeamFolderListContinue : Once a cursor has been retrieved from
+	// `teamFolderList`, use this to paginate through all team folders.
 	// Permission : Team member file access.
+	TeamFolderListContinue(arg *TeamFolderListContinueArg) (res *TeamFolderListResult, err error)
+	// TeamFolderPermanentlyDelete : Permanently deletes an archived team
+	// folder. Permission : Team member file access.
+	TeamFolderPermanentlyDelete(arg *TeamFolderIdArg) (err error)
+	// TeamFolderRename : Changes an active team folder's name. Permission :
+	// Team member file access.
 	TeamFolderRename(arg *TeamFolderRenameArg) (res *TeamFolderMetadata, err error)
+	// TokenGetAuthenticatedAdmin : Returns the member profile of the admin who
+	// generated the team access token used to make the call.
+	TokenGetAuthenticatedAdmin() (res *TokenGetAuthenticatedAdminResult, err error)
 }
 
 type apiImpl dropbox.Context
-
-//AlphaGroupsCreateAPIError is an error-wrapper for the alpha/groups/create route
-type AlphaGroupsCreateAPIError struct {
-	dropbox.APIError
-	EndpointError *GroupCreateError `json:"error"`
-}
-
-func (dbx *apiImpl) AlphaGroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err error) {
-	cli := dbx.Client
-
-	if dbx.Config.Verbose {
-		log.Printf("arg: %v", arg)
-	}
-	b, err := json.Marshal(arg)
-	if err != nil {
-		return
-	}
-
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "alpha/groups/create"), bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.Verbose {
-		log.Printf("req: %v", req)
-	}
-	resp, err := cli.Do(req)
-	if dbx.Config.Verbose {
-		log.Printf("resp: %v", resp)
-	}
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if dbx.Config.Verbose {
-		log.Printf("body: %s", body)
-	}
-	if resp.StatusCode == http.StatusOK {
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-	if resp.StatusCode == http.StatusConflict {
-		var apiError AlphaGroupsCreateAPIError
-		err = json.Unmarshal(body, &apiError)
-		if err != nil {
-			return
-		}
-		err = apiError
-		return
-	}
-	var apiError dropbox.APIError
-	if resp.StatusCode == http.StatusBadRequest {
-		apiError.ErrorSummary = string(body)
-		err = apiError
-		return
-	}
-	err = json.Unmarshal(body, &apiError)
-	if err != nil {
-		return
-	}
-	err = apiError
-	return
-}
-
-//AlphaGroupsGetInfoAPIError is an error-wrapper for the alpha/groups/get_info route
-type AlphaGroupsGetInfoAPIError struct {
-	dropbox.APIError
-	EndpointError *GroupsGetInfoError `json:"error"`
-}
-
-func (dbx *apiImpl) AlphaGroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem, err error) {
-	cli := dbx.Client
-
-	if dbx.Config.Verbose {
-		log.Printf("arg: %v", arg)
-	}
-	b, err := json.Marshal(arg)
-	if err != nil {
-		return
-	}
-
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "alpha/groups/get_info"), bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.Verbose {
-		log.Printf("req: %v", req)
-	}
-	resp, err := cli.Do(req)
-	if dbx.Config.Verbose {
-		log.Printf("resp: %v", resp)
-	}
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if dbx.Config.Verbose {
-		log.Printf("body: %s", body)
-	}
-	if resp.StatusCode == http.StatusOK {
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-	if resp.StatusCode == http.StatusConflict {
-		var apiError AlphaGroupsGetInfoAPIError
-		err = json.Unmarshal(body, &apiError)
-		if err != nil {
-			return
-		}
-		err = apiError
-		return
-	}
-	var apiError dropbox.APIError
-	if resp.StatusCode == http.StatusBadRequest {
-		apiError.ErrorSummary = string(body)
-		err = apiError
-		return
-	}
-	err = json.Unmarshal(body, &apiError)
-	if err != nil {
-		return
-	}
-	err = apiError
-	return
-}
-
-//AlphaGroupsListAPIError is an error-wrapper for the alpha/groups/list route
-type AlphaGroupsListAPIError struct {
-	dropbox.APIError
-	EndpointError struct{} `json:"error"`
-}
-
-func (dbx *apiImpl) AlphaGroupsList(arg *GroupsListArg) (res *GroupsListResult, err error) {
-	cli := dbx.Client
-
-	if dbx.Config.Verbose {
-		log.Printf("arg: %v", arg)
-	}
-	b, err := json.Marshal(arg)
-	if err != nil {
-		return
-	}
-
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "alpha/groups/list"), bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.Verbose {
-		log.Printf("req: %v", req)
-	}
-	resp, err := cli.Do(req)
-	if dbx.Config.Verbose {
-		log.Printf("resp: %v", resp)
-	}
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if dbx.Config.Verbose {
-		log.Printf("body: %s", body)
-	}
-	if resp.StatusCode == http.StatusOK {
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-	if resp.StatusCode == http.StatusConflict {
-		var apiError AlphaGroupsListAPIError
-		err = json.Unmarshal(body, &apiError)
-		if err != nil {
-			return
-		}
-		err = apiError
-		return
-	}
-	var apiError dropbox.APIError
-	if resp.StatusCode == http.StatusBadRequest {
-		apiError.ErrorSummary = string(body)
-		err = apiError
-		return
-	}
-	err = json.Unmarshal(body, &apiError)
-	if err != nil {
-		return
-	}
-	err = apiError
-	return
-}
-
-//AlphaGroupsListContinueAPIError is an error-wrapper for the alpha/groups/list/continue route
-type AlphaGroupsListContinueAPIError struct {
-	dropbox.APIError
-	EndpointError *GroupsListContinueError `json:"error"`
-}
-
-func (dbx *apiImpl) AlphaGroupsListContinue(arg *GroupsListContinueArg) (res *GroupsListResult, err error) {
-	cli := dbx.Client
-
-	if dbx.Config.Verbose {
-		log.Printf("arg: %v", arg)
-	}
-	b, err := json.Marshal(arg)
-	if err != nil {
-		return
-	}
-
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "alpha/groups/list/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.Verbose {
-		log.Printf("req: %v", req)
-	}
-	resp, err := cli.Do(req)
-	if dbx.Config.Verbose {
-		log.Printf("resp: %v", resp)
-	}
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if dbx.Config.Verbose {
-		log.Printf("body: %s", body)
-	}
-	if resp.StatusCode == http.StatusOK {
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-	if resp.StatusCode == http.StatusConflict {
-		var apiError AlphaGroupsListContinueAPIError
-		err = json.Unmarshal(body, &apiError)
-		if err != nil {
-			return
-		}
-		err = apiError
-		return
-	}
-	var apiError dropbox.APIError
-	if resp.StatusCode == http.StatusBadRequest {
-		apiError.ErrorSummary = string(body)
-		err = apiError
-		return
-	}
-	err = json.Unmarshal(body, &apiError)
-	if err != nil {
-		return
-	}
-	err = apiError
-	return
-}
-
-//AlphaGroupsUpdateAPIError is an error-wrapper for the alpha/groups/update route
-type AlphaGroupsUpdateAPIError struct {
-	dropbox.APIError
-	EndpointError *GroupUpdateError `json:"error"`
-}
-
-func (dbx *apiImpl) AlphaGroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err error) {
-	cli := dbx.Client
-
-	if dbx.Config.Verbose {
-		log.Printf("arg: %v", arg)
-	}
-	b, err := json.Marshal(arg)
-	if err != nil {
-		return
-	}
-
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "alpha/groups/update"), bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.Verbose {
-		log.Printf("req: %v", req)
-	}
-	resp, err := cli.Do(req)
-	if dbx.Config.Verbose {
-		log.Printf("resp: %v", resp)
-	}
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if dbx.Config.Verbose {
-		log.Printf("body: %s", body)
-	}
-	if resp.StatusCode == http.StatusOK {
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-	if resp.StatusCode == http.StatusConflict {
-		var apiError AlphaGroupsUpdateAPIError
-		err = json.Unmarshal(body, &apiError)
-		if err != nil {
-			return
-		}
-		err = apiError
-		return
-	}
-	var apiError dropbox.APIError
-	if resp.StatusCode == http.StatusBadRequest {
-		apiError.ErrorSummary = string(body)
-		err = apiError
-		return
-	}
-	err = json.Unmarshal(body, &apiError)
-	if err != nil {
-		return
-	}
-	err = apiError
-	return
-}
 
 //DevicesListMemberDevicesAPIError is an error-wrapper for the devices/list_member_devices route
 type DevicesListMemberDevicesAPIError struct {
@@ -638,15 +268,18 @@ func (dbx *apiImpl) DevicesListMemberDevices(arg *ListMemberDevicesArg) (res *Li
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "devices/list_member_devices"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "devices/list_member_devices", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -712,15 +345,18 @@ func (dbx *apiImpl) DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "devices/list_members_devices"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "devices/list_members_devices", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -786,15 +422,18 @@ func (dbx *apiImpl) DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTe
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "devices/list_team_devices"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "devices/list_team_devices", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -860,15 +499,18 @@ func (dbx *apiImpl) DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "devices/revoke_device_session"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "devices/revoke_device_session", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -929,15 +571,18 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatc
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "devices/revoke_device_session_batch"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "devices/revoke_device_session_batch", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -986,6 +631,83 @@ func (dbx *apiImpl) DevicesRevokeDeviceSessionBatch(arg *RevokeDeviceSessionBatc
 	return
 }
 
+//FeaturesGetValuesAPIError is an error-wrapper for the features/get_values route
+type FeaturesGetValuesAPIError struct {
+	dropbox.APIError
+	EndpointError *FeaturesGetValuesBatchError `json:"error"`
+}
+
+func (dbx *apiImpl) FeaturesGetValues(arg *FeaturesGetValuesBatchArg) (res *FeaturesGetValuesBatchResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "features/get_values", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError FeaturesGetValuesAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //GetInfoAPIError is an error-wrapper for the get_info route
 type GetInfoAPIError struct {
 	dropbox.APIError
@@ -995,14 +717,16 @@ type GetInfoAPIError struct {
 func (dbx *apiImpl) GetInfo() (res *TeamGetInfoResult, err error) {
 	cli := dbx.Client
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "get_info"), nil)
+	headers := map[string]string{}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "get_info", headers, nil)
 	if err != nil {
 		return
 	}
-
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1068,15 +792,18 @@ func (dbx *apiImpl) GroupsCreate(arg *GroupCreateArg) (res *GroupFullInfo, err e
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/create"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/create", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1142,15 +869,18 @@ func (dbx *apiImpl) GroupsDelete(arg *GroupSelector) (res *async.LaunchEmptyResu
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/delete"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/delete", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1216,15 +946,18 @@ func (dbx *apiImpl) GroupsGetInfo(arg *GroupsSelector) (res []*GroupsGetInfoItem
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/get_info"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/get_info", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1290,15 +1023,18 @@ func (dbx *apiImpl) GroupsJobStatusGet(arg *async.PollArg) (res *async.PollEmpty
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/job_status/get"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/job_status/get", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1364,15 +1100,18 @@ func (dbx *apiImpl) GroupsList(arg *GroupsListArg) (res *GroupsListResult, err e
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/list"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/list", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1438,15 +1177,18 @@ func (dbx *apiImpl) GroupsListContinue(arg *GroupsListContinueArg) (res *GroupsL
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/list/continue"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/list/continue", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1512,15 +1254,18 @@ func (dbx *apiImpl) GroupsMembersAdd(arg *GroupMembersAddArg) (res *GroupMembers
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/members/add"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/members/add", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1586,15 +1331,18 @@ func (dbx *apiImpl) GroupsMembersList(arg *GroupsMembersListArg) (res *GroupsMem
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/members/list"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/members/list", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1660,15 +1408,18 @@ func (dbx *apiImpl) GroupsMembersListContinue(arg *GroupsMembersListContinueArg)
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/members/list/continue"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/members/list/continue", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1734,15 +1485,18 @@ func (dbx *apiImpl) GroupsMembersRemove(arg *GroupMembersRemoveArg) (res *GroupM
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/members/remove"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/members/remove", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1808,15 +1562,18 @@ func (dbx *apiImpl) GroupsMembersSetAccessType(arg *GroupMembersSetAccessTypeArg
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/members/set_access_type"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/members/set_access_type", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1882,15 +1639,18 @@ func (dbx *apiImpl) GroupsUpdate(arg *GroupUpdateArgs) (res *GroupFullInfo, err 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "groups/update"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "groups/update", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1956,15 +1716,18 @@ func (dbx *apiImpl) LinkedAppsListMemberLinkedApps(arg *ListMemberAppsArg) (res 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "linked_apps/list_member_linked_apps"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "linked_apps/list_member_linked_apps", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2030,15 +1793,18 @@ func (dbx *apiImpl) LinkedAppsListMembersLinkedApps(arg *ListMembersAppsArg) (re
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "linked_apps/list_members_linked_apps"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "linked_apps/list_members_linked_apps", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2104,15 +1870,18 @@ func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *Lis
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "linked_apps/list_team_linked_apps"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "linked_apps/list_team_linked_apps", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2178,15 +1947,18 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedApp(arg *RevokeLinkedApiAppArg) (err e
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "linked_apps/revoke_linked_app"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "linked_apps/revoke_linked_app", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2247,15 +2019,18 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchA
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "linked_apps/revoke_linked_app_batch"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "linked_apps/revoke_linked_app_batch", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2321,15 +2096,18 @@ func (dbx *apiImpl) MembersAdd(arg *MembersAddArg) (res *MembersAddLaunch, err e
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/add"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/add", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2395,15 +2173,18 @@ func (dbx *apiImpl) MembersAddJobStatusGet(arg *async.PollArg) (res *MembersAddJ
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/add/job_status/get"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/add/job_status/get", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2469,15 +2250,18 @@ func (dbx *apiImpl) MembersGetInfo(arg *MembersGetInfoArgs) (res []*MembersGetIn
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/get_info"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/get_info", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2543,15 +2327,18 @@ func (dbx *apiImpl) MembersList(arg *MembersListArg) (res *MembersListResult, er
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/list"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/list", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2617,15 +2404,18 @@ func (dbx *apiImpl) MembersListContinue(arg *MembersListContinueArg) (res *Membe
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/list/continue"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/list/continue", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2691,15 +2481,18 @@ func (dbx *apiImpl) MembersRecover(arg *MembersRecoverArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/recover"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/recover", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2760,15 +2553,18 @@ func (dbx *apiImpl) MembersRemove(arg *MembersRemoveArg) (res *async.LaunchEmpty
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/remove"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/remove", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2834,15 +2630,18 @@ func (dbx *apiImpl) MembersRemoveJobStatusGet(arg *async.PollArg) (res *async.Po
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/remove/job_status/get"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/remove/job_status/get", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2908,15 +2707,18 @@ func (dbx *apiImpl) MembersSendWelcomeEmail(arg *UserSelectorArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/send_welcome_email"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/send_welcome_email", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2977,15 +2779,18 @@ func (dbx *apiImpl) MembersSetAdminPermissions(arg *MembersSetPermissionsArg) (r
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/set_admin_permissions"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/set_admin_permissions", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3051,15 +2856,18 @@ func (dbx *apiImpl) MembersSetProfile(arg *MembersSetProfileArg) (res *TeamMembe
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/set_profile"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/set_profile", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3125,15 +2933,18 @@ func (dbx *apiImpl) MembersSuspend(arg *MembersDeactivateArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/suspend"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/suspend", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3194,15 +3005,18 @@ func (dbx *apiImpl) MembersUnsuspend(arg *MembersUnsuspendArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "members/unsuspend"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "members/unsuspend", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3246,6 +3060,160 @@ func (dbx *apiImpl) MembersUnsuspend(arg *MembersUnsuspendArg) (err error) {
 	return
 }
 
+//NamespacesListAPIError is an error-wrapper for the namespaces/list route
+type NamespacesListAPIError struct {
+	dropbox.APIError
+	EndpointError struct{} `json:"error"`
+}
+
+func (dbx *apiImpl) NamespacesList(arg *TeamNamespacesListArg) (res *TeamNamespacesListResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "namespaces/list", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError NamespacesListAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//NamespacesListContinueAPIError is an error-wrapper for the namespaces/list/continue route
+type NamespacesListContinueAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamNamespacesListContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) NamespacesListContinue(arg *TeamNamespacesListContinueArg) (res *TeamNamespacesListResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "namespaces/list/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError NamespacesListContinueAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //PropertiesTemplateAddAPIError is an error-wrapper for the properties/template/add route
 type PropertiesTemplateAddAPIError struct {
 	dropbox.APIError
@@ -3263,15 +3231,18 @@ func (dbx *apiImpl) PropertiesTemplateAdd(arg *AddPropertyTemplateArg) (res *Add
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "properties/template/add"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "properties/template/add", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3337,15 +3308,18 @@ func (dbx *apiImpl) PropertiesTemplateGet(arg *properties.GetPropertyTemplateArg
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "properties/template/get"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "properties/template/get", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3403,14 +3377,16 @@ type PropertiesTemplateListAPIError struct {
 func (dbx *apiImpl) PropertiesTemplateList() (res *properties.ListPropertyTemplateIds, err error) {
 	cli := dbx.Client
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "properties/template/list"), nil)
+	headers := map[string]string{}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "properties/template/list", headers, nil)
 	if err != nil {
 		return
 	}
-
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3476,15 +3452,18 @@ func (dbx *apiImpl) PropertiesTemplateUpdate(arg *UpdatePropertyTemplateArg) (re
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "properties/template/update"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "properties/template/update", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3550,15 +3529,18 @@ func (dbx *apiImpl) ReportsGetActivity(arg *DateRange) (res *GetActivityReport, 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "reports/get_activity"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "reports/get_activity", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3624,15 +3606,18 @@ func (dbx *apiImpl) ReportsGetDevices(arg *DateRange) (res *GetDevicesReport, er
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "reports/get_devices"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "reports/get_devices", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3698,15 +3683,18 @@ func (dbx *apiImpl) ReportsGetMembership(arg *DateRange) (res *GetMembershipRepo
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "reports/get_membership"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "reports/get_membership", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3772,15 +3760,18 @@ func (dbx *apiImpl) ReportsGetStorage(arg *DateRange) (res *GetStorageReport, er
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "reports/get_storage"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "reports/get_storage", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3846,15 +3837,18 @@ func (dbx *apiImpl) TeamFolderActivate(arg *TeamFolderIdArg) (res *TeamFolderMet
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/activate"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/activate", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3920,15 +3914,18 @@ func (dbx *apiImpl) TeamFolderArchive(arg *TeamFolderArchiveArg) (res *TeamFolde
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/archive"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/archive", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3994,15 +3991,18 @@ func (dbx *apiImpl) TeamFolderArchiveCheck(arg *async.PollArg) (res *TeamFolderA
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/archive/check"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/archive/check", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4068,15 +4068,18 @@ func (dbx *apiImpl) TeamFolderCreate(arg *TeamFolderCreateArg) (res *TeamFolderM
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/create"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/create", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4142,15 +4145,18 @@ func (dbx *apiImpl) TeamFolderGetInfo(arg *TeamFolderIdListArg) (res []*TeamFold
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/get_info"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/get_info", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4216,15 +4222,18 @@ func (dbx *apiImpl) TeamFolderList(arg *TeamFolderListArg) (res *TeamFolderListR
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/list"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/list", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4273,6 +4282,83 @@ func (dbx *apiImpl) TeamFolderList(arg *TeamFolderListArg) (res *TeamFolderListR
 	return
 }
 
+//TeamFolderListContinueAPIError is an error-wrapper for the team_folder/list/continue route
+type TeamFolderListContinueAPIError struct {
+	dropbox.APIError
+	EndpointError *TeamFolderListContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) TeamFolderListContinue(arg *TeamFolderListContinueArg) (res *TeamFolderListResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/list/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TeamFolderListContinueAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //TeamFolderPermanentlyDeleteAPIError is an error-wrapper for the team_folder/permanently_delete route
 type TeamFolderPermanentlyDeleteAPIError struct {
 	dropbox.APIError
@@ -4290,15 +4376,18 @@ func (dbx *apiImpl) TeamFolderPermanentlyDelete(arg *TeamFolderIdArg) (err error
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/permanently_delete"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/permanently_delete", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4359,15 +4448,18 @@ func (dbx *apiImpl) TeamFolderRename(arg *TeamFolderRenameArg) (res *TeamFolderM
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "team", "team_folder/rename"), bytes.NewReader(b))
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "team_folder/rename", headers, bytes.NewReader(b))
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -4395,6 +4487,73 @@ func (dbx *apiImpl) TeamFolderRename(arg *TeamFolderRenameArg) (res *TeamFolderM
 	}
 	if resp.StatusCode == http.StatusConflict {
 		var apiError TeamFolderRenameAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TokenGetAuthenticatedAdminAPIError is an error-wrapper for the token/get_authenticated_admin route
+type TokenGetAuthenticatedAdminAPIError struct {
+	dropbox.APIError
+	EndpointError *TokenGetAuthenticatedAdminError `json:"error"`
+}
+
+func (dbx *apiImpl) TokenGetAuthenticatedAdmin() (res *TokenGetAuthenticatedAdminResult, err error) {
+	cli := dbx.Client
+
+	headers := map[string]string{}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "token/get_authenticated_admin", headers, nil)
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TokenGetAuthenticatedAdminAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return

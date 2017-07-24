@@ -27,6 +27,7 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users_common"
 )
 
 // Account : The amount of detail revealed about an account depends on the user
@@ -58,18 +59,6 @@ func NewAccount(AccountId string, Name *Name, Email string, EmailVerified bool, 
 	s.Disabled = Disabled
 	return s
 }
-
-// AccountType : What type of account this user has.
-type AccountType struct {
-	dropbox.Tagged
-}
-
-// Valid tag values for AccountType
-const (
-	AccountTypeBasic    = "basic"
-	AccountTypePro      = "pro"
-	AccountTypeBusiness = "business"
-)
 
 // BasicAccount : Basic information about any account.
 type BasicAccount struct {
@@ -117,11 +106,11 @@ type FullAccount struct {
 	// `is_paired` will indicate if a work account is linked.
 	IsPaired bool `json:"is_paired"`
 	// AccountType : What type of account this user has.
-	AccountType *AccountType `json:"account_type"`
+	AccountType *users_common.AccountType `json:"account_type"`
 }
 
 // NewFullAccount returns a new FullAccount instance
-func NewFullAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Disabled bool, Locale string, ReferralLink string, IsPaired bool, AccountType *AccountType) *FullAccount {
+func NewFullAccount(AccountId string, Name *Name, Email string, EmailVerified bool, Disabled bool, Locale string, ReferralLink string, IsPaired bool, AccountType *users_common.AccountType) *FullAccount {
 	s := new(FullAccount)
 	s.AccountId = AccountId
 	s.Name = Name
@@ -156,14 +145,17 @@ type FullTeam struct {
 	Team
 	// SharingPolicies : Team policies governing sharing.
 	SharingPolicies *team_policies.TeamSharingPolicies `json:"sharing_policies"`
+	// OfficeAddinPolicy : Team policy governing the use of the Office Add-In.
+	OfficeAddinPolicy *team_policies.OfficeAddInPolicy `json:"office_addin_policy"`
 }
 
 // NewFullTeam returns a new FullTeam instance
-func NewFullTeam(Id string, Name string, SharingPolicies *team_policies.TeamSharingPolicies) *FullTeam {
+func NewFullTeam(Id string, Name string, SharingPolicies *team_policies.TeamSharingPolicies, OfficeAddinPolicy *team_policies.OfficeAddInPolicy) *FullTeam {
 	s := new(FullTeam)
 	s.Id = Id
 	s.Name = Name
 	s.SharingPolicies = SharingPolicies
+	s.OfficeAddinPolicy = OfficeAddinPolicy
 	return s
 }
 

@@ -1,11 +1,13 @@
 language: go
 
 go:
-  - 1.8
+  - 1.8.3
 
 before_script:
   - go get -u github.com/mitchellh/gox
   - go vet github.com/dropbox/dbxcli
+
+install: true
 
 script:
   - ./build.sh

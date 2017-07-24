@@ -42,7 +42,8 @@ type Client interface {
 	// call `mountFolder` on their behalf. Apps must have full Dropbox access to
 	// use this endpoint.
 	AddFolderMember(arg *AddFolderMemberArg) (err error)
-	// ChangeFileMemberAccess : Changes a member's access on a shared file.
+	// ChangeFileMemberAccess : Identical to update_file_member but with less
+	// information returned.
 	ChangeFileMemberAccess(arg *ChangeFileMemberAccessArgs) (res *FileMemberActionResult, err error)
 	// CheckJobStatus : Returns the status of an asynchronous job. Apps must
 	// have full Dropbox access to use this endpoint.
@@ -83,10 +84,11 @@ type Client interface {
 	GetSharedLinkMetadata(arg *GetSharedLinkMetadataArg) (res IsSharedLinkMetadata, err error)
 	// GetSharedLinks : Returns a list of `LinkMetadata` objects for this user,
 	// including collection links. If no path is given, returns a list of all
-	// shared links for the current user, including collection links. If a
-	// non-empty path is given, returns a list of all shared links that allow
-	// access to the given path.  Collection links are never returned in this
-	// case. Note that the url field in the response is never the shortened URL.
+	// shared links for the current user, including collection links, up to a
+	// maximum of 1000 links. If a non-empty path is given, returns a list of
+	// all shared links that allow access to the given path.  Collection links
+	// are never returned in this case. Note that the url field in the response
+	// is never the shortened URL.
 	GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksResult, err error)
 	// ListFileMembers : Use to obtain the members who have been invited to a
 	// file, both inherited and uninherited members.
@@ -206,6 +208,8 @@ type Client interface {
 	// completed successfully. Apps must have full Dropbox access to use this
 	// endpoint.
 	UnshareFolder(arg *UnshareFolderArg) (res *async.LaunchEmptyResult, err error)
+	// UpdateFileMember : Changes a member's access on a shared file.
+	UpdateFileMember(arg *UpdateFileMemberArgs) (res *MemberAccessLevelResult, err error)
 	// UpdateFolderMember : Allows an owner or editor of a shared folder to
 	// update another member's permissions. Apps must have full Dropbox access
 	// to use this endpoint.
@@ -235,18 +239,21 @@ func (dbx *apiImpl) AddFileMember(arg *AddFileMemberArgs) (res []*FileMemberActi
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "add_file_member"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "add_file_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -312,18 +319,21 @@ func (dbx *apiImpl) AddFolderMember(arg *AddFolderMemberArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "add_folder_member"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "add_folder_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -384,18 +394,21 @@ func (dbx *apiImpl) ChangeFileMemberAccess(arg *ChangeFileMemberAccessArgs) (res
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "change_file_member_access"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "change_file_member_access", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -461,18 +474,21 @@ func (dbx *apiImpl) CheckJobStatus(arg *async.PollArg) (res *JobStatus, err erro
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "check_job_status"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "check_job_status", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -538,18 +554,21 @@ func (dbx *apiImpl) CheckRemoveMemberJobStatus(arg *async.PollArg) (res *RemoveM
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "check_remove_member_job_status"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "check_remove_member_job_status", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -615,18 +634,21 @@ func (dbx *apiImpl) CheckShareJobStatus(arg *async.PollArg) (res *ShareFolderJob
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "check_share_job_status"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "check_share_job_status", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -692,18 +714,21 @@ func (dbx *apiImpl) CreateSharedLink(arg *CreateSharedLinkArg) (res *PathLinkMet
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "create_shared_link"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "create_shared_link", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -769,18 +794,21 @@ func (dbx *apiImpl) CreateSharedLinkWithSettings(arg *CreateSharedLinkWithSettin
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "create_shared_link_with_settings"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "create_shared_link_with_settings", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -854,18 +882,21 @@ func (dbx *apiImpl) GetFileMetadata(arg *GetFileMetadataArg) (res *SharedFileMet
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "get_file_metadata"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "get_file_metadata", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -931,18 +962,21 @@ func (dbx *apiImpl) GetFileMetadataBatch(arg *GetFileMetadataBatchArg) (res []*G
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "get_file_metadata/batch"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "get_file_metadata/batch", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1008,18 +1042,21 @@ func (dbx *apiImpl) GetFolderMetadata(arg *GetMetadataArgs) (res *SharedFolderMe
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "get_folder_metadata"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "get_folder_metadata", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1085,18 +1122,21 @@ func (dbx *apiImpl) GetSharedLinkFile(arg *GetSharedLinkMetadataArg) (res IsShar
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("content", "sharing", "get_shared_link_file"), nil)
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Dropbox-API-Arg": string(b),
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Dropbox-API-Arg", string(b))
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("content", "download", true, "sharing", "get_shared_link_file", headers, nil)
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1166,18 +1206,21 @@ func (dbx *apiImpl) GetSharedLinkMetadata(arg *GetSharedLinkMetadataArg) (res Is
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "get_shared_link_metadata"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "get_shared_link_metadata", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1251,18 +1294,21 @@ func (dbx *apiImpl) GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksR
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "get_shared_links"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "get_shared_links", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1328,18 +1374,21 @@ func (dbx *apiImpl) ListFileMembers(arg *ListFileMembersArg) (res *SharedFileMem
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_file_members"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_file_members", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1405,18 +1454,21 @@ func (dbx *apiImpl) ListFileMembersBatch(arg *ListFileMembersBatchArg) (res []*L
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_file_members/batch"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_file_members/batch", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1482,18 +1534,21 @@ func (dbx *apiImpl) ListFileMembersContinue(arg *ListFileMembersContinueArg) (re
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_file_members/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_file_members/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1559,18 +1614,21 @@ func (dbx *apiImpl) ListFolderMembers(arg *ListFolderMembersArgs) (res *SharedFo
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_folder_members"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_folder_members", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1636,18 +1694,21 @@ func (dbx *apiImpl) ListFolderMembersContinue(arg *ListFolderMembersContinueArg)
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_folder_members/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_folder_members/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1713,18 +1774,21 @@ func (dbx *apiImpl) ListFolders(arg *ListFoldersArgs) (res *ListFoldersResult, e
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_folders"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_folders", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1790,18 +1854,21 @@ func (dbx *apiImpl) ListFoldersContinue(arg *ListFoldersContinueArg) (res *ListF
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_folders/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_folders/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1867,18 +1934,21 @@ func (dbx *apiImpl) ListMountableFolders(arg *ListFoldersArgs) (res *ListFolders
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_mountable_folders"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_mountable_folders", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -1944,18 +2014,21 @@ func (dbx *apiImpl) ListMountableFoldersContinue(arg *ListFoldersContinueArg) (r
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_mountable_folders/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_mountable_folders/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2021,18 +2094,21 @@ func (dbx *apiImpl) ListReceivedFiles(arg *ListFilesArg) (res *ListFilesResult, 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_received_files"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_received_files", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2098,18 +2174,21 @@ func (dbx *apiImpl) ListReceivedFilesContinue(arg *ListFilesContinueArg) (res *L
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_received_files/continue"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_received_files/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2175,18 +2254,21 @@ func (dbx *apiImpl) ListSharedLinks(arg *ListSharedLinksArg) (res *ListSharedLin
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "list_shared_links"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "list_shared_links", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2252,18 +2334,21 @@ func (dbx *apiImpl) ModifySharedLinkSettings(arg *ModifySharedLinkSettingsArgs) 
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "modify_shared_link_settings"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "modify_shared_link_settings", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2337,18 +2422,21 @@ func (dbx *apiImpl) MountFolder(arg *MountFolderArg) (res *SharedFolderMetadata,
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "mount_folder"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "mount_folder", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2414,18 +2502,21 @@ func (dbx *apiImpl) RelinquishFileMembership(arg *RelinquishFileMembershipArg) (
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "relinquish_file_membership"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "relinquish_file_membership", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2486,18 +2577,21 @@ func (dbx *apiImpl) RelinquishFolderMembership(arg *RelinquishFolderMembershipAr
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "relinquish_folder_membership"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "relinquish_folder_membership", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2563,18 +2657,21 @@ func (dbx *apiImpl) RemoveFileMember(arg *RemoveFileMemberArg) (res *FileMemberA
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "remove_file_member"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "remove_file_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2640,18 +2737,21 @@ func (dbx *apiImpl) RemoveFileMember2(arg *RemoveFileMemberArg) (res *FileMember
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "remove_file_member_2"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "remove_file_member_2", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2717,18 +2817,21 @@ func (dbx *apiImpl) RemoveFolderMember(arg *RemoveFolderMemberArg) (res *async.L
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "remove_folder_member"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "remove_folder_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2794,18 +2897,21 @@ func (dbx *apiImpl) RevokeSharedLink(arg *RevokeSharedLinkArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "revoke_shared_link"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "revoke_shared_link", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2866,18 +2972,21 @@ func (dbx *apiImpl) ShareFolder(arg *ShareFolderArg) (res *ShareFolderLaunch, er
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "share_folder"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "share_folder", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -2943,18 +3052,21 @@ func (dbx *apiImpl) TransferFolder(arg *TransferFolderArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "transfer_folder"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "transfer_folder", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3015,18 +3127,21 @@ func (dbx *apiImpl) UnmountFolder(arg *UnmountFolderArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "unmount_folder"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "unmount_folder", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3087,18 +3202,21 @@ func (dbx *apiImpl) UnshareFile(arg *UnshareFileArg) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "unshare_file"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "unshare_file", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3159,18 +3277,21 @@ func (dbx *apiImpl) UnshareFolder(arg *UnshareFolderArg) (res *async.LaunchEmpty
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "unshare_folder"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "unshare_folder", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3219,6 +3340,86 @@ func (dbx *apiImpl) UnshareFolder(arg *UnshareFolderArg) (res *async.LaunchEmpty
 	return
 }
 
+//UpdateFileMemberAPIError is an error-wrapper for the update_file_member route
+type UpdateFileMemberAPIError struct {
+	dropbox.APIError
+	EndpointError *FileMemberActionError `json:"error"`
+}
+
+func (dbx *apiImpl) UpdateFileMember(arg *UpdateFileMemberArgs) (res *MemberAccessLevelResult, err error) {
+	cli := dbx.Client
+
+	if dbx.Config.Verbose {
+		log.Printf("arg: %v", arg)
+	}
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "update_file_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	if dbx.Config.Verbose {
+		log.Printf("req: %v", req)
+	}
+
+	resp, err := cli.Do(req)
+	if dbx.Config.Verbose {
+		log.Printf("resp: %v", resp)
+	}
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if dbx.Config.Verbose {
+		log.Printf("body: %s", body)
+	}
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError UpdateFileMemberAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //UpdateFolderMemberAPIError is an error-wrapper for the update_folder_member route
 type UpdateFolderMemberAPIError struct {
 	dropbox.APIError
@@ -3236,18 +3437,21 @@ func (dbx *apiImpl) UpdateFolderMember(arg *UpdateFolderMemberArg) (res *MemberA
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "update_folder_member"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "update_folder_member", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -3313,18 +3517,21 @@ func (dbx *apiImpl) UpdateFolderPolicy(arg *UpdateFolderPolicyArg) (res *SharedF
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "sharing", "update_folder_policy"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "sharing", "update_folder_policy", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
