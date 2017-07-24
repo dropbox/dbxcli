@@ -36,6 +36,18 @@ const (
 	EmmStateOther    = "other"
 )
 
+// OfficeAddInPolicy : has no documentation (yet)
+type OfficeAddInPolicy struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for OfficeAddInPolicy
+const (
+	OfficeAddInPolicyDisabled = "disabled"
+	OfficeAddInPolicyEnabled  = "enabled"
+	OfficeAddInPolicyOther    = "other"
+)
+
 // SharedFolderJoinPolicy : Policy governing which shared folders a team member
 // can join.
 type SharedFolderJoinPolicy struct {
@@ -62,8 +74,8 @@ const (
 	SharedFolderMemberPolicyOther  = "other"
 )
 
-// SharedLinkCreatePolicy : Policy governing the visibility of newly created
-// shared links.
+// SharedLinkCreatePolicy : Policy governing the visibility of shared links.
+// This policy can apply to newly created shared links, or all shared links.
 type SharedLinkCreatePolicy struct {
 	dropbox.Tagged
 }
@@ -87,13 +99,17 @@ type TeamMemberPolicies struct {
 	// devices. This is a new feature and in the future we'll be adding more new
 	// fields and additional documentation.
 	EmmState *EmmState `json:"emm_state"`
+	// OfficeAddin : The admin policy around the Dropbox Office Add-In for this
+	// team.
+	OfficeAddin *OfficeAddInPolicy `json:"office_addin"`
 }
 
 // NewTeamMemberPolicies returns a new TeamMemberPolicies instance
-func NewTeamMemberPolicies(Sharing *TeamSharingPolicies, EmmState *EmmState) *TeamMemberPolicies {
+func NewTeamMemberPolicies(Sharing *TeamSharingPolicies, EmmState *EmmState, OfficeAddin *OfficeAddInPolicy) *TeamMemberPolicies {
 	s := new(TeamMemberPolicies)
 	s.Sharing = Sharing
 	s.EmmState = EmmState
+	s.OfficeAddin = OfficeAddin
 	return s
 }
 
@@ -104,8 +120,7 @@ type TeamSharingPolicies struct {
 	SharedFolderMemberPolicy *SharedFolderMemberPolicy `json:"shared_folder_member_policy"`
 	// SharedFolderJoinPolicy : Which shared folders team members can join.
 	SharedFolderJoinPolicy *SharedFolderJoinPolicy `json:"shared_folder_join_policy"`
-	// SharedLinkCreatePolicy : What is the visibility of newly created shared
-	// links.
+	// SharedLinkCreatePolicy : Who can view shared links owned by team members.
 	SharedLinkCreatePolicy *SharedLinkCreatePolicy `json:"shared_link_create_policy"`
 }
 

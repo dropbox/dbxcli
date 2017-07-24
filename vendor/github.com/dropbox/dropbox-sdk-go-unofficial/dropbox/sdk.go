@@ -22,6 +22,7 @@ package dropbox
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -34,7 +35,7 @@ const (
 	hostContent   = "content"
 	hostNotify    = "notify"
 	sdkVersion    = "1.0.0-beta"
-	specVersion   = "2dd2e0f"
+	specVersion   = "6194bea"
 )
 
 // Version returns the current SDK version and API Spec version
@@ -52,19 +53,50 @@ type Config struct {
 	AsMemberID string
 	// No need to set -- for testing only
 	Domain string
+	// No need to set -- for testing only
+	Client *http.Client
+	// No need to set -- for testing only
+	HeaderGenerator func(hostType string, style string, namespace string, route string) map[string]string
+	// No need to set -- for testing only
+	URLGenerator func(hostType string, style string, namespace string, route string) string
 }
 
 // Context is the base client context used to implement per-namespace clients.
 type Context struct {
-	Client  *http.Client
-	Config  Config
-	hostMap map[string]string
+	Config          Config
+	Client          *http.Client
+	HeaderGenerator func(hostType string, style string, namespace string, route string) map[string]string
+	URLGenerator    func(hostType string, style string, namespace string, route string) string
 }
 
-// GenerateURL returns the appropriate URL for given namespace/route.
-func (c *Context) GenerateURL(host string, namespace string, route string) string {
-	fqHost := c.hostMap[host]
-	return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
+// NewRequest returns an appropriate Request object for the given namespace/route.
+func (c *Context) NewRequest(
+	hostType string,
+	style string,
+	authed bool,
+	namespace string,
+	route string,
+	headers map[string]string,
+	body io.Reader,
+) (*http.Request, error) {
+	url := c.URLGenerator(hostType, style, namespace, route)
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range headers {
+		req.Header.Add(k, v)
+	}
+	for k, v := range c.HeaderGenerator(hostType, style, namespace, route) {
+		req.Header.Add(k, v)
+	}
+	if req.Header.Get("Host") != "" {
+		req.Host = req.Header.Get("Host")
+	}
+	if !authed {
+		req.Header.Del("Authorization")
+	}
+	return req, nil
 }
 
 // NewContext returns a new Context with the given Config.
@@ -74,14 +106,34 @@ func NewContext(c Config) Context {
 		domain = defaultDomain
 	}
 
-	hostMap := map[string]string{
-		hostAPI:     hostAPI + domain,
-		hostContent: hostContent + domain,
-		hostNotify:  hostNotify + domain,
+	client := c.Client
+	if client == nil {
+		var conf = &oauth2.Config{Endpoint: OAuthEndpoint(domain)}
+		tok := &oauth2.Token{AccessToken: c.Token}
+		client = conf.Client(oauth2.NoContext, tok)
 	}
-	var conf = &oauth2.Config{Endpoint: OAuthEndpoint(domain)}
-	tok := &oauth2.Token{AccessToken: c.Token}
-	return Context{conf.Client(oauth2.NoContext, tok), c, hostMap}
+
+	headerGenerator := c.HeaderGenerator
+	if headerGenerator == nil {
+		headerGenerator = func(hostType string, style string, namespace string, route string) map[string]string {
+			return map[string]string{}
+		}
+	}
+
+	urlGenerator := c.URLGenerator
+	if urlGenerator == nil {
+		hostMap := map[string]string{
+			hostAPI:     hostAPI + domain,
+			hostContent: hostContent + domain,
+			hostNotify:  hostNotify + domain,
+		}
+		urlGenerator = func(hostType string, style string, namespace string, route string) string {
+			fqHost := hostMap[hostType]
+			return fmt.Sprintf("https://%s/%d/%s/%s", fqHost, apiVersion, namespace, route)
+		}
+	}
+
+	return Context{c, client, headerGenerator, urlGenerator}
 }
 
 // OAuthEndpoint constructs an `oauth2.Endpoint` for the given domain

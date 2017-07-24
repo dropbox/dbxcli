@@ -63,18 +63,21 @@ func (dbx *apiImpl) GetAccount(arg *GetAccountArg) (res *BasicAccount, err error
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "users", "get_account"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "users", "get_account", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -140,18 +143,21 @@ func (dbx *apiImpl) GetAccountBatch(arg *GetAccountBatchArg) (res []*BasicAccoun
 		return
 	}
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "users", "get_account_batch"), bytes.NewReader(b))
-	if err != nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "users", "get_account_batch", headers, bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -209,17 +215,19 @@ type GetCurrentAccountAPIError struct {
 func (dbx *apiImpl) GetCurrentAccount() (res *FullAccount, err error) {
 	cli := dbx.Client
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "users", "get_current_account"), nil)
-	if err != nil {
-		return
+	headers := map[string]string{}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "users", "get_current_account", headers, nil)
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)
@@ -277,17 +285,19 @@ type GetSpaceUsageAPIError struct {
 func (dbx *apiImpl) GetSpaceUsage() (res *SpaceUsage, err error) {
 	cli := dbx.Client
 
-	req, err := http.NewRequest("POST", (*dropbox.Context)(dbx).GenerateURL("api", "users", "get_space_usage"), nil)
-	if err != nil {
-		return
+	headers := map[string]string{}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
 
-	if dbx.Config.AsMemberID != "" {
-		req.Header.Set("Dropbox-API-Select-User", dbx.Config.AsMemberID)
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "users", "get_space_usage", headers, nil)
+	if err != nil {
+		return
 	}
 	if dbx.Config.Verbose {
 		log.Printf("req: %v", req)
 	}
+
 	resp, err := cli.Do(req)
 	if dbx.Config.Verbose {
 		log.Printf("resp: %v", resp)

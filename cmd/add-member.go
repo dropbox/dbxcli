@@ -31,7 +31,9 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	email := args[0]
 	firstName := args[1]
 	lastName := args[2]
-	member := team.NewMemberAddArg(email, firstName, lastName)
+	member := team.NewMemberAddArg(email)
+	member.MemberGivenName = firstName
+	member.MemberSurname = lastName
 	arg := team.NewMembersAddArg([]*team.MemberAddArg{member})
 	res, err := dbx.MembersAdd(arg)
 	if err != nil {
