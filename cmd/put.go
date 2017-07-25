@@ -40,9 +40,10 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	written := chunkSize
 
 	for (sizeTotal - written) > chunkSize {
-		args := files.NewUploadSessionCursor(res.SessionId, uint64(written))
+		cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
+		args := files.NewUploadSessionAppendArg(cursor)
 
-		err = dbx.UploadSessionAppend(args, &io.LimitedReader{R: r, N: chunkSize})
+		err = dbx.UploadSessionAppendV2(args, &io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
 			return
 		}
