@@ -39,6 +39,7 @@ type Client interface {
 	// DevicesListMembersDevices : List all device sessions of a team.
 	DevicesListMembersDevices(arg *ListMembersDevicesArg) (res *ListMembersDevicesResult, err error)
 	// DevicesListTeamDevices : List all device sessions of a team.
+	// Deprecated: Use `DevicesListMembersDevices` instead
 	DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTeamDevicesResult, err error)
 	// DevicesRevokeDeviceSession : Revoke a device session of a team's member
 	DevicesRevokeDeviceSession(arg *RevokeDeviceSessionArg) (err error)
@@ -109,6 +110,7 @@ type Client interface {
 	// LinkedAppsListTeamLinkedApps : List all applications linked to the team
 	// members' accounts. Note, this endpoint doesn't list any team-linked
 	// applications.
+	// Deprecated: Use `LinkedAppsListMembersLinkedApps` instead
 	LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *ListTeamAppsResult, err error)
 	// LinkedAppsRevokeLinkedApp : Revoke a linked application of the team
 	// member
@@ -412,6 +414,9 @@ type DevicesListTeamDevicesAPIError struct {
 }
 
 func (dbx *apiImpl) DevicesListTeamDevices(arg *ListTeamDevicesArg) (res *ListTeamDevicesResult, err error) {
+	log.Printf("WARNING: API `DevicesListTeamDevices` is deprecated")
+	log.Printf("Use API `DevicesListMembersDevices` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -1860,6 +1865,9 @@ type LinkedAppsListTeamLinkedAppsAPIError struct {
 }
 
 func (dbx *apiImpl) LinkedAppsListTeamLinkedApps(arg *ListTeamAppsArg) (res *ListTeamAppsResult, err error) {
+	log.Printf("WARNING: API `LinkedAppsListTeamLinkedApps` is deprecated")
+	log.Printf("Use API `LinkedAppsListMembersLinkedApps` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {

@@ -47,6 +47,7 @@ type Client interface {
 	AlphaUpload(arg *CommitInfoWithProperties, content io.Reader) (res *FileMetadata, err error)
 	// Copy : Copy a file or folder to a different location in the user's
 	// Dropbox. If the source path is a folder all its contents will be copied.
+	// Deprecated: Use `CopyV2` instead
 	Copy(arg *RelocationArg) (res IsMetadata, err error)
 	// CopyBatch : Copy multiple files or folders to different locations at once
 	// in the user's Dropbox. If `RelocationBatchArg.allow_shared_folder` is
@@ -71,6 +72,7 @@ type Client interface {
 	// Dropbox. If the source path is a folder all its contents will be copied.
 	CopyV2(arg *RelocationArg) (res *RelocationResult, err error)
 	// CreateFolder : Create a folder at a given path.
+	// Deprecated: Use `CreateFolderV2` instead
 	CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err error)
 	// CreateFolderV2 : Create a folder at a given path.
 	CreateFolderV2(arg *CreateFolderArg) (res *CreateFolderResult, err error)
@@ -79,6 +81,7 @@ type Client interface {
 	// indicates that the file or folder was deleted. The returned metadata will
 	// be the corresponding `FileMetadata` or `FolderMetadata` for the item at
 	// time of deletion, and not a `DeletedMetadata` object.
+	// Deprecated: Use `DeleteV2` instead
 	Delete(arg *DeleteArg) (res IsMetadata, err error)
 	// DeleteBatch : Delete multiple files/folders at once. This route is
 	// asynchronous, which returns a job ID immediately and runs the delete
@@ -159,6 +162,7 @@ type Client interface {
 	ListRevisions(arg *ListRevisionsArg) (res *ListRevisionsResult, err error)
 	// Move : Move a file or folder to a different location in the user's
 	// Dropbox. If the source path is a folder all its contents will be moved.
+	// Deprecated: Use `MoveV2` instead
 	Move(arg *RelocationArg) (res IsMetadata, err error)
 	// MoveBatch : Move multiple files or folders to different locations at once
 	// in the user's Dropbox. This route is 'all or nothing', which means if one
@@ -215,6 +219,7 @@ type Client interface {
 	Upload(arg *CommitInfo, content io.Reader) (res *FileMetadata, err error)
 	// UploadSessionAppend : Append more data to an upload session. A single
 	// request should not upload more than 150 MB.
+	// Deprecated: Use `UploadSessionAppendV2` instead
 	UploadSessionAppend(arg *UploadSessionCursor, content io.Reader) (err error)
 	// UploadSessionAppendV2 : Append more data to an upload session. When the
 	// parameter close is set, this call will close the session. A single
@@ -436,6 +441,9 @@ type CopyAPIError struct {
 }
 
 func (dbx *apiImpl) Copy(arg *RelocationArg) (res IsMetadata, err error) {
+	log.Printf("WARNING: API `Copy` is deprecated")
+	log.Printf("Use API `CopyV2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -927,6 +935,9 @@ type CreateFolderAPIError struct {
 }
 
 func (dbx *apiImpl) CreateFolder(arg *CreateFolderArg) (res *FolderMetadata, err error) {
+	log.Printf("WARNING: API `CreateFolder` is deprecated")
+	log.Printf("Use API `CreateFolderV2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -1087,6 +1098,9 @@ type DeleteAPIError struct {
 }
 
 func (dbx *apiImpl) Delete(arg *DeleteArg) (res IsMetadata, err error) {
+	log.Printf("WARNING: API `Delete` is deprecated")
+	log.Printf("Use API `DeleteV2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -2214,6 +2228,9 @@ type MoveAPIError struct {
 }
 
 func (dbx *apiImpl) Move(arg *RelocationArg) (res IsMetadata, err error) {
+	log.Printf("WARNING: API `Move` is deprecated")
+	log.Printf("Use API `MoveV2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -3471,6 +3488,9 @@ type UploadSessionAppendAPIError struct {
 }
 
 func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Reader) (err error) {
+	log.Printf("WARNING: API `UploadSessionAppend` is deprecated")
+	log.Printf("Use API `UploadSessionAppendV2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {

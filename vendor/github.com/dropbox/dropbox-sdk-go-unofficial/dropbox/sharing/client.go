@@ -44,6 +44,7 @@ type Client interface {
 	AddFolderMember(arg *AddFolderMemberArg) (err error)
 	// ChangeFileMemberAccess : Identical to update_file_member but with less
 	// information returned.
+	// Deprecated: Use `UpdateFileMember` instead
 	ChangeFileMemberAccess(arg *ChangeFileMemberAccessArgs) (res *FileMemberActionResult, err error)
 	// CheckJobStatus : Returns the status of an asynchronous job. Apps must
 	// have full Dropbox access to use this endpoint.
@@ -64,6 +65,7 @@ type Client interface {
 	// the corresponding file or folder. In the future, this will no longer be
 	// the case, so your app shouldn't rely on this behavior. Instead, if your
 	// app needs to revoke a shared link, use `revokeSharedLink`.
+	// Deprecated: Use `CreateSharedLinkWithSettings` instead
 	CreateSharedLink(arg *CreateSharedLinkArg) (res *PathLinkMetadata, err error)
 	// CreateSharedLinkWithSettings : Create a shared link with custom settings.
 	// If no settings are given then the default visibility is
@@ -89,6 +91,7 @@ type Client interface {
 	// all shared links that allow access to the given path.  Collection links
 	// are never returned in this case. Note that the url field in the response
 	// is never the shortened URL.
+	// Deprecated: Use `ListSharedLinks` instead
 	GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksResult, err error)
 	// ListFileMembers : Use to obtain the members who have been invited to a
 	// file, both inherited and uninherited members.
@@ -170,6 +173,7 @@ type Client interface {
 	RelinquishFolderMembership(arg *RelinquishFolderMembershipArg) (res *async.LaunchEmptyResult, err error)
 	// RemoveFileMember : Identical to remove_file_member_2 but with less
 	// information returned.
+	// Deprecated: Use `RemoveFileMember2` instead
 	RemoveFileMember(arg *RemoveFileMemberArg) (res *FileMemberActionIndividualResult, err error)
 	// RemoveFileMember2 : Removes a specified member from the file.
 	RemoveFileMember2(arg *RemoveFileMemberArg) (res *FileMemberRemoveActionResult, err error)
@@ -384,6 +388,9 @@ type ChangeFileMemberAccessAPIError struct {
 }
 
 func (dbx *apiImpl) ChangeFileMemberAccess(arg *ChangeFileMemberAccessArgs) (res *FileMemberActionResult, err error) {
+	log.Printf("WARNING: API `ChangeFileMemberAccess` is deprecated")
+	log.Printf("Use API `UpdateFileMember` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -704,6 +711,9 @@ type CreateSharedLinkAPIError struct {
 }
 
 func (dbx *apiImpl) CreateSharedLink(arg *CreateSharedLinkArg) (res *PathLinkMetadata, err error) {
+	log.Printf("WARNING: API `CreateSharedLink` is deprecated")
+	log.Printf("Use API `CreateSharedLinkWithSettings` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -1284,6 +1294,9 @@ type GetSharedLinksAPIError struct {
 }
 
 func (dbx *apiImpl) GetSharedLinks(arg *GetSharedLinksArg) (res *GetSharedLinksResult, err error) {
+	log.Printf("WARNING: API `GetSharedLinks` is deprecated")
+	log.Printf("Use API `ListSharedLinks` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {
@@ -2647,6 +2660,9 @@ type RemoveFileMemberAPIError struct {
 }
 
 func (dbx *apiImpl) RemoveFileMember(arg *RemoveFileMemberArg) (res *FileMemberActionIndividualResult, err error) {
+	log.Printf("WARNING: API `RemoveFileMember` is deprecated")
+	log.Printf("Use API `RemoveFileMember2` instead")
+
 	cli := dbx.Client
 
 	if dbx.Config.Verbose {

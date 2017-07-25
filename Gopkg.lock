@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/dropbox/dropbox-sdk-go-unofficial"
   packages = ["dropbox","dropbox/async","dropbox/auth","dropbox/files","dropbox/properties","dropbox/sharing","dropbox/team","dropbox/team_common","dropbox/team_policies","dropbox/users","dropbox/users_common"]
-  revision = "87c5a55c1cbe542a328e304b8717218b6a2ef21e"
+  revision = "9270e268a547e31a882097074e4b53c7474ed3d4"
 
 [[projects]]
   branch = "master"
@@ -47,7 +47,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "90fc11bbc0a789c29272c21b5ff9e93db183f8dc"
+  revision = "34594c771f2c18301dc152640ad40ece28795373"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -77,7 +77,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "c4489faa6e5ab84c0ef40d6ee878f7a030281f0f"
+  revision = "14ac33bf8474b62c65cae263af2e4d3b543cc699"
 
 [[projects]]
   name = "google.golang.org/appengine"
