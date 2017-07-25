@@ -65,7 +65,7 @@ func rm(cmd *cobra.Command, args []string) error {
 	for _, path := range deletePaths {
 		arg := files.NewDeleteArg(path)
 
-		if _, err = dbx.Delete(arg); err != nil {
+		if _, err = dbx.DeleteV2(arg); err != nil {
 			return err
 		}
 	}
