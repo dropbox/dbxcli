@@ -52,7 +52,7 @@ func cp(cmd *cobra.Command, args []string) error {
 
 	dbx := files.New(config)
 	for _, arg := range relocationArgs {
-		if _, err := dbx.Copy(arg); err != nil {
+		if _, err := dbx.CopyV2(arg); err != nil {
 			copyError := fmt.Errorf("Copy error: %v", arg)
 			cpErrors = append(cpErrors, copyError)
 		}
@@ -67,9 +67,10 @@ func cp(cmd *cobra.Command, args []string) error {
 
 // cpCmd represents the cp command
 var cpCmd = &cobra.Command{
-	Use:   "cp [flags] <source> <target>",
-	Short: "Copy files",
-	RunE:  cp,
+	Use: "cp [flags] <source> [more sources] <target>",
+	Short: "Copy a file or folder to a different location in the user's Dropbox. " +
+		"If the source path is a folder all its contents will be copied.",
+	RunE: cp,
 }
 
 func init() {
