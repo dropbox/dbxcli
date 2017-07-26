@@ -187,7 +187,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		writeTokens(filePath, tokenMap)
 	}
 
-	config = dropbox.Config{tokens[tokType], verbose, asMember, domain, nil, nil, nil}
+	config = dropbox.Config{tokens[tokType], verbose, nil, asMember, domain, nil, nil, nil}
 
 	return
 }
