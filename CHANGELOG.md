@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.3...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.5...HEAD)
+
+**Implemented enhancements:**
+
+- Add `--recurse` option to `ls` [\#74](https://github.com/dropbox/dbxcli/issues/74)
+
+**Merged pull requests:**
+
+- Add `account` command [\#15](https://github.com/dropbox/dbxcli/pull/15) ([waits](https://github.com/waits))
+
+## [v2.0.5](https://github.com/dropbox/dbxcli/tree/v2.0.5) (2017-07-26)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.4...v2.0.5)
+
+## [v2.0.4](https://github.com/dropbox/dbxcli/tree/v2.0.4) (2017-07-26)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.3...v2.0.4)
 
 **Closed issues:**
 
