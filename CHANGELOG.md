@@ -2,7 +2,17 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.2...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.3...HEAD)
+
+**Closed issues:**
+
+- Usage question with wildcards [\#72](https://github.com/dropbox/dbxcli/issues/72)
+- Could not able to copy a tar.gz file in my dropbox folder [\#69](https://github.com/dropbox/dbxcli/issues/69)
+- v2.0.2 in Windows ls not returning results unless verbose [\#68](https://github.com/dropbox/dbxcli/issues/68)
+- Rename a file? [\#66](https://github.com/dropbox/dbxcli/issues/66)
+
+## [v2.0.3](https://github.com/dropbox/dbxcli/tree/v2.0.3) (2017-07-24)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.2...v2.0.3)
 
 **Closed issues:**
 
