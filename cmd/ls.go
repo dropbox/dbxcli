@@ -62,6 +62,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	dbx := files.New(config)
 
 	arg := files.NewListFolderArg(path)
+	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
 
 	res, err := dbx.ListFolder(arg)
 	var entries []files.IsMetadata
@@ -154,4 +155,5 @@ func init() {
 	RootCmd.AddCommand(lsCmd)
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
+	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
 }
