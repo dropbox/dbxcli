@@ -20,7 +20,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
 	"github.com/spf13/cobra"
 )
 
@@ -57,6 +57,7 @@ func account(cmd *cobra.Command, args []string) error {
 		return errors.New("`account` accepts an optional `id` argument")
 	}
 
+	dbx := users.New(config)
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 
