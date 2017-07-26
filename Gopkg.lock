@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/dropbox/dropbox-sdk-go-unofficial"
   packages = ["dropbox","dropbox/async","dropbox/auth","dropbox/files","dropbox/properties","dropbox/sharing","dropbox/team","dropbox/team_common","dropbox/team_policies","dropbox/users","dropbox/users_common"]
-  revision = "9270e268a547e31a882097074e4b53c7474ed3d4"
+  revision = "56f95f1a1e80e0745e4bd8414e03394a3a57935f"
 
 [[projects]]
   branch = "master"
@@ -18,12 +18,6 @@
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "0a4f71a498b7c4812f64969510bcb4eca251e33a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/grantseltzer/golumns"
-  packages = ["."]
-  revision = "58e030334593ef569b65bc74e1876bbdf4345fa0"
 
 [[projects]]
   branch = "master"
@@ -57,27 +51,15 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
-  revision = "6914964337150723782436d56b3f21610a74ce7b"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp"]
-  revision = "ab5485076ff3407ad2d02db054635913f017b0ed"
+  revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","internal"]
   revision = "b53b38ad8a6435bd399ea76d0fa74f23149cca4e"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "14ac33bf8474b62c65cae263af2e4d3b543cc699"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -88,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6f3567e73a3febddbd0fbf10e7079ca9d4f35c878d931072f3ac86bb66214e86"
+  inputs-digest = "30272d6d7483c1caded616e0fd3852ce874297d78020fbb01c944b1af08fc30f"
   solver-name = "gps-cdcl"
   solver-version = 1

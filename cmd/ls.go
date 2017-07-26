@@ -23,7 +23,6 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/dustin/go-humanize"
-	"github.com/grantseltzer/golumns"
 	"github.com/spf13/cobra"
 )
 
@@ -43,14 +42,14 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 	if longFormat {
 		fmt.Fprintf(w, "-\t-\t-\t")
 	}
-	fmt.Fprintf(w, "%s\n", e.PathDisplay)
+	fmt.Fprintf(w, "%s\t", e.PathDisplay)
 }
 
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	if longFormat {
 		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
 	}
-	fmt.Fprintf(w, "%s\n", e.PathDisplay)
+	fmt.Fprintf(w, "%s\t", e.PathDisplay)
 }
 
 func ls(cmd *cobra.Command, args []string) (err error) {
@@ -103,22 +102,22 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	long, _ := cmd.Flags().GetBool("long")
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	defer w.Flush()
 	if long {
-		w := new(tabwriter.Writer)
-		w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
-		for _, entry := range entries {
-			switch f := entry.(type) {
-			case *files.FileMetadata:
-				printFileMetadata(w, f, long)
-			case *files.FolderMetadata:
-				printFolderMetadata(w, f, long)
-			}
+	}
+	for i, entry := range entries {
+		switch f := entry.(type) {
+		case *files.FileMetadata:
+			printFileMetadata(w, f, long)
+		case *files.FolderMetadata:
+			printFolderMetadata(w, f, long)
 		}
-		w.Flush()
-	} else {
-		entryNames := listOfEntryNames(entries)
-		golumns.Display(entryNames)
+		if i%4 == 0 || long {
+			fmt.Fprintln(w)
+		}
 	}
 
 	return err
