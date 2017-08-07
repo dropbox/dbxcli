@@ -739,6 +739,8 @@ type DownloadArg struct {
 	Path string `json:"path"`
 	// Rev : Deprecated. Please specify revision in `path` instead.
 	Rev string `json:"rev,omitempty"`
+	// ExtraHeaders can be used to pass Range, If-None-Match headers
+	ExtraHeaders map[string]string `json:"-"`
 }
 
 // NewDownloadArg returns a new DownloadArg instance

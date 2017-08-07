@@ -361,8 +361,8 @@ func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
@@ -1331,6 +1331,9 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 	headers := map[string]string{
 		"Dropbox-API-Arg": string(b),
 	}
+	for k, v := range arg.ExtraHeaders {
+		headers[k] = v
+	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
 	}
@@ -1350,7 +1353,7 @@ func (dbx *apiImpl) Download(arg *DownloadArg) (res *FileMetadata, content io.Re
 	body := []byte(resp.Header.Get("Dropbox-API-Result"))
 	content = resp.Body
 	dbx.Config.TryLog("body: %v", body)
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
 		err = json.Unmarshal(body, &res)
 		if err != nil {
 			return
@@ -3106,8 +3109,8 @@ func (dbx *apiImpl) Upload(arg *CommitInfo, content io.Reader) (res *FileMetadat
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
@@ -3182,8 +3185,8 @@ func (dbx *apiImpl) UploadSessionAppend(arg *UploadSessionCursor, content io.Rea
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
@@ -3250,8 +3253,8 @@ func (dbx *apiImpl) UploadSessionAppendV2(arg *UploadSessionAppendArg, content i
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
@@ -3318,8 +3321,8 @@ func (dbx *apiImpl) UploadSessionFinish(arg *UploadSessionFinishArg, content io.
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
@@ -3535,8 +3538,8 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 	}
 
 	headers := map[string]string{
-		"Dropbox-API-Arg": string(b),
 		"Content-Type":    "application/octet-stream",
+		"Dropbox-API-Arg": string(b),
 	}
 	if dbx.Config.AsMemberID != "" {
 		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
