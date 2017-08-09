@@ -73,3 +73,27 @@ func (s *SearchMatch) UnmarshalJSON(b []byte) error {
 	}
 	return nil
 }
+
+type deleteResult struct {
+	FileOpsResult
+	Metadata metadataUnion `json:"metadata"`
+}
+
+// UnmarshalJSON deserializes into a SearchMatch instance
+func (s *DeleteResult) UnmarshalJSON(b []byte) error {
+	var m deleteResult
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	s.FileOpsResult = m.FileOpsResult
+	e := m.Metadata
+	switch e.Tag {
+	case "file":
+		s.Metadata = e.File
+	case "folder":
+		s.Metadata = e.Folder
+	case "deleted":
+		s.Metadata = e.Deleted
+	}
+	return nil
+}

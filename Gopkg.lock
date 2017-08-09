@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/dropbox/dropbox-sdk-go-unofficial"
   packages = ["dropbox","dropbox/async","dropbox/auth","dropbox/files","dropbox/properties","dropbox/sharing","dropbox/team","dropbox/team_common","dropbox/team_policies","dropbox/users","dropbox/users_common"]
-  revision = "aca6196c31607190829b1921aa7510bd460e2cc8"
+  revision = "350942579f314463a49b660b7a35f01dbf392a7f"
 
 [[projects]]
   branch = "master"
@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "748d386b5c1ea99658fd69fe9f03991ce86a90c1"
+  revision = "1909bc2f63dc92bb931deace8b8312c4db72d12f"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -53,7 +53,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp"]
-  revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
+  revision = "1c05540f6879653db88113bc4a2b70aec4bd491f"
 
 [[projects]]
   branch = "master"
