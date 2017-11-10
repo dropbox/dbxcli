@@ -187,7 +187,11 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		writeTokens(filePath, tokenMap)
 	}
 
-	config = dropbox.Config{tokens[tokType], verbose, nil, asMember, domain, nil, nil, nil}
+	logLevel := dropbox.LogOff
+	if verbose {
+		logLevel = dropbox.LogInfo
+	}
+	config = dropbox.Config{tokens[tokType], logLevel, nil, asMember, domain, nil, nil, nil}
 
 	return
 }
