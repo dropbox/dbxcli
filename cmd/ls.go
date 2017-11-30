@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
@@ -122,22 +121,6 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return err
-}
-
-func listOfEntryNames(entries []files.IsMetadata) []string {
-	listOfEntryNames := []string{}
-
-	for _, entry := range entries {
-		switch entry.(type) {
-		case *files.FolderMetadata:
-			listOfEntryNames = append(listOfEntryNames, entry.(*files.FolderMetadata).Name)
-		case *files.FileMetadata:
-			listOfEntryNames = append(listOfEntryNames, entry.(*files.FileMetadata).Name)
-		}
-	}
-
-	sort.Strings(listOfEntryNames)
-	return listOfEntryNames
 }
 
 // lsCmd represents the ls command

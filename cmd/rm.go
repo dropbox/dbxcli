@@ -33,7 +33,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deletePaths := []string{}
+	var deletePaths []string
 	dbx := files.New(config)
 
 	// Validate remove paths before executing removal

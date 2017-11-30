@@ -29,14 +29,11 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
 )
 
 const (
 	configFileName = "auth.json"
-	appKey         = "7fz0ag7t20fc0nv"
-	appSecret      = "1x7b0lb2mulwmrb"
-	dropboxScheme  = "dropbox"
-
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -179,7 +176,8 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 			return
 		}
 		var token *oauth2.Token
-		token, err = conf.Exchange(oauth2.NoContext, code)
+		ctx := context.Background()
+		token, err = conf.Exchange(ctx, code)
 		if err != nil {
 			return
 		}

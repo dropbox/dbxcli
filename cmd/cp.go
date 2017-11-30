@@ -37,8 +37,8 @@ func cp(cmd *cobra.Command, args []string) error {
 		return errors.New("cp requires a source and a destination")
 	}
 
-	cpErrors := []error{}
-	relocationArgs := []*files.RelocationArg{}
+	var cpErrors []error
+	var relocationArgs []*files.RelocationArg
 
 	for _, argument := range argsToCopy {
 		arg, err := makeRelocationArg(argument, destination+"/"+argument)

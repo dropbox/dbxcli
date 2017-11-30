@@ -36,8 +36,8 @@ func mv(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("mv command requires a source and a destination")
 	}
 
-	mvErrors := []error{}
-	relocationArgs := []*files.RelocationArg{}
+	var mvErrors []error
+	var relocationArgs []*files.RelocationArg
 
 	for _, argument := range argsToMove {
 		arg, err := makeRelocationArg(argument, destination+"/"+argument)
