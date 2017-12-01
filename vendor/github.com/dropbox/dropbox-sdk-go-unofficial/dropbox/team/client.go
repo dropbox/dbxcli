@@ -118,6 +118,18 @@ type Client interface {
 	// LinkedAppsRevokeLinkedAppBatch : Revoke a list of linked applications of
 	// the team members.
 	LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchArg) (res *RevokeLinkedAppBatchResult, err error)
+	// MemberSpaceLimitsExcludedUsersAdd : Add users to member space limits
+	// excluded users list.
+	MemberSpaceLimitsExcludedUsersAdd(arg *ExcludedUsersUpdateArg) (res *ExcludedUsersUpdateResult, err error)
+	// MemberSpaceLimitsExcludedUsersList : List member space limits excluded
+	// users.
+	MemberSpaceLimitsExcludedUsersList(arg *ExcludedUsersListArg) (res *ExcludedUsersListResult, err error)
+	// MemberSpaceLimitsExcludedUsersListContinue : Continue listing member
+	// space limits excluded users.
+	MemberSpaceLimitsExcludedUsersListContinue(arg *ExcludedUsersListContinueArg) (res *ExcludedUsersListResult, err error)
+	// MemberSpaceLimitsExcludedUsersRemove : Remove users from member space
+	// limits excluded users list.
+	MemberSpaceLimitsExcludedUsersRemove(arg *ExcludedUsersUpdateArg) (res *ExcludedUsersUpdateResult, err error)
 	// MemberSpaceLimitsGetCustomQuota : Get users custom quota. Returns none as
 	// the custom quota if none was set. A maximum of 1000 members can be
 	// specified in a single call.
@@ -126,7 +138,7 @@ type Client interface {
 	// of 1000 members can be specified in a single call.
 	MemberSpaceLimitsRemoveCustomQuota(arg *CustomQuotaUsersArg) (res []*RemoveCustomQuotaResult, err error)
 	// MemberSpaceLimitsSetCustomQuota : Set users custom quota. Custom quota
-	// has to be at least 25GB. A maximum of 1000 members can be specified in a
+	// has to be at least 15GB. A maximum of 1000 members can be specified in a
 	// single call.
 	MemberSpaceLimitsSetCustomQuota(arg *SetCustomQuotaArg) (res []*CustomQuotaResult, err error)
 	// MembersAdd : Adds members to a team. Permission : Team member management
@@ -1911,6 +1923,282 @@ func (dbx *apiImpl) LinkedAppsRevokeLinkedAppBatch(arg *RevokeLinkedApiAppBatchA
 	return
 }
 
+//MemberSpaceLimitsExcludedUsersAddAPIError is an error-wrapper for the member_space_limits/excluded_users/add route
+type MemberSpaceLimitsExcludedUsersAddAPIError struct {
+	dropbox.APIError
+	EndpointError *ExcludedUsersUpdateError `json:"error"`
+}
+
+func (dbx *apiImpl) MemberSpaceLimitsExcludedUsersAdd(arg *ExcludedUsersUpdateArg) (res *ExcludedUsersUpdateResult, err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "member_space_limits/excluded_users/add", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError MemberSpaceLimitsExcludedUsersAddAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//MemberSpaceLimitsExcludedUsersListAPIError is an error-wrapper for the member_space_limits/excluded_users/list route
+type MemberSpaceLimitsExcludedUsersListAPIError struct {
+	dropbox.APIError
+	EndpointError *ExcludedUsersListError `json:"error"`
+}
+
+func (dbx *apiImpl) MemberSpaceLimitsExcludedUsersList(arg *ExcludedUsersListArg) (res *ExcludedUsersListResult, err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "member_space_limits/excluded_users/list", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError MemberSpaceLimitsExcludedUsersListAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//MemberSpaceLimitsExcludedUsersListContinueAPIError is an error-wrapper for the member_space_limits/excluded_users/list/continue route
+type MemberSpaceLimitsExcludedUsersListContinueAPIError struct {
+	dropbox.APIError
+	EndpointError *ExcludedUsersListContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) MemberSpaceLimitsExcludedUsersListContinue(arg *ExcludedUsersListContinueArg) (res *ExcludedUsersListResult, err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "member_space_limits/excluded_users/list/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError MemberSpaceLimitsExcludedUsersListContinueAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//MemberSpaceLimitsExcludedUsersRemoveAPIError is an error-wrapper for the member_space_limits/excluded_users/remove route
+type MemberSpaceLimitsExcludedUsersRemoveAPIError struct {
+	dropbox.APIError
+	EndpointError *ExcludedUsersUpdateError `json:"error"`
+}
+
+func (dbx *apiImpl) MemberSpaceLimitsExcludedUsersRemove(arg *ExcludedUsersUpdateArg) (res *ExcludedUsersUpdateResult, err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "team", "member_space_limits/excluded_users/remove", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError MemberSpaceLimitsExcludedUsersRemoveAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //MemberSpaceLimitsGetCustomQuotaAPIError is an error-wrapper for the member_space_limits/get_custom_quota route
 type MemberSpaceLimitsGetCustomQuotaAPIError struct {
 	dropbox.APIError
@@ -2052,7 +2340,7 @@ func (dbx *apiImpl) MemberSpaceLimitsRemoveCustomQuota(arg *CustomQuotaUsersArg)
 //MemberSpaceLimitsSetCustomQuotaAPIError is an error-wrapper for the member_space_limits/set_custom_quota route
 type MemberSpaceLimitsSetCustomQuotaAPIError struct {
 	dropbox.APIError
-	EndpointError *CustomQuotaError `json:"error"`
+	EndpointError *SetCustomQuotaError `json:"error"`
 }
 
 func (dbx *apiImpl) MemberSpaceLimitsSetCustomQuota(arg *SetCustomQuotaArg) (res []*CustomQuotaResult, err error) {
@@ -4363,7 +4651,7 @@ func (dbx *apiImpl) TokenGetAuthenticatedAdmin() (res *TokenGetAuthenticatedAdmi
 }
 
 // New returns a Client implementation for this namespace
-func New(c dropbox.Config) *apiImpl {
+func New(c dropbox.Config) Client {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx
 }

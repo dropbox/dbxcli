@@ -38,12 +38,14 @@ type Client interface {
 	// AlphaGetMetadata : Returns the metadata for a file or folder. This is an
 	// alpha endpoint compatible with the properties API. Note: Metadata for the
 	// root folder is unsupported.
+	// Deprecated: Use `GetMetadata` instead
 	AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, err error)
 	// AlphaUpload : Create a new file with the contents provided in the
 	// request. Note that this endpoint is part of the properties API alpha and
 	// is slightly different from `upload`. Do not use this to upload a file
 	// larger than 150 MB. Instead, create an upload session with
 	// `uploadSessionStart`.
+	// Deprecated: Use `AlphaUpload` instead
 	AlphaUpload(arg *CommitInfoWithProperties, content io.Reader) (res *FileMetadata, err error)
 	// Copy : Copy a file or folder to a different location in the user's
 	// Dropbox. If the source path is a folder all its contents will be copied.
@@ -280,6 +282,9 @@ type AlphaGetMetadataAPIError struct {
 }
 
 func (dbx *apiImpl) AlphaGetMetadata(arg *AlphaGetMetadataArg) (res IsMetadata, err error) {
+	log.Printf("WARNING: API `AlphaGetMetadata` is deprecated")
+	log.Printf("Use API `GetMetadata` instead")
+
 	cli := dbx.Client
 
 	dbx.Config.LogDebug("arg: %v", arg)
@@ -363,6 +368,9 @@ type AlphaUploadAPIError struct {
 }
 
 func (dbx *apiImpl) AlphaUpload(arg *CommitInfoWithProperties, content io.Reader) (res *FileMetadata, err error) {
+	log.Printf("WARNING: API `AlphaUpload` is deprecated")
+	log.Printf("Use API `AlphaUpload` instead")
+
 	cli := dbx.Client
 
 	dbx.Config.LogDebug("arg: %v", arg)
@@ -3706,7 +3714,7 @@ func (dbx *apiImpl) UploadSessionStart(arg *UploadSessionStartArg, content io.Re
 }
 
 // New returns a Client implementation for this namespace
-func New(c dropbox.Config) *apiImpl {
+func New(c dropbox.Config) Client {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx
 }

@@ -4,20 +4,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/dropbox/dropbox-sdk-go-unofficial"
-  packages = ["dropbox","dropbox/async","dropbox/auth","dropbox/file_properties","dropbox/files","dropbox/sharing","dropbox/team","dropbox/team_common","dropbox/team_policies","dropbox/users","dropbox/users_common"]
-  revision = "9a536e3b58ed271dc9d1f21681db990ca601a551"
+  packages = ["dropbox","dropbox/async","dropbox/auth","dropbox/common","dropbox/file_properties","dropbox/files","dropbox/sharing","dropbox/team","dropbox/team_common","dropbox/team_policies","dropbox/users","dropbox/users_common"]
+  revision = "81ac5b288ffc03b166174f520cdc0b227461450e"
 
 [[projects]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
-  revision = "0b19b17f90333e44518aa31bbf8126017960aee3"
+  revision = "bb3d318650d48840a39aa21a027c6630e198e626"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
+  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -41,7 +41,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "2da4a54c5ceefcee7ca5dd0eea1e18a3b6366489"
+  revision = "1be1d2841c773c01bee8289f55f7463b6e2c2539"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -53,13 +53,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp"]
-  revision = "a337091b0525af65de94df2eb7e98bd9962dcbe2"
+  revision = "a8b9294777976932365dabb6640cf1468d95c70f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","internal"]
-  revision = "9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402"
+  revision = "f95fa95eaa936d9d87489b15d1d18b97c1ba9c28"
 
 [[projects]]
   name = "google.golang.org/appengine"

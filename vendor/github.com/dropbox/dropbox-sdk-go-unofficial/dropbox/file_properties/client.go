@@ -41,14 +41,17 @@ type Client interface {
 	// group, whereas `propertiesUpdate` will only delete fields that are
 	// explicitly marked for deletion.
 	PropertiesOverwrite(arg *OverwritePropertyGroupArg) (err error)
-	// PropertiesRemove : Remove the specified property group from the file. To
-	// remove specific property field key value pairs, see `propertiesUpdate`.
-	// To update a template, see `templatesUpdateForUser` or
+	// PropertiesRemove : Permanently removes the specified property group from
+	// the file. To remove specific property field key value pairs, see
+	// `propertiesUpdate`. To update a template, see `templatesUpdateForUser` or
 	// `templatesUpdateForTeam`. Templates can't be removed once created.
 	PropertiesRemove(arg *RemovePropertiesArg) (err error)
 	// PropertiesSearch : Search across property templates for particular
 	// property field values.
 	PropertiesSearch(arg *PropertiesSearchArg) (res *PropertiesSearchResult, err error)
+	// PropertiesSearchContinue : Once a cursor has been retrieved from
+	// `propertiesSearch`, use this to paginate through all search results.
+	PropertiesSearchContinue(arg *PropertiesSearchContinueArg) (res *PropertiesSearchResult, err error)
 	// PropertiesUpdate : Add, update or remove properties associated with the
 	// supplied file and templates. This endpoint should be used instead of
 	// `propertiesOverwrite` when property groups are being updated via a
@@ -58,7 +61,8 @@ type Client interface {
 	// property group.
 	PropertiesUpdate(arg *UpdatePropertiesArg) (err error)
 	// TemplatesAddForTeam : Add a template associated with a team. See
-	// `propertiesAdd` to add properties to a file or folder.
+	// `propertiesAdd` to add properties to a file or folder. Note: this
+	// endpoint will create team-owned templates.
 	TemplatesAddForTeam(arg *AddTemplateArg) (res *AddTemplateResult, err error)
 	// TemplatesAddForUser : Add a template associated with a user. See
 	// `propertiesAdd` to add properties to a file. This endpoint can't be
@@ -76,6 +80,14 @@ type Client interface {
 	// the schema of each template use `templatesGetForUser`. This endpoint
 	// can't be called on a team member or admin's behalf.
 	TemplatesListForUser() (res *ListTemplateResult, err error)
+	// TemplatesRemoveForTeam : Permanently removes the specified template
+	// created from `templatesAddForUser`. All properties associated with the
+	// template will also be removed. This action cannot be undone.
+	TemplatesRemoveForTeam(arg *RemoveTemplateArg) (err error)
+	// TemplatesRemoveForUser : Permanently removes the specified template
+	// created from `templatesAddForUser`. All properties associated with the
+	// template will also be removed. This action cannot be undone.
+	TemplatesRemoveForUser(arg *RemoveTemplateArg) (err error)
 	// TemplatesUpdateForTeam : Update a template associated with a team. This
 	// route can update the template name, the template description and add
 	// optional properties to templates.
@@ -341,6 +353,78 @@ func (dbx *apiImpl) PropertiesSearch(arg *PropertiesSearchArg) (res *PropertiesS
 	}
 	if resp.StatusCode == http.StatusConflict {
 		var apiError PropertiesSearchAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//PropertiesSearchContinueAPIError is an error-wrapper for the properties/search/continue route
+type PropertiesSearchContinueAPIError struct {
+	dropbox.APIError
+	EndpointError *PropertiesSearchContinueError `json:"error"`
+}
+
+func (dbx *apiImpl) PropertiesSearchContinue(arg *PropertiesSearchContinueArg) (res *PropertiesSearchResult, err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "file_properties", "properties/search/continue", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError PropertiesSearchContinueAPIError
 		err = json.Unmarshal(body, &apiError)
 		if err != nil {
 			return
@@ -836,6 +920,137 @@ func (dbx *apiImpl) TemplatesListForUser() (res *ListTemplateResult, err error) 
 	return
 }
 
+//TemplatesRemoveForTeamAPIError is an error-wrapper for the templates/remove_for_team route
+type TemplatesRemoveForTeamAPIError struct {
+	dropbox.APIError
+	EndpointError *TemplateError `json:"error"`
+}
+
+func (dbx *apiImpl) TemplatesRemoveForTeam(arg *RemoveTemplateArg) (err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "file_properties", "templates/remove_for_team", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TemplatesRemoveForTeamAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
+//TemplatesRemoveForUserAPIError is an error-wrapper for the templates/remove_for_user route
+type TemplatesRemoveForUserAPIError struct {
+	dropbox.APIError
+	EndpointError *TemplateError `json:"error"`
+}
+
+func (dbx *apiImpl) TemplatesRemoveForUser(arg *RemoveTemplateArg) (err error) {
+	cli := dbx.Client
+
+	dbx.Config.LogDebug("arg: %v", arg)
+	b, err := json.Marshal(arg)
+	if err != nil {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if dbx.Config.AsMemberID != "" {
+		headers["Dropbox-API-Select-User"] = dbx.Config.AsMemberID
+	}
+
+	req, err := (*dropbox.Context)(dbx).NewRequest("api", "rpc", true, "file_properties", "templates/remove_for_user", headers, bytes.NewReader(b))
+	if err != nil {
+		return
+	}
+	dbx.Config.LogInfo("req: %v", req)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogInfo("resp: %v", resp)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	dbx.Config.LogDebug("body: %v", body)
+	if resp.StatusCode == http.StatusOK {
+		return
+	}
+	if resp.StatusCode == http.StatusConflict {
+		var apiError TemplatesRemoveForUserAPIError
+		err = json.Unmarshal(body, &apiError)
+		if err != nil {
+			return
+		}
+		err = apiError
+		return
+	}
+	var apiError dropbox.APIError
+	if resp.StatusCode == http.StatusBadRequest {
+		apiError.ErrorSummary = string(body)
+		err = apiError
+		return
+	}
+	err = json.Unmarshal(body, &apiError)
+	if err != nil {
+		return
+	}
+	err = apiError
+	return
+}
+
 //TemplatesUpdateForTeamAPIError is an error-wrapper for the templates/update_for_team route
 type TemplatesUpdateForTeamAPIError struct {
 	dropbox.APIError
@@ -978,7 +1193,7 @@ func (dbx *apiImpl) TemplatesUpdateForUser(arg *UpdateTemplateArg) (res *UpdateT
 }
 
 // New returns a Client implementation for this namespace
-func New(c dropbox.Config) *apiImpl {
+func New(c dropbox.Config) Client {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx
 }

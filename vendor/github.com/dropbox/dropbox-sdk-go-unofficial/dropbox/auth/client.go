@@ -172,7 +172,7 @@ func (dbx *apiImpl) TokenRevoke() (err error) {
 }
 
 // New returns a Client implementation for this namespace
-func New(c dropbox.Config) *apiImpl {
+func New(c dropbox.Config) Client {
 	ctx := apiImpl(dropbox.NewContext(c))
 	return &ctx
 }
