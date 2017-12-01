@@ -2,7 +2,25 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.5...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.8...HEAD)
+
+**Closed issues:**
+
+- Invalid client\_id when trying to get authorization code [\#79](https://github.com/dropbox/dbxcli/issues/79)
+- Build official binaries for more OS [\#76](https://github.com/dropbox/dbxcli/issues/76)
+
+## [v2.0.8](https://github.com/dropbox/dbxcli/tree/v2.0.8) (2017-11-10)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.7...v2.0.8)
+
+## [v2.0.7](https://github.com/dropbox/dbxcli/tree/v2.0.7) (2017-11-10)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.6...v2.0.7)
+
+**Closed issues:**
+
+- Better output for ls [\#78](https://github.com/dropbox/dbxcli/issues/78)
+
+## [v2.0.6](https://github.com/dropbox/dbxcli/tree/v2.0.6) (2017-07-26)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.5...v2.0.6)
 
 **Implemented enhancements:**
 
