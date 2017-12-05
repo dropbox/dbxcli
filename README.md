@@ -1,6 +1,6 @@
 # `dbxcli`: A command line tool for Dropbox users and team admins
 
-This is *BETA* software -- use with caution!
+[![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
 
 ## Features
 
