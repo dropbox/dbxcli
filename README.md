@@ -20,10 +20,10 @@ Download pre-compiled binaries for Mac, Windows and Linux from the [releases](ht
 $ mkdir ~/bin
 ```
 2. Add the following line at the end of your `~/.bash_profile` file.  [Link with instructions](https://natelandau.com/my-mac-osx-bash_profile/) on how to find this file
-````sh
+```sh
 export PATH=$PATH:$HOME/bin
 ```
-3. Download the dbxcli binary for OSX and rename it
+3. Download the `dbxcli` binary for OSX and rename it
 ```sh
 $ cd ~/bin
 $ wget https://github.com/dropbox/dbxcli/releases/download/v2.0.9/dbxcli-darwin-amd64 
