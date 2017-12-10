@@ -15,17 +15,21 @@
 Download pre-compiled binaries for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
 
 ### Mac OSX Installation of pre-compiled binaries
-1. If you don't already have it, create a `bin` directory and cd into it
+1. If you don't already have it, create a `bin` directory under your home directory.
 ```
-$ mkdir ~/bin 
+$ mkdir ~/bin
+```
+2. Add the following line at the end of your `~/.bash_profile` file.  [Link with instructions](https://natelandau.com/my-mac-osx-bash_profile/) on how to find this file
+````sh
+export PATH=$PATH:$HOME/bin
+```
+3. Download the dbxcli binary for OSX and rename it
+```sh
 $ cd ~/bin
-```
-2. Download the dbxcli binary for OSX and rename it
-```
 $ wget https://github.com/dropbox/dbxcli/releases/download/v2.0.9/dbxcli-darwin-amd64 
 $ mv dbxcli-darwin-amd64 dbxcli
 ```
-3. Finally, make the executable readable
+4. Finally, Make the binary a Linux executable file and you are good to go!
 ```
 $ chmod +x dbxcli
 ```
