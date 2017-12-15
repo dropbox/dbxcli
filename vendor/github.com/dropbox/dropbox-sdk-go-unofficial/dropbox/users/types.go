@@ -128,6 +128,54 @@ func NewFullAccount(AccountId string, Name *Name, Email string, EmailVerified bo
 	return s
 }
 
+// UnmarshalJSON deserializes into a FullAccount instance
+func (u *FullAccount) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Country : The user's two-letter country code, if available. Country
+		// codes are based on `ISO 3166-1`
+		// <http://en.wikipedia.org/wiki/ISO_3166-1>.
+		Country string `json:"country,omitempty"`
+		// Locale : The language that the user specified. Locale tags will be
+		// `IETF language tags`
+		// <http://en.wikipedia.org/wiki/IETF_language_tag>.
+		Locale string `json:"locale"`
+		// ReferralLink : The user's `referral link`
+		// <https://www.dropbox.com/referrals>.
+		ReferralLink string `json:"referral_link"`
+		// Team : If this account is a member of a team, information about that
+		// team.
+		Team *FullTeam `json:"team,omitempty"`
+		// TeamMemberId : This account's unique team member id. This field will
+		// only be present if `team` is present.
+		TeamMemberId string `json:"team_member_id,omitempty"`
+		// IsPaired : Whether the user has a personal and work account. If the
+		// current account is personal, then `team` will always be nil, but
+		// `is_paired` will indicate if a work account is linked.
+		IsPaired bool `json:"is_paired"`
+		// AccountType : What type of account this user has.
+		AccountType *users_common.AccountType `json:"account_type"`
+		// RootInfo : The root info for this account.
+		RootInfo json.RawMessage `json:"root_info"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	u.Country = w.Country
+	u.Locale = w.Locale
+	u.ReferralLink = w.ReferralLink
+	u.Team = w.Team
+	u.TeamMemberId = w.TeamMemberId
+	u.IsPaired = w.IsPaired
+	u.AccountType = w.AccountType
+	RootInfo, err := common.IsRootInfoFromJSON(w.RootInfo)
+	if err != nil {
+		return err
+	}
+	u.RootInfo = RootInfo
+	return nil
+}
+
 // Team : Information about a team.
 type Team struct {
 	// Id : The team's unique ID.

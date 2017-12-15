@@ -449,6 +449,24 @@ func NewDeleteBatchResultData(Metadata IsMetadata) *DeleteBatchResultData {
 	return s
 }
 
+// UnmarshalJSON deserializes into a DeleteBatchResultData instance
+func (u *DeleteBatchResultData) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : Metadata of the deleted object.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
+}
+
 // DeleteBatchResultEntry : has no documentation (yet)
 type DeleteBatchResultEntry struct {
 	dropbox.Tagged
@@ -558,6 +576,24 @@ func NewDeleteResult(Metadata IsMetadata) *DeleteResult {
 	s := new(DeleteResult)
 	s.Metadata = Metadata
 	return s
+}
+
+// UnmarshalJSON deserializes into a DeleteResult instance
+func (u *DeleteResult) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : Metadata of the deleted object.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
 }
 
 // Metadata : Metadata for a file or folder.
@@ -965,6 +1001,32 @@ func NewGetCopyReferenceResult(Metadata IsMetadata, CopyReference string, Expire
 	return s
 }
 
+// UnmarshalJSON deserializes into a GetCopyReferenceResult instance
+func (u *GetCopyReferenceResult) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : Metadata of the file or folder.
+		Metadata json.RawMessage `json:"metadata"`
+		// CopyReference : A copy reference to the file or folder.
+		CopyReference string `json:"copy_reference"`
+		// Expires : The expiration date of the copy reference. This value is
+		// currently set to be far enough in the future so that expiration is
+		// effectively not an issue.
+		Expires time.Time `json:"expires"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	u.CopyReference = w.CopyReference
+	u.Expires = w.Expires
+	return nil
+}
+
 // GetTemporaryLinkArg : has no documentation (yet)
 type GetTemporaryLinkArg struct {
 	// Path : The path to the file you want a temporary link to.
@@ -1367,6 +1429,35 @@ func NewListFolderResult(Entries []IsMetadata, Cursor string, HasMore bool) *Lis
 	s.Cursor = Cursor
 	s.HasMore = HasMore
 	return s
+}
+
+// UnmarshalJSON deserializes into a ListFolderResult instance
+func (u *ListFolderResult) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Entries : The files and (direct) subfolders in the folder.
+		Entries []json.RawMessage `json:"entries"`
+		// Cursor : Pass the cursor into `listFolderContinue` to see what's
+		// changed in the folder since your previous query.
+		Cursor string `json:"cursor"`
+		// HasMore : If true, then there are more entries available. Pass the
+		// cursor to `listFolderContinue` to retrieve the rest.
+		HasMore bool `json:"has_more"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	u.Entries = make([]IsMetadata, len(w.Entries))
+	for i, e := range w.Entries {
+		v, err := IsMetadataFromJSON(e)
+		if err != nil {
+			return err
+		}
+		u.Entries[i] = v
+	}
+	u.Cursor = w.Cursor
+	u.HasMore = w.HasMore
+	return nil
 }
 
 // ListRevisionsArg : has no documentation (yet)
@@ -2017,6 +2108,24 @@ func NewRelocationBatchResultData(Metadata IsMetadata) *RelocationBatchResultDat
 	return s
 }
 
+// UnmarshalJSON deserializes into a RelocationBatchResultData instance
+func (u *RelocationBatchResultData) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : Metadata of the relocated object.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
+}
+
 // RelocationResult : has no documentation (yet)
 type RelocationResult struct {
 	FileOpsResult
@@ -2029,6 +2138,24 @@ func NewRelocationResult(Metadata IsMetadata) *RelocationResult {
 	s := new(RelocationResult)
 	s.Metadata = Metadata
 	return s
+}
+
+// UnmarshalJSON deserializes into a RelocationResult instance
+func (u *RelocationResult) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : Metadata of the relocated object.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
 }
 
 // RestoreArg : has no documentation (yet)
@@ -2166,6 +2293,25 @@ func NewSaveCopyReferenceResult(Metadata IsMetadata) *SaveCopyReferenceResult {
 	s := new(SaveCopyReferenceResult)
 	s.Metadata = Metadata
 	return s
+}
+
+// UnmarshalJSON deserializes into a SaveCopyReferenceResult instance
+func (u *SaveCopyReferenceResult) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// Metadata : The metadata of the saved file or folder in the user's
+		// Dropbox.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
 }
 
 // SaveUrlArg : has no documentation (yet)
@@ -2400,6 +2546,27 @@ func NewSearchMatch(MatchType *SearchMatchType, Metadata IsMetadata) *SearchMatc
 	s.MatchType = MatchType
 	s.Metadata = Metadata
 	return s
+}
+
+// UnmarshalJSON deserializes into a SearchMatch instance
+func (u *SearchMatch) UnmarshalJSON(b []byte) error {
+	type wrap struct {
+		// MatchType : The type of the match.
+		MatchType *SearchMatchType `json:"match_type"`
+		// Metadata : The metadata for the matched file or folder.
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	var w wrap
+	if err := json.Unmarshal(b, &w); err != nil {
+		return err
+	}
+	u.MatchType = w.MatchType
+	Metadata, err := IsMetadataFromJSON(w.Metadata)
+	if err != nil {
+		return err
+	}
+	u.Metadata = Metadata
+	return nil
 }
 
 // SearchMatchType : Indicates what type of match was found for a given item.
