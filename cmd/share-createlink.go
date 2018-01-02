@@ -27,8 +27,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DefaultDropboxName = "/Users/daniel/Dropbox"
-
 /**
 Try to get the share link for a file if it already exists.
 If it doesn't make a new share link for it.
@@ -38,18 +36,26 @@ func shareLink(cmd *cobra.Command, args []string) (err error) {
 		printShareLinkUsage()
 		return
 	}
+
 	dbx := sharing.New(config)
 	path, err := filepath.Abs(args[0])
 	if err != nil {
 		return
 	}
-	// Remove the Dropbox folder from the start.
-	path = strings.Replace(path, getDropboxFolder(), "", 1)
+
+	// Confirm that the file exists.
+	exists, err := exists(path)
+	if !exists || err != nil {
+		print("The file / folder specified does not exist.\n")
+		return
+	}
 
 	// Try to get a link if it already exists.
 	if getExistingLink(dbx, path) {
 		return
 	}
+
+	print("File / folder does not yet have a sharelink, creating one...\n")
 
 	// The file had no share link, let's get it.
 	getNewLink(dbx, path)
@@ -62,11 +68,14 @@ func printShareLinkUsage() {
 }
 
 func getExistingLink(dbx sharing.Client, path string) bool {
+	// Remove the Dropbox folder from the start.
+	path = strings.Replace(path, getDropboxFolder(), "", 1)
+
 	arg := sharing.ListSharedLinksArg{Path: path}
 	// This method can be called with a path and just get that share link.
 	res, err := dbx.ListSharedLinks(&arg)
 	if err != nil || len(res.Links) == 0 {
-		print("File / folder does not yet have a sharelink, creating one...\n")
+
 	} else {
 		printLinks(res.Links)
 		return true
@@ -76,9 +85,24 @@ func getExistingLink(dbx sharing.Client, path string) bool {
 
 func getNewLink(dbx sharing.Client, path string) bool {
 	// CreateSharedLinkWithSettings is cooked, I won't use it.
-	arg := sharing.NewCreateSharedLinkArg(path)
+	arg := sharing.NewCreateSharedLinkArg(strings.Replace(path, getDropboxFolder(), "", 1))
+	// Get the sharelink even if the file isn't fully uploaded yet.
+	arg.PendingUpload = new(sharing.PendingUploadMode)
+	// Determine whether the target is a file or folder.
+	fi, err := os.Stat(path)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	switch mode := fi.Mode(); {
+	case mode.IsDir():
+		arg.PendingUpload.Tag = sharing.PendingUploadModeFolder
+	case mode.IsRegular():
+		arg.PendingUpload.Tag = sharing.PendingUploadModeFile
+	}
 	res, err := dbx.CreateSharedLink(arg)
 	if err != nil {
+		fmt.Printf("%+v\n", err)
 		return false
 	}
 	fmt.Printf("%s %s\n", res.Path[1:], res.Url)
@@ -93,8 +117,19 @@ func getDropboxFolder() string {
 	raw, err := ioutil.ReadFile(infoFilePath)
 	if err != nil {
 		print("Couldn't find Dropbox folder")
-		return DefaultDropboxName
+		return ""
 	}
 	// This is obviously dirty.
 	return strings.Split(strings.Split(string(raw), "\"path\": \"")[1], "\"")[0]
+}
+
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
