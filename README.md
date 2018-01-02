@@ -37,6 +37,23 @@ $ mv dbxcli-darwin-amd64 dbxcli
 $ chmod +x dbxcli
 ```
 
+### Instructions for building yourself
+For newcomers the go build process can be a bit arcane, these steps can be followed to build `dbxcli` yourself.
+
+1. Make sure `git`, `go`, and `gox` are installed. 
+2. Create a Go folder. For example, `mkdir $HOME/go` or `mkdir $HOME/.go`. Navigate to it.
+3. `go get github.com/dropbox/dbxcli`. That's right, you don't manually clone it, this does it for you.
+4. `cd ~/go/src/github.com/dropbox/dbxcli` (adapt accordingly based on step 2).
+
+Now we need to pause for a second to get development keys. 
+
+5. Head to `https://www.dropbox.com/developers/apps` (sign in if necessary) and choose "Create app". Use the Dropbox API and give it Full Dropbox access. Name and create the app.
+6. You'll be presented with a dashboard with an "App key" and an "App secret".
+7. Replace the value for `personalAppKey` in  `root.go` with the key from the webpage.
+8. Replace the value for `personalAppSecret` with the secret from the webpage.
+
+Finally we're ready to build. Run `go build`, and you'll see a `dbxcli` binary has been created in the current directory. Congrats, we're done!
+
 ## Usage
 
 `dbxcli` is largely self documenting. Run `dbxcli -h` for a list of supported commands:
