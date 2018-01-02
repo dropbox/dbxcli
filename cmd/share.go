@@ -28,7 +28,14 @@ var shareListCmd = &cobra.Command{
 	Short: "List shared things",
 }
 
+var shareLinkCmd = &cobra.Command{
+	Use:   "createlink",
+	Short: "Get share link for file / folder",
+	RunE:  shareLink,
+}
+
 func init() {
 	RootCmd.AddCommand(shareCmd)
 	shareCmd.AddCommand(shareListCmd)
+	shareCmd.AddCommand(shareLinkCmd)
 }

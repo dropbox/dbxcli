@@ -48,8 +48,8 @@ func getEnv(key, fallback string) string {
 }
 
 var (
-	personalAppKey      = "mvhz183vwqibe7q"
-	personalAppSecret   = "q0kquhzgetjwcz1"
+	personalAppKey      = "wwdxi7cr0cdd11m"
+	personalAppSecret   = "xi9zp6t27kyy78v"
 	teamAccessAppKey    = "zud1va492pnehkc"
 	teamAccessAppSecret = "p3ginm1gy0kmj54"
 	teamManageAppKey    = "xxe04eai4wmlitv"
