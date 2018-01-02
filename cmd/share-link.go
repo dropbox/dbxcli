@@ -16,13 +16,18 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/user"
+	"path"
 	"path/filepath"
-	"reflect"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
+
+const DefaultDropboxName = "/Users/daniel/Dropbox"
 
 /**
 Try to get the share link for a file if it already exists.
@@ -34,53 +39,57 @@ func shareLink(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 	dbx := sharing.New(config)
-
-	// TODO: Remove the /Users/Dropbox part from the path
 	path, err := filepath.Abs(args[0])
 	if err != nil {
 		return
 	}
+	// Remove the Dropbox folder from the start.
+	path = strings.Replace(path, getDropboxFolder(), "", 1)
 
-	arg := sharing.ListSharedLinksArg{Path: path}
-	// This method can be called with a path and just get that share link.
-	res, err := dbx.ListSharedLinks(&arg)
-	if err != nil || len(res.Links) == 0 {
-		print("File / folder does not yet have a sharelink, creating one...\n")
-	} else {
-		fmt.Printf("%+v\n", res)
-		printLinks(res.Links)
-		return
-	}
+	// Try to get a link if it already exists.
+	getExistingLink(dbx, path)
 
 	// The file had no share link, let's get it.
-	arg2 := sharing.NewCreateSharedLinkWithSettingsArg(path)
-	res2, err2 := dbx.CreateSharedLinkWithSettings(arg2)
-	if err2 != nil {
-		return
-	}
-
-	//fmt.Printf("%+v\n", res2)
-	print(reflect.TypeOf(&res2).String())
-
-	/*
-		printLinks(res.Links)
-
-		for res.HasMore {
-			arg = sharing.NewListSharedLinksArg()
-			arg.Cursor = res.Cursor
-
-			res, err = dbx.ListSharedLinks(arg)
-			if err != nil {
-				return
-			}
-
-			printLinks(res.Links)
-		}
-	*/
+	getNewLink(dbx, path)
 
 	return
 }
 
 func printShareLinkUsage() {
 	fmt.Printf("Usage: %s share createlink [file / folder path]\n", os.Args[0])
+}
+
+func getExistingLink(dbx sharing.Client, path string) {
+	arg := sharing.ListSharedLinksArg{Path: path}
+	// This method can be called with a path and just get that share link.
+	res, err := dbx.ListSharedLinks(&arg)
+	if err != nil || len(res.Links) == 0 {
+		print("File / folder does not yet have a sharelink, creating one...\n")
+	} else {
+		printLinks(res.Links)
+		return
+	}
+}
+
+func getNewLink(dbx sharing.Client, path string) {
+	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
+	res, err := dbx.CreateSharedLinkWithSettings(arg)
+	if err != nil {
+		return
+	}
+	print(res)
+}
+
+func getDropboxFolder() string {
+	// I should be using a JSON parser here but it's a pain in Go.
+	usr, _ := user.Current()
+	homedir := usr.HomeDir
+	infoFilePath := path.Join(homedir, ".dropbox/info.json")
+	raw, err := ioutil.ReadFile(infoFilePath)
+	if err != nil {
+		print("Couldn't find Dropbox folder")
+		return DefaultDropboxName
+	}
+	// This is obviously dirty.
+	return strings.Split(strings.Split(string(raw), "\"path\": \"")[1], "\"")[0]
 }
