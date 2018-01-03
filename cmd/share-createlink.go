@@ -1,4 +1,5 @@
-// Copyright © 2016 Dropbox, Inc.
+// Copyright © 2017 Dropbox, Inc.
+// Author: Daniel Porteous
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,10 +29,10 @@ import (
 )
 
 /**
-Try to get the share link for a file if it already exists.
-If it doesn't make a new share link for it.
-*/
-func shareLink(cmd *cobra.Command, args []string) (err error) {
+** Try to get the share link for a file if it already exists.
+** If it doesn't make a new share link for it.
+ */
+func getShareLink(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
 		printShareLinkUsage()
 		return
@@ -55,7 +56,7 @@ func shareLink(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	print("File / folder does not yet have a sharelink, creating one...\n")
+	// print("File / folder does not yet have a sharelink, creating one...\n")
 
 	// The file had no share link, let's get it.
 	getNewLink(dbx, path)
@@ -64,9 +65,13 @@ func shareLink(cmd *cobra.Command, args []string) (err error) {
 }
 
 func printShareLinkUsage() {
-	fmt.Printf("Usage: %s share createlink [file / folder path]\n", os.Args[0])
+	fmt.Printf("Usage: %s share getlink [file / folder path]\n", os.Args[0])
 }
 
+/*
+** Try to get an existing share link for a file / folder.
+** It returns true if the file / folder had a link. Otherwise it returns false.
+ */
 func getExistingLink(dbx sharing.Client, path string) bool {
 	// Remove the Dropbox folder from the start.
 	path = strings.Replace(path, getDropboxFolder(), "", 1)
@@ -83,8 +88,13 @@ func getExistingLink(dbx sharing.Client, path string) bool {
 	return false
 }
 
+/*
+** Create and print a link for file / folder that doesn't yet have one.
+**
+** CreateSharedLinkWithSettings doesn't allow pending uploads,
+** so we use the partially deprecated CreateSharedLink.
+ */
 func getNewLink(dbx sharing.Client, path string) bool {
-	// CreateSharedLinkWithSettings is cooked, I won't use it.
 	arg := sharing.NewCreateSharedLinkArg(strings.Replace(path, getDropboxFolder(), "", 1))
 	// Get the sharelink even if the file isn't fully uploaded yet.
 	arg.PendingUpload = new(sharing.PendingUploadMode)
@@ -105,10 +115,11 @@ func getNewLink(dbx sharing.Client, path string) bool {
 		fmt.Printf("%+v\n", err)
 		return false
 	}
-	fmt.Printf("%s %s\n", res.Path[1:], res.Url)
+	fmt.Printf("%s\t%s\n", res.Path[1:], res.Url)
 	return true
 }
 
+/* Return the path of the Dropbox folder. */
 func getDropboxFolder() string {
 	// I should be using a JSON parser here but it's a pain in Go.
 	usr, _ := user.Current()
@@ -123,6 +134,7 @@ func getDropboxFolder() string {
 	return strings.Split(strings.Split(string(raw), "\"path\": \"")[1], "\"")[0]
 }
 
+/* Check whether a file / folder exists. */
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
