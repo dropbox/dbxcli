@@ -793,6 +793,71 @@ func (u *DownloadError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// DownloadZipArg : has no documentation (yet)
+type DownloadZipArg struct {
+	// Path : The path of the folder to download.
+	Path string `json:"path"`
+}
+
+// NewDownloadZipArg returns a new DownloadZipArg instance
+func NewDownloadZipArg(Path string) *DownloadZipArg {
+	s := new(DownloadZipArg)
+	s.Path = Path
+	return s
+}
+
+// DownloadZipError : has no documentation (yet)
+type DownloadZipError struct {
+	dropbox.Tagged
+	// Path : has no documentation (yet)
+	Path *LookupError `json:"path,omitempty"`
+}
+
+// Valid tag values for DownloadZipError
+const (
+	DownloadZipErrorPath         = "path"
+	DownloadZipErrorTooLarge     = "too_large"
+	DownloadZipErrorTooManyFiles = "too_many_files"
+	DownloadZipErrorOther        = "other"
+)
+
+// UnmarshalJSON deserializes into a DownloadZipError instance
+func (u *DownloadZipError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Path : has no documentation (yet)
+		Path json.RawMessage `json:"path,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "path":
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DownloadZipResult : has no documentation (yet)
+type DownloadZipResult struct {
+	// Metadata : has no documentation (yet)
+	Metadata *FolderMetadata `json:"metadata"`
+}
+
+// NewDownloadZipResult returns a new DownloadZipResult instance
+func NewDownloadZipResult(Metadata *FolderMetadata) *DownloadZipResult {
+	s := new(DownloadZipResult)
+	s.Metadata = Metadata
+	return s
+}
+
 // FileMetadata : has no documentation (yet)
 type FileMetadata struct {
 	Metadata
@@ -2719,12 +2784,15 @@ type UploadError struct {
 	dropbox.Tagged
 	// Path : Unable to save the uploaded contents to a file.
 	Path *UploadWriteFailed `json:"path,omitempty"`
+	// PropertiesError : The supplied property group is invalid.
+	PropertiesError *file_properties.InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
 
 // Valid tag values for UploadError
 const (
-	UploadErrorPath  = "path"
-	UploadErrorOther = "other"
+	UploadErrorPath            = "path"
+	UploadErrorPropertiesError = "properties_error"
+	UploadErrorOther           = "other"
 )
 
 // UnmarshalJSON deserializes into a UploadError instance
@@ -2733,6 +2801,8 @@ func (u *UploadError) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 		// Path : Unable to save the uploaded contents to a file.
 		Path json.RawMessage `json:"path,omitempty"`
+		// PropertiesError : The supplied property group is invalid.
+		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
 	var err error
@@ -2747,6 +2817,12 @@ func (u *UploadError) UnmarshalJSON(body []byte) error {
 		if err != nil {
 			return err
 		}
+	case "properties_error":
+		err = json.Unmarshal(w.PropertiesError, &u.PropertiesError)
+
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2756,15 +2832,15 @@ type UploadErrorWithProperties struct {
 	dropbox.Tagged
 	// Path : Unable to save the uploaded contents to a file.
 	Path *UploadWriteFailed `json:"path,omitempty"`
-	// PropertiesError : has no documentation (yet)
+	// PropertiesError : The supplied property group is invalid.
 	PropertiesError *file_properties.InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
 
 // Valid tag values for UploadErrorWithProperties
 const (
 	UploadErrorWithPropertiesPath            = "path"
-	UploadErrorWithPropertiesOther           = "other"
 	UploadErrorWithPropertiesPropertiesError = "properties_error"
+	UploadErrorWithPropertiesOther           = "other"
 )
 
 // UnmarshalJSON deserializes into a UploadErrorWithProperties instance
@@ -2773,7 +2849,7 @@ func (u *UploadErrorWithProperties) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 		// Path : Unable to save the uploaded contents to a file.
 		Path json.RawMessage `json:"path,omitempty"`
-		// PropertiesError : has no documentation (yet)
+		// PropertiesError : The supplied property group is invalid.
 		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
