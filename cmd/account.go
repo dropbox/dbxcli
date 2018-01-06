@@ -78,9 +78,7 @@ func account(cmd *cobra.Command, args []string) error {
 		printBasicAccount(w, res)
 	}
 
-	w.Flush()
-
-	return nil
+	return w.Flush()
 }
 
 var accountCmd = &cobra.Command{

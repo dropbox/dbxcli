@@ -36,8 +36,7 @@ func info(cmd *cobra.Command, args []string) (err error) {
 	fmt.Fprintf(w, "Team Id:\t%s\n", res.TeamId)
 	fmt.Fprintf(w, "Licensed Users:\t%d\n", res.NumLicensedUsers)
 	fmt.Fprintf(w, "Provisioned Users:\t%d\n", res.NumProvisionedUsers)
-	w.Flush()
-	return
+	return w.Flush()
 }
 
 // infoCmd represents the info command

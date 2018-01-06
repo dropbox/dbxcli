@@ -47,8 +47,7 @@ func listMembers(cmd *cobra.Command, args []string) (err error) {
 			member.Profile.Email,
 			member.Role.Tag)
 	}
-	w.Flush()
-	return
+	return w.Flush()
 }
 
 // listMembersCmd represents the list-members command

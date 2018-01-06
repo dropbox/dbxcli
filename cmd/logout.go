@@ -41,19 +41,14 @@ func logout(cmd *cobra.Command, args []string) error {
 		for _, token := range tokens {
 			config := dropbox.Config{token, dropbox.LogOff, nil, "", domain, nil, nil, nil}
 			client := auth.New(config)
-			client.TokenRevoke()
+			err = client.TokenRevoke()
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	err = os.Remove(filePath)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.Remove(filePath)
 }
 
 // logoutCmd represents the logout command

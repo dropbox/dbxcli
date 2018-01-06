@@ -77,10 +77,10 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	contents, err := os.Open(src)
-	defer contents.Close()
 	if err != nil {
 		return
 	}
+	defer contents.Close()
 
 	contentsInfo, err := contents.Stat()
 	if err != nil {

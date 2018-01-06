@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	configFileName = "auth.json"
+	configFileName  = "auth.json"
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -48,7 +48,7 @@ var (
 	teamManageAppSecret = "t8ms714yun7nu5s"
 )
 
-// Map of map of strings
+// TokenMap maps domains to a map of commands to tokens.
 // For each domain, we want to save different tokens depending on the
 // command type: personal, team access and team manage
 type TokenMap map[string]map[string]string
@@ -194,7 +194,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	return
 }
 
-// This represents the base command when called without any subcommands
+// RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "dbxcli",
 	Short: "A command line tool for Dropbox users and team admins",

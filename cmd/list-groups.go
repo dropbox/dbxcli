@@ -41,8 +41,7 @@ func listGroups(cmd *cobra.Command, args []string) (err error) {
 	for _, group := range res.Groups {
 		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", group.GroupName, group.GroupId, group.MemberCount, group.GroupExternalId)
 	}
-	w.Flush()
-	return
+	return w.Flush()
 }
 
 // listGroupsCmd represents the list-groups command

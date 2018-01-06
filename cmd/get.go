@@ -51,16 +51,16 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := files.New(config)
 	res, contents, err := dbx.Download(arg)
-	defer contents.Close()
 	if err != nil {
 		return
 	}
+	defer contents.Close()
 
 	f, err := os.Create(dst)
-	defer f.Close()
 	if err != nil {
 		return
 	}
+	defer f.Close()
 
 	progressbar := &ioprogress.Reader{
 		Reader: contents,

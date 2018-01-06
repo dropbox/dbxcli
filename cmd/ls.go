@@ -104,7 +104,6 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	long, _ := cmd.Flags().GetBool("long")
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
-	defer w.Flush()
 	if long {
 		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
 	}
@@ -120,6 +119,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	err = w.Flush()
 	return err
 }
 
