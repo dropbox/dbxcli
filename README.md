@@ -14,6 +14,24 @@
 
 Download pre-compiled binaries for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
 
+### Linux Installation of pre-compiled binaries
+1. Check whether your CPU is compatible with AMD/Intel or ARM
+```sh
+uname -p
+```
+If the result reads `x86_64` use the `AMD64` binary.  We will continue assuming you have x86_64 architecture (most common).
+
+2. Download the `dbxcli` binary into your binary folder and rename it to `dbxcli`
+```sh
+$ cd /bin
+$ sudo wget https://github.com/dropbox/dbxcli/releases/download/v2.0.9/dbxcli-linux-amd64
+$ sudo mv dbxcli-linux-amd64 dbxcli 
+```
+3. Finally, make the binary an executable file and you are good to go!
+```sh
+$ chmod +x dbxcli
+```
+
 ### Mac OSX Installation of pre-compiled binaries
 These instructions aim to help both experts and novice `dbxcli` users. Please submit an issue if they don't work for you.  
 
