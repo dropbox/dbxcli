@@ -1,5 +1,4 @@
 // Copyright © 2017 Dropbox, Inc.
-// Author: Daniel Porteous
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,10 +27,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-/**
-** Try to get the share link for a file if it already exists.
-** If it doesn't make a new share link for it.
- */
+// Try to get the share link for a file if it already exists.
+// If it doesn't make a new share link for it.
 func getShareLink(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
 		printShareLinkUsage()
@@ -47,16 +44,14 @@ func getShareLink(cmd *cobra.Command, args []string) (err error) {
 	// Confirm that the file exists.
 	exists, err := exists(path)
 	if !exists || err != nil {
-		print("The file / folder specified does not exist.\n")
+		fmt.Printf("The file / folder specified (\"%s\") does not exist.\n", path)
 		return
 	}
 
 	// Try to get a link if it already exists.
-	if getExistingLink(dbx, path) {
+	if getExistingLink(dbx, path) != nil {
 		return
 	}
-
-	// print("File / folder does not yet have a sharelink, creating one...\n")
 
 	// The file had no share link, let's get it.
 	getNewLink(dbx, path)
@@ -68,11 +63,9 @@ func printShareLinkUsage() {
 	fmt.Printf("Usage: %s share getlink [file / folder path]\n", os.Args[0])
 }
 
-/*
-** Try to get an existing share link for a file / folder.
-** It returns true if the file / folder had a link. Otherwise it returns false.
- */
-func getExistingLink(dbx sharing.Client, path string) bool {
+// Try to get an existing share link for a file / folder.
+// It returns true if the file / folder had a link. Otherwise it returns false.
+func getExistingLink(dbx sharing.Client, path string) (err error) {
 	// Remove the Dropbox folder from the start.
 	path = strings.Replace(path, getDropboxFolder(), "", 1)
 
@@ -80,30 +73,25 @@ func getExistingLink(dbx sharing.Client, path string) bool {
 	// This method can be called with a path and just get that share link.
 	res, err := dbx.ListSharedLinks(&arg)
 	if err != nil || len(res.Links) == 0 {
-
-	} else {
-		printLinks(res.Links)
-		return true
+		return err
 	}
-	return false
+	printLinks(res.Links)
+	return nil
 }
 
-/*
-** Create and print a link for file / folder that doesn't yet have one.
-**
-** CreateSharedLinkWithSettings doesn't allow pending uploads,
-** so we use the partially deprecated CreateSharedLink.
- */
-func getNewLink(dbx sharing.Client, path string) bool {
-	arg := sharing.NewCreateSharedLinkArg(strings.Replace(path, getDropboxFolder(), "", 1))
-	// Get the sharelink even if the file isn't fully uploaded yet.
-	arg.PendingUpload = new(sharing.PendingUploadMode)
+// Create and print a link for file / folder that doesn't yet have one.
+// CreateSharedLinkWithSettings doesn't allow pending uploads,
+// so we use the partially deprecated CreateSharedLink.
+func getNewLink(dbx sharing.Client, path string) (err error) {
 	// Determine whether the target is a file or folder.
 	fi, err := os.Stat(path)
 	if err != nil {
 		fmt.Println(err)
-		return false
+		return err
 	}
+	arg := sharing.NewCreateSharedLinkArg(strings.Replace(path, getDropboxFolder(), "", 1))
+	// Get the sharelink even if the file isn't fully uploaded yet.
+	arg.PendingUpload = new(sharing.PendingUploadMode)
 	switch mode := fi.Mode(); {
 	case mode.IsDir():
 		arg.PendingUpload.Tag = sharing.PendingUploadModeFolder
@@ -113,13 +101,13 @@ func getNewLink(dbx sharing.Client, path string) bool {
 	res, err := dbx.CreateSharedLink(arg)
 	if err != nil {
 		fmt.Printf("%+v\n", err)
-		return false
+		return err
 	}
 	fmt.Printf("%s\t%s\n", res.Path[1:], res.Url)
-	return true
+	return nil
 }
 
-/* Return the path of the Dropbox folder. */
+// Return the path of the Dropbox folder.
 func getDropboxFolder() string {
 	// I should be using a JSON parser here but it's a pain in Go.
 	usr, _ := user.Current()
@@ -134,7 +122,7 @@ func getDropboxFolder() string {
 	return strings.Split(strings.Split(string(raw), "\"path\": \"")[1], "\"")[0]
 }
 
-/* Check whether a file / folder exists. */
+// Check whether a file / folder exists.
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
