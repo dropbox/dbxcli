@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - 1.9.x
+  - "1.10.x"
 
 before_script:
   - go get -u github.com/mitchellh/gox
