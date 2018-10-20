@@ -1,5 +1,6 @@
 # `dbxcli`: A command line tool for Dropbox users and team admins
 
+[![Build Status](https://travis-ci.org/dropbox/dbxcli.svg?branch=master)](https://travis-ci.org/dropbox/dbxcli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
 
 ## Features
