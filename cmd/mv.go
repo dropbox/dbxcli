@@ -42,13 +42,26 @@ func mv(cmd *cobra.Command, args []string) error {
 
 	re := regexp.MustCompile("[^/]+$")
 	for _, argument := range argsToMove {
+
 		argumentFile := re.FindString(argument)
- 		arg, err := makeRelocationArg(argument, destination+"/"+argumentFile)
-		if err != nil {
-			relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
-			mvErrors = append(mvErrors, relocationError)
+		lastCharDest := destination[len(destination)-1:]
+
+		if lastCharDest == "/" {
+			arg, err := makeRelocationArg(argument, destination + argumentFile)
+			if err != nil {
+				relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
+				mvErrors = append(mvErrors, relocationError)
+			} else {
+				relocationArgs = append(relocationArgs, arg)
+			}
 		} else {
-			relocationArgs = append(relocationArgs, arg)
+			arg, err := makeRelocationArg(argument, destination)
+			if err != nil {
+				relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
+				mvErrors = append(mvErrors, relocationError)
+			} else {
+				relocationArgs = append(relocationArgs, arg)
+			}
 		}
 	}
 
