@@ -35,7 +35,10 @@ ${dbxcli} cp ${d}/dbxcli ${d}/dbxcli-new
 echo "Testing revs"
 rev=$(${dbxcli} revs ${d}/dbxcli)
 
-echo "Testing updated mv"
+echo "Testing mv"
+${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old
+
+echo "Testing mv"
 ${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old/
 
 echo "Testing restore"
