@@ -27,6 +27,7 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/common"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users_common"
 )
@@ -422,12 +423,21 @@ type TeamSpaceAllocation struct {
 	Used uint64 `json:"used"`
 	// Allocated : The total space allocated to the user's team (bytes).
 	Allocated uint64 `json:"allocated"`
+	// UserWithinTeamSpaceAllocated : The total space allocated to the user
+	// within its team allocated space (0 means that no restriction is imposed
+	// on the user's quota within its team).
+	UserWithinTeamSpaceAllocated uint64 `json:"user_within_team_space_allocated"`
+	// UserWithinTeamSpaceLimitType : The type of the space limit imposed on the
+	// team member (off, alert_only, stop_sync).
+	UserWithinTeamSpaceLimitType *team_common.MemberSpaceLimitType `json:"user_within_team_space_limit_type"`
 }
 
 // NewTeamSpaceAllocation returns a new TeamSpaceAllocation instance
-func NewTeamSpaceAllocation(Used uint64, Allocated uint64) *TeamSpaceAllocation {
+func NewTeamSpaceAllocation(Used uint64, Allocated uint64, UserWithinTeamSpaceAllocated uint64, UserWithinTeamSpaceLimitType *team_common.MemberSpaceLimitType) *TeamSpaceAllocation {
 	s := new(TeamSpaceAllocation)
 	s.Used = Used
 	s.Allocated = Allocated
+	s.UserWithinTeamSpaceAllocated = UserWithinTeamSpaceAllocated
+	s.UserWithinTeamSpaceLimitType = UserWithinTeamSpaceLimitType
 	return s
 }

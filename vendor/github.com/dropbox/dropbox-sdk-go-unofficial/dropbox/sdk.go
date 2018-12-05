@@ -21,12 +21,13 @@
 package dropbox
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -36,8 +37,8 @@ const (
 	hostAPI       = "api"
 	hostContent   = "content"
 	hostNotify    = "notify"
-	sdkVersion    = "4.5.0"
-	specVersion   = "a1d5111"
+	sdkVersion    = "5.2.0"
+	specVersion   = "097e9ba"
 )
 
 // Version returns the current SDK version and API Spec version
@@ -206,8 +207,17 @@ func (e APIError) Error() string {
 	return e.ErrorSummary
 }
 
-func init() {
-	// These are not registered in the oauth library by default
-	oauth2.RegisterBrokenAuthHeaderProvider("https://api.dropboxapi.com")
-	oauth2.RegisterBrokenAuthHeaderProvider("https://api-dbdev.dev.corp.dropbox.com")
+// HandleCommonAPIErrors handles common API errors
+func HandleCommonAPIErrors(c Config, resp *http.Response, body []byte) error {
+	var apiError APIError
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusInternalServerError {
+		apiError.ErrorSummary = string(body)
+		return apiError
+	}
+	e := json.Unmarshal(body, &apiError)
+	if e != nil {
+		c.LogDebug("%v", e)
+		return e
+	}
+	return apiError
 }

@@ -183,6 +183,11 @@ type CommitInfo struct {
 	Mute bool `json:"mute"`
 	// PropertyGroups : List of custom properties to add to file.
 	PropertyGroups []*file_properties.PropertyGroup `json:"property_groups,omitempty"`
+	// StrictConflict : Be more strict about how each `WriteMode` detects
+	// conflict. For example, always return a conflict error when `mode` =
+	// `WriteMode.update` and the given "rev" doesn't match the existing file's
+	// "rev", even if the existing file has been deleted.
+	StrictConflict bool `json:"strict_conflict"`
 }
 
 // NewCommitInfo returns a new CommitInfo instance
@@ -192,6 +197,7 @@ func NewCommitInfo(Path string) *CommitInfo {
 	s.Mode = &WriteMode{Tagged: dropbox.Tagged{"add"}}
 	s.Autorename = false
 	s.Mute = false
+	s.StrictConflict = false
 	return s
 }
 
@@ -207,6 +213,39 @@ func NewCommitInfoWithProperties(Path string) *CommitInfoWithProperties {
 	s.Mode = &WriteMode{Tagged: dropbox.Tagged{"add"}}
 	s.Autorename = false
 	s.Mute = false
+	s.StrictConflict = false
+	return s
+}
+
+// ContentSyncSetting : has no documentation (yet)
+type ContentSyncSetting struct {
+	// Id : Id of the item this setting is applied to.
+	Id string `json:"id"`
+	// SyncSetting : Setting for this item.
+	SyncSetting *SyncSetting `json:"sync_setting"`
+}
+
+// NewContentSyncSetting returns a new ContentSyncSetting instance
+func NewContentSyncSetting(Id string, SyncSetting *SyncSetting) *ContentSyncSetting {
+	s := new(ContentSyncSetting)
+	s.Id = Id
+	s.SyncSetting = SyncSetting
+	return s
+}
+
+// ContentSyncSettingArg : has no documentation (yet)
+type ContentSyncSettingArg struct {
+	// Id : Id of the item this setting is applied to.
+	Id string `json:"id"`
+	// SyncSetting : Setting for this item.
+	SyncSetting *SyncSettingArg `json:"sync_setting"`
+}
+
+// NewContentSyncSettingArg returns a new ContentSyncSettingArg instance
+func NewContentSyncSettingArg(Id string, SyncSetting *SyncSettingArg) *ContentSyncSettingArg {
+	s := new(ContentSyncSettingArg)
+	s.Id = Id
+	s.SyncSetting = SyncSetting
 	return s
 }
 
@@ -224,6 +263,258 @@ func NewCreateFolderArg(Path string) *CreateFolderArg {
 	s := new(CreateFolderArg)
 	s.Path = Path
 	s.Autorename = false
+	return s
+}
+
+// CreateFolderBatchArg : has no documentation (yet)
+type CreateFolderBatchArg struct {
+	// Paths : List of paths to be created in the user's Dropbox. Duplicate path
+	// arguments in the batch are considered only once.
+	Paths []string `json:"paths"`
+	// Autorename : If there's a conflict, have the Dropbox server try to
+	// autorename the folder to avoid the conflict.
+	Autorename bool `json:"autorename"`
+	// ForceAsync : Whether to force the create to happen asynchronously.
+	ForceAsync bool `json:"force_async"`
+}
+
+// NewCreateFolderBatchArg returns a new CreateFolderBatchArg instance
+func NewCreateFolderBatchArg(Paths []string) *CreateFolderBatchArg {
+	s := new(CreateFolderBatchArg)
+	s.Paths = Paths
+	s.Autorename = false
+	s.ForceAsync = false
+	return s
+}
+
+// CreateFolderBatchError : has no documentation (yet)
+type CreateFolderBatchError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for CreateFolderBatchError
+const (
+	CreateFolderBatchErrorTooManyFiles = "too_many_files"
+	CreateFolderBatchErrorOther        = "other"
+)
+
+// CreateFolderBatchJobStatus : has no documentation (yet)
+type CreateFolderBatchJobStatus struct {
+	dropbox.Tagged
+	// Complete : The batch create folder has finished.
+	Complete *CreateFolderBatchResult `json:"complete,omitempty"`
+	// Failed : The batch create folder has failed.
+	Failed *CreateFolderBatchError `json:"failed,omitempty"`
+}
+
+// Valid tag values for CreateFolderBatchJobStatus
+const (
+	CreateFolderBatchJobStatusInProgress = "in_progress"
+	CreateFolderBatchJobStatusComplete   = "complete"
+	CreateFolderBatchJobStatusFailed     = "failed"
+	CreateFolderBatchJobStatusOther      = "other"
+)
+
+// UnmarshalJSON deserializes into a CreateFolderBatchJobStatus instance
+func (u *CreateFolderBatchJobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : The batch create folder has finished.
+		Complete json.RawMessage `json:"complete,omitempty"`
+		// Failed : The batch create folder has failed.
+		Failed json.RawMessage `json:"failed,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
+			return err
+		}
+	case "failed":
+		err = json.Unmarshal(w.Failed, &u.Failed)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateFolderBatchLaunch : Result returned by `createFolderBatch` that may
+// either launch an asynchronous job or complete synchronously.
+type CreateFolderBatchLaunch struct {
+	dropbox.Tagged
+	// AsyncJobId : This response indicates that the processing is asynchronous.
+	// The string is an id that can be used to obtain the status of the
+	// asynchronous job.
+	AsyncJobId string `json:"async_job_id,omitempty"`
+	// Complete : has no documentation (yet)
+	Complete *CreateFolderBatchResult `json:"complete,omitempty"`
+}
+
+// Valid tag values for CreateFolderBatchLaunch
+const (
+	CreateFolderBatchLaunchAsyncJobId = "async_job_id"
+	CreateFolderBatchLaunchComplete   = "complete"
+	CreateFolderBatchLaunchOther      = "other"
+)
+
+// UnmarshalJSON deserializes into a CreateFolderBatchLaunch instance
+func (u *CreateFolderBatchLaunch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "async_job_id":
+		err = json.Unmarshal(body, &u.AsyncJobId)
+
+		if err != nil {
+			return err
+		}
+	case "complete":
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// FileOpsResult : has no documentation (yet)
+type FileOpsResult struct {
+}
+
+// NewFileOpsResult returns a new FileOpsResult instance
+func NewFileOpsResult() *FileOpsResult {
+	s := new(FileOpsResult)
+	return s
+}
+
+// CreateFolderBatchResult : has no documentation (yet)
+type CreateFolderBatchResult struct {
+	FileOpsResult
+	// Entries : Each entry in `CreateFolderBatchArg.paths` will appear at the
+	// same position inside `CreateFolderBatchResult.entries`.
+	Entries []*CreateFolderBatchResultEntry `json:"entries"`
+}
+
+// NewCreateFolderBatchResult returns a new CreateFolderBatchResult instance
+func NewCreateFolderBatchResult(Entries []*CreateFolderBatchResultEntry) *CreateFolderBatchResult {
+	s := new(CreateFolderBatchResult)
+	s.Entries = Entries
+	return s
+}
+
+// CreateFolderBatchResultEntry : has no documentation (yet)
+type CreateFolderBatchResultEntry struct {
+	dropbox.Tagged
+	// Success : has no documentation (yet)
+	Success *CreateFolderEntryResult `json:"success,omitempty"`
+	// Failure : has no documentation (yet)
+	Failure *CreateFolderEntryError `json:"failure,omitempty"`
+}
+
+// Valid tag values for CreateFolderBatchResultEntry
+const (
+	CreateFolderBatchResultEntrySuccess = "success"
+	CreateFolderBatchResultEntryFailure = "failure"
+)
+
+// UnmarshalJSON deserializes into a CreateFolderBatchResultEntry instance
+func (u *CreateFolderBatchResultEntry) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Success : has no documentation (yet)
+		Success json.RawMessage `json:"success,omitempty"`
+		// Failure : has no documentation (yet)
+		Failure json.RawMessage `json:"failure,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "success":
+		err = json.Unmarshal(body, &u.Success)
+
+		if err != nil {
+			return err
+		}
+	case "failure":
+		err = json.Unmarshal(w.Failure, &u.Failure)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateFolderEntryError : has no documentation (yet)
+type CreateFolderEntryError struct {
+	dropbox.Tagged
+	// Path : has no documentation (yet)
+	Path *WriteError `json:"path,omitempty"`
+}
+
+// Valid tag values for CreateFolderEntryError
+const (
+	CreateFolderEntryErrorPath  = "path"
+	CreateFolderEntryErrorOther = "other"
+)
+
+// UnmarshalJSON deserializes into a CreateFolderEntryError instance
+func (u *CreateFolderEntryError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Path : has no documentation (yet)
+		Path json.RawMessage `json:"path,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "path":
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateFolderEntryResult : has no documentation (yet)
+type CreateFolderEntryResult struct {
+	// Metadata : Metadata of the created folder.
+	Metadata *FolderMetadata `json:"metadata"`
+}
+
+// NewCreateFolderEntryResult returns a new CreateFolderEntryResult instance
+func NewCreateFolderEntryResult(Metadata *FolderMetadata) *CreateFolderEntryResult {
+	s := new(CreateFolderEntryResult)
+	s.Metadata = Metadata
 	return s
 }
 
@@ -263,16 +554,6 @@ func (u *CreateFolderError) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// FileOpsResult : has no documentation (yet)
-type FileOpsResult struct {
-}
-
-// NewFileOpsResult returns a new FileOpsResult instance
-func NewFileOpsResult() *FileOpsResult {
-	s := new(FileOpsResult)
-	return s
-}
-
 // CreateFolderResult : has no documentation (yet)
 type CreateFolderResult struct {
 	FileOpsResult
@@ -291,6 +572,9 @@ func NewCreateFolderResult(Metadata *FolderMetadata) *CreateFolderResult {
 type DeleteArg struct {
 	// Path : Path in the user's Dropbox to delete.
 	Path string `json:"path"`
+	// ParentRev : Perform delete if given "rev" matches the existing file's
+	// latest "rev". This field does not support deleting a folder.
+	ParentRev string `json:"parent_rev,omitempty"`
 }
 
 // NewDeleteArg returns a new DeleteArg instance
@@ -425,7 +709,8 @@ func (u *DeleteBatchLaunch) UnmarshalJSON(body []byte) error {
 // DeleteBatchResult : has no documentation (yet)
 type DeleteBatchResult struct {
 	FileOpsResult
-	// Entries : has no documentation (yet)
+	// Entries : Each entry in `DeleteBatchArg.entries` will appear at the same
+	// position inside `DeleteBatchResult.entries`.
 	Entries []*DeleteBatchResultEntry `json:"entries"`
 }
 
@@ -879,6 +1164,8 @@ type FileMetadata struct {
 	Size uint64 `json:"size"`
 	// MediaInfo : Additional information if the file is a photo or video.
 	MediaInfo *MediaInfo `json:"media_info,omitempty"`
+	// SymlinkInfo : Set if this file is a symlink.
+	SymlinkInfo *SymlinkInfo `json:"symlink_info,omitempty"`
 	// SharingInfo : Set if this file is contained in a shared folder.
 	SharingInfo *FileSharingInfo `json:"sharing_info,omitempty"`
 	// PropertyGroups : Additional information if the file has custom properties
@@ -893,7 +1180,7 @@ type FileMetadata struct {
 	HasExplicitSharedMembers bool `json:"has_explicit_shared_members,omitempty"`
 	// ContentHash : A hash of the file content. This field can be used to
 	// verify data integrity. For more information see our `Content hash`
-	// </developers/reference/content-hash> page.
+	// <https://www.dropbox.com/developers/reference/content-hash> page.
 	ContentHash string `json:"content_hash,omitempty"`
 }
 
@@ -1158,6 +1445,39 @@ func NewGetTemporaryLinkResult(Metadata *FileMetadata, Link string) *GetTemporar
 	return s
 }
 
+// GetTemporaryUploadLinkArg : has no documentation (yet)
+type GetTemporaryUploadLinkArg struct {
+	// CommitInfo : Contains the path and other optional modifiers for the
+	// future upload commit. Equivalent to the parameters provided to `upload`.
+	CommitInfo *CommitInfo `json:"commit_info"`
+	// Duration : How long before this link expires, in seconds.  Attempting to
+	// start an upload with this link longer than this period  of time after
+	// link creation will result in an error.
+	Duration float64 `json:"duration"`
+}
+
+// NewGetTemporaryUploadLinkArg returns a new GetTemporaryUploadLinkArg instance
+func NewGetTemporaryUploadLinkArg(CommitInfo *CommitInfo) *GetTemporaryUploadLinkArg {
+	s := new(GetTemporaryUploadLinkArg)
+	s.CommitInfo = CommitInfo
+	s.Duration = 14400.0
+	return s
+}
+
+// GetTemporaryUploadLinkResult : has no documentation (yet)
+type GetTemporaryUploadLinkResult struct {
+	// Link : The temporary link which can be used to stream a file to a Dropbox
+	// location.
+	Link string `json:"link"`
+}
+
+// NewGetTemporaryUploadLinkResult returns a new GetTemporaryUploadLinkResult instance
+func NewGetTemporaryUploadLinkResult(Link string) *GetTemporaryUploadLinkResult {
+	s := new(GetTemporaryUploadLinkResult)
+	s.Link = Link
+	return s
+}
+
 // GetThumbnailBatchArg : Arguments for `getThumbnailBatch`.
 type GetThumbnailBatchArg struct {
 	// Entries : List of files to get thumbnails.
@@ -1199,7 +1519,8 @@ func NewGetThumbnailBatchResult(Entries []*GetThumbnailBatchResultEntry) *GetThu
 type GetThumbnailBatchResultData struct {
 	// Metadata : has no documentation (yet)
 	Metadata *FileMetadata `json:"metadata"`
-	// Thumbnail : has no documentation (yet)
+	// Thumbnail : A string containing the base64-encoded thumbnail data for
+	// this file.
 	Thumbnail string `json:"thumbnail"`
 }
 
@@ -1617,7 +1938,10 @@ func NewListRevisionsResult(IsDeleted bool, Entries []*FileMetadata) *ListRevisi
 // LookupError : has no documentation (yet)
 type LookupError struct {
 	dropbox.Tagged
-	// MalformedPath : has no documentation (yet)
+	// MalformedPath : The given path does not satisfy the required path format.
+	// Please refer to the `Path formats documentation`
+	// <https://www.dropbox.com/developers/documentation/http/documentation#path-formats>
+	// for more information.
 	MalformedPath string `json:"malformed_path,omitempty"`
 }
 
@@ -1635,7 +1959,10 @@ const (
 func (u *LookupError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
-		// MalformedPath : has no documentation (yet)
+		// MalformedPath : The given path does not satisfy the required path
+		// format. Please refer to the `Path formats documentation`
+		// <https://www.dropbox.com/developers/documentation/http/documentation#path-formats>
+		// for more information.
 		MalformedPath json.RawMessage `json:"malformed_path,omitempty"`
 	}
 	var w wrap
@@ -1779,6 +2106,42 @@ func IsMediaMetadataFromJSON(data []byte) (IsMediaMetadata, error) {
 	return nil, nil
 }
 
+// RelocationBatchArgBase : has no documentation (yet)
+type RelocationBatchArgBase struct {
+	// Entries : List of entries to be moved or copied. Each entry is
+	// `RelocationPath`.
+	Entries []*RelocationPath `json:"entries"`
+	// Autorename : If there's a conflict with any file, have the Dropbox server
+	// try to autorename that file to avoid the conflict.
+	Autorename bool `json:"autorename"`
+}
+
+// NewRelocationBatchArgBase returns a new RelocationBatchArgBase instance
+func NewRelocationBatchArgBase(Entries []*RelocationPath) *RelocationBatchArgBase {
+	s := new(RelocationBatchArgBase)
+	s.Entries = Entries
+	s.Autorename = false
+	return s
+}
+
+// MoveBatchArg : has no documentation (yet)
+type MoveBatchArg struct {
+	RelocationBatchArgBase
+	// AllowOwnershipTransfer : Allow moves by owner even if it would result in
+	// an ownership transfer for the content being moved. This does not apply to
+	// copies.
+	AllowOwnershipTransfer bool `json:"allow_ownership_transfer"`
+}
+
+// NewMoveBatchArg returns a new MoveBatchArg instance
+func NewMoveBatchArg(Entries []*RelocationPath) *MoveBatchArg {
+	s := new(MoveBatchArg)
+	s.Entries = Entries
+	s.Autorename = false
+	s.AllowOwnershipTransfer = false
+	return s
+}
+
 // PhotoMetadata : Metadata for a photo.
 type PhotoMetadata struct {
 	MediaMetadata
@@ -1889,17 +2252,12 @@ func NewRelocationArg(FromPath string, ToPath string) *RelocationArg {
 
 // RelocationBatchArg : has no documentation (yet)
 type RelocationBatchArg struct {
-	// Entries : List of entries to be moved or copied. Each entry is
-	// `RelocationPath`.
-	Entries []*RelocationPath `json:"entries"`
+	RelocationBatchArgBase
 	// AllowSharedFolder : If true, `copyBatch` will copy contents in shared
 	// folder, otherwise `RelocationError.cant_copy_shared_folder` will be
-	// returned if `RelocationPath.from_path` contains shared folder.  This
-	// field is always true for `moveBatch`.
+	// returned if `RelocationPath.from_path` contains shared folder. This field
+	// is always true for `moveBatch`.
 	AllowSharedFolder bool `json:"allow_shared_folder"`
-	// Autorename : If there's a conflict with any file, have the Dropbox server
-	// try to autorename that file to avoid the conflict.
-	Autorename bool `json:"autorename"`
 	// AllowOwnershipTransfer : Allow moves by owner even if it would result in
 	// an ownership transfer for the content being moved. This does not apply to
 	// copies.
@@ -1910,8 +2268,8 @@ type RelocationBatchArg struct {
 func NewRelocationBatchArg(Entries []*RelocationPath) *RelocationBatchArg {
 	s := new(RelocationBatchArg)
 	s.Entries = Entries
-	s.AllowSharedFolder = false
 	s.Autorename = false
+	s.AllowSharedFolder = false
 	s.AllowOwnershipTransfer = false
 	return s
 }
@@ -1939,6 +2297,7 @@ const (
 	RelocationErrorDuplicatedOrNestedPaths  = "duplicated_or_nested_paths"
 	RelocationErrorCantTransferOwnership    = "cant_transfer_ownership"
 	RelocationErrorInsufficientQuota        = "insufficient_quota"
+	RelocationErrorInternalError            = "internal_error"
 	RelocationErrorOther                    = "other"
 )
 
@@ -2005,6 +2364,7 @@ const (
 	RelocationBatchErrorDuplicatedOrNestedPaths  = "duplicated_or_nested_paths"
 	RelocationBatchErrorCantTransferOwnership    = "cant_transfer_ownership"
 	RelocationBatchErrorInsufficientQuota        = "insufficient_quota"
+	RelocationBatchErrorInternalError            = "internal_error"
 	RelocationBatchErrorOther                    = "other"
 	RelocationBatchErrorTooManyWriteOperations   = "too_many_write_operations"
 )
@@ -2041,6 +2401,45 @@ func (u *RelocationBatchError) UnmarshalJSON(body []byte) error {
 		}
 	case "to":
 		err = json.Unmarshal(w.To, &u.To)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RelocationBatchErrorEntry : has no documentation (yet)
+type RelocationBatchErrorEntry struct {
+	dropbox.Tagged
+	// RelocationError : User errors that retry won't help.
+	RelocationError *RelocationError `json:"relocation_error,omitempty"`
+}
+
+// Valid tag values for RelocationBatchErrorEntry
+const (
+	RelocationBatchErrorEntryRelocationError        = "relocation_error"
+	RelocationBatchErrorEntryInternalError          = "internal_error"
+	RelocationBatchErrorEntryTooManyWriteOperations = "too_many_write_operations"
+	RelocationBatchErrorEntryOther                  = "other"
+)
+
+// UnmarshalJSON deserializes into a RelocationBatchErrorEntry instance
+func (u *RelocationBatchErrorEntry) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// RelocationError : User errors that retry won't help.
+		RelocationError json.RawMessage `json:"relocation_error,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "relocation_error":
+		err = json.Unmarshal(w.RelocationError, &u.RelocationError)
 
 		if err != nil {
 			return err
@@ -2191,6 +2590,156 @@ func (u *RelocationBatchResultData) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// RelocationBatchResultEntry : has no documentation (yet)
+type RelocationBatchResultEntry struct {
+	dropbox.Tagged
+	// Success : has no documentation (yet)
+	Success IsMetadata `json:"success,omitempty"`
+	// Failure : has no documentation (yet)
+	Failure *RelocationBatchErrorEntry `json:"failure,omitempty"`
+}
+
+// Valid tag values for RelocationBatchResultEntry
+const (
+	RelocationBatchResultEntrySuccess = "success"
+	RelocationBatchResultEntryFailure = "failure"
+	RelocationBatchResultEntryOther   = "other"
+)
+
+// UnmarshalJSON deserializes into a RelocationBatchResultEntry instance
+func (u *RelocationBatchResultEntry) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Success : has no documentation (yet)
+		Success json.RawMessage `json:"success,omitempty"`
+		// Failure : has no documentation (yet)
+		Failure json.RawMessage `json:"failure,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "success":
+		u.Success, err = IsMetadataFromJSON(body)
+
+		if err != nil {
+			return err
+		}
+	case "failure":
+		err = json.Unmarshal(w.Failure, &u.Failure)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RelocationBatchV2JobStatus : Result returned by `copyBatch` or `moveBatch`
+// that may either launch an asynchronous job or complete synchronously.
+type RelocationBatchV2JobStatus struct {
+	dropbox.Tagged
+	// Complete : The copy or move batch job has finished.
+	Complete *RelocationBatchV2Result `json:"complete,omitempty"`
+}
+
+// Valid tag values for RelocationBatchV2JobStatus
+const (
+	RelocationBatchV2JobStatusInProgress = "in_progress"
+	RelocationBatchV2JobStatusComplete   = "complete"
+)
+
+// UnmarshalJSON deserializes into a RelocationBatchV2JobStatus instance
+func (u *RelocationBatchV2JobStatus) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : The copy or move batch job has finished.
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "complete":
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RelocationBatchV2Launch : Result returned by `copyBatch` or `moveBatch` that
+// may either launch an asynchronous job or complete synchronously.
+type RelocationBatchV2Launch struct {
+	dropbox.Tagged
+	// AsyncJobId : This response indicates that the processing is asynchronous.
+	// The string is an id that can be used to obtain the status of the
+	// asynchronous job.
+	AsyncJobId string `json:"async_job_id,omitempty"`
+	// Complete : has no documentation (yet)
+	Complete *RelocationBatchV2Result `json:"complete,omitempty"`
+}
+
+// Valid tag values for RelocationBatchV2Launch
+const (
+	RelocationBatchV2LaunchAsyncJobId = "async_job_id"
+	RelocationBatchV2LaunchComplete   = "complete"
+)
+
+// UnmarshalJSON deserializes into a RelocationBatchV2Launch instance
+func (u *RelocationBatchV2Launch) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Complete : has no documentation (yet)
+		Complete json.RawMessage `json:"complete,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "async_job_id":
+		err = json.Unmarshal(body, &u.AsyncJobId)
+
+		if err != nil {
+			return err
+		}
+	case "complete":
+		err = json.Unmarshal(body, &u.Complete)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RelocationBatchV2Result : has no documentation (yet)
+type RelocationBatchV2Result struct {
+	FileOpsResult
+	// Entries : Each entry in CopyBatchArg.entries or `MoveBatchArg.entries`
+	// will appear at the same position inside
+	// `RelocationBatchV2Result.entries`.
+	Entries []*RelocationBatchResultEntry `json:"entries"`
+}
+
+// NewRelocationBatchV2Result returns a new RelocationBatchV2Result instance
+func NewRelocationBatchV2Result(Entries []*RelocationBatchResultEntry) *RelocationBatchV2Result {
+	s := new(RelocationBatchV2Result)
+	s.Entries = Entries
+	return s
+}
+
 // RelocationResult : has no documentation (yet)
 type RelocationResult struct {
 	FileOpsResult
@@ -2225,9 +2774,9 @@ func (u *RelocationResult) UnmarshalJSON(b []byte) error {
 
 // RestoreArg : has no documentation (yet)
 type RestoreArg struct {
-	// Path : The path to the file you want to restore.
+	// Path : The path to save the restored file.
 	Path string `json:"path"`
-	// Rev : The revision to restore for the file.
+	// Rev : The revision to restore.
 	Rev string `json:"rev"`
 }
 
@@ -2694,6 +3243,83 @@ func NewSharedLink(Url string) *SharedLink {
 	return s
 }
 
+// SymlinkInfo : has no documentation (yet)
+type SymlinkInfo struct {
+	// Target : The target this symlink points to.
+	Target string `json:"target"`
+}
+
+// NewSymlinkInfo returns a new SymlinkInfo instance
+func NewSymlinkInfo(Target string) *SymlinkInfo {
+	s := new(SymlinkInfo)
+	s.Target = Target
+	return s
+}
+
+// SyncSetting : has no documentation (yet)
+type SyncSetting struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for SyncSetting
+const (
+	SyncSettingDefault           = "default"
+	SyncSettingNotSynced         = "not_synced"
+	SyncSettingNotSyncedInactive = "not_synced_inactive"
+	SyncSettingOther             = "other"
+)
+
+// SyncSettingArg : has no documentation (yet)
+type SyncSettingArg struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for SyncSettingArg
+const (
+	SyncSettingArgDefault   = "default"
+	SyncSettingArgNotSynced = "not_synced"
+	SyncSettingArgOther     = "other"
+)
+
+// SyncSettingsError : has no documentation (yet)
+type SyncSettingsError struct {
+	dropbox.Tagged
+	// Path : has no documentation (yet)
+	Path *LookupError `json:"path,omitempty"`
+}
+
+// Valid tag values for SyncSettingsError
+const (
+	SyncSettingsErrorPath                     = "path"
+	SyncSettingsErrorUnsupportedCombination   = "unsupported_combination"
+	SyncSettingsErrorUnsupportedConfiguration = "unsupported_configuration"
+	SyncSettingsErrorOther                    = "other"
+)
+
+// UnmarshalJSON deserializes into a SyncSettingsError instance
+func (u *SyncSettingsError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// Path : has no documentation (yet)
+		Path json.RawMessage `json:"path,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "path":
+		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ThumbnailArg : has no documentation (yet)
 type ThumbnailArg struct {
 	// Path : The path to the image file you want to thumbnail.
@@ -2704,6 +3330,8 @@ type ThumbnailArg struct {
 	Format *ThumbnailFormat `json:"format"`
 	// Size : The size for the thumbnail image.
 	Size *ThumbnailSize `json:"size"`
+	// Mode : How to resize and crop the image to achieve the desired size.
+	Mode *ThumbnailMode `json:"mode"`
 }
 
 // NewThumbnailArg returns a new ThumbnailArg instance
@@ -2712,6 +3340,7 @@ func NewThumbnailArg(Path string) *ThumbnailArg {
 	s.Path = Path
 	s.Format = &ThumbnailFormat{Tagged: dropbox.Tagged{"jpeg"}}
 	s.Size = &ThumbnailSize{Tagged: dropbox.Tagged{"w64h64"}}
+	s.Mode = &ThumbnailMode{Tagged: dropbox.Tagged{"strict"}}
 	return s
 }
 
@@ -2765,6 +3394,18 @@ const (
 	ThumbnailFormatPng  = "png"
 )
 
+// ThumbnailMode : has no documentation (yet)
+type ThumbnailMode struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for ThumbnailMode
+const (
+	ThumbnailModeStrict        = "strict"
+	ThumbnailModeBestfit       = "bestfit"
+	ThumbnailModeFitoneBestfit = "fitone_bestfit"
+)
+
 // ThumbnailSize : has no documentation (yet)
 type ThumbnailSize struct {
 	dropbox.Tagged
@@ -2772,11 +3413,15 @@ type ThumbnailSize struct {
 
 // Valid tag values for ThumbnailSize
 const (
-	ThumbnailSizeW32h32    = "w32h32"
-	ThumbnailSizeW64h64    = "w64h64"
-	ThumbnailSizeW128h128  = "w128h128"
-	ThumbnailSizeW640h480  = "w640h480"
-	ThumbnailSizeW1024h768 = "w1024h768"
+	ThumbnailSizeW32h32     = "w32h32"
+	ThumbnailSizeW64h64     = "w64h64"
+	ThumbnailSizeW128h128   = "w128h128"
+	ThumbnailSizeW256h256   = "w256h256"
+	ThumbnailSizeW480h320   = "w480h320"
+	ThumbnailSizeW640h480   = "w640h480"
+	ThumbnailSizeW960h640   = "w960h640"
+	ThumbnailSizeW1024h768  = "w1024h768"
+	ThumbnailSizeW2048h1536 = "w2048h1536"
 )
 
 // UploadError : has no documentation (yet)
@@ -2784,7 +3429,8 @@ type UploadError struct {
 	dropbox.Tagged
 	// Path : Unable to save the uploaded contents to a file.
 	Path *UploadWriteFailed `json:"path,omitempty"`
-	// PropertiesError : The supplied property group is invalid.
+	// PropertiesError : The supplied property group is invalid. The file has
+	// uploaded without property groups.
 	PropertiesError *file_properties.InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
 
@@ -2801,7 +3447,8 @@ func (u *UploadError) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 		// Path : Unable to save the uploaded contents to a file.
 		Path json.RawMessage `json:"path,omitempty"`
-		// PropertiesError : The supplied property group is invalid.
+		// PropertiesError : The supplied property group is invalid. The file
+		// has uploaded without property groups.
 		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
@@ -2832,7 +3479,8 @@ type UploadErrorWithProperties struct {
 	dropbox.Tagged
 	// Path : Unable to save the uploaded contents to a file.
 	Path *UploadWriteFailed `json:"path,omitempty"`
-	// PropertiesError : The supplied property group is invalid.
+	// PropertiesError : The supplied property group is invalid. The file has
+	// uploaded without property groups.
 	PropertiesError *file_properties.InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
 
@@ -2849,7 +3497,8 @@ func (u *UploadErrorWithProperties) UnmarshalJSON(body []byte) error {
 		dropbox.Tagged
 		// Path : Unable to save the uploaded contents to a file.
 		Path json.RawMessage `json:"path,omitempty"`
-		// PropertiesError : The supplied property group is invalid.
+		// PropertiesError : The supplied property group is invalid. The file
+		// has uploaded without property groups.
 		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
@@ -2880,7 +3529,7 @@ type UploadSessionAppendArg struct {
 	// Cursor : Contains the upload session ID and the offset.
 	Cursor *UploadSessionCursor `json:"cursor"`
 	// Close : If true, the current session will be closed, at which point you
-	// won't be able to call `uploadSessionAppendV2` anymore with the current
+	// won't be able to call `uploadSessionAppend` anymore with the current
 	// session.
 	Close bool `json:"close"`
 }
@@ -3029,7 +3678,8 @@ func (u *UploadSessionFinishBatchLaunch) UnmarshalJSON(body []byte) error {
 
 // UploadSessionFinishBatchResult : has no documentation (yet)
 type UploadSessionFinishBatchResult struct {
-	// Entries : Commit result for each file in the batch.
+	// Entries : Each entry in `UploadSessionFinishBatchArg.entries` will appear
+	// at the same position inside `UploadSessionFinishBatchResult.entries`.
 	Entries []*UploadSessionFinishBatchResultEntry `json:"entries"`
 }
 
@@ -3093,14 +3743,20 @@ type UploadSessionFinishError struct {
 	// LookupFailed : The session arguments are incorrect; the value explains
 	// the reason.
 	LookupFailed *UploadSessionLookupError `json:"lookup_failed,omitempty"`
-	// Path : Unable to save the uploaded contents to a file.
+	// Path : Unable to save the uploaded contents to a file. Data has already
+	// been appended to the upload session. Please retry with empty data body
+	// and updated offset.
 	Path *WriteError `json:"path,omitempty"`
+	// PropertiesError : The supplied property group is invalid. The file has
+	// uploaded without property groups.
+	PropertiesError *file_properties.InvalidPropertyGroupError `json:"properties_error,omitempty"`
 }
 
 // Valid tag values for UploadSessionFinishError
 const (
 	UploadSessionFinishErrorLookupFailed               = "lookup_failed"
 	UploadSessionFinishErrorPath                       = "path"
+	UploadSessionFinishErrorPropertiesError            = "properties_error"
 	UploadSessionFinishErrorTooManySharedFolderTargets = "too_many_shared_folder_targets"
 	UploadSessionFinishErrorTooManyWriteOperations     = "too_many_write_operations"
 	UploadSessionFinishErrorOther                      = "other"
@@ -3113,8 +3769,13 @@ func (u *UploadSessionFinishError) UnmarshalJSON(body []byte) error {
 		// LookupFailed : The session arguments are incorrect; the value
 		// explains the reason.
 		LookupFailed json.RawMessage `json:"lookup_failed,omitempty"`
-		// Path : Unable to save the uploaded contents to a file.
+		// Path : Unable to save the uploaded contents to a file. Data has
+		// already been appended to the upload session. Please retry with empty
+		// data body and updated offset.
 		Path json.RawMessage `json:"path,omitempty"`
+		// PropertiesError : The supplied property group is invalid. The file
+		// has uploaded without property groups.
+		PropertiesError json.RawMessage `json:"properties_error,omitempty"`
 	}
 	var w wrap
 	var err error
@@ -3131,6 +3792,12 @@ func (u *UploadSessionFinishError) UnmarshalJSON(body []byte) error {
 		}
 	case "path":
 		err = json.Unmarshal(w.Path, &u.Path)
+
+		if err != nil {
+			return err
+		}
+	case "properties_error":
+		err = json.Unmarshal(w.PropertiesError, &u.PropertiesError)
 
 		if err != nil {
 			return err
@@ -3155,6 +3822,7 @@ const (
 	UploadSessionLookupErrorIncorrectOffset = "incorrect_offset"
 	UploadSessionLookupErrorClosed          = "closed"
 	UploadSessionLookupErrorNotClosed       = "not_closed"
+	UploadSessionLookupErrorTooLarge        = "too_large"
 	UploadSessionLookupErrorOther           = "other"
 )
 
@@ -3201,7 +3869,7 @@ func NewUploadSessionOffsetError(CorrectOffset uint64) *UploadSessionOffsetError
 // UploadSessionStartArg : has no documentation (yet)
 type UploadSessionStartArg struct {
 	// Close : If true, the current session will be closed, at which point you
-	// won't be able to call `uploadSessionAppendV2` anymore with the current
+	// won't be able to call `uploadSessionAppend` anymore with the current
 	// session.
 	Close bool `json:"close"`
 }
@@ -3216,7 +3884,7 @@ func NewUploadSessionStartArg() *UploadSessionStartArg {
 // UploadSessionStartResult : has no documentation (yet)
 type UploadSessionStartResult struct {
 	// SessionId : A unique identifier for the upload session. Pass this to
-	// `uploadSessionAppendV2` and `uploadSessionFinish`.
+	// `uploadSessionAppend` and `uploadSessionFinish`.
 	SessionId string `json:"session_id"`
 }
 
@@ -3231,8 +3899,9 @@ func NewUploadSessionStartResult(SessionId string) *UploadSessionStartResult {
 type UploadWriteFailed struct {
 	// Reason : The reason why the file couldn't be saved.
 	Reason *WriteError `json:"reason"`
-	// UploadSessionId : The upload session ID; this may be used to retry the
-	// commit.
+	// UploadSessionId : The upload session ID; data has already been uploaded
+	// to the corresponding upload session and this ID may be used to retry the
+	// commit with `uploadSessionFinish`.
 	UploadSessionId string `json:"upload_session_id"`
 }
 
@@ -3273,7 +3942,10 @@ const (
 // WriteError : has no documentation (yet)
 type WriteError struct {
 	dropbox.Tagged
-	// MalformedPath : has no documentation (yet)
+	// MalformedPath : The given path does not satisfy the required path format.
+	// Please refer to the `Path formats documentation`
+	// <https://www.dropbox.com/developers/documentation/http/documentation#path-formats>
+	// for more information.
 	MalformedPath string `json:"malformed_path,omitempty"`
 	// Conflict : Couldn't write to the target path because there was something
 	// in the way.
@@ -3282,20 +3954,24 @@ type WriteError struct {
 
 // Valid tag values for WriteError
 const (
-	WriteErrorMalformedPath     = "malformed_path"
-	WriteErrorConflict          = "conflict"
-	WriteErrorNoWritePermission = "no_write_permission"
-	WriteErrorInsufficientSpace = "insufficient_space"
-	WriteErrorDisallowedName    = "disallowed_name"
-	WriteErrorTeamFolder        = "team_folder"
-	WriteErrorOther             = "other"
+	WriteErrorMalformedPath          = "malformed_path"
+	WriteErrorConflict               = "conflict"
+	WriteErrorNoWritePermission      = "no_write_permission"
+	WriteErrorInsufficientSpace      = "insufficient_space"
+	WriteErrorDisallowedName         = "disallowed_name"
+	WriteErrorTeamFolder             = "team_folder"
+	WriteErrorTooManyWriteOperations = "too_many_write_operations"
+	WriteErrorOther                  = "other"
 )
 
 // UnmarshalJSON deserializes into a WriteError instance
 func (u *WriteError) UnmarshalJSON(body []byte) error {
 	type wrap struct {
 		dropbox.Tagged
-		// MalformedPath : has no documentation (yet)
+		// MalformedPath : The given path does not satisfy the required path
+		// format. Please refer to the `Path formats documentation`
+		// <https://www.dropbox.com/developers/documentation/http/documentation#path-formats>
+		// for more information.
 		MalformedPath json.RawMessage `json:"malformed_path,omitempty"`
 		// Conflict : Couldn't write to the target path because there was
 		// something in the way.

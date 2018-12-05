@@ -28,8 +28,22 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/seen_state"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
+)
+
+// AccessInheritance : Information about the inheritance policy of a shared
+// folder.
+type AccessInheritance struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for AccessInheritance
+const (
+	AccessInheritanceInherit   = "inherit"
+	AccessInheritanceNoInherit = "no_inherit"
+	AccessInheritanceOther     = "other"
 )
 
 // AccessLevel : Defines the access levels for collaborators.
@@ -679,6 +693,7 @@ const (
 	FileActionEnableViewerInfo      = "enable_viewer_info"
 	FileActionInviteViewer          = "invite_viewer"
 	FileActionInviteViewerNoComment = "invite_viewer_no_comment"
+	FileActionInviteEditor          = "invite_editor"
 	FileActionUnshare               = "unshare"
 	FileActionRelinquishMembership  = "relinquish_membership"
 	FileActionShareLink             = "share_link"
@@ -1089,6 +1104,7 @@ const (
 	FolderActionLeaveACopy            = "leave_a_copy"
 	FolderActionShareLink             = "share_link"
 	FolderActionCreateLink            = "create_link"
+	FolderActionSetAccessInheritance  = "set_access_inheritance"
 	FolderActionOther                 = "other"
 )
 
@@ -1481,12 +1497,14 @@ func NewGroupInfo(GroupName string, GroupId string, GroupManagementType *team_co
 
 // MembershipInfo : The information about a member of the shared content.
 type MembershipInfo struct {
-	// AccessType : The access type for this member.
+	// AccessType : The access type for this member. It contains inherited
+	// access type from parent folder, and acquired access type from this
+	// folder.
 	AccessType *AccessLevel `json:"access_type"`
 	// Permissions : The permissions that requesting user has on this member.
 	// The set of permissions corresponds to the MemberActions in the request.
 	Permissions []*MemberPermission `json:"permissions,omitempty"`
-	// Initials : Suggested name initials for a member.
+	// Initials : Never set.
 	Initials string `json:"initials,omitempty"`
 	// IsInherited : True if the member has access from a parent folder.
 	IsInherited bool `json:"is_inherited"`
@@ -1739,6 +1757,7 @@ type LinkAudience struct {
 const (
 	LinkAudiencePublic  = "public"
 	LinkAudienceTeam    = "team"
+	LinkAudienceNoOne   = "no_one"
 	LinkAudienceMembers = "members"
 	LinkAudienceOther   = "other"
 )
@@ -3174,6 +3193,60 @@ const (
 	RevokeSharedLinkErrorSharedLinkMalformed    = "shared_link_malformed"
 )
 
+// SetAccessInheritanceArg : has no documentation (yet)
+type SetAccessInheritanceArg struct {
+	// AccessInheritance : The access inheritance settings for the folder.
+	AccessInheritance *AccessInheritance `json:"access_inheritance"`
+	// SharedFolderId : The ID for the shared folder.
+	SharedFolderId string `json:"shared_folder_id"`
+}
+
+// NewSetAccessInheritanceArg returns a new SetAccessInheritanceArg instance
+func NewSetAccessInheritanceArg(SharedFolderId string) *SetAccessInheritanceArg {
+	s := new(SetAccessInheritanceArg)
+	s.SharedFolderId = SharedFolderId
+	s.AccessInheritance = &AccessInheritance{Tagged: dropbox.Tagged{"inherit"}}
+	return s
+}
+
+// SetAccessInheritanceError : has no documentation (yet)
+type SetAccessInheritanceError struct {
+	dropbox.Tagged
+	// AccessError : Unable to access shared folder.
+	AccessError *SharedFolderAccessError `json:"access_error,omitempty"`
+}
+
+// Valid tag values for SetAccessInheritanceError
+const (
+	SetAccessInheritanceErrorAccessError  = "access_error"
+	SetAccessInheritanceErrorNoPermission = "no_permission"
+	SetAccessInheritanceErrorOther        = "other"
+)
+
+// UnmarshalJSON deserializes into a SetAccessInheritanceError instance
+func (u *SetAccessInheritanceError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : Unable to access shared folder.
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ShareFolderArgBase : has no documentation (yet)
 type ShareFolderArgBase struct {
 	// AclUpdatePolicy : Who can add and remove members of this shared folder.
@@ -3193,6 +3266,8 @@ type ShareFolderArgBase struct {
 	// ViewerInfoPolicy : Who can enable/disable viewer info for this shared
 	// folder.
 	ViewerInfoPolicy *ViewerInfoPolicy `json:"viewer_info_policy,omitempty"`
+	// AccessInheritance : The access inheritance settings for the folder.
+	AccessInheritance *AccessInheritance `json:"access_inheritance"`
 }
 
 // NewShareFolderArgBase returns a new ShareFolderArgBase instance
@@ -3200,6 +3275,7 @@ func NewShareFolderArgBase(Path string) *ShareFolderArgBase {
 	s := new(ShareFolderArgBase)
 	s.Path = Path
 	s.ForceAsync = false
+	s.AccessInheritance = &AccessInheritance{Tagged: dropbox.Tagged{"inherit"}}
 	return s
 }
 
@@ -3220,6 +3296,7 @@ func NewShareFolderArg(Path string) *ShareFolderArg {
 	s := new(ShareFolderArg)
 	s.Path = Path
 	s.ForceAsync = false
+	s.AccessInheritance = &AccessInheritance{Tagged: dropbox.Tagged{"inherit"}}
 	return s
 }
 
@@ -3694,6 +3771,9 @@ type SharedFolderMetadata struct {
 	// TimeInvited : Timestamp indicating when the current user was invited to
 	// this shared folder.
 	TimeInvited time.Time `json:"time_invited"`
+	// AccessInheritance : Whether the folder inherits its members from its
+	// parent.
+	AccessInheritance *AccessInheritance `json:"access_inheritance"`
 }
 
 // NewSharedFolderMetadata returns a new SharedFolderMetadata instance
@@ -3707,6 +3787,7 @@ func NewSharedFolderMetadata(AccessType *AccessLevel, IsInsideTeamFolder bool, I
 	s.PreviewUrl = PreviewUrl
 	s.SharedFolderId = SharedFolderId
 	s.TimeInvited = TimeInvited
+	s.AccessInheritance = &AccessInheritance{Tagged: dropbox.Tagged{"inherit"}}
 	return s
 }
 
@@ -4242,6 +4323,9 @@ type UserFileMembershipInfo struct {
 	// TimeLastSeen : The UTC timestamp of when the user has last seen the
 	// content, if they have.
 	TimeLastSeen time.Time `json:"time_last_seen,omitempty"`
+	// PlatformType : The platform on which the user has last seen the content,
+	// or unknown.
+	PlatformType *seen_state.PlatformType `json:"platform_type,omitempty"`
 }
 
 // NewUserFileMembershipInfo returns a new UserFileMembershipInfo instance
@@ -4258,6 +4342,10 @@ func NewUserFileMembershipInfo(AccessType *AccessLevel, User *UserInfo) *UserFil
 type UserInfo struct {
 	// AccountId : The account ID of the user.
 	AccountId string `json:"account_id"`
+	// Email : Email address of user.
+	Email string `json:"email"`
+	// DisplayName : The display name of the user.
+	DisplayName string `json:"display_name"`
 	// SameTeam : If the user is in the same team as current user.
 	SameTeam bool `json:"same_team"`
 	// TeamMemberId : The team member ID of the shared folder member. Only
@@ -4266,9 +4354,11 @@ type UserInfo struct {
 }
 
 // NewUserInfo returns a new UserInfo instance
-func NewUserInfo(AccountId string, SameTeam bool) *UserInfo {
+func NewUserInfo(AccountId string, Email string, DisplayName string, SameTeam bool) *UserInfo {
 	s := new(UserInfo)
 	s.AccountId = AccountId
+	s.Email = Email
+	s.DisplayName = DisplayName
 	s.SameTeam = SameTeam
 	return s
 }

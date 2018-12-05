@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
 )
 
@@ -51,5 +52,62 @@ func TestInternalError(t *testing.T) {
 	v, e := client.GetCurrentAccount()
 	if v != nil || strings.Trim(e.Error(), "\n") != eString {
 		t.Errorf("v: %v e: '%s'\n", v, e.Error())
+	}
+}
+
+func TestRateLimitPlainText(t *testing.T) {
+	eString := "too_many_requests"
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Header().Set("Retry-After", "10")
+			http.Error(w, eString, http.StatusTooManyRequests)
+		}))
+	defer ts.Close()
+
+	config := dropbox.Config{Client: ts.Client(), LogLevel: dropbox.LogDebug,
+		URLGenerator: func(hostType string, style string, namespace string, route string) string {
+			return generateURL(ts.URL, namespace, route)
+		}}
+	client := users.New(config)
+	_, e := client.GetCurrentAccount()
+	re, ok := e.(auth.RateLimitAPIError)
+	if !ok {
+		t.Errorf("Unexpected error type: %T\n", e)
+	}
+	if re.RateLimitError.RetryAfter != 10 {
+		t.Errorf("Unexpected retry-after value: %d\n", re.RateLimitError.RetryAfter)
+	}
+	if re.RateLimitError.Reason.Tag != auth.RateLimitReasonTooManyRequests {
+		t.Errorf("Unexpected reason: %v\n", re.RateLimitError.Reason)
+	}
+}
+
+func TestRateLimitJSON(t *testing.T) {
+	eString := `{"error_summary": "too_many_requests/..", "error": {"reason": {".tag": "too_many_requests"}, "retry_after": 300}}`
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Retry-After", "10")
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(eString))
+		}))
+	defer ts.Close()
+
+	config := dropbox.Config{Client: ts.Client(), LogLevel: dropbox.LogDebug,
+		URLGenerator: func(hostType string, style string, namespace string, route string) string {
+			return generateURL(ts.URL, namespace, route)
+		}}
+	client := users.New(config)
+	_, e := client.GetCurrentAccount()
+	re, ok := e.(auth.RateLimitAPIError)
+	if !ok {
+		t.Errorf("Unexpected error type: %T\n", e)
+	}
+	if re.RateLimitError.RetryAfter != 300 {
+		t.Errorf("Unexpected retry-after value: %d\n", re.RateLimitError.RetryAfter)
+	}
+	if re.RateLimitError.Reason.Tag != auth.RateLimitReasonTooManyRequests {
+		t.Errorf("Unexpected reason: %v\n", re.RateLimitError.Reason)
 	}
 }

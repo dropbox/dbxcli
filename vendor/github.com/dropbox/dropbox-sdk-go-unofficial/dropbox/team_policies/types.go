@@ -23,6 +23,18 @@ package team_policies
 
 import "github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 
+// CameraUploadsPolicyState : has no documentation (yet)
+type CameraUploadsPolicyState struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for CameraUploadsPolicyState
+const (
+	CameraUploadsPolicyStateDisabled = "disabled"
+	CameraUploadsPolicyStateEnabled  = "enabled"
+	CameraUploadsPolicyStateOther    = "other"
+)
+
 // EmmState : has no documentation (yet)
 type EmmState struct {
 	dropbox.Tagged
@@ -147,6 +159,42 @@ const (
 	SharedLinkCreatePolicyDefaultTeamOnly = "default_team_only"
 	SharedLinkCreatePolicyTeamOnly        = "team_only"
 	SharedLinkCreatePolicyOther           = "other"
+)
+
+// ShowcaseDownloadPolicy : has no documentation (yet)
+type ShowcaseDownloadPolicy struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for ShowcaseDownloadPolicy
+const (
+	ShowcaseDownloadPolicyDisabled = "disabled"
+	ShowcaseDownloadPolicyEnabled  = "enabled"
+	ShowcaseDownloadPolicyOther    = "other"
+)
+
+// ShowcaseEnabledPolicy : has no documentation (yet)
+type ShowcaseEnabledPolicy struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for ShowcaseEnabledPolicy
+const (
+	ShowcaseEnabledPolicyDisabled = "disabled"
+	ShowcaseEnabledPolicyEnabled  = "enabled"
+	ShowcaseEnabledPolicyOther    = "other"
+)
+
+// ShowcaseExternalSharingPolicy : has no documentation (yet)
+type ShowcaseExternalSharingPolicy struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for ShowcaseExternalSharingPolicy
+const (
+	ShowcaseExternalSharingPolicyDisabled = "disabled"
+	ShowcaseExternalSharingPolicyEnabled  = "enabled"
+	ShowcaseExternalSharingPolicyOther    = "other"
 )
 
 // SmartSyncPolicy : has no documentation (yet)

@@ -2,8 +2,10 @@ package cobra
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -17,6 +19,23 @@ func checkOmit(t *testing.T, found, unexpected string) {
 func check(t *testing.T, found, expected string) {
 	if !strings.Contains(found, expected) {
 		t.Errorf("Expecting to contain: \n %q\nGot:\n %q\n", expected, found)
+	}
+}
+
+func checkNumOccurrences(t *testing.T, found, expected string, expectedOccurrences int) {
+	numOccurrences := strings.Count(found, expected)
+	if numOccurrences != expectedOccurrences {
+		t.Errorf("Expecting to contain %d occurrences of: \n %q\nGot %d:\n %q\n", expectedOccurrences, expected, numOccurrences, found)
+	}
+}
+
+func checkRegex(t *testing.T, found, pattern string) {
+	matched, err := regexp.MatchString(pattern, found)
+	if err != nil {
+		t.Errorf("Error thrown performing MatchString: \n %s\n", err)
+	}
+	if !matched {
+		t.Errorf("Expecting to match: \n %q\nGot:\n %q\n", pattern, found)
 	}
 }
 
@@ -41,7 +60,7 @@ func runShellCheck(s string) error {
 }
 
 // World worst custom function, just keep telling you to enter hello!
-const bashCompletionFunc = `__custom_func() {
+const bashCompletionFunc = `__root_custom_func() {
 	COMPREPLY=( "hello" )
 }
 `
@@ -84,6 +103,11 @@ func TestBashCompletions(t *testing.T) {
 		Example: "Just run cobra-test echo",
 		Run:     emptyRun,
 	}
+
+	echoCmd.Flags().String("filename", "", "Enter a filename")
+	echoCmd.MarkFlagFilename("filename", "json", "yaml", "yml")
+	echoCmd.Flags().String("config", "", "config to use (located in /config/PROFILE/)")
+	echoCmd.Flags().SetAnnotation("config", BashCompSubdirsInDir, []string{"config"})
 
 	printCmd := &Command{
 		Use:   "print [string to print]",
@@ -133,7 +157,10 @@ func TestBashCompletions(t *testing.T) {
 	// check for required flags
 	check(t, output, `must_have_one_flag+=("--introot=")`)
 	check(t, output, `must_have_one_flag+=("--persistent-filename=")`)
-	// check for custom completion function
+	// check for custom completion function with both qualified and unqualified name
+	checkNumOccurrences(t, output, `__custom_func`, 2)      // 1. check existence, 2. invoke
+	checkNumOccurrences(t, output, `__root_custom_func`, 3) // 1. check existence, 2. invoke, 3. actual definition
+	// check for custom completion function body
 	check(t, output, `COMPREPLY=( "hello" )`)
 	// check for required nouns
 	check(t, output, `must_have_one_noun+=("pod")`)
@@ -146,11 +173,15 @@ func TestBashCompletions(t *testing.T) {
 	// check for filename extension flags
 	check(t, output, `must_have_one_noun+=("three")`)
 	// check for filename extension flags
-	check(t, output, `flags_completion+=("__handle_filename_extension_flag json|yaml|yml")`)
+	check(t, output, fmt.Sprintf(`flags_completion+=("__%s_handle_filename_extension_flag json|yaml|yml")`, rootCmd.Name()))
+	// check for filename extension flags in a subcommand
+	checkRegex(t, output, fmt.Sprintf(`_root_echo\(\)\n{[^}]*flags_completion\+=\("__%s_handle_filename_extension_flag json\|yaml\|yml"\)`, rootCmd.Name()))
 	// check for custom flags
 	check(t, output, `flags_completion+=("__complete_custom")`)
 	// check for subdirs_in_dir flags
-	check(t, output, `flags_completion+=("__handle_subdirs_in_dir_flag themes")`)
+	check(t, output, fmt.Sprintf(`flags_completion+=("__%s_handle_subdirs_in_dir_flag themes")`, rootCmd.Name()))
+	// check for subdirs_in_dir flags in a subcommand
+	checkRegex(t, output, fmt.Sprintf(`_root_echo\(\)\n{[^}]*flags_completion\+=\("__%s_handle_subdirs_in_dir_flag config"\)`, rootCmd.Name()))
 
 	checkOmit(t, output, deprecatedCmd.Name())
 

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
@@ -497,7 +498,7 @@ const (
 	ExcludedUsersUpdateStatusOther   = "other"
 )
 
-// Feature : A set of features that Dropbox for Business account support.
+// Feature : A set of features that a Dropbox Business account may support.
 type Feature struct {
 	dropbox.Tagged
 }
@@ -507,11 +508,12 @@ const (
 	FeatureUploadApiRateLimit   = "upload_api_rate_limit"
 	FeatureHasTeamSharedDropbox = "has_team_shared_dropbox"
 	FeatureHasTeamFileEvents    = "has_team_file_events"
+	FeatureHasTeamSelectiveSync = "has_team_selective_sync"
 	FeatureOther                = "other"
 )
 
 // FeatureValue : The values correspond to entries in `Feature`. You may get
-// different value according to your Dropbox for Business plan.
+// different value according to your Dropbox Business plan.
 type FeatureValue struct {
 	dropbox.Tagged
 	// UploadApiRateLimit : has no documentation (yet)
@@ -520,6 +522,8 @@ type FeatureValue struct {
 	HasTeamSharedDropbox *HasTeamSharedDropboxValue `json:"has_team_shared_dropbox,omitempty"`
 	// HasTeamFileEvents : has no documentation (yet)
 	HasTeamFileEvents *HasTeamFileEventsValue `json:"has_team_file_events,omitempty"`
+	// HasTeamSelectiveSync : has no documentation (yet)
+	HasTeamSelectiveSync *HasTeamSelectiveSyncValue `json:"has_team_selective_sync,omitempty"`
 }
 
 // Valid tag values for FeatureValue
@@ -527,6 +531,7 @@ const (
 	FeatureValueUploadApiRateLimit   = "upload_api_rate_limit"
 	FeatureValueHasTeamSharedDropbox = "has_team_shared_dropbox"
 	FeatureValueHasTeamFileEvents    = "has_team_file_events"
+	FeatureValueHasTeamSelectiveSync = "has_team_selective_sync"
 	FeatureValueOther                = "other"
 )
 
@@ -540,6 +545,8 @@ func (u *FeatureValue) UnmarshalJSON(body []byte) error {
 		HasTeamSharedDropbox json.RawMessage `json:"has_team_shared_dropbox,omitempty"`
 		// HasTeamFileEvents : has no documentation (yet)
 		HasTeamFileEvents json.RawMessage `json:"has_team_file_events,omitempty"`
+		// HasTeamSelectiveSync : has no documentation (yet)
+		HasTeamSelectiveSync json.RawMessage `json:"has_team_selective_sync,omitempty"`
 	}
 	var w wrap
 	var err error
@@ -562,6 +569,12 @@ func (u *FeatureValue) UnmarshalJSON(body []byte) error {
 		}
 	case "has_team_file_events":
 		err = json.Unmarshal(w.HasTeamFileEvents, &u.HasTeamFileEvents)
+
+		if err != nil {
+			return err
+		}
+	case "has_team_selective_sync":
+		err = json.Unmarshal(w.HasTeamSelectiveSync, &u.HasTeamSelectiveSync)
 
 		if err != nil {
 			return err
@@ -1531,10 +1544,45 @@ func (u *HasTeamFileEventsValue) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// HasTeamSelectiveSyncValue : The value for `Feature.has_team_selective_sync`.
+type HasTeamSelectiveSyncValue struct {
+	dropbox.Tagged
+	// HasTeamSelectiveSync : Does this team have team selective sync enabled.
+	HasTeamSelectiveSync bool `json:"has_team_selective_sync,omitempty"`
+}
+
+// Valid tag values for HasTeamSelectiveSyncValue
+const (
+	HasTeamSelectiveSyncValueHasTeamSelectiveSync = "has_team_selective_sync"
+	HasTeamSelectiveSyncValueOther                = "other"
+)
+
+// UnmarshalJSON deserializes into a HasTeamSelectiveSyncValue instance
+func (u *HasTeamSelectiveSyncValue) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "has_team_selective_sync":
+		err = json.Unmarshal(body, &u.HasTeamSelectiveSync)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // HasTeamSharedDropboxValue : The value for `Feature.has_team_shared_dropbox`.
 type HasTeamSharedDropboxValue struct {
 	dropbox.Tagged
-	// HasTeamSharedDropbox : Does this team have a team shared dropbox.
+	// HasTeamSharedDropbox : Does this team have a shared team root.
 	HasTeamSharedDropbox bool `json:"has_team_shared_dropbox,omitempty"`
 }
 
@@ -1899,6 +1947,8 @@ type MemberAddArg struct {
 	SendWelcomeEmail bool `json:"send_welcome_email"`
 	// Role : has no documentation (yet)
 	Role *AdminTier `json:"role"`
+	// IsDirectoryRestricted : Whether a user is directory restricted.
+	IsDirectoryRestricted bool `json:"is_directory_restricted,omitempty"`
 }
 
 // NewMemberAddArg returns a new MemberAddArg instance
@@ -2113,6 +2163,8 @@ type MemberProfile struct {
 	// PersistentId : Persistent ID that a team can attach to the user. The
 	// persistent ID is unique ID to be used for SAML authentication.
 	PersistentId string `json:"persistent_id,omitempty"`
+	// IsDirectoryRestricted : Whether the user is a directory restricted user.
+	IsDirectoryRestricted bool `json:"is_directory_restricted,omitempty"`
 }
 
 // NewMemberProfile returns a new MemberProfile instance
@@ -2263,11 +2315,43 @@ func (u *MembersAddLaunch) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// MembersDeactivateArg : Exactly one of team_member_id, email, or external_id
-// must be provided to identify the user account.
-type MembersDeactivateArg struct {
-	// User : Identity of user to remove/suspend.
+// MembersDeactivateBaseArg : Exactly one of team_member_id, email, or
+// external_id must be provided to identify the user account.
+type MembersDeactivateBaseArg struct {
+	// User : Identity of user to remove/suspend/have their files moved.
 	User *UserSelectorArg `json:"user"`
+}
+
+// NewMembersDeactivateBaseArg returns a new MembersDeactivateBaseArg instance
+func NewMembersDeactivateBaseArg(User *UserSelectorArg) *MembersDeactivateBaseArg {
+	s := new(MembersDeactivateBaseArg)
+	s.User = User
+	return s
+}
+
+// MembersDataTransferArg : has no documentation (yet)
+type MembersDataTransferArg struct {
+	MembersDeactivateBaseArg
+	// TransferDestId : Files from the deleted member account will be
+	// transferred to this user.
+	TransferDestId *UserSelectorArg `json:"transfer_dest_id"`
+	// TransferAdminId : Errors during the transfer process will be sent via
+	// email to this user.
+	TransferAdminId *UserSelectorArg `json:"transfer_admin_id"`
+}
+
+// NewMembersDataTransferArg returns a new MembersDataTransferArg instance
+func NewMembersDataTransferArg(User *UserSelectorArg, TransferDestId *UserSelectorArg, TransferAdminId *UserSelectorArg) *MembersDataTransferArg {
+	s := new(MembersDataTransferArg)
+	s.User = User
+	s.TransferDestId = TransferDestId
+	s.TransferAdminId = TransferAdminId
+	return s
+}
+
+// MembersDeactivateArg : has no documentation (yet)
+type MembersDeactivateArg struct {
+	MembersDeactivateBaseArg
 	// WipeData : If provided, controls if the user's data will be deleted on
 	// their linked devices.
 	WipeData bool `json:"wipe_data"`
@@ -2490,6 +2574,27 @@ func NewMembersRemoveArg(User *UserSelectorArg) *MembersRemoveArg {
 	return s
 }
 
+// MembersTransferFilesError : has no documentation (yet)
+type MembersTransferFilesError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for MembersTransferFilesError
+const (
+	MembersTransferFilesErrorUserNotFound                        = "user_not_found"
+	MembersTransferFilesErrorUserNotInTeam                       = "user_not_in_team"
+	MembersTransferFilesErrorOther                               = "other"
+	MembersTransferFilesErrorRemovedAndTransferDestShouldDiffer  = "removed_and_transfer_dest_should_differ"
+	MembersTransferFilesErrorRemovedAndTransferAdminShouldDiffer = "removed_and_transfer_admin_should_differ"
+	MembersTransferFilesErrorTransferDestUserNotFound            = "transfer_dest_user_not_found"
+	MembersTransferFilesErrorTransferDestUserNotInTeam           = "transfer_dest_user_not_in_team"
+	MembersTransferFilesErrorTransferAdminUserNotInTeam          = "transfer_admin_user_not_in_team"
+	MembersTransferFilesErrorTransferAdminUserNotFound           = "transfer_admin_user_not_found"
+	MembersTransferFilesErrorUnspecifiedTransferAdminId          = "unspecified_transfer_admin_id"
+	MembersTransferFilesErrorTransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
+	MembersTransferFilesErrorRecipientNotVerified                = "recipient_not_verified"
+)
+
 // MembersRemoveError : has no documentation (yet)
 type MembersRemoveError struct {
 	dropbox.Tagged
@@ -2500,18 +2605,20 @@ const (
 	MembersRemoveErrorUserNotFound                        = "user_not_found"
 	MembersRemoveErrorUserNotInTeam                       = "user_not_in_team"
 	MembersRemoveErrorOther                               = "other"
-	MembersRemoveErrorRemoveLastAdmin                     = "remove_last_admin"
 	MembersRemoveErrorRemovedAndTransferDestShouldDiffer  = "removed_and_transfer_dest_should_differ"
 	MembersRemoveErrorRemovedAndTransferAdminShouldDiffer = "removed_and_transfer_admin_should_differ"
 	MembersRemoveErrorTransferDestUserNotFound            = "transfer_dest_user_not_found"
 	MembersRemoveErrorTransferDestUserNotInTeam           = "transfer_dest_user_not_in_team"
-	MembersRemoveErrorTransferAdminUserNotFound           = "transfer_admin_user_not_found"
 	MembersRemoveErrorTransferAdminUserNotInTeam          = "transfer_admin_user_not_in_team"
+	MembersRemoveErrorTransferAdminUserNotFound           = "transfer_admin_user_not_found"
 	MembersRemoveErrorUnspecifiedTransferAdminId          = "unspecified_transfer_admin_id"
 	MembersRemoveErrorTransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
+	MembersRemoveErrorRecipientNotVerified                = "recipient_not_verified"
+	MembersRemoveErrorRemoveLastAdmin                     = "remove_last_admin"
 	MembersRemoveErrorCannotKeepAccountAndTransfer        = "cannot_keep_account_and_transfer"
 	MembersRemoveErrorCannotKeepAccountAndDeleteData      = "cannot_keep_account_and_delete_data"
 	MembersRemoveErrorEmailAddressTooLongToBeDisabled     = "email_address_too_long_to_be_disabled"
+	MembersRemoveErrorCannotKeepInvitedUserAccount        = "cannot_keep_invited_user_account"
 )
 
 // MembersSendWelcomeError :
@@ -2591,6 +2698,9 @@ type MembersSetProfileArg struct {
 	// NewPersistentId : New persistent ID. This field only available to teams
 	// using persistent ID SAML configuration.
 	NewPersistentId string `json:"new_persistent_id,omitempty"`
+	// NewIsDirectoryRestricted : New value for whether the user is a directory
+	// restricted user.
+	NewIsDirectoryRestricted bool `json:"new_is_directory_restricted,omitempty"`
 }
 
 // NewMembersSetProfileArg returns a new MembersSetProfileArg instance
@@ -2617,6 +2727,7 @@ const (
 	MembersSetProfileErrorParamCannotBeEmpty               = "param_cannot_be_empty"
 	MembersSetProfileErrorPersistentIdDisabled             = "persistent_id_disabled"
 	MembersSetProfileErrorPersistentIdUsedByOtherUser      = "persistent_id_used_by_other_user"
+	MembersSetProfileErrorDirectoryRestrictedOff           = "directory_restricted_off"
 	MembersSetProfileErrorOther                            = "other"
 )
 
@@ -2633,6 +2744,31 @@ const (
 	MembersSuspendErrorSuspendInactiveUser = "suspend_inactive_user"
 	MembersSuspendErrorSuspendLastAdmin    = "suspend_last_admin"
 	MembersSuspendErrorTeamLicenseLimit    = "team_license_limit"
+)
+
+// MembersTransferFormerMembersFilesError : has no documentation (yet)
+type MembersTransferFormerMembersFilesError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for MembersTransferFormerMembersFilesError
+const (
+	MembersTransferFormerMembersFilesErrorUserNotFound                        = "user_not_found"
+	MembersTransferFormerMembersFilesErrorUserNotInTeam                       = "user_not_in_team"
+	MembersTransferFormerMembersFilesErrorOther                               = "other"
+	MembersTransferFormerMembersFilesErrorRemovedAndTransferDestShouldDiffer  = "removed_and_transfer_dest_should_differ"
+	MembersTransferFormerMembersFilesErrorRemovedAndTransferAdminShouldDiffer = "removed_and_transfer_admin_should_differ"
+	MembersTransferFormerMembersFilesErrorTransferDestUserNotFound            = "transfer_dest_user_not_found"
+	MembersTransferFormerMembersFilesErrorTransferDestUserNotInTeam           = "transfer_dest_user_not_in_team"
+	MembersTransferFormerMembersFilesErrorTransferAdminUserNotInTeam          = "transfer_admin_user_not_in_team"
+	MembersTransferFormerMembersFilesErrorTransferAdminUserNotFound           = "transfer_admin_user_not_found"
+	MembersTransferFormerMembersFilesErrorUnspecifiedTransferAdminId          = "unspecified_transfer_admin_id"
+	MembersTransferFormerMembersFilesErrorTransferAdminIsNotAdmin             = "transfer_admin_is_not_admin"
+	MembersTransferFormerMembersFilesErrorRecipientNotVerified                = "recipient_not_verified"
+	MembersTransferFormerMembersFilesErrorUserDataIsBeingTransferred          = "user_data_is_being_transferred"
+	MembersTransferFormerMembersFilesErrorUserNotRemoved                      = "user_not_removed"
+	MembersTransferFormerMembersFilesErrorUserDataCannotBeTransferred         = "user_data_cannot_be_transferred"
+	MembersTransferFormerMembersFilesErrorUserDataAlreadyTransferred          = "user_data_already_transferred"
 )
 
 // MembersUnsuspendArg : Exactly one of team_member_id, email, or external_id
@@ -2711,8 +2847,8 @@ type NamespaceMetadata struct {
 	NamespaceId string `json:"namespace_id"`
 	// NamespaceType : The type of this namespace.
 	NamespaceType *NamespaceType `json:"namespace_type"`
-	// TeamMemberId : If this is a team member folder, the ID of the team
-	// member. Otherwise, this field is not present.
+	// TeamMemberId : If this is a team member or app folder, the ID of the
+	// owning team member. Otherwise, this field is not present.
 	TeamMemberId string `json:"team_member_id,omitempty"`
 }
 
@@ -2791,12 +2927,16 @@ func (u *RemoveCustomQuotaResult) UnmarshalJSON(body []byte) error {
 type RemovedStatus struct {
 	// IsRecoverable : True if the removed team member is recoverable.
 	IsRecoverable bool `json:"is_recoverable"`
+	// IsDisconnected : True if the team member's account was converted to
+	// individual account.
+	IsDisconnected bool `json:"is_disconnected"`
 }
 
 // NewRemovedStatus returns a new RemovedStatus instance
-func NewRemovedStatus(IsRecoverable bool) *RemovedStatus {
+func NewRemovedStatus(IsRecoverable bool, IsDisconnected bool) *RemovedStatus {
 	s := new(RemovedStatus)
 	s.IsRecoverable = IsRecoverable
+	s.IsDisconnected = IsDisconnected
 	return s
 }
 
@@ -3327,6 +3467,9 @@ func (u *TeamFolderArchiveLaunch) UnmarshalJSON(body []byte) error {
 type TeamFolderCreateArg struct {
 	// Name : Name for the new team folder.
 	Name string `json:"name"`
+	// SyncSetting : The sync setting to apply to this team folder. Only
+	// permitted if the team has team selective sync enabled.
+	SyncSetting *files.SyncSettingArg `json:"sync_setting,omitempty"`
 }
 
 // NewTeamFolderCreateArg returns a new TeamFolderCreateArg instance
@@ -3339,6 +3482,8 @@ func NewTeamFolderCreateArg(Name string) *TeamFolderCreateArg {
 // TeamFolderCreateError : has no documentation (yet)
 type TeamFolderCreateError struct {
 	dropbox.Tagged
+	// SyncSettingsError : An error occurred setting the sync settings.
+	SyncSettingsError *files.SyncSettingsError `json:"sync_settings_error,omitempty"`
 }
 
 // Valid tag values for TeamFolderCreateError
@@ -3346,8 +3491,33 @@ const (
 	TeamFolderCreateErrorInvalidFolderName     = "invalid_folder_name"
 	TeamFolderCreateErrorFolderNameAlreadyUsed = "folder_name_already_used"
 	TeamFolderCreateErrorFolderNameReserved    = "folder_name_reserved"
+	TeamFolderCreateErrorSyncSettingsError     = "sync_settings_error"
 	TeamFolderCreateErrorOther                 = "other"
 )
+
+// UnmarshalJSON deserializes into a TeamFolderCreateError instance
+func (u *TeamFolderCreateError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// SyncSettingsError : An error occurred setting the sync settings.
+		SyncSettingsError json.RawMessage `json:"sync_settings_error,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "sync_settings_error":
+		err = json.Unmarshal(w.SyncSettingsError, &u.SyncSettingsError)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // TeamFolderGetInfoItem : has no documentation (yet)
 type TeamFolderGetInfoItem struct {
@@ -3502,18 +3672,24 @@ type TeamFolderMetadata struct {
 	Name string `json:"name"`
 	// Status : The status of the team folder.
 	Status *TeamFolderStatus `json:"status"`
-	// IsTeamSharedDropbox : True if this team folder is the team shared
-	// dropbox.
+	// IsTeamSharedDropbox : True if this team folder is a shared team root.
 	IsTeamSharedDropbox bool `json:"is_team_shared_dropbox"`
+	// SyncSetting : The sync setting applied to this team folder.
+	SyncSetting *files.SyncSetting `json:"sync_setting"`
+	// ContentSyncSettings : Sync settings applied to contents of this team
+	// folder.
+	ContentSyncSettings []*files.ContentSyncSetting `json:"content_sync_settings"`
 }
 
 // NewTeamFolderMetadata returns a new TeamFolderMetadata instance
-func NewTeamFolderMetadata(TeamFolderId string, Name string, Status *TeamFolderStatus, IsTeamSharedDropbox bool) *TeamFolderMetadata {
+func NewTeamFolderMetadata(TeamFolderId string, Name string, Status *TeamFolderStatus, IsTeamSharedDropbox bool, SyncSetting *files.SyncSetting, ContentSyncSettings []*files.ContentSyncSetting) *TeamFolderMetadata {
 	s := new(TeamFolderMetadata)
 	s.TeamFolderId = TeamFolderId
 	s.Name = Name
 	s.Status = Status
 	s.IsTeamSharedDropbox = IsTeamSharedDropbox
+	s.SyncSetting = SyncSetting
+	s.ContentSyncSettings = ContentSyncSettings
 	return s
 }
 
@@ -3677,6 +3853,94 @@ const (
 	TeamFolderTeamSharedDropboxErrorOther      = "other"
 )
 
+// TeamFolderUpdateSyncSettingsArg : has no documentation (yet)
+type TeamFolderUpdateSyncSettingsArg struct {
+	TeamFolderIdArg
+	// SyncSetting : Sync setting to apply to the team folder itself. Only
+	// meaningful if the team folder is not a shared team root.
+	SyncSetting *files.SyncSettingArg `json:"sync_setting,omitempty"`
+	// ContentSyncSettings : Sync settings to apply to contents of this team
+	// folder.
+	ContentSyncSettings []*files.ContentSyncSettingArg `json:"content_sync_settings,omitempty"`
+}
+
+// NewTeamFolderUpdateSyncSettingsArg returns a new TeamFolderUpdateSyncSettingsArg instance
+func NewTeamFolderUpdateSyncSettingsArg(TeamFolderId string) *TeamFolderUpdateSyncSettingsArg {
+	s := new(TeamFolderUpdateSyncSettingsArg)
+	s.TeamFolderId = TeamFolderId
+	return s
+}
+
+// TeamFolderUpdateSyncSettingsError : has no documentation (yet)
+type TeamFolderUpdateSyncSettingsError struct {
+	dropbox.Tagged
+	// AccessError : has no documentation (yet)
+	AccessError *TeamFolderAccessError `json:"access_error,omitempty"`
+	// StatusError : has no documentation (yet)
+	StatusError *TeamFolderInvalidStatusError `json:"status_error,omitempty"`
+	// TeamSharedDropboxError : has no documentation (yet)
+	TeamSharedDropboxError *TeamFolderTeamSharedDropboxError `json:"team_shared_dropbox_error,omitempty"`
+	// SyncSettingsError : An error occurred setting the sync settings.
+	SyncSettingsError *files.SyncSettingsError `json:"sync_settings_error,omitempty"`
+}
+
+// Valid tag values for TeamFolderUpdateSyncSettingsError
+const (
+	TeamFolderUpdateSyncSettingsErrorAccessError            = "access_error"
+	TeamFolderUpdateSyncSettingsErrorStatusError            = "status_error"
+	TeamFolderUpdateSyncSettingsErrorTeamSharedDropboxError = "team_shared_dropbox_error"
+	TeamFolderUpdateSyncSettingsErrorOther                  = "other"
+	TeamFolderUpdateSyncSettingsErrorSyncSettingsError      = "sync_settings_error"
+)
+
+// UnmarshalJSON deserializes into a TeamFolderUpdateSyncSettingsError instance
+func (u *TeamFolderUpdateSyncSettingsError) UnmarshalJSON(body []byte) error {
+	type wrap struct {
+		dropbox.Tagged
+		// AccessError : has no documentation (yet)
+		AccessError json.RawMessage `json:"access_error,omitempty"`
+		// StatusError : has no documentation (yet)
+		StatusError json.RawMessage `json:"status_error,omitempty"`
+		// TeamSharedDropboxError : has no documentation (yet)
+		TeamSharedDropboxError json.RawMessage `json:"team_shared_dropbox_error,omitempty"`
+		// SyncSettingsError : An error occurred setting the sync settings.
+		SyncSettingsError json.RawMessage `json:"sync_settings_error,omitempty"`
+	}
+	var w wrap
+	var err error
+	if err = json.Unmarshal(body, &w); err != nil {
+		return err
+	}
+	u.Tag = w.Tag
+	switch u.Tag {
+	case "access_error":
+		err = json.Unmarshal(w.AccessError, &u.AccessError)
+
+		if err != nil {
+			return err
+		}
+	case "status_error":
+		err = json.Unmarshal(w.StatusError, &u.StatusError)
+
+		if err != nil {
+			return err
+		}
+	case "team_shared_dropbox_error":
+		err = json.Unmarshal(w.TeamSharedDropboxError, &u.TeamSharedDropboxError)
+
+		if err != nil {
+			return err
+		}
+	case "sync_settings_error":
+		err = json.Unmarshal(w.SyncSettingsError, &u.SyncSettingsError)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // TeamGetInfoResult : has no documentation (yet)
 type TeamGetInfoResult struct {
 	// Name : The name of the team.
@@ -3821,6 +4085,17 @@ func NewTeamNamespacesListContinueArg(Cursor string) *TeamNamespacesListContinue
 	return s
 }
 
+// TeamNamespacesListError : has no documentation (yet)
+type TeamNamespacesListError struct {
+	dropbox.Tagged
+}
+
+// Valid tag values for TeamNamespacesListError
+const (
+	TeamNamespacesListErrorInvalidArg = "invalid_arg"
+	TeamNamespacesListErrorOther      = "other"
+)
+
 // TeamNamespacesListContinueError : has no documentation (yet)
 type TeamNamespacesListContinueError struct {
 	dropbox.Tagged
@@ -3828,8 +4103,9 @@ type TeamNamespacesListContinueError struct {
 
 // Valid tag values for TeamNamespacesListContinueError
 const (
-	TeamNamespacesListContinueErrorInvalidCursor = "invalid_cursor"
+	TeamNamespacesListContinueErrorInvalidArg    = "invalid_arg"
 	TeamNamespacesListContinueErrorOther         = "other"
+	TeamNamespacesListContinueErrorInvalidCursor = "invalid_cursor"
 )
 
 // TeamNamespacesListResult : Result for `namespacesList`.

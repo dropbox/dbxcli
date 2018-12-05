@@ -16,7 +16,7 @@ Many of the most widely used Go projects are built using Cobra including:
 * [CockroachDB](http://www.cockroachlabs.com/)
 * [Bleve](http://www.blevesearch.com/)
 * [ProjectAtomic (enterprise)](http://www.projectatomic.io/)
-* [GiantSwarm's swarm](https://github.com/giantswarm/cli)
+* [Giant Swarm's gsctl](https://github.com/giantswarm/gsctl)
 * [Nanobox](https://github.com/nanobox-io/nanobox)/[Nanopack](https://github.com/nanopack)
 * [rclone](http://rclone.org/)
 * [nehm](https://github.com/bogem/nehm)
@@ -152,9 +152,6 @@ In a Cobra app, typically the main.go file is very bare. It serves one purpose: 
 package main
 
 import (
-  "fmt"
-  "os"
-
   "{pathToYourApp}/cmd"
 )
 
@@ -191,6 +188,13 @@ var rootCmd = &cobra.Command{
   Run: func(cmd *cobra.Command, args []string) {
     // Do Stuff Here
   },
+}
+
+func Execute() {
+  if err := rootCmd.Execute(); err != nil {
+    fmt.Println(err)
+    os.Exit(1)
+  }
 }
 ```
 
@@ -258,9 +262,6 @@ In a Cobra app, typically the main.go file is very bare. It serves, one purpose,
 package main
 
 import (
-  "fmt"
-  "os"
-
   "{pathToYourApp}/cmd"
 )
 
@@ -337,8 +338,8 @@ rootCmd.Flags().StringVarP(&Source, "source", "s", "", "Source directory to read
 
 ### Local Flag on Parent Commands
 
-By default Cobra only parses local flags on the target command, any local flags on 
-parent commands are ignored. By enabling `Command.TraverseChildren` Cobra will 
+By default Cobra only parses local flags on the target command, any local flags on
+parent commands are ignored. By enabling `Command.TraverseChildren` Cobra will
 parse local flags on each command before executing the target command.
 
 ```go
@@ -366,6 +367,15 @@ when the `--author` flag is not provided by user.
 
 More in [viper documentation](https://github.com/spf13/viper#working-with-flags).
 
+### Required flags
+
+Flags are optional by default. If instead you wish your command to report an error
+when a flag has not been set, mark it as required:
+```go
+rootCmd.Flags().StringVarP(&Region, "region", "r", "", "AWS region (required)")
+rootCmd.MarkFlagRequired("region")
+```
+
 ## Positional and Custom Arguments
 
 Validation of positional arguments can be specified using the `Args` field
@@ -379,6 +389,7 @@ The following validators are built in:
 - `MinimumNArgs(int)` - the command will report an error if there are not at least N positional args.
 - `MaximumNArgs(int)` - the command will report an error if there are more than N positional args.
 - `ExactArgs(int)` - the command will report an error if there are not exactly N positional args.
+- `ExactValidArgs(int)` = the command will report and error if there are not exactly N positional args OR if there are any positional args that are not in the `ValidArgs` field of `Command`
 - `RangeArgs(min, max)` - the command will report an error if the number of args is not between the minimum and maximum number of expected args.
 
 An example of setting the custom validator:
