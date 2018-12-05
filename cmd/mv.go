@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/spf13/cobra"
@@ -39,8 +40,21 @@ func mv(cmd *cobra.Command, args []string) error {
 	var mvErrors []error
 	var relocationArgs []*files.RelocationArg
 
+	re := regexp.MustCompile("[^/]+$")
 	for _, argument := range argsToMove {
-		arg, err := makeRelocationArg(argument, destination+"/"+argument)
+
+		argumentFile := re.FindString(argument)
+		lastCharDest := destination[len(destination)-1:]
+
+		var err error
+		var arg *files.RelocationArg
+
+		if lastCharDest == "/" {
+			arg, err = makeRelocationArg(argument, destination + argumentFile)
+		} else {
+			arg, err = makeRelocationArg(argument, destination)
+		}
+
 		if err != nil {
 			relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
 			mvErrors = append(mvErrors, relocationError)

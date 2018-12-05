@@ -38,6 +38,9 @@ rev=$(${dbxcli} revs ${d}/dbxcli)
 echo "Testing mv"
 ${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old
 
+echo "Testing mv"
+${dbxcli} mv ${d}/dbxcli ${d}/dbxcli-old/
+
 echo "Testing restore"
 ${dbxcli} restore ${d}/dbxcli ${rev}
 
