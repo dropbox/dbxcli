@@ -39,6 +39,14 @@ const (
 	tokenTeamManage = "teamManage"
 )
 
+func getEnv(key, fallback string) string {
+    value, exists := os.LookupEnv(key)
+    if !exists {
+        value = fallback
+    }
+    return value
+}
+
 var (
 	personalAppKey      = "mvhz183vwqibe7q"
 	personalAppSecret   = "q0kquhzgetjwcz1"
@@ -218,4 +226,11 @@ func init() {
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
+
+	personalAppKey      = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
+	personalAppSecret   = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
+	teamAccessAppKey    = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
+	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
+	teamManageAppKey    = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
+	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamAccessAppSecret)
 }
