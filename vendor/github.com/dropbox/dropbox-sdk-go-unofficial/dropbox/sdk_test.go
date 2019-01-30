@@ -111,3 +111,61 @@ func TestRateLimitJSON(t *testing.T) {
 		t.Errorf("Unexpected reason: %v\n", re.RateLimitError.Reason)
 	}
 }
+
+func TestAuthError(t *testing.T) {
+	eString := `{"error_summary": "user_suspended/...", "error": {".tag": "user_suspended"}}`
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(eString))
+		}))
+	defer ts.Close()
+
+	config := dropbox.Config{Client: ts.Client(), LogLevel: dropbox.LogDebug,
+		URLGenerator: func(hostType string, style string, namespace string, route string) string {
+			return generateURL(ts.URL, namespace, route)
+		}}
+	client := users.New(config)
+	_, e := client.GetCurrentAccount()
+	re, ok := e.(auth.AuthAPIError)
+	if !ok {
+		t.Errorf("Unexpected error type: %T\n", e)
+	}
+	fmt.Printf("ERROR is %v\n", re)
+	if re.AuthError.Tag != auth.AuthErrorUserSuspended {
+		t.Errorf("Unexpected tag: %s\n", re.AuthError.Tag)
+	}
+}
+
+func TestAccessError(t *testing.T) {
+	eString := `{"error_summary": "access_error/...",
+	"error": {
+		".tag": "paper_access_denied",
+	  "paper_access_denied": {".tag": "not_paper_user"}
+	}}`
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(eString))
+		}))
+	defer ts.Close()
+
+	config := dropbox.Config{Client: ts.Client(), LogLevel: dropbox.LogDebug,
+		URLGenerator: func(hostType string, style string, namespace string, route string) string {
+			return generateURL(ts.URL, namespace, route)
+		}}
+	client := users.New(config)
+	_, e := client.GetCurrentAccount()
+	re, ok := e.(auth.AccessAPIError)
+	if !ok {
+		t.Errorf("Unexpected error type: %T\n", e)
+	}
+	if re.AccessError.Tag != auth.AccessErrorPaperAccessDenied {
+		t.Errorf("Unexpected tag: %s\n", re.AccessError.Tag)
+	}
+	if re.AccessError.PaperAccessDenied.Tag != auth.PaperAccessErrorNotPaperUser {
+		t.Errorf("Unexpected tag: %s\n", re.AccessError.PaperAccessDenied.Tag)
+	}
+}

@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6ae95493919211eb957ac1dc48948afc35b0233eef4dc525bec9f8d61108237d"
+  digest = "1:32a4514fb6a459339440dfe592bfe94729f85d1a2235d1b19629c41e5a234856"
   name = "github.com/dropbox/dropbox-sdk-go-unofficial"
   packages = [
     "dropbox",
@@ -21,7 +21,7 @@
     "dropbox/users_common",
   ]
   pruneopts = ""
-  revision = "56e5f6595305db498e28f35541212d7792f694a0"
+  revision = "af4558f5e44cef90c2d963e50e76e7dfa46d0c48"
 
 [[projects]]
   branch = "master"
@@ -49,11 +49,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:096a8a9182648da3d00ff243b88407838902b6703fc12657f76890e08d1899bf"
+  digest = "1:6dbb0eb72090871f2e58d1e37973fe3cb8c0f45f49459398d3fc740cb30e13bd"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   pruneopts = ""
-  revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
+  revision = "af06845cf3004701891bf4fdb884bfe4920b3727"
 
 [[projects]]
   branch = "master"
@@ -65,11 +65,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4fee44c7b58eeb4983222754a06f04866e2030206104e7be998305dbfb482785"
+  digest = "1:5ecde9953966d79a8f58a3a612eda90bdab5ef36745271f9da46cac8dad128bf"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = ""
-  revision = "d2d81d9a96e23f0255397222bb0b4e3165e492dc"
+  revision = "7547e83b2d85fd1893c7d76916f67689d761fecb"
 
 [[projects]]
   digest = "1:cbaf13cdbfef0e4734ed8a7504f57fe893d471d62a35b982bf6fb3f036449a66"
@@ -81,28 +81,28 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ea539c13b066dac72a940b62f37600a20ab8e88057397c78f3197c1a48475425"
+  digest = "1:1e9704e5379e68ac473c28aeb3f7e7cd4036ae8a246bf0285b5ebdbb8e0cfacf"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp",
   ]
   pruneopts = ""
-  revision = "351d144fa1fc0bd934e2408202be0c29f25e35a0"
+  revision = "d26f9f9a57f3fab6a695bec0d84433c2c50f8bbf"
 
 [[projects]]
   branch = "master"
-  digest = "1:ea010cdb976f9de0c763728a76278f9109fca3299abd0dc3e8f2ccb9ff347268"
+  digest = "1:7c2c0fc8c2891e50d5a8b57482d2fee63ce723eae40c1a59bf9c6a82ff13b775"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = ""
-  revision = "d668ce993890a79bda886613ee587a69dd5da7a6"
+  revision = "99b60b757ec124ebb7d6b7e97f153b19c10ce163"
 
 [[projects]]
-  digest = "1:77d3cff3a451d50be4b52db9c7766c0d8570ba47593f0c9dc72173adb208e788"
+  digest = "1:bc09e719c4e2a15d17163f5272d9a3131c45d77542b7fdc53ff518815bc19ab3"
   name = "google.golang.org/appengine"
   packages = [
     "internal",
@@ -114,8 +114,8 @@
     "urlfetch",
   ]
   pruneopts = ""
-  revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
-  version = "v1.3.0"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
 
 [solve-meta]
   analyzer-name = "dep"
