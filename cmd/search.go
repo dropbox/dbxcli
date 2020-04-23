@@ -48,6 +48,10 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 	machineReadable, _ := cmd.Flags().GetBool("machine")
 	long, _ := cmd.Flags().GetBool("long")
+
+	//If machine is set imply long
+	long = long || machineReadable
+
 	if long {
 		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
 	}

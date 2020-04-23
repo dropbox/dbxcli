@@ -66,7 +66,6 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListFolderArg(path)
 	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
-	machineReadable, _ := cmd.Flags().GetBool("machine")
 
 	res, err := dbx.ListFolder(arg)
 	var entries []files.IsMetadata
@@ -106,7 +105,12 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	machineReadable, _ := cmd.Flags().GetBool("machine")
 	long, _ := cmd.Flags().GetBool("long")
+
+	//If machine is set imply long
+	long = long || machineReadable
+
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 	if long {
