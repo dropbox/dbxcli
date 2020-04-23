@@ -44,9 +44,13 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 	fmt.Fprintf(w, "%s\t", e.PathDisplay)
 }
 
-func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
+func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool, machineReadable bool) {
 	if longFormat {
-		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
+		if (machineReadable) {
+			fmt.Fprintf(w, "%s\t%d\t%s\t", e.Rev, e.Size, e.ServerModified)
+		} else {
+			fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
+		}
 	}
 	fmt.Fprintf(w, "%s\t", e.PathDisplay)
 }
@@ -62,6 +66,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListFolderArg(path)
 	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
+	machineReadable, _ := cmd.Flags().GetBool("machine")
 
 	res, err := dbx.ListFolder(arg)
 	var entries []files.IsMetadata
@@ -110,7 +115,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	for i, entry := range entries {
 		switch f := entry.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(w, f, long)
+			printFileMetadata(w, f, long, machineReadable)
 		case *files.FolderMetadata:
 			printFolderMetadata(w, f, long)
 		}
@@ -139,4 +144,5 @@ func init() {
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
 	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
+	lsCmd.Flags().BoolP("machine", "m", false, "Machine readable file size and time")
 }
