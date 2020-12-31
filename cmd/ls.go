@@ -29,6 +29,8 @@ import (
 func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 	arg := files.NewGetMetadataArg(path)
 
+	arg.IncludeDeleted = true
+
 	res, err := c.GetMetadata(arg)
 	if err != nil {
 		return nil, err
@@ -51,6 +53,13 @@ func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
 	fmt.Fprintf(w, "%s\t", e.PathDisplay)
 }
 
+func printDeletedMetadata(w io.Writer, e *files.DeletedMetadata, longFormat bool) {
+	if longFormat {
+		fmt.Fprintf(w, "-\t-\t-\t")
+	}
+	fmt.Fprintf(w, "%s\t", e.PathDisplay)
+}
+
 func ls(cmd *cobra.Command, args []string) (err error) {
 	path := ""
 	if len(args) > 0 {
@@ -62,6 +71,9 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListFolderArg(path)
 	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
+	arg.IncludeDeleted, _ = cmd.Flags().GetBool("includeDeleted")
+	onlyDeleted, _ := cmd.Flags().GetBool("onlyDeleted")
+	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
 
 	res, err := dbx.ListFolder(arg)
 	var entries []files.IsMetadata
@@ -104,18 +116,44 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	long, _ := cmd.Flags().GetBool("long")
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+
+	itemCounter := 0
+	newLineCounter := 0
 	if long {
-		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
+		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
-	for i, entry := range entries {
+	for _, entry := range entries {
 		switch f := entry.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(w, f, long)
+			if !onlyDeleted {
+				printFileMetadata(w, f, long)
+				itemCounter = itemCounter + 1
+			}
 		case *files.FolderMetadata:
-			printFolderMetadata(w, f, long)
+			if !onlyDeleted {
+				printFolderMetadata(w, f, long)
+				itemCounter = itemCounter + 1
+			}
+		case *files.DeletedMetadata:
+			revisionArg := files.NewListRevisionsArg(f.PathLower)
+			res, err := dbx.ListRevisions(revisionArg)
+			if err != nil {
+				// This is expected to be the folder of the item.
+				break
+			} else if len(res.Entries) == 0 {
+				// Occasionally revisions will be returned with an empty Entries list.
+				f.PathDisplay = "*<" + f.PathDisplay + ">*"
+				printDeletedMetadata(w, f, long)
+			} else {
+				res.Entries[0].PathDisplay = "*<" + res.Entries[0].PathDisplay + ">*"
+				printFileMetadata(w, res.Entries[0], long)
+			}
+			itemCounter = itemCounter + 1
 		}
-		if i%4 == 0 || long {
+
+		if (itemCounter%4 == 0) || (long && (itemCounter > newLineCounter)) {
 			fmt.Fprintln(w)
+			newLineCounter = newLineCounter + 1
 		}
 	}
 
@@ -139,4 +177,6 @@ func init() {
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
 	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
+	lsCmd.Flags().BoolP("includeDeleted", "d", false, "Include deleted files")
+	lsCmd.Flags().BoolP("onlyDeleted", "D", false, "Only show deleted files")
 }
