@@ -75,6 +75,17 @@ func formatDeletedMetadata(e *files.DeletedMetadata, longFormat bool) string {
 	return text
 }
 
+func SetPathDisplayAsDeleted(metadata files.IsMetadata) {
+	switch item := metadata.(type) {
+	case *files.FileMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	case *files.FolderMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	case *files.DeletedMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	}
+}
+
 func ls(cmd *cobra.Command, args []string) (err error) {
 
 	path := ""
@@ -86,8 +97,8 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListFolderArg(path)
 	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
-	arg.IncludeDeleted, _ = cmd.Flags().GetBool("includeDeleted")
-	onlyDeleted, _ := cmd.Flags().GetBool("onlyDeleted")
+	arg.IncludeDeleted, _ = cmd.Flags().GetBool("include-deleted")
+	onlyDeleted, _ := cmd.Flags().GetBool("only-deleted")
 	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
 	long, _ := cmd.Flags().GetBool("long")
 
@@ -107,24 +118,20 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	var entries []files.IsMetadata
 	if err != nil {
-		switch e := err.(type) {
-		case files.ListFolderAPIError:
+		listRevisionError, ok := err.(files.ListRevisionsAPIError)
+		if ok {
 			// Don't treat a "not_folder" error as fatal; recover by sending a
 			// get_metadata request for the same path and using that response instead.
-			if e.EndpointError.Path.Tag == files.LookupErrorNotFolder {
+			if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFolder {
 				var metaRes files.IsMetadata
 				metaRes, err = getFileMetadata(dbx, path)
 				entries = []files.IsMetadata{metaRes}
 			} else {
+				// Return if there's an error other than "not_folder" or if the follow-up
+				// metadata request fails.
 				return err
 			}
-		default:
-			return err
-		}
-
-		// Return if there's an error other than "not_folder" or if the follow-up
-		// metadata request fails.
-		if err != nil {
+		} else {
 			return err
 		}
 	} else {
@@ -147,6 +154,32 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	for _, entry := range entries {
+		deletedItem, isDeleted := entry.(*files.DeletedMetadata)
+		if isDeleted {
+			revisionArg := files.NewListRevisionsArg(deletedItem.PathLower)
+			res, err := dbx.ListRevisions(revisionArg)
+			if err != nil {
+				listRevisionError, ok := err.(files.ListRevisionsAPIError)
+				if ok {
+					// We have a ListRevisionsAPIERror
+					if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFile {
+						// Don't treat a "not_file" error as fatal; recover by sending a
+						// get_metadata request for the same path and using that response instead.
+						revision, err := getFileMetadata(dbx, deletedItem.PathLower)
+						if err != nil {
+							return err
+						}
+						entry = revision
+					}
+				}
+			} else if len(res.Entries) == 0 {
+				// Occasionally revisions will be returned with an empty Revision entry list.
+				// So we just use the original entry.
+			} else {
+				entry = res.Entries[0]
+			}
+			SetPathDisplayAsDeleted(entry)
+		}
 		switch f := entry.(type) {
 		case *files.FileMetadata:
 			if !onlyDeleted {
@@ -157,45 +190,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 				printItem(formatFolderMetadata(f, long))
 			}
 		case *files.DeletedMetadata:
-			revisionArg := files.NewListRevisionsArg(f.PathLower)
-			res, err := dbx.ListRevisions(revisionArg)
-			if err != nil {
-				listRevisionError, ok := err.(files.ListRevisionsAPIError)
-				if ok {
-					// We have a ListRevisionsAPIERror
-					if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFile {
-						// Don't treat a "not_file" error as fatal; recover by sending a
-						// get_metadata request for the same path and using that response instead.
-						var metaRes files.IsMetadata
-						metaRes, err = getFileMetadata(dbx, f.PathLower)
-						if err != nil {
-							return err
-						}
-						switch x := metaRes.(type) {
-						case *files.FileMetadata:
-							if !onlyDeleted {
-								x.PathDisplay = fmt.Sprintf(deletedItemFormatString, x.PathDisplay)
-								printItem(formatFileMetadata(x, long))
-							}
-						case *files.FolderMetadata:
-							if !onlyDeleted {
-								x.PathDisplay = fmt.Sprintf(deletedItemFormatString, x.PathDisplay)
-								printItem(formatFolderMetadata(x, long))
-							}
-						case *files.DeletedMetadata:
-							x.PathDisplay = fmt.Sprintf(deletedItemFormatString, x.PathDisplay)
-							printItem(formatDeletedMetadata(x, long))
-						}
-					}
-				}
-			} else if len(res.Entries) == 0 {
-				// Occasionally revisions will be returned with an empty Revision entry list.
-				f.PathDisplay = fmt.Sprintf(deletedItemFormatString, f.PathDisplay)
-				printItem(formatDeletedMetadata(f, long))
-			} else {
-				res.Entries[0].PathDisplay = fmt.Sprintf(deletedItemFormatString, res.Entries[0].PathDisplay)
-				printItem(formatFileMetadata(res.Entries[0], long))
-			}
+			printItem(formatDeletedMetadata(f, long))
 		}
 	}
 
