@@ -5,6 +5,7 @@ go:
 
 before_script:
   - go get -u github.com/mitchellh/gox
+  - env GO111MODULE=on go vet ./...
 
 install: true
 
