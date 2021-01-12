@@ -5,7 +5,6 @@ go:
 
 before_script:
   - go get -u github.com/mitchellh/gox
-  - go vet github.com/dropbox/dbxcli
 
 install: true
 
