@@ -40,11 +40,11 @@ const (
 )
 
 func getEnv(key, fallback string) string {
-    value, exists := os.LookupEnv(key)
-    if !exists {
-        value = fallback
-    }
-    return value
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		value = fallback
+	}
+	return value
 }
 
 var (
@@ -197,7 +197,16 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	if verbose {
 		logLevel = dropbox.LogInfo
 	}
-	config = dropbox.Config{tokens[tokType], logLevel, nil, asMember, domain, nil, nil, nil}
+	config = dropbox.Config{
+		Token:           tokens[tokType],
+		LogLevel:        logLevel,
+		Logger:          nil,
+		AsMemberID:      asMember,
+		Domain:          domain,
+		Client:          nil,
+		HeaderGenerator: nil,
+		URLGenerator:    nil,
+	}
 
 	return
 }
@@ -227,10 +236,10 @@ func init() {
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
 
-	personalAppKey      = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
-	personalAppSecret   = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
-	teamAccessAppKey    = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
+	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
+	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
+	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
 	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
-	teamManageAppKey    = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
+	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
 	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamAccessAppSecret)
 }

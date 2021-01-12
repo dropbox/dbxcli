@@ -5,7 +5,7 @@ go:
 
 before_script:
   - go get -u github.com/mitchellh/gox
-  - go vet github.com/dropbox/dbxcli
+  - env GO111MODULE=on go vet ./...
 
 install: true
 

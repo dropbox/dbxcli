@@ -39,7 +39,16 @@ func logout(cmd *cobra.Command, args []string) error {
 
 	for domain, tokens := range tokMap {
 		for _, token := range tokens {
-			config := dropbox.Config{token, dropbox.LogOff, nil, "", domain, nil, nil, nil}
+			config := dropbox.Config{
+				Token:           token,
+				LogLevel:        dropbox.LogOff,
+				Logger:          nil,
+				AsMemberID:      "",
+				Domain:          domain,
+				Client:          nil,
+				HeaderGenerator: nil,
+				URLGenerator:    nil,
+			}
 			client := auth.New(config)
 			err = client.TokenRevoke()
 			if err != nil {
