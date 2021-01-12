@@ -25,9 +25,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const deletedItemFormatString = "<<%s>>"
+
 // Sends a get_metadata request for a given path and returns the response
 func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 	arg := files.NewGetMetadataArg(path)
+
+	arg.IncludeDeleted = true
 
 	res, err := c.GetMetadata(arg)
 	if err != nil {
@@ -37,53 +41,97 @@ func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 	return res, nil
 }
 
+// Invoked by search.go
 func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
-	if longFormat {
-		fmt.Fprintf(w, "-\t-\t-\t")
-	}
-	fmt.Fprintf(w, "%s\t", e.PathDisplay)
+	fmt.Fprintf(w, formatFolderMetadata(e, longFormat))
 }
 
+// Invoked by search.go and revs.go
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
+	fmt.Fprintf(w, formatFileMetadata(e, longFormat))
+}
+
+func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
+	text := fmt.Sprintf("%s\t", e.PathDisplay)
 	if longFormat {
-		fmt.Fprintf(w, "%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified))
+		text = fmt.Sprintf("-\t-\t-\t") + text
 	}
-	fmt.Fprintf(w, "%s\t", e.PathDisplay)
+	return text
+}
+
+func formatFileMetadata(e *files.FileMetadata, longFormat bool) string {
+	text := fmt.Sprintf("%s\t", e.PathDisplay)
+	if longFormat {
+		text = fmt.Sprintf("%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified)) + text
+	}
+	return text
+}
+
+func formatDeletedMetadata(e *files.DeletedMetadata, longFormat bool) string {
+	text := fmt.Sprintf("%s\t", e.PathDisplay)
+	if longFormat {
+		text = fmt.Sprintf("-\t-\t-\t") + text
+	}
+	return text
+}
+
+func SetPathDisplayAsDeleted(metadata files.IsMetadata) {
+	switch item := metadata.(type) {
+	case *files.FileMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	case *files.FolderMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	case *files.DeletedMetadata:
+		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
+	}
 }
 
 func ls(cmd *cobra.Command, args []string) (err error) {
+
 	path := ""
 	if len(args) > 0 {
 		if path, err = validatePath(args[0]); err != nil {
 			return err
 		}
 	}
-	dbx := files.New(config)
 
 	arg := files.NewListFolderArg(path)
 	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
+	arg.IncludeDeleted, _ = cmd.Flags().GetBool("include-deleted")
+	onlyDeleted, _ := cmd.Flags().GetBool("only-deleted")
+	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
+	long, _ := cmd.Flags().GetBool("long")
 
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	itemCounter := 0
+	printItem := func(message string) {
+		itemCounter = itemCounter + 1
+		fmt.Fprint(w, message)
+		if (itemCounter%4 == 0) || long {
+			fmt.Fprintln(w)
+		}
+	}
+
+	dbx := files.New(config)
 	res, err := dbx.ListFolder(arg)
+
 	var entries []files.IsMetadata
 	if err != nil {
-		switch e := err.(type) {
-		case files.ListFolderAPIError:
+		listRevisionError, ok := err.(files.ListRevisionsAPIError)
+		if ok {
 			// Don't treat a "not_folder" error as fatal; recover by sending a
 			// get_metadata request for the same path and using that response instead.
-			if e.EndpointError.Path.Tag == files.LookupErrorNotFolder {
+			if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFolder {
 				var metaRes files.IsMetadata
 				metaRes, err = getFileMetadata(dbx, path)
 				entries = []files.IsMetadata{metaRes}
 			} else {
+				// Return if there's an error other than "not_folder" or if the follow-up
+				// metadata request fails.
 				return err
 			}
-		default:
-			return err
-		}
-
-		// Return if there's an error other than "not_folder" or if the follow-up
-		// metadata request fails.
-		if err != nil {
+		} else {
 			return err
 		}
 	} else {
@@ -101,21 +149,48 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	long, _ := cmd.Flags().GetBool("long")
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
 	if long {
-		fmt.Fprintf(w, "Revision\tSize\tLast modified\tPath\n")
+		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
-	for i, entry := range entries {
+
+	for _, entry := range entries {
+		deletedItem, isDeleted := entry.(*files.DeletedMetadata)
+		if isDeleted {
+			revisionArg := files.NewListRevisionsArg(deletedItem.PathLower)
+			res, err := dbx.ListRevisions(revisionArg)
+			if err != nil {
+				listRevisionError, ok := err.(files.ListRevisionsAPIError)
+				if ok {
+					// We have a ListRevisionsAPIERror
+					if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFile {
+						// Don't treat a "not_file" error as fatal; recover by sending a
+						// get_metadata request for the same path and using that response instead.
+						revision, err := getFileMetadata(dbx, deletedItem.PathLower)
+						if err != nil {
+							return err
+						}
+						entry = revision
+					}
+				}
+			} else if len(res.Entries) == 0 {
+				// Occasionally revisions will be returned with an empty Revision entry list.
+				// So we just use the original entry.
+			} else {
+				entry = res.Entries[0]
+			}
+			SetPathDisplayAsDeleted(entry)
+		}
 		switch f := entry.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(w, f, long)
+			if !onlyDeleted {
+				printItem(formatFileMetadata(f, long))
+			}
 		case *files.FolderMetadata:
-			printFolderMetadata(w, f, long)
-		}
-		if i%4 == 0 || long {
-			fmt.Fprintln(w)
+			if !onlyDeleted {
+				printItem(formatFolderMetadata(f, long))
+			}
+		case *files.DeletedMetadata:
+			printItem(formatDeletedMetadata(f, long))
 		}
 	}
 
@@ -139,4 +214,6 @@ func init() {
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
 	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
+	lsCmd.Flags().BoolP("include-deleted", "d", false, "Include deleted files")
+	lsCmd.Flags().BoolP("only-deleted", "D", false, "Only show deleted files")
 }
