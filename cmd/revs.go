@@ -41,7 +41,11 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
+	machineReadable, _ := cmd.Flags().GetBool("machine")
 	long, _ := cmd.Flags().GetBool("long")
+
+	//If machine is set imply long
+	long = long || machineReadable
 
 	if long {
 		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
@@ -49,7 +53,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	for _, e := range res.Entries {
 		if long {
-			printFileMetadata(os.Stdout, e, long)
+			printFileMetadata(os.Stdout, e, long, machineReadable)
 		} else {
 			fmt.Printf("%s\n", e.Rev)
 		}
@@ -69,4 +73,5 @@ func init() {
 	RootCmd.AddCommand(revsCmd)
 
 	revsCmd.Flags().BoolP("long", "l", false, "Long listing")
+	revsCmd.Flags().BoolP("machine", "m", false, "Machine readable file size and time")
 }

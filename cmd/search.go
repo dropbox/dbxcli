@@ -46,7 +46,12 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
+	machineReadable, _ := cmd.Flags().GetBool("machine")
 	long, _ := cmd.Flags().GetBool("long")
+
+	//If machine is set imply long
+	long = long || machineReadable
+
 	if long {
 		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
 	}
@@ -54,7 +59,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	for _, m := range res.Matches {
 		switch f := m.Metadata.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(os.Stdout, f, long)
+			printFileMetadata(os.Stdout, f, long, machineReadable)
 		case *files.FolderMetadata:
 			printFolderMetadata(os.Stdout, f, long)
 		}
@@ -73,4 +78,5 @@ var searchCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(searchCmd)
 	searchCmd.Flags().BoolP("long", "l", false, "Long listing")
+	searchCmd.Flags().BoolP("machine", "m", false, "Machine readable file size and time")
 }

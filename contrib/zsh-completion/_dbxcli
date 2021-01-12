@@ -24,6 +24,7 @@ function _dbxcli() {
           _arguments -C \
             '(-l --long)'{-l,--long}'[Long listing]' \
             '(-h --help)'{-h,--help}'[Print information about a command]' \
+            '(-m --machine)'{-m,--machine}'[Output machine readable file sizes and times]' \
             '--token[(string) Access token]' \
             '(-v --verbose)'{-v,--verbose}'[Enable verbose logging]' \
             && ret=0
