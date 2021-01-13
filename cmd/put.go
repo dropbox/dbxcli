@@ -100,7 +100,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	commitInfo.Mode.Tag = "overwrite"
 
 	// The Dropbox API only accepts timestamps in UTC with second precision.
-	commitInfo.ClientModified = time.Now().UTC().Round(time.Second)
+	commitInfo.ClientModified = contentsInfo.ModTime().UTC().Round(time.Second)
 
 	dbx := files.New(config)
 	if contentsInfo.Size() > chunkSize {
