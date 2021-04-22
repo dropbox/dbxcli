@@ -15,24 +15,15 @@
 package cmd
 
 import (
-	"os"
-	"path"
-
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
 // Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return err
-	}
-	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
 
-	tokMap, err := readTokens(filePath)
+	tokMap, err := readTokens()
 	if err != nil {
 		return err
 	}
@@ -57,7 +48,9 @@ func logout(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return os.Remove(filePath)
+	writeTokens(nil)
+
+	return nil
 }
 
 // logoutCmd represents the logout command
