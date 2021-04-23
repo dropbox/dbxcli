@@ -54,10 +54,10 @@ var (
 	teamManageAppSecret = "t8ms714yun7nu5s"
 )
 
-// TokenMap maps domains to a map of commands to tokens.
-// For each domain, we want to save different tokens depending on the
+// TokenMap maps profiles to domain map to a map of commands to tokens.
+// For each profile and domain, we want to save different tokens depending on the
 // command type: personal, team access and team manage
-type TokenMap map[string]map[string]string
+type TokenMap map[string]map[string]map[string]string
 
 var config dropbox.Config
 
@@ -106,11 +106,9 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 }
 
 func readTokens() (TokenMap, error) {
-
 	var tokens TokenMap
-	err := viper.UnmarshalKey("tokens", &tokens)
-	if err != nil {
-		return nil, fmt.Errorf("tokens could not be parsed")
+	if err := viper.UnmarshalKey("tokens", &tokens); err != nil {
+		return nil, err
 	}
 	return tokens, nil
 }
@@ -143,10 +141,14 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	if tokenMap == nil {
 		tokenMap = make(TokenMap)
 	}
-	if tokenMap[viper.GetString("domain")] == nil {
-		tokenMap[viper.GetString("domain")] = make(map[string]string)
+	if tokenMap[viper.GetString("profile")] == nil {
+		tokenMap[viper.GetString("profile")] = make(map[string]map[string]string)
 	}
-	tokens := tokenMap[viper.GetString("domain")]
+	profileTokens := tokenMap[viper.GetString("profile")]
+	if profileTokens[viper.GetString("domain")] == nil {
+		profileTokens[viper.GetString("domain")] = make(map[string]string)
+	}
+	tokens := profileTokens[viper.GetString("domain")]
 
 	if err != nil || tokens[tokType] == "" {
 		fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
@@ -238,15 +240,18 @@ func init() {
 
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
+	RootCmd.PersistentFlags().String("profile", "default", "Set the configuration profile [for tokens]")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
+
 	viper.BindPFlag("domain", RootCmd.PersistentFlags().Lookup("domain"))
+	viper.BindPFlag("profile", RootCmd.PersistentFlags().Lookup("profile"))
+
+	viper.ReadInConfig()
 
 	if err := viper.SafeWriteConfig(); err != nil {
 		return
 	}
-
-	viper.ReadInConfig()
 
 }

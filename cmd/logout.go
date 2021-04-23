@@ -15,9 +15,12 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // Command logout revokes all saved API tokens and deletes auth.json.
@@ -27,8 +30,12 @@ func logout(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	profileTokMap := tokMap[viper.GetString("profile")]
+	if profileTokMap == nil {
+		return fmt.Errorf("cannot find profile")
+	}
 
-	for domain, tokens := range tokMap {
+	for domain, tokens := range profileTokMap {
 		for _, token := range tokens {
 			config := dropbox.Config{
 				Token:           token,
@@ -48,7 +55,8 @@ func logout(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	writeTokens(nil)
+	delete(tokMap, viper.GetString("profile"))
+	writeTokens(tokMap)
 
 	return nil
 }
