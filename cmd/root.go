@@ -15,12 +15,9 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -29,23 +26,16 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 )
 
 const (
-	configFileName  = "auth.json"
+	configFileName  = "dbxcli"
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
 )
-
-func getEnv(key, fallback string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		value = fallback
-	}
-	return value
-}
 
 var (
 	personalAppKey      = "mvhz183vwqibe7q"
@@ -56,10 +46,10 @@ var (
 	teamManageAppSecret = "t8ms714yun7nu5s"
 )
 
-// TokenMap maps domains to a map of commands to tokens.
-// For each domain, we want to save different tokens depending on the
+// TokenMap maps profiles to domain map to a map of commands to tokens.
+// For each profile and domain, we want to save different tokens depending on the
 // command type: personal, team access and team manage
-type TokenMap map[string]map[string]string
+type TokenMap map[string]map[string]map[string]string
 
 var config dropbox.Config
 
@@ -67,11 +57,11 @@ func oauthConfig(tokenType string, domain string) *oauth2.Config {
 	var appKey, appSecret string
 	switch tokenType {
 	case "personal":
-		appKey, appSecret = personalAppKey, personalAppSecret
+		appKey, appSecret = viper.GetString("app_key_personal"), viper.GetString("app_secret_personal")
 	case "teamAccess":
-		appKey, appSecret = teamAccessAppKey, teamAccessAppSecret
+		appKey, appSecret = viper.GetString("app_key_team_access"), viper.GetString("app_secret_team_access")
 	case "teamManage":
-		appKey, appSecret = teamManageAppKey, teamManageAppSecret
+		appKey, appSecret = viper.GetString("app_key_team_manage"), viper.GetString("app_secret_team_manage")
 	}
 	return &oauth2.Config{
 		ClientID:     appKey,
@@ -107,36 +97,17 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 	return
 }
 
-func readTokens(filePath string) (TokenMap, error) {
-	b, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
+func readTokens() (TokenMap, error) {
 	var tokens TokenMap
-	if json.Unmarshal(b, &tokens) != nil {
+	if err := viper.UnmarshalKey("tokens", &tokens); err != nil {
 		return nil, err
 	}
-
 	return tokens, nil
 }
 
-func writeTokens(filePath string, tokens TokenMap) {
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Doesn't exist; lets create it
-		err = os.MkdirAll(filepath.Dir(filePath), 0700)
-		if err != nil {
-			return
-		}
-	}
-
-	// At this point, file must exist. Lets (over)write it.
-	b, err := json.Marshal(tokens)
-	if err != nil {
-		return
-	}
-	if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
+func writeTokens(tokens TokenMap) {
+	viper.Set("tokens", tokens)
+	if err := viper.WriteConfig(); err != nil {
 		return
 	}
 }
@@ -154,24 +125,22 @@ func tokenType(cmd *cobra.Command) string {
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
-	domain, _ := cmd.Flags().GetString("domain")
 
-	dir, err := homedir.Dir()
-	if err != nil {
-		return
-	}
-	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
 	tokType := tokenType(cmd)
-	conf := oauthConfig(tokType, domain)
+	conf := oauthConfig(tokType, viper.GetString("domain"))
 
-	tokenMap, err := readTokens(filePath)
+	tokenMap, err := readTokens()
 	if tokenMap == nil {
 		tokenMap = make(TokenMap)
 	}
-	if tokenMap[domain] == nil {
-		tokenMap[domain] = make(map[string]string)
+	if tokenMap[viper.GetString("profile")] == nil {
+		tokenMap[viper.GetString("profile")] = make(map[string]map[string]string)
 	}
-	tokens := tokenMap[domain]
+	profileTokens := tokenMap[viper.GetString("profile")]
+	if profileTokens[viper.GetString("domain")] == nil {
+		profileTokens[viper.GetString("domain")] = make(map[string]string)
+	}
+	tokens := profileTokens[viper.GetString("domain")]
 
 	if err != nil || tokens[tokType] == "" {
 		fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
@@ -190,7 +159,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 			return
 		}
 		tokens[tokType] = token.AccessToken
-		writeTokens(filePath, tokenMap)
+		writeTokens(tokenMap)
 	}
 
 	logLevel := dropbox.LogOff
@@ -202,7 +171,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		LogLevel:        logLevel,
 		Logger:          nil,
 		AsMemberID:      asMember,
-		Domain:          domain,
+		Domain:          viper.GetString("domain"),
 		Client:          nil,
 		HeaderGenerator: nil,
 		URLGenerator:    nil,
@@ -230,16 +199,51 @@ func Execute() {
 }
 
 func init() {
+
+	dir, err := homedir.Dir()
+	if err != nil {
+		return
+	}
+	viper.SetConfigName(configFileName)
+	viper.SetConfigType("json")
+
+	// default configuration path
+	viper.AddConfigPath(path.Join(dir, ".config"))
+	// short configuration path (useful for docker and testing)
+	viper.AddConfigPath("/config/")
+	// super useful for testing
+	viper.AddConfigPath(".")
+
+	viper.SetDefault("app_key_personal", personalAppKey)
+	viper.SetDefault("app_secret_personal", personalAppSecret)
+	viper.SetDefault("app_key_team_access", teamAccessAppKey)
+	viper.SetDefault("app_secret_team_access", teamAccessAppSecret)
+	viper.SetDefault("app_key_team_manage", teamManageAppKey)
+	viper.SetDefault("app_secret_team_manage", teamManageAppSecret)
+	viper.SetDefault("domain", "")
+
+	viper.BindEnv("app_key_personal", "DROPBOX_PERSONAL_APP_KEY")
+	viper.BindEnv("app_secret_personal", "DROPBOX_PERSONAL_APP_SECRET")
+	viper.BindEnv("app_key_team_access", "DROPBOX_TEAM_APP_KEY")
+	viper.BindEnv("app_secret_team_access", "DROPBOX_TEAM_APP_SECRET")
+	viper.BindEnv("app_key_team_manage", "DROPBOX_MANAGE_APP_KEY")
+	viper.BindEnv("app_secret_team_manage", "DROPBOX_MANAGE_APP_SECRET")
+	viper.BindEnv("domain", "DROPBOX_DOMAIN")
+
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
+	RootCmd.PersistentFlags().String("profile", "default", "Set the configuration profile [for tokens]")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
 
-	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
-	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
-	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
-	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
-	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
-	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamAccessAppSecret)
+	viper.BindPFlag("domain", RootCmd.PersistentFlags().Lookup("domain"))
+	viper.BindPFlag("profile", RootCmd.PersistentFlags().Lookup("profile"))
+
+	viper.ReadInConfig()
+
+	if err := viper.SafeWriteConfig(); err != nil {
+		return
+	}
+
 }
