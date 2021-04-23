@@ -9,6 +9,8 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/ioprogress v0.0.0-20180201004757-6a23b12fa88e
+	github.com/pkg/xattr v0.4.3 // indirect
+	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f // indirect
 	github.com/spf13/cobra v0.0.4-0.20190109003409-7547e83b2d85
 	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
