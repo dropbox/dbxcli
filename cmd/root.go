@@ -37,14 +37,6 @@ const (
 	tokenTeamManage = "teamManage"
 )
 
-func getEnv(key, fallback string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		value = fallback
-	}
-	return value
-}
-
 var (
 	personalAppKey      = "mvhz183vwqibe7q"
 	personalAppSecret   = "q0kquhzgetjwcz1"
