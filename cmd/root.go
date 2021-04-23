@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	configFileName  = "config"
+	configFileName  = "dbxcli"
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -208,7 +208,7 @@ func init() {
 	viper.SetConfigType("json")
 
 	// default configuration path
-	viper.AddConfigPath(path.Join(dir, ".config", "dbxcli"))
+	viper.AddConfigPath(path.Join(dir, ".config"))
 	// short configuration path (useful for docker and testing)
 	viper.AddConfigPath("/config/")
 	// super useful for testing
