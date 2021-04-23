@@ -1,6 +1,6 @@
 module github.com/dropbox/dbxcli
 
-go 1.11
+go 1.16
 
 require (
 	github.com/dropbox/dropbox-sdk-go-unofficial v1.0.1-0.20210112084502-47d7ce03959a
