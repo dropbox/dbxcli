@@ -15,13 +15,17 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
+	"sync"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
@@ -30,39 +34,103 @@ import (
 
 const chunkSize int64 = 1 << 24
 
-func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64) (err error) {
-	res, err := dbx.UploadSessionStart(files.NewUploadSessionStartArg(),
-		&io.LimitedReader{R: r, N: chunkSize})
+type uploadChunk struct {
+	data   []byte
+	offset uint64
+	close  bool
+}
+
+func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data []byte) error {
+	for {
+		err := dbx.UploadSessionAppendV2(args, bytes.NewReader(data))
+		if err != nil {
+			return nil
+		}
+
+		rl, ok := err.(auth.RateLimitAPIError)
+		if !ok {
+			return err
+		}
+
+		time.Sleep(time.Second * time.Duration(rl.RateLimitError.RetryAfter))
+	}
+}
+
+func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int) (err error) {
+	startArgs := files.NewUploadSessionStartArg()
+	startArgs.SessionType = &files.UploadSessionType{}
+	startArgs.SessionType.Tag = files.UploadSessionTypeConcurrent
+	res, err := dbx.UploadSessionStart(startArgs, nil)
 	if err != nil {
 		return
 	}
 
-	written := chunkSize
+	wg := sync.WaitGroup{}
+	workCh := make(chan uploadChunk, workers)
+	errCh := make(chan error, 1)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for chunk := range workCh {
+				cursor := files.NewUploadSessionCursor(res.SessionId, chunk.offset)
+				args := files.NewUploadSessionAppendArg(cursor)
+				args.Close = chunk.close
 
-	for (sizeTotal - written) > chunkSize {
-		cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
-		args := files.NewUploadSessionAppendArg(cursor)
+				if err := uploadOneChunk(dbx, args, chunk.data); err != nil {
+					errCh <- err
+				}
+			}
+		}()
+	}
 
-		err = dbx.UploadSessionAppendV2(args, &io.LimitedReader{R: r, N: chunkSize})
+	written := int64(0)
+	for written < sizeTotal {
+		data, err := ioutil.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
-			return
+			return err
 		}
-		written += chunkSize
+
+		chunk := uploadChunk{
+			data:   data,
+			offset: uint64(written),
+			close:  written+chunkSize >= sizeTotal,
+		}
+
+		select {
+		case workCh <- chunk:
+		case err := <-errCh:
+			return err
+		}
+
+		written += int64(len(data))
+	}
+
+	close(workCh)
+	wg.Wait()
+	select {
+	case err := <-errCh:
+		return err
+	default:
 	}
 
 	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
 	args := files.NewUploadSessionFinishArg(cursor, commitInfo)
-
-	if _, err = dbx.UploadSessionFinish(args, r); err != nil {
-		return
-	}
-
+	_, err = dbx.UploadSessionFinish(args, nil)
 	return
 }
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`put` requires `src` and/or `dst` arguments")
+	}
+
+	workers, err := cmd.Flags().GetInt("workers")
+	if err != nil {
+		return err
+	}
+	if workers < 1 {
+		workers = 1
 	}
 
 	src := args[0]
@@ -105,7 +173,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := files.New(config)
 	if contentsInfo.Size() > chunkSize {
-		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size())
+		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size(), workers)
 	}
 
 	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {
@@ -124,15 +192,5 @@ var putCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(putCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// putCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// putCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
+	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
 }
