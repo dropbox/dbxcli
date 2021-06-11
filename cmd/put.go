@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"sync"
@@ -32,7 +33,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const chunkSize int64 = 1 << 24
+const singleShotUploadSizeCutoff int64 = 32 * (1 << 20)
 
 type uploadChunk struct {
 	data   []byte
@@ -44,7 +45,7 @@ func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data [
 	for {
 		err := dbx.UploadSessionAppendV2(args, bytes.NewReader(data))
 		if err != nil {
-			return nil
+			return err
 		}
 
 		rl, ok := err.(auth.RateLimitAPIError)
@@ -56,7 +57,8 @@ func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data [
 	}
 }
 
-func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int) (err error) {
+func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (err error) {
+	t0 := time.Now()
 	startArgs := files.NewUploadSessionStartArg()
 	startArgs.SessionType = &files.UploadSessionType{}
 	startArgs.SessionType.Tag = files.UploadSessionTypeConcurrent
@@ -64,7 +66,11 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	if err != nil {
 		return
 	}
+	if debug {
+		log.Printf("Start took: %v\n", time.Since(t0))
+	}
 
+	t1 := time.Now()
 	wg := sync.WaitGroup{}
 	workCh := make(chan uploadChunk, workers)
 	errCh := make(chan error, 1)
@@ -77,8 +83,12 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 				args := files.NewUploadSessionAppendArg(cursor)
 				args.Close = chunk.close
 
+				t0 := time.Now()
 				if err := uploadOneChunk(dbx, args, chunk.data); err != nil {
 					errCh <- err
+				}
+				if debug {
+					log.Printf("Chunk upload at offset %d took: %v\n", chunk.offset, time.Since(t0))
 				}
 			}
 		}()
@@ -89,6 +99,13 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 		data, err := ioutil.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
 			return err
+		}
+		expectedLen := chunkSize
+		if written+chunkSize > sizeTotal {
+			expectedLen = sizeTotal - written
+		}
+		if len(data) != int(expectedLen) {
+			return fmt.Errorf("failed to read %d bytes from source", expectedLen)
 		}
 
 		chunk := uploadChunk{
@@ -113,10 +130,17 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 		return err
 	default:
 	}
+	if debug {
+		log.Printf("Full upload took: %v\n", time.Since(t1))
+	}
 
+	t2 := time.Now()
 	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
 	args := files.NewUploadSessionFinishArg(cursor, commitInfo)
 	_, err = dbx.UploadSessionFinish(args, nil)
+	if debug {
+		log.Printf("Finish took: %v\n", time.Since(t2))
+	}
 	return
 }
 
@@ -125,6 +149,13 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		return errors.New("`put` requires `src` and/or `dst` arguments")
 	}
 
+	chunkSize, err := cmd.Flags().GetInt64("chunksize")
+	if err != nil {
+		return err
+	}
+	if chunkSize%(1<<22) != 0 {
+		return errors.New("`put` requires chunk size to be multiple of 4MiB")
+	}
 	workers, err := cmd.Flags().GetInt("workers")
 	if err != nil {
 		return err
@@ -132,6 +163,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	if workers < 1 {
 		workers = 1
 	}
+	debug, _ := cmd.Flags().GetBool("debug")
 
 	src := args[0]
 
@@ -172,8 +204,8 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	commitInfo.ClientModified = &ts
 
 	dbx := files.New(config)
-	if contentsInfo.Size() > chunkSize {
-		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size(), workers)
+	if contentsInfo.Size() > singleShotUploadSizeCutoff {
+		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size(), workers, chunkSize, debug)
 	}
 
 	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {
@@ -193,4 +225,6 @@ var putCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(putCmd)
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
+	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
+	putCmd.Flags().BoolP("debug", "d", false, "Print debug timing")
 }
