@@ -22,7 +22,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
@@ -100,7 +100,8 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	commitInfo.Mode.Tag = "overwrite"
 
 	// The Dropbox API only accepts timestamps in UTC with second precision.
-	commitInfo.ClientModified = time.Now().UTC().Round(time.Second)
+	ts := time.Now().UTC().Round(time.Second)
+	commitInfo.ClientModified = &ts
 
 	dbx := files.New(config)
 	if contentsInfo.Size() > chunkSize {

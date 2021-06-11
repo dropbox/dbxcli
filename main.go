@@ -19,7 +19,7 @@ import (
 	"log"
 
 	"github.com/dropbox/dbxcli/cmd"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/spf13/cobra"
 )
 

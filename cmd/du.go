@@ -17,7 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
