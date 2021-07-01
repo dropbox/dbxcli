@@ -26,13 +26,16 @@ import (
 func cp(cmd *cobra.Command, args []string) error {
 	var destination string
 	var argsToCopy []string
+	var keepOriginalFolderStructure bool
 
 	if len(args) > 2 {
 		destination = args[len(args)-1]
 		argsToCopy = args[0 : len(args)-1]
+		keepOriginalFolderStructure = true
 	} else if len(args) == 2 {
 		destination = args[1]
 		argsToCopy = append(argsToCopy, args[0])
+		keepOriginalFolderStructure = false
 	} else {
 		return errors.New("cp requires a source and a destination")
 	}
@@ -41,7 +44,13 @@ func cp(cmd *cobra.Command, args []string) error {
 	var relocationArgs []*files.RelocationArg
 
 	for _, argument := range argsToCopy {
-		arg, err := makeRelocationArg(argument, destination+"/"+argument)
+		var actualDestination string
+		if keepOriginalFolderStructure {
+			actualDestination = destination + "/" + argument
+		} else {
+			actualDestination = destination
+		}
+		arg, err := makeRelocationArg(argument, actualDestination)
 		if err != nil {
 			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, destination, err)
 			cpErrors = append(cpErrors, relocationError)
