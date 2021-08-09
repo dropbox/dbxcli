@@ -218,8 +218,13 @@ func put(cmd *cobra.Command, args []string) (err error) {
 // putCmd represents the put command
 var putCmd = &cobra.Command{
 	Use:   "put [flags] <source> [<target>]",
-	Short: "Upload files",
-	RunE:  put,
+	Short: "Upload a single file",
+	Long: `Upload a single file
+	- If target is not provided puts the file in the root of your Dropbox directory.
+	- If target is provided it must be the desired filename in the cloud (and not a directory).
+	`,
+
+	RunE: put,
 }
 
 func init() {
