@@ -45,15 +45,15 @@ func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data [
 	for {
 		err := dbx.UploadSessionAppendV2(args, bytes.NewReader(data))
 		if err != nil {
-			return err
+			switch errt := err.(type) {
+			case auth.RateLimitAPIError:
+				time.Sleep(time.Second * time.Duration(errt.RateLimitError.RetryAfter))
+				continue
+			default:
+				return err
+			}
 		}
-
-		rl, ok := err.(auth.RateLimitAPIError)
-		if !ok {
-			return err
-		}
-
-		time.Sleep(time.Second * time.Duration(rl.RateLimitError.RetryAfter))
+		return nil
 	}
 }
 
