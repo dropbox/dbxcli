@@ -1,7 +1,13 @@
-# `dbxcli`: A command line tool for Dropbox users and team admins
+# `dbxcli`: A command line tool for Dropbox users and team admins [UNOFFICIAL]
 
 [![Build Status](https://travis-ci.org/dropbox/dbxcli.svg?branch=master)](https://travis-ci.org/dropbox/dbxcli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
+
+:warning: WARNING: This project is **NOT official**. What does this mean?
+
+  * There is no formal Dropbox support for this project
+  * Bugs may or may not get fixed
+  * Not all SDK features may be implemented and implemented features may be buggy or incorrect
 
 ## Features
 
@@ -109,12 +115,6 @@ Use "dbxcli team [command] --help" for more information about a command.
 ```
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
-
-## We need your help!
-
-`dbxcli` is under active development! As you can see from the [API docs](https://www.dropbox.com/developers/documentation/http/documentation), we only support a small number of features today and have only scratched the surface of what's possible. We would love feedback from you, our users, to guide what to build next and how to improve the tool.
-
-So please, file feature requests, report bugs or better yet, send us pull requests! More on contributing below.
 
 ## Contributing
 
