@@ -34,9 +34,9 @@ $ cd ~/bin
 ```sh
 export PATH=$PATH:$HOME/bin
 ```
-4. Download the `dbxcli` binary for OSX and rename it.  *IMPORTANT:* Check that the tag `v2.1.1` on the URL below is the latest release tag on the [Releases](https://github.com/dropbox/dbxcli/releases) page.
+4. Download the `dbxcli` binary for OSX and rename it.  *IMPORTANT:* Check that the tag `v3.0.0` on the URL below is the latest release tag on the [Releases](https://github.com/dropbox/dbxcli/releases) page.
 ```sh
-$ wget https://github.com/dropbox/dbxcli/releases/download/v2.1.1/dbxcli-darwin-amd64 
+$ wget https://github.com/dropbox/dbxcli/releases/download/v3.0.0/dbxcli-darwin-amd64 
 $ mv dbxcli-darwin-amd64 dbxcli
 ```
 5. Finally, make the binary an executable file and you are good to go!
