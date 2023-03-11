@@ -83,7 +83,7 @@ func oauthConfig(tokenType string, domain string) *oauth2.Config {
 func validatePath(p string) (path string, err error) {
 	path = p
 
-	if !strings.HasPrefix(path, "/") {
+	if !strings.HasPrefix(path, "/") && !strings.HasPrefix(path, "rev:") && !strings.HasPrefix(path, "id:") {
 		path = fmt.Sprintf("/%s", path)
 	}
 
