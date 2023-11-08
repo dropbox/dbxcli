@@ -104,13 +104,17 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
-	itemCounter := 0
+	// itemCounter := 0
 	printItem := func(message string) {
-		itemCounter = itemCounter + 1
+
+		// itemCounter = itemCounter + 1
+		// fmt.Fprint(w, message)
+		// if (itemCounter%4 == 0) || long {
+			// fmt.Fprintln(w)
+		// }
+		
 		fmt.Fprint(w, message)
-		if (itemCounter%4 == 0) || long {
-			fmt.Fprintln(w)
-		}
+		fmt.Fprintln(w)
 	}
 
 	dbx := files.New(config)
