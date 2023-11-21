@@ -196,19 +196,19 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		Size: contentsInfo.Size(),
 	}
 
-	commitInfo := files.NewCommitInfo(dst)
-	commitInfo.Mode.Tag = "overwrite"
+	uploadArg := files.NewUploadArg(dst)
+	uploadArg.Mode.Tag = "overwrite"
 
 	// The Dropbox API only accepts timestamps in UTC with second precision.
 	ts := time.Now().UTC().Round(time.Second)
-	commitInfo.ClientModified = &ts
+	uploadArg.ClientModified = &ts
 
 	dbx := files.New(config)
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {
-		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size(), workers, chunkSize, debug)
+		return uploadChunked(dbx, progressbar, &uploadArg.CommitInfo, contentsInfo.Size(), workers, chunkSize, debug)
 	}
 
-	if _, err = dbx.Upload(commitInfo, progressbar); err != nil {
+	if _, err = dbx.Upload(uploadArg, progressbar); err != nil {
 		return
 	}
 
