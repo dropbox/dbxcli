@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -96,7 +95,7 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 
 	written := int64(0)
 	for written < sizeTotal {
-		data, err := ioutil.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
+		data, err := io.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
 			return err
 		}
