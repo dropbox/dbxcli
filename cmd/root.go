@@ -17,9 +17,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -27,13 +25,11 @@ import (
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
 
 const (
-	configFileName  = "auth.json"
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -107,38 +103,22 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 	return
 }
 
-func readTokens(filePath string) (TokenMap, error) {
-	b, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, err
+func writeTokens(filePath string, tokens TokenMap) error {
+	// Ensure config directory exists.
+	if err := os.MkdirAll(filepath.Dir(filePath), 0700); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
 	}
 
-	var tokens TokenMap
-	if json.Unmarshal(b, &tokens) != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
-func writeTokens(filePath string, tokens TokenMap) {
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Doesn't exist; lets create it
-		err = os.MkdirAll(filepath.Dir(filePath), 0700)
-		if err != nil {
-			return
-		}
-	}
-
-	// At this point, file must exist. Lets (over)write it.
 	b, err := json.Marshal(tokens)
 	if err != nil {
-		return
+		return fmt.Errorf("encode tokens: %w", err)
 	}
-	if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
-		return
+
+	if err = os.WriteFile(filePath, b, 0600); err != nil {
+		return fmt.Errorf("write config: %w", err)
 	}
+
+	return nil
 }
 
 func tokenType(cmd *cobra.Command) string {
@@ -151,29 +131,30 @@ func tokenType(cmd *cobra.Command) string {
 	return tokenPersonal
 }
 
-func initDbx(cmd *cobra.Command, args []string) (err error) {
+func initDbx(cmd *cobra.Command, args []string) error {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
 
-	dir, err := homedir.Dir()
-	if err != nil {
-		return
-	}
-	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
 	tokType := tokenType(cmd)
 	conf := oauthConfig(tokType, domain)
 
-	tokenMap, err := readTokens(filePath)
-	if tokenMap == nil {
-		tokenMap = make(TokenMap)
+	filePath, err := configFile()
+	if err != nil {
+		return fmt.Errorf("config file: %w", err)
 	}
+
+	tokenMap, err := readTokens(filePath)
+	if err != nil {
+		return fmt.Errorf("read tokens: %w", err)
+	}
+
 	if tokenMap[domain] == nil {
 		tokenMap[domain] = make(map[string]string)
 	}
-	tokens := tokenMap[domain]
 
-	if err != nil || tokens[tokType] == "" {
+	tokens := tokenMap[domain]
+	if tokens[tokType] == "" {
 		fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
 		fmt.Printf("2. Click \"Allow\" (you might have to log in first).\n")
 		fmt.Printf("3. Copy the authorization code.\n")
@@ -181,16 +162,20 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 
 		var code string
 		if _, err = fmt.Scan(&code); err != nil {
-			return
+			return fmt.Errorf("read code: %w", err)
 		}
+
 		var token *oauth2.Token
 		ctx := context.Background()
 		token, err = conf.Exchange(ctx, code)
 		if err != nil {
-			return
+			return fmt.Errorf("token exchange: %w", err)
 		}
+
 		tokens[tokType] = token.AccessToken
-		writeTokens(filePath, tokenMap)
+		if err := writeTokens(filePath, tokenMap); err != nil {
+			return err
+		}
 	}
 
 	logLevel := dropbox.LogOff
@@ -208,7 +193,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		URLGenerator:    nil,
 	}
 
-	return
+	return nil
 }
 
 // RootCmd represents the base command when called without any subcommands
@@ -236,10 +221,10 @@ func init() {
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
 
-	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
-	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
-	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
-	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
-	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
-	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamAccessAppSecret)
+	personalAppKey = getEnv(personalAppKeyEnv, personalAppKey)
+	personalAppSecret = getEnv(personalAppSecretEnv, personalAppSecret)
+	teamAccessAppKey = getEnv(teamAccessAppKeyEnv, teamAccessAppKey)
+	teamAccessAppSecret = getEnv(teamAccessAppSecretEnv, teamAccessAppSecret)
+	teamManageAppKey = getEnv(teamManageAppKeyEnv, teamManageAppKey)
+	teamManageAppSecret = getEnv(teamManageAppSecretEnv, teamAccessAppSecret)
 }
