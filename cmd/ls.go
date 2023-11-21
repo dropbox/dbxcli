@@ -212,6 +212,10 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	if itemCounter%4 != 0 {
+		fmt.Fprintln(w) // Final newline.
+	}
+
 	err = w.Flush()
 	return err
 }
