@@ -208,7 +208,16 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		URLGenerator:    nil,
 	}
 
-	return
+	root, err := cmd.Flags().GetString("root")
+	if err != nil {
+		return fmt.Errorf("root parameter: %w", err)
+	}
+
+	if root != "" {
+		config = config.WithRoot(root)
+	}
+
+	return nil
 }
 
 // RootCmd represents the base command when called without any subcommands
@@ -232,6 +241,7 @@ func Execute() {
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
+	RootCmd.PersistentFlags().String("root", "", "Use a different root directory")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
