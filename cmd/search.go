@@ -38,10 +38,20 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	arg := files.NewSearchArg(scope, args[0])
+	arg := files.NewSearchV2Arg(args[0])
+
+	opts := files.NewSearchOptions()
+	if scope != "" {
+		opts.Path = scope
+	}
+	content, _ := cmd.Flags().GetBool("content")
+	if !content {
+		opts.FilenameOnly = true
+	}
+	arg.Options = opts
 
 	dbx := files.New(config)
-	res, err := dbx.Search(arg)
+	res, err := dbx.SearchV2(arg)
 	if err != nil {
 		return
 	}
@@ -52,7 +62,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	for _, m := range res.Matches {
-		switch f := m.Metadata.(type) {
+		switch f := m.Metadata.Metadata.(type) {
 		case *files.FileMetadata:
 			printFileMetadata(os.Stdout, f, long)
 		case *files.FolderMetadata:
@@ -73,4 +83,5 @@ var searchCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(searchCmd)
 	searchCmd.Flags().BoolP("long", "l", false, "Long listing")
+	searchCmd.Flags().BoolP("content", "c", false, "Search file content in addition to filenames")
 }
