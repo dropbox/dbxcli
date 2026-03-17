@@ -26,7 +26,9 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -155,7 +157,6 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
-	pathRoot, _ := cmd.Flags().GetString("path-root")
 
 	dir, err := homedir.Dir()
 	if err != nil {
@@ -199,16 +200,6 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		logLevel = dropbox.LogInfo
 	}
 
-	var headerGenerator func(hostType string, style string, namespace string, route string) map[string]string
-	if pathRoot != "" {
-		pathRootHeader := fmt.Sprintf(`{".tag": "namespace_id", "namespace_id": "%s"}`, pathRoot)
-		headerGenerator = func(_ string, _ string, _ string, _ string) map[string]string {
-			return map[string]string{
-				"Dropbox-API-Path-Root": pathRootHeader,
-			}
-		}
-	}
-
 	config = dropbox.Config{
 		Token:           tokens[tokType],
 		LogLevel:        logLevel,
@@ -216,8 +207,33 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		AsMemberID:      asMember,
 		Domain:          domain,
 		Client:          nil,
-		HeaderGenerator: headerGenerator,
+		HeaderGenerator: nil,
 		URLGenerator:    nil,
+	}
+
+	// Auto-detect the root namespace so that team folders are accessible.
+	// Team manage tokens are for administrative operations and don't need
+	// a path root; skip auto-detection for those.
+	if tokType != tokenTeamManage {
+		usersClient := users.New(config)
+		account, accountErr := usersClient.GetCurrentAccount()
+		if accountErr != nil {
+			config.LogInfo("Warning: could not auto-detect root namespace (%v); team folders may not be accessible", accountErr)
+		} else {
+			var rootNamespaceID string
+			switch ri := account.RootInfo.(type) {
+			case *common.TeamRootInfo:
+				rootNamespaceID = ri.RootNamespaceId
+			case *common.UserRootInfo:
+				rootNamespaceID = ri.RootNamespaceId
+			}
+			if rootNamespaceID != "" {
+				pathRootHeader := fmt.Sprintf(`{".tag": "root", "root": "%s"}`, rootNamespaceID)
+				config.HeaderGenerator = func(_, _, _, _ string) map[string]string {
+					return map[string]string{"Dropbox-API-Path-Root": pathRootHeader}
+				}
+			}
+		}
 	}
 
 	return
@@ -244,7 +260,6 @@ func Execute() {
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
-	RootCmd.PersistentFlags().String("path-root", "", "Namespace ID to use as the path root (for team folders; sets Dropbox-API-Path-Root header)")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	RootCmd.PersistentFlags().MarkHidden("domain")
