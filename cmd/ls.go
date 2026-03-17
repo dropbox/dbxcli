@@ -115,24 +115,28 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := files.New(config)
 
-	// check if given object exists
-	var metaRes files.IsMetadata
-	metaRes, err = getFileMetadata(dbx, path)
-	if err != nil {
-		return err
-	}
-
 	if long {
 		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
-	// handle case when path to file was given
-	switch f := metaRes.(type) {
-	case *files.FileMetadata:
-		if !onlyDeleted {
-			printItem(formatFileMetadata(f, long))
-			err = w.Flush()
+	// Check whether the path exists and is a file rather than a folder.
+	// Skip this for the root path ("") since get_metadata returns an error for
+	// it ("The root folder is unsupported") and the root is always a folder.
+	if path != "" {
+		var metaRes files.IsMetadata
+		metaRes, err = getFileMetadata(dbx, path)
+		if err != nil {
 			return err
+		}
+
+		// handle case when path to file was given
+		switch f := metaRes.(type) {
+		case *files.FileMetadata:
+			if !onlyDeleted {
+				printItem(formatFileMetadata(f, long))
+				err = w.Flush()
+				return err
+			}
 		}
 	}
 
