@@ -26,7 +26,9 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -197,6 +199,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	if verbose {
 		logLevel = dropbox.LogInfo
 	}
+
 	config = dropbox.Config{
 		Token:           tokens[tokType],
 		LogLevel:        logLevel,
@@ -206,6 +209,31 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		Client:          nil,
 		HeaderGenerator: nil,
 		URLGenerator:    nil,
+	}
+
+	// Auto-detect the root namespace so that team folders are accessible.
+	// Team manage tokens are for administrative operations and don't need
+	// a path root; skip auto-detection for those.
+	if tokType != tokenTeamManage {
+		usersClient := users.New(config)
+		account, accountErr := usersClient.GetCurrentAccount()
+		if accountErr != nil {
+			config.LogInfo("Warning: could not auto-detect root namespace (%v); team folders may not be accessible", accountErr)
+		} else {
+			var rootNamespaceID string
+			switch ri := account.RootInfo.(type) {
+			case *common.TeamRootInfo:
+				rootNamespaceID = ri.RootNamespaceId
+			case *common.UserRootInfo:
+				rootNamespaceID = ri.RootNamespaceId
+			}
+			if rootNamespaceID != "" {
+				pathRootHeader := fmt.Sprintf(`{".tag": "root", "root": "%s"}`, rootNamespaceID)
+				config.HeaderGenerator = func(_, _, _, _ string) map[string]string {
+					return map[string]string{"Dropbox-API-Path-Root": pathRootHeader}
+				}
+			}
+		}
 	}
 
 	return
