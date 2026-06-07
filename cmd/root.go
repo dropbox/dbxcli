@@ -17,11 +17,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"context"
 
 	"golang.org/x/oauth2"
 
@@ -29,7 +30,6 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -108,7 +108,7 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 }
 
 func readTokens(filePath string) (TokenMap, error) {
-	b, err := ioutil.ReadFile(filePath)
+	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func writeTokens(filePath string, tokens TokenMap) {
 	if err != nil {
 		return
 	}
-	if err = ioutil.WriteFile(filePath, b, 0600); err != nil {
+	if err = os.WriteFile(filePath, b, 0600); err != nil {
 		return
 	}
 }
@@ -234,7 +234,7 @@ func init() {
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
-	RootCmd.PersistentFlags().MarkHidden("domain")
+	_ = RootCmd.PersistentFlags().MarkHidden("domain")
 
 	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
 	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)

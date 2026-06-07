@@ -43,18 +43,18 @@ func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 
 // Invoked by search.go
 func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
-	fmt.Fprintf(w, formatFolderMetadata(e, longFormat))
+	fmt.Fprint(w, formatFolderMetadata(e, longFormat))
 }
 
 // Invoked by search.go and revs.go
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
-	fmt.Fprintf(w, formatFileMetadata(e, longFormat))
+	fmt.Fprint(w, formatFileMetadata(e, longFormat))
 }
 
 func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
 	text := fmt.Sprintf("%s\t", e.PathDisplay)
 	if longFormat {
-		text = fmt.Sprintf("-\t-\t-\t") + text
+		text = "-\t-\t-\t" + text
 	}
 	return text
 }
@@ -70,7 +70,7 @@ func formatFileMetadata(e *files.FileMetadata, longFormat bool) string {
 func formatDeletedMetadata(e *files.DeletedMetadata, longFormat bool) string {
 	text := fmt.Sprintf("%s\t", e.PathDisplay)
 	if longFormat {
-		text = fmt.Sprintf("-\t-\t-\t") + text
+		text = "-\t-\t-\t" + text
 	}
 	return text
 }
@@ -115,24 +115,24 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := files.New(config)
 
-	// check if given object exists
-	var metaRes files.IsMetadata
-	metaRes, err = getFileMetadata(dbx, path)
-	if err != nil {
-		return err
-	}
-
 	if long {
 		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
-	// handle case when path to file was given
-	switch f := metaRes.(type) {
-	case *files.FileMetadata:
-		if !onlyDeleted {
-			printItem(formatFileMetadata(f, long))
-			err = w.Flush()
+	if path != "" {
+		var metaRes files.IsMetadata
+		metaRes, err = getFileMetadata(dbx, path)
+		if err != nil {
 			return err
+		}
+
+		switch f := metaRes.(type) {
+		case *files.FileMetadata:
+			if !onlyDeleted {
+				printItem(formatFileMetadata(f, long))
+				err = w.Flush()
+				return err
+			}
 		}
 	}
 
@@ -146,7 +146,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 			// get_metadata request for the same path and using that response instead.
 			if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFolder {
 				var metaRes files.IsMetadata
-				metaRes, err = getFileMetadata(dbx, path)
+				metaRes, _ = getFileMetadata(dbx, path)
 				entries = []files.IsMetadata{metaRes}
 			} else {
 				// Return if there's an error other than "not_folder" or if the follow-up
