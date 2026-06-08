@@ -20,6 +20,8 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
@@ -28,6 +30,11 @@ import (
 )
 
 func get(cmd *cobra.Command, args []string) (err error) {
+	dbx := files.New(config)
+	return getWithClient(dbx, args)
+}
+
+func getWithClient(dbx files.Client, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`get` requires `src` and/or `dst` arguments")
 	}
@@ -47,20 +54,79 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		dst = path.Join(dst, path.Base(src))
 	}
 
+	return downloadFile(dbx, src, dst)
+}
+
+func downloadFile(dbx files.Client, src string, dst string) error {
 	arg := files.NewDownloadArg(src)
 
-	dbx := files.New(config)
+	return retryWithBackoff(func() error {
+		return downloadFileOnce(dbx, arg, dst)
+	})
+}
+
+func createDownloadTemp(dst string) (*os.File, string, error) {
+	dir := filepath.Dir(dst)
+	base := filepath.Base(dst)
+	for i := 0; i < 100; i++ {
+		tmp := filepath.Join(dir, fmt.Sprintf(".%s.tmp-%d-%d", base, os.Getpid(), time.Now().UnixNano()+int64(i)))
+		f, err := os.OpenFile(tmp, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if errors.Is(err, os.ErrExist) {
+			continue
+		}
+		return f, tmp, err
+	}
+	return nil, "", fmt.Errorf("failed to create temporary file for %s", dst)
+}
+
+func downloadDestinationPath(dst string) (string, error) {
+	for i := 0; i < 255; i++ {
+		info, err := os.Lstat(dst)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return dst, nil
+			}
+			return "", err
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			return dst, nil
+		}
+
+		target, err := os.Readlink(dst)
+		if err != nil {
+			return "", err
+		}
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(filepath.Dir(dst), target)
+		}
+		dst = target
+	}
+
+	return "", fmt.Errorf("too many symlinks resolving %s", dst)
+}
+
+func downloadFileOnce(dbx files.Client, arg *files.DownloadArg, dst string) error {
 	res, contents, err := dbx.Download(arg)
 	if err != nil {
-		return
+		return err
 	}
 	defer contents.Close()
 
-	f, err := os.Create(dst)
+	finalDst, err := downloadDestinationPath(dst)
 	if err != nil {
-		return
+		return err
 	}
-	defer f.Close()
+
+	f, tmp, err := createDownloadTemp(finalDst)
+	if err != nil {
+		return err
+	}
+	removeTemp := true
+	defer func() {
+		if removeTemp {
+			_ = os.Remove(tmp)
+		}
+	}()
 
 	progressbar := &ioprogress.Reader{
 		Reader: contents,
@@ -71,11 +137,19 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		Size: int64(res.Size),
 	}
 
-	if _, err = io.Copy(f, progressbar); err != nil {
-		return
+	_, copyErr := io.Copy(f, progressbar)
+	closeErr := f.Close()
+	if copyErr != nil {
+		return copyErr
 	}
-
-	return
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := os.Rename(tmp, finalDst); err != nil {
+		return err
+	}
+	removeTemp = false
+	return nil
 }
 
 // getCmd represents the get command
