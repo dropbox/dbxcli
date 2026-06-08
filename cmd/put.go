@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
@@ -41,19 +40,45 @@ type uploadChunk struct {
 }
 
 func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data []byte) error {
-	for {
+	return retryWithBackoff(func() error {
 		err := dbx.UploadSessionAppendV2(args, bytes.NewReader(data))
-		if err != nil {
-			switch errt := err.(type) {
-			case auth.RateLimitAPIError:
-				time.Sleep(time.Second * time.Duration(errt.RateLimitError.RetryAfter))
-				continue
-			default:
-				return err
-			}
+		if uploadChunkAlreadyAccepted(err, args.Cursor.Offset+uint64(len(data))) {
+			return nil
 		}
-		return nil
+		return err
+	})
+}
+
+func uploadChunkAlreadyAccepted(err error, expectedOffset uint64) bool {
+	var appendErr files.UploadSessionAppendV2APIError
+	if !errors.As(err, &appendErr) || appendErr.EndpointError == nil {
+		return false
 	}
+	endpointErr := appendErr.EndpointError
+	return endpointErr.Tag == files.UploadSessionAppendErrorIncorrectOffset &&
+		endpointErr.IncorrectOffset != nil &&
+		endpointErr.IncorrectOffset.CorrectOffset == expectedOffset
+}
+
+func uploadProgressReader(r io.Reader, size int64) *ioprogress.Reader {
+	return &ioprogress.Reader{
+		Reader: r,
+		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
+			return fmt.Sprintf("Uploading %s/%s",
+				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
+		}),
+		Size: size,
+	}
+}
+
+func uploadSingleShot(dbx files.Client, r io.ReadSeeker, uploadArg *files.UploadArg, size int64) error {
+	return retryWithBackoff(func() error {
+		if _, err := r.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+		_, err := dbx.Upload(uploadArg, uploadProgressReader(r, size))
+		return err
+	})
 }
 
 func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (err error) {
@@ -61,7 +86,12 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	startArgs := files.NewUploadSessionStartArg()
 	startArgs.SessionType = &files.UploadSessionType{}
 	startArgs.SessionType.Tag = files.UploadSessionTypeConcurrent
-	res, err := dbx.UploadSessionStart(startArgs, nil)
+	var res *files.UploadSessionStartResult
+	err = retryWithBackoff(func() error {
+		var e error
+		res, e = dbx.UploadSessionStart(startArgs, nil)
+		return e
+	})
 	if err != nil {
 		return
 	}
@@ -135,8 +165,11 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 
 	t2 := time.Now()
 	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
-	args := files.NewUploadSessionFinishArg(cursor, commitInfo)
-	_, err = dbx.UploadSessionFinish(args, nil)
+	finishArgs := files.NewUploadSessionFinishArg(cursor, commitInfo)
+	err = retryWithBackoff(func() error {
+		_, e := dbx.UploadSessionFinish(finishArgs, nil)
+		return e
+	})
 	if debug {
 		log.Printf("Finish took: %v\n", time.Since(t2))
 	}
@@ -186,15 +219,6 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	progressbar := &ioprogress.Reader{
-		Reader: contents,
-		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
-			return fmt.Sprintf("Uploading %s/%s",
-				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
-		}),
-		Size: contentsInfo.Size(),
-	}
-
 	commitInfo := files.NewCommitInfo(dst)
 	commitInfo.Mode.Tag = "overwrite"
 
@@ -204,15 +228,11 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := files.New(config)
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {
-		return uploadChunked(dbx, progressbar, commitInfo, contentsInfo.Size(), workers, chunkSize, debug)
+		return uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size()), commitInfo, contentsInfo.Size(), workers, chunkSize, debug)
 	}
 
 	uploadArg := &files.UploadArg{CommitInfo: *commitInfo}
-	if _, err = dbx.Upload(uploadArg, progressbar); err != nil {
-		return
-	}
-
-	return
+	return uploadSingleShot(dbx, contents, uploadArg, contentsInfo.Size())
 }
 
 // putCmd represents the put command
