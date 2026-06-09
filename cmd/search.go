@@ -17,8 +17,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
@@ -47,20 +49,30 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	long, _ := cmd.Flags().GetBool("long")
+
+	return renderSearchResults(os.Stdout, res, long)
+}
+
+func renderSearchResults(out io.Writer, res *files.SearchResult, long bool) error {
+	w := new(tabwriter.Writer)
+	w.Init(out, 4, 8, 1, ' ', 0)
+
 	if long {
-		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
 	for _, m := range res.Matches {
 		switch f := m.Metadata.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(os.Stdout, f, long)
+			printFileMetadata(w, f, long)
+			_, _ = fmt.Fprintln(w)
 		case *files.FolderMetadata:
-			printFolderMetadata(os.Stdout, f, long)
+			printFolderMetadata(w, f, long)
+			_, _ = fmt.Fprintln(w)
 		}
 	}
 
-	return
+	return w.Flush()
 }
 
 // searchCmd represents the search command
