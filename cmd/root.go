@@ -225,7 +225,7 @@ manage your team and more. It is easy, scriptable and works on all platforms!`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		os.Exit(-1)
+		os.Exit(1)
 	}
 }
 
