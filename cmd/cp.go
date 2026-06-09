@@ -58,8 +58,11 @@ func cp(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	for _, cpError := range cpErrors {
-		fmt.Fprintf(os.Stderr, "%v\n", cpError)
+	if len(cpErrors) > 0 {
+		for _, cpError := range cpErrors {
+			_, _ = fmt.Fprintf(os.Stderr, "%v\n", cpError)
+		}
+		return fmt.Errorf("cp: %d error(s)", len(cpErrors))
 	}
 
 	return nil

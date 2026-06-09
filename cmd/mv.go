@@ -71,8 +71,11 @@ func mv(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	for _, mvError := range mvErrors {
-		fmt.Fprintf(os.Stderr, "%v\n", mvError)
+	if len(mvErrors) > 0 {
+		for _, mvError := range mvErrors {
+			_, _ = fmt.Fprintf(os.Stderr, "%v\n", mvError)
+		}
+		return fmt.Errorf("mv: %d error(s)", len(mvErrors))
 	}
 
 	return nil
