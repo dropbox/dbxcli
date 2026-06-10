@@ -33,7 +33,7 @@ func TestRenderSearchResultsSeparatesMatchesWithNewlines(t *testing.T) {
 	}, false, 0)
 
 	var out bytes.Buffer
-	if err := renderSearchResults(&out, res, false); err != nil {
+	if err := renderSearchResults(&out, res, listOptions{long: false}); err != nil {
 		t.Fatalf("renderSearchResults returned error: %v", err)
 	}
 

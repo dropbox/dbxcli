@@ -93,7 +93,60 @@ Flags:
   -v, --verbose            Enable verbose logging
 
 Use "dbxcli [command] --help" for more information about a command.
+```
 
+### Listing files
+
+```sh
+$ dbxcli ls -l /Photos
+Revision              Size    Last modified Path
+abc123                1.2 MiB 3 weeks ago   /Photos/vacation.jpg
+def456                4.5 MiB 1 month ago   /Photos/family.png
+```
+
+#### Time format
+
+By default, `ls -l` and `search -l` show relative timestamps ("3 weeks ago"). Use `--time-format` for absolute dates:
+
+```sh
+$ dbxcli ls -l --time-format=short /Photos
+Revision              Size    Last modified    Path
+abc123                1.2 MiB 2026-05-15 10:30 /Photos/vacation.jpg
+
+$ dbxcli ls -l --time-format=rfc3339 /Photos
+Revision              Size    Last modified        Path
+abc123                1.2 MiB 2026-05-15T10:30:00Z /Photos/vacation.jpg
+```
+
+Use `--time=client` to display client-modified time instead of server-modified (default):
+
+```sh
+$ dbxcli ls -l --time=client --time-format=short /Photos
+```
+
+#### Sorting
+
+Sort results with `--sort` and optionally `--reverse`:
+
+```sh
+$ dbxcli ls -l --sort=size /Documents          # smallest first
+$ dbxcli ls -l --sort=size --reverse /Documents # largest first
+$ dbxcli ls -l --sort=name /Documents           # alphabetical
+$ dbxcli ls -l --sort=time /Documents           # oldest first
+$ dbxcli ls -l --sort=type /Documents           # folders, files, deleted
+```
+
+### Searching
+
+```sh
+$ dbxcli search -l --time-format=short --sort=size "report"
+```
+
+All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `ls` and `search`.
+
+### Team management
+
+```sh
 $ dbxcli team --help
 Team management commands
 
