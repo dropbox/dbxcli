@@ -26,6 +26,8 @@ import (
 
 // Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
+	out := commandOutput(cmd)
+
 	dir, err := homedir.Dir()
 	if err != nil {
 		return err
@@ -39,7 +41,7 @@ func logout(cmd *cobra.Command, args []string) error {
 
 	for domain, tokens := range tokMap {
 		for _, token := range tokens {
-			config := dropbox.Config{
+			cfg := dropbox.Config{
 				Token:           token,
 				LogLevel:        dropbox.LogOff,
 				Logger:          nil,
@@ -49,10 +51,9 @@ func logout(cmd *cobra.Command, args []string) error {
 				HeaderGenerator: nil,
 				URLGenerator:    nil,
 			}
-			client := auth.New(config)
-			err = client.TokenRevoke()
-			if err != nil {
-				return err
+			client := auth.New(cfg)
+			if err = client.TokenRevoke(); err != nil {
+				out.Warn("could not revoke token (may be expired): %v", err)
 			}
 		}
 	}
