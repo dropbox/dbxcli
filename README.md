@@ -116,6 +116,13 @@ Use "dbxcli team [command] --help" for more information about a command.
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
 
+### Creating directories
+
+```sh
+$ dbxcli mkdir /projects/2026/reports   # creates all intermediate directories
+$ dbxcli mkdir -p /projects/2026/reports # no error if directory already exists
+```
+
 ## Contributing
 
  * Step 1: If you're submitting a non-trivial change, please fill out the [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/) first.
