@@ -48,26 +48,32 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	long, _ := cmd.Flags().GetBool("long")
+	opts := parseLsOptions(cmd)
 
-	return renderSearchResults(os.Stdout, res, long)
+	return renderSearchResults(os.Stdout, res, opts)
 }
 
-func renderSearchResults(out io.Writer, res *files.SearchResult, long bool) error {
+func renderSearchResults(out io.Writer, res *files.SearchResult, opts listOptions) error {
 	w := new(tabwriter.Writer)
 	w.Init(out, 4, 8, 1, ' ', 0)
 
-	if long {
+	if opts.long {
 		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
+	entries := make([]files.IsMetadata, 0, len(res.Matches))
 	for _, m := range res.Matches {
-		switch f := m.Metadata.(type) {
+		entries = append(entries, m.Metadata)
+	}
+	sortEntries(entries, opts)
+
+	for _, entry := range entries {
+		switch f := entry.(type) {
 		case *files.FileMetadata:
-			printFileMetadata(w, f, long)
+			_, _ = fmt.Fprint(w, formatFileMetadataWithOpts(f, opts))
 			_, _ = fmt.Fprintln(w)
 		case *files.FolderMetadata:
-			printFolderMetadata(w, f, long)
+			printFolderMetadata(w, f, opts.long)
 			_, _ = fmt.Fprintln(w)
 		}
 	}
@@ -85,4 +91,8 @@ var searchCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(searchCmd)
 	searchCmd.Flags().BoolP("long", "l", false, "Long listing")
+	searchCmd.Flags().String("sort", "", "Sort by: name, size, time, type")
+	searchCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")
+	searchCmd.Flags().String("time", "server", "Time field: server, client")
+	searchCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
 }

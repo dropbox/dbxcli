@@ -60,9 +60,14 @@ func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
 }
 
 func formatFileMetadata(e *files.FileMetadata, longFormat bool) string {
+	return formatFileMetadataWithOpts(e, listOptions{long: longFormat})
+}
+
+func formatFileMetadataWithOpts(e *files.FileMetadata, opts listOptions) string {
 	text := fmt.Sprintf("%s\t", e.PathDisplay)
-	if longFormat {
-		text = fmt.Sprintf("%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), humanize.Time(e.ServerModified)) + text
+	if opts.long {
+		t := getTime(e, opts)
+		text = fmt.Sprintf("%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), formatTime(t, opts)) + text
 	}
 	return text
 }
@@ -86,6 +91,21 @@ func SetPathDisplayAsDeleted(metadata files.IsMetadata) {
 	}
 }
 
+func parseLsOptions(cmd *cobra.Command) listOptions {
+	long, _ := cmd.Flags().GetBool("long")
+	timeField, _ := cmd.Flags().GetString("time")
+	timeFormat, _ := cmd.Flags().GetString("time-format")
+	sortBy, _ := cmd.Flags().GetString("sort")
+	reverse, _ := cmd.Flags().GetBool("reverse")
+	return listOptions{
+		long:       long,
+		timeField:  timeField,
+		timeFormat: timeFormat,
+		sortBy:     sortBy,
+		reverse:    reverse,
+	}
+}
+
 func ls(cmd *cobra.Command, args []string) (err error) {
 
 	path := ""
@@ -100,7 +120,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	arg.IncludeDeleted, _ = cmd.Flags().GetBool("include-deleted")
 	onlyDeleted, _ := cmd.Flags().GetBool("only-deleted")
 	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
-	long, _ := cmd.Flags().GetBool("long")
+	opts := parseLsOptions(cmd)
 
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
@@ -108,14 +128,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	printItem := func(message string) {
 		itemCounter = itemCounter + 1
 		fmt.Fprint(w, message)
-		if (itemCounter%4 == 0) || long {
+		if (itemCounter%4 == 0) || opts.long {
 			fmt.Fprintln(w)
 		}
 	}
 
 	dbx := files.New(config)
 
-	if long {
+	if opts.long {
 		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
@@ -129,7 +149,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		switch f := metaRes.(type) {
 		case *files.FileMetadata:
 			if !onlyDeleted {
-				printItem(formatFileMetadata(f, long))
+				printItem(formatFileMetadataWithOpts(f, opts))
 				err = w.Flush()
 				return err
 			}
@@ -171,6 +191,8 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	sortEntries(entries, opts)
+
 	for _, entry := range entries {
 		deletedItem, isDeleted := entry.(*files.DeletedMetadata)
 		if isDeleted {
@@ -201,14 +223,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		switch f := entry.(type) {
 		case *files.FileMetadata:
 			if !onlyDeleted {
-				printItem(formatFileMetadata(f, long))
+				printItem(formatFileMetadataWithOpts(f, opts))
 			}
 		case *files.FolderMetadata:
 			if !onlyDeleted {
-				printItem(formatFolderMetadata(f, long))
+				printItem(formatFolderMetadata(f, opts.long))
 			}
 		case *files.DeletedMetadata:
-			printItem(formatDeletedMetadata(f, long))
+			printItem(formatDeletedMetadata(f, opts.long))
 		}
 	}
 
@@ -234,4 +256,8 @@ func init() {
 	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
 	lsCmd.Flags().BoolP("include-deleted", "d", false, "Include deleted files")
 	lsCmd.Flags().BoolP("only-deleted", "D", false, "Only show deleted files")
+	lsCmd.Flags().String("sort", "", "Sort by: name, size, time, type")
+	lsCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")
+	lsCmd.Flags().String("time", "server", "Time field: server, client")
+	lsCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
 }
