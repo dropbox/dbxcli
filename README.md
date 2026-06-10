@@ -11,10 +11,11 @@
 
 ## Features
 
-  * Supports basic file operations like ls, cp, mkdir, mv (via the Files API)
-  * Supports search
+  * Supports basic file operations like ls, cp, mkdir, mv, rm (via the Files API)
+  * Supports search with sorting and flexible time formatting
   * Supports file revisions and file restore
   * Chunked uploads for large files, paginated listing for large directories
+  * Retry with exponential backoff for uploads and downloads
   * Supports a growing set of Team operations
 
 ## Installation
@@ -34,9 +35,9 @@ $ cd ~/bin
 ```sh
 export PATH=$PATH:$HOME/bin
 ```
-4. Download the `dbxcli` binary for OSX and rename it.  *IMPORTANT:* Check that the tag `v2.1.1` on the URL below is the latest release tag on the [Releases](https://github.com/dropbox/dbxcli/releases) page.
+4. Download the `dbxcli` binary for OSX and rename it.  *IMPORTANT:* Check that the tag `v3.2.1` on the URL below is the latest release tag on the [Releases](https://github.com/dropbox/dbxcli/releases) page.
 ```sh
-$ wget https://github.com/dropbox/dbxcli/releases/download/v2.1.1/dbxcli-darwin-amd64 
+$ wget https://github.com/dropbox/dbxcli/releases/download/v3.2.1/dbxcli-darwin-amd64 
 $ mv dbxcli-darwin-amd64 dbxcli
 ```
 5. Finally, make the binary an executable file and you are good to go!
@@ -74,17 +75,21 @@ Usage:
   dbxcli [command]
 
 Available Commands:
-  cp          Copy files
+  account     Display account information
+  completion  Generate the autocompletion script for the specified shell
+  cp          Copy a file or folder to a different location
   du          Display usage information
   get         Download a file
-  ls          List files
+  logout      Log out of the current session
+  ls          List files and folders
   mkdir       Create a new directory
   mv          Move files
-  put         Upload files
+  put         Upload a single file
   restore     Restore files
   revs        List file revisions
   rm          Remove files
   search      Search
+  share       Sharing commands
   team        Team management commands
   version     Print version information
 
