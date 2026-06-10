@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
@@ -33,12 +34,21 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewCreateFolderArg(dst)
 
+	parents, _ := cmd.Flags().GetBool("parents")
+
 	dbx := files.New(config)
 	if _, err = dbx.CreateFolderV2(arg); err != nil {
+		if parents && isConflictError(err) {
+			return nil
+		}
 		return
 	}
 
 	return
+}
+
+func isConflictError(err error) bool {
+	return strings.Contains(err.Error(), "path/conflict")
 }
 
 // mkdirCmd represents the mkdir command
@@ -50,4 +60,5 @@ var mkdirCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(mkdirCmd)
+	mkdirCmd.Flags().BoolP("parents", "p", false, "No error if existing, create parent directories as needed")
 }
