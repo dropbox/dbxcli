@@ -17,7 +17,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"regexp"
+	"path"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
@@ -40,30 +41,25 @@ func mv(cmd *cobra.Command, args []string) error {
 	var mvErrors []error
 	var relocationArgs []*files.RelocationArg
 
-	re := regexp.MustCompile("[^/]+$")
+	dbx := files.New(config)
+	destIsFolder := strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
+
 	for _, argument := range argsToMove {
-
-		argumentFile := re.FindString(argument)
-		lastCharDest := destination[len(destination)-1:]
-
-		var err error
-		var arg *files.RelocationArg
-
-		if lastCharDest == "/" {
-			arg, err = makeRelocationArg(argument, destination + argumentFile)
+		var dst string
+		if destIsFolder {
+			dst = path.Join(destination, path.Base(argument))
 		} else {
-			arg, err = makeRelocationArg(argument, destination)
+			dst = destination
 		}
 
+		arg, err := makeRelocationArg(argument, dst)
 		if err != nil {
-			relocationError := fmt.Errorf("Error validating move for %s to %s: %v", argument, destination, err)
-			mvErrors = append(mvErrors, relocationError)
+			mvErrors = append(mvErrors, fmt.Errorf("Error validating move for %s to %s: %v", argument, dst, err))
 		} else {
 			relocationArgs = append(relocationArgs, arg)
 		}
 	}
 
-	dbx := files.New(config)
 	for _, arg := range relocationArgs {
 		if _, err := dbx.MoveV2(arg); err != nil {
 			moveError := fmt.Errorf("Move error: %v", arg)
@@ -79,6 +75,19 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func isRemoteFolder(dbx files.Client, dst string) bool {
+	p, err := validatePath(dst)
+	if err != nil {
+		return false
+	}
+	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(p))
+	if err != nil {
+		return false
+	}
+	_, ok := meta.(*files.FolderMetadata)
+	return ok
 }
 
 // mvCmd represents the mv command
