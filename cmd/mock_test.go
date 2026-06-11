@@ -14,6 +14,7 @@ type mockFilesClient struct {
 	uploadSessionStartFn    func(arg *files.UploadSessionStartArg, content io.Reader) (*files.UploadSessionStartResult, error)
 	uploadSessionAppendV2Fn func(arg *files.UploadSessionAppendArg, content io.Reader) error
 	uploadSessionFinishFn   func(arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error)
+	createFolderV2Fn        func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error)
 }
 
 func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
@@ -83,6 +84,9 @@ func (m *mockFilesClient) CopyReferenceSave(arg *files.SaveCopyReferenceArg) (*f
 	return nil, nil
 }
 func (m *mockFilesClient) CreateFolderV2(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+	if m.createFolderV2Fn != nil {
+		return m.createFolderV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) CreateFolder(arg *files.CreateFolderArg) (*files.FolderMetadata, error) {

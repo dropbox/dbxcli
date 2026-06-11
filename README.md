@@ -15,6 +15,7 @@
   * Supports search with sorting and flexible time formatting
   * Supports file revisions and file restore
   * Chunked uploads for large files, paginated listing for large directories
+  * Recursive directory uploads (`put -r`)
   * Retry with exponential backoff for uploads and downloads
   * Supports a growing set of Team operations
 
@@ -84,7 +85,7 @@ Available Commands:
   ls          List files and folders
   mkdir       Create a new directory
   mv          Move files
-  put         Upload a single file
+  put         Upload files or directories
   restore     Restore files
   revs        List file revisions
   rm          Remove files
@@ -173,6 +174,14 @@ Use "dbxcli team [command] --help" for more information about a command.
 ```
 
 The `--verbose` option will turn on verbose logging and is useful for debugging.
+
+### Uploading files and directories
+
+```sh
+$ dbxcli put file.txt /destination/file.txt        # upload a single file
+$ dbxcli put -r ./project /backup/project          # recursively upload a directory
+$ dbxcli put -r -w 8 ./large-folder /backup/large  # use 8 workers per large file
+```
 
 ### Creating directories
 
