@@ -11,6 +11,7 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	dbxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/spf13/cobra"
 )
 
 func TestUploadOneChunk_Success(t *testing.T) {
@@ -231,12 +232,200 @@ func TestUploadSingleShot_RetriesTooManyWriteOperations(t *testing.T) {
 	}
 }
 
+func testConfig() dropbox.Config {
+	return dropbox.Config{Token: "test-token"}
+}
+
+func testPutCmd() *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
+	cmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
+	cmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
+	cmd.Flags().BoolP("debug", "d", false, "Print debug timing")
+	return cmd
+}
+
 func TestPutArgValidation(t *testing.T) {
-	cmd := putCmd
-	cmd.SetArgs([]string{})
-	err := cmd.RunE(cmd, []string{})
+	err := put(testPutCmd(), []string{})
 	if err == nil {
 		t.Error("expected error for no args")
+	}
+}
+
+func TestPutDirectoryWithoutRecursiveFlag(t *testing.T) {
+	dir := t.TempDir()
+	err := put(testPutCmd(), []string{dir, "/dest"})
+	if err == nil {
+		t.Fatal("expected error when putting directory without --recursive")
+	}
+	if !bytes.Contains([]byte(err.Error()), []byte("use --recursive")) {
+		t.Errorf("error = %q, want mention of --recursive", err.Error())
+	}
+}
+
+func TestPutRecursive_WalksDirectoryStructure(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "sub", "deep"), 0755)
+	os.WriteFile(filepath.Join(dir, "root.txt"), []byte("root"), 0644)
+	os.WriteFile(filepath.Join(dir, "sub", "mid.txt"), []byte("mid"), 0644)
+	os.WriteFile(filepath.Join(dir, "sub", "deep", "leaf.txt"), []byte("leaf"), 0644)
+
+	var uploaded []string
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = testConfig()
+	testClient := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploaded = append(uploaded, arg.Path)
+			return &files.FileMetadata{}, nil
+		},
+	}
+	origNew := filesNewFunc
+	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	defer func() { filesNewFunc = origNew }()
+
+	opts := putOptions{chunkSize: 1 << 24, workers: 4}
+	err := putRecursive(dir, "/backup", opts)
+	if err != nil {
+		t.Fatalf("putRecursive error: %v", err)
+	}
+
+	expected := map[string]bool{
+		"/backup/root.txt":          true,
+		"/backup/sub/mid.txt":       true,
+		"/backup/sub/deep/leaf.txt": true,
+	}
+	if len(uploaded) != len(expected) {
+		t.Fatalf("uploaded %d files, want %d: %v", len(uploaded), len(expected), uploaded)
+	}
+	for _, path := range uploaded {
+		if !expected[path] {
+			t.Errorf("unexpected upload path: %s", path)
+		}
+	}
+}
+
+func TestPutRecursive_CreatesEmptyDirectories(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "has-files"), 0755)
+	os.MkdirAll(filepath.Join(dir, "empty"), 0755)
+	os.MkdirAll(filepath.Join(dir, "empty", "nested"), 0755)
+	os.WriteFile(filepath.Join(dir, "has-files", "a.txt"), []byte("a"), 0644)
+
+	var uploaded []string
+	var createdDirs []string
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = testConfig()
+	testClient := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploaded = append(uploaded, arg.Path)
+			return &files.FileMetadata{}, nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			createdDirs = append(createdDirs, arg.Path)
+			return &files.CreateFolderResult{}, nil
+		},
+	}
+	origNew := filesNewFunc
+	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	defer func() { filesNewFunc = origNew }()
+
+	opts := putOptions{chunkSize: 1 << 24, workers: 4}
+	err := putRecursive(dir, "/dest", opts)
+	if err != nil {
+		t.Fatalf("putRecursive error: %v", err)
+	}
+
+	if len(uploaded) != 1 || uploaded[0] != "/dest/has-files/a.txt" {
+		t.Errorf("uploaded = %v, want [/dest/has-files/a.txt]", uploaded)
+	}
+
+	expectedDirs := map[string]bool{
+		"/dest":              true,
+		"/dest/empty":        true,
+		"/dest/empty/nested": true,
+	}
+	if len(createdDirs) != len(expectedDirs) {
+		t.Fatalf("created %d dirs, want %d: %v", len(createdDirs), len(expectedDirs), createdDirs)
+	}
+	for _, d := range createdDirs {
+		if !expectedDirs[d] {
+			t.Errorf("unexpected created dir: %s", d)
+		}
+	}
+}
+
+func TestPutRecursive_CreatesEmptyRootDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	var uploaded []string
+	var createdDirs []string
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = testConfig()
+	testClient := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploaded = append(uploaded, arg.Path)
+			return &files.FileMetadata{}, nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			createdDirs = append(createdDirs, arg.Path)
+			return &files.CreateFolderResult{}, nil
+		},
+	}
+	origNew := filesNewFunc
+	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	defer func() { filesNewFunc = origNew }()
+
+	opts := putOptions{chunkSize: 1 << 24, workers: 4}
+	err := putRecursive(dir, "/empty-root", opts)
+	if err != nil {
+		t.Fatalf("putRecursive error: %v", err)
+	}
+
+	if len(uploaded) != 0 {
+		t.Fatalf("uploaded = %v, want no files", uploaded)
+	}
+	if len(createdDirs) != 1 || createdDirs[0] != "/empty-root" {
+		t.Fatalf("createdDirs = %v, want [/empty-root]", createdDirs)
+	}
+}
+
+func TestPutRecursive_SkipsSymlinks(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "real.txt"), []byte("real"), 0644)
+	os.Symlink(filepath.Join(dir, "real.txt"), filepath.Join(dir, "link.txt"))
+
+	var uploaded []string
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = testConfig()
+	testClient := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploaded = append(uploaded, arg.Path)
+			return &files.FileMetadata{}, nil
+		},
+	}
+	origNew := filesNewFunc
+	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	defer func() { filesNewFunc = origNew }()
+
+	opts := putOptions{chunkSize: 1 << 24, workers: 4}
+	err := putRecursive(dir, "/dest", opts)
+	if err != nil {
+		t.Fatalf("putRecursive error: %v", err)
+	}
+
+	if len(uploaded) != 1 {
+		t.Fatalf("uploaded %d files, want 1: %v", len(uploaded), uploaded)
+	}
+	if uploaded[0] != "/dest/real.txt" {
+		t.Errorf("uploaded[0] = %q, want /dest/real.txt", uploaded[0])
 	}
 }
 
@@ -246,7 +435,7 @@ func TestPutChunkSizeValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd := putCmd
+	cmd := testPutCmd()
 	_ = cmd.Flags().Set("chunksize", "100")
 	err := put(cmd, []string{tmpFile, "/test.txt"})
 	if err == nil || err.Error() != "`put` requires chunk size to be multiple of 4MiB" {

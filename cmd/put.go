@@ -22,9 +22,11 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
@@ -32,6 +34,10 @@ import (
 )
 
 const singleShotUploadSizeCutoff int64 = 32 * (1 << 20)
+
+var filesNewFunc = func(cfg dropbox.Config) files.Client {
+	return files.New(cfg)
+}
 
 type uploadChunk struct {
 	data   []byte
@@ -176,28 +182,34 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	return
 }
 
+type putOptions struct {
+	chunkSize int64
+	workers   int
+	debug     bool
+}
+
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`put` requires `src` and/or `dst` arguments")
 	}
 
-	chunkSize, err := cmd.Flags().GetInt64("chunksize")
+	opts, err := parsePutOptions(cmd)
 	if err != nil {
 		return err
 	}
-	if chunkSize%(1<<22) != 0 {
-		return errors.New("`put` requires chunk size to be multiple of 4MiB")
-	}
-	workers, err := cmd.Flags().GetInt("workers")
-	if err != nil {
-		return err
-	}
-	if workers < 1 {
-		workers = 1
-	}
-	debug, _ := cmd.Flags().GetBool("debug")
+
+	recursive, _ := cmd.Flags().GetBool("recursive")
 
 	src := args[0]
+
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return
+	}
+
+	if srcInfo.IsDir() && !recursive {
+		return fmt.Errorf("%s is a directory (use --recursive to upload directories)", src)
+	}
 
 	// Default `dst` to the base segment of the source path; use the second argument if provided.
 	dst := "/" + path.Base(src)
@@ -208,15 +220,42 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	if srcInfo.IsDir() {
+		return putRecursive(src, dst, opts)
+	}
+
+	return putFile(src, dst, opts)
+}
+
+func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
+	chunkSize, err := cmd.Flags().GetInt64("chunksize")
+	if err != nil {
+		return putOptions{}, err
+	}
+	if chunkSize%(1<<22) != 0 {
+		return putOptions{}, errors.New("`put` requires chunk size to be multiple of 4MiB")
+	}
+	workers, err := cmd.Flags().GetInt("workers")
+	if err != nil {
+		return putOptions{}, err
+	}
+	if workers < 1 {
+		workers = 1
+	}
+	debug, _ := cmd.Flags().GetBool("debug")
+	return putOptions{chunkSize: chunkSize, workers: workers, debug: debug}, nil
+}
+
+func putFile(src, dst string, opts putOptions) error {
 	contents, err := os.Open(src)
 	if err != nil {
-		return
+		return err
 	}
 	defer contents.Close()
 
 	contentsInfo, err := contents.Stat()
 	if err != nil {
-		return
+		return err
 	}
 
 	commitInfo := files.NewCommitInfo(dst)
@@ -226,29 +265,113 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	ts := time.Now().UTC().Round(time.Second)
 	commitInfo.ClientModified = &ts
 
-	dbx := files.New(config)
+	dbx := filesNewFunc(config)
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {
-		return uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size()), commitInfo, contentsInfo.Size(), workers, chunkSize, debug)
+		return uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size()), commitInfo, contentsInfo.Size(), opts.workers, opts.chunkSize, opts.debug)
 	}
 
 	uploadArg := &files.UploadArg{CommitInfo: *commitInfo}
 	return uploadSingleShot(dbx, contents, uploadArg, contentsInfo.Size())
 }
 
+func putRecursive(src, dst string, opts putOptions) error {
+	src = filepath.Clean(src)
+	var uploadErrors []error
+	dirsWithFiles := make(map[string]bool)
+
+	err := filepath.WalkDir(src, func(filePath string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !d.Type().IsRegular() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(src, filePath)
+		if err != nil {
+			return err
+		}
+
+		dirsWithFiles[filepath.Dir(filePath)] = true
+
+		remotePath := path.Join(dst, filepath.ToSlash(relPath))
+		fmt.Fprintf(os.Stderr, "Uploading %s -> %s\n", filePath, remotePath)
+
+		if err := putFile(filePath, remotePath, opts); err != nil {
+			uploadErrors = append(uploadErrors, fmt.Errorf("%s: %w", filePath, err))
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	dbx := filesNewFunc(config)
+
+	fmt.Fprintf(os.Stderr, "Creating directory %s\n", dst)
+	arg := files.NewCreateFolderArg(dst)
+	if _, mkdirErr := dbx.CreateFolderV2(arg); mkdirErr != nil {
+		if !isConflictError(mkdirErr) {
+			uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", dst, mkdirErr))
+		}
+	}
+
+	err = filepath.WalkDir(src, func(dirPath string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		if dirsWithFiles[dirPath] {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(src, dirPath)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+
+		remotePath := path.Join(dst, filepath.ToSlash(relPath))
+		fmt.Fprintf(os.Stderr, "Creating directory %s\n", remotePath)
+		arg := files.NewCreateFolderArg(remotePath)
+		if _, mkdirErr := dbx.CreateFolderV2(arg); mkdirErr != nil {
+			if !isConflictError(mkdirErr) {
+				uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", remotePath, mkdirErr))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(uploadErrors) > 0 {
+		return fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
+	}
+	return nil
+}
+
 // putCmd represents the put command
 var putCmd = &cobra.Command{
 	Use:   "put [flags] <source> [<target>]",
-	Short: "Upload a single file",
-	Long: `Upload a single file
-	- If target is not provided puts the file in the root of your Dropbox directory.
-	- If target is provided it must be the desired filename in the cloud (and not a directory).
-	`,
-
+	Short: "Upload files or directories",
+	Long: `Upload files or directories to Dropbox.
+  - If target is not provided, uploads to the root of your Dropbox.
+  - Use --recursive (-r) to upload entire directories.
+`,
 	RunE: put,
 }
 
 func init() {
 	RootCmd.AddCommand(putCmd)
+	putCmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
 	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
 	putCmd.Flags().BoolP("debug", "d", false, "Print debug timing")
