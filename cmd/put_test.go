@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -243,6 +244,100 @@ func testPutCmd() *cobra.Command {
 	cmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
 	cmd.Flags().BoolP("debug", "d", false, "Print debug timing")
 	return cmd
+}
+
+func TestResolveDestination_TargetIsFolder(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FolderMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+	}
+	got := resolveDestination(mock, "/local/video.mp4", "/Videos", false)
+	if got != "/Videos/video.mp4" {
+		t.Errorf("resolveDestination = %q, want /Videos/video.mp4", got)
+	}
+}
+
+func TestResolveDestination_TargetIsFile(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{}, nil
+		},
+	}
+	got := resolveDestination(mock, "/local/a.txt", "/existing.txt", false)
+	if got != "/existing.txt" {
+		t.Errorf("resolveDestination = %q, want /existing.txt", got)
+	}
+}
+
+func TestResolveDestination_TargetNotFound(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("path/not_found/")
+		},
+	}
+	got := resolveDestination(mock, "/local/a.txt", "/new-name", false)
+	if got != "/new-name" {
+		t.Errorf("resolveDestination = %q, want /new-name", got)
+	}
+}
+
+func TestResolveDestination_ExplicitDirectory(t *testing.T) {
+	mock := &mockFilesClient{}
+	got := resolveDestination(mock, "/local/a.txt", "/folder", true)
+	if got != "/folder/a.txt" {
+		t.Errorf("resolveDestination = %q, want /folder/a.txt", got)
+	}
+}
+
+func TestResolveDestination_ExplicitRootDirectory(t *testing.T) {
+	mock := &mockFilesClient{}
+	got := resolveDestination(mock, "/local/a.txt", "", true)
+	if got != "/a.txt" {
+		t.Errorf("resolveDestination = %q, want /a.txt", got)
+	}
+}
+
+func TestResolveDestination_MetadataError(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("server error 500")
+		},
+	}
+	got := resolveDestination(mock, "/local/a.txt", "/path", false)
+	if got != "/path" {
+		t.Errorf("resolveDestination = %q, want /path (fallback on error)", got)
+	}
+}
+
+func TestPutFileDestinationTrailingSlash(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "a.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var uploadedPath string
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = testConfig()
+	testClient := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploadedPath = arg.Path
+			return &files.FileMetadata{}, nil
+		},
+	}
+	origNew := filesNewFunc
+	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	defer func() { filesNewFunc = origNew }()
+
+	err := put(testPutCmd(), []string{tmpFile, "/folder/"})
+	if err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+	if uploadedPath != "/folder/a.txt" {
+		t.Errorf("uploaded path = %q, want /folder/a.txt", uploadedPath)
+	}
 }
 
 func TestPutArgValidation(t *testing.T) {

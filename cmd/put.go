@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -213,11 +214,17 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	// Default `dst` to the base segment of the source path; use the second argument if provided.
 	dst := "/" + path.Base(src)
+	dstIsDir := false
 	if len(args) == 2 {
+		dstIsDir = strings.HasSuffix(args[1], "/")
 		dst, err = validatePath(args[1])
 		if err != nil {
 			return
 		}
+	}
+
+	if !srcInfo.IsDir() {
+		dst = resolveDestination(filesNewFunc(config), src, dst, dstIsDir)
 	}
 
 	if srcInfo.IsDir() {
@@ -225,6 +232,20 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return putFile(src, dst, opts)
+}
+
+func resolveDestination(dbx files.Client, src, dst string, dstIsDir bool) string {
+	if dstIsDir {
+		return path.Join("/", dst, path.Base(src))
+	}
+	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(dst))
+	if err != nil {
+		return dst
+	}
+	if _, ok := meta.(*files.FolderMetadata); ok {
+		return path.Join("/", dst, path.Base(src))
+	}
+	return dst
 }
 
 func parsePutOptions(cmd *cobra.Command) (putOptions, error) {

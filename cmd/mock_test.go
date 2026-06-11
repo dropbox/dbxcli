@@ -15,6 +15,7 @@ type mockFilesClient struct {
 	uploadSessionAppendV2Fn func(arg *files.UploadSessionAppendArg, content io.Reader) error
 	uploadSessionFinishFn   func(arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error)
 	createFolderV2Fn        func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error)
+	getMetadataFn           func(arg *files.GetMetadataArg) (files.IsMetadata, error)
 }
 
 func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
@@ -118,6 +119,9 @@ func (m *mockFilesClient) GetFileLockBatch(arg *files.LockFileBatchArg) (*files.
 	return nil, nil
 }
 func (m *mockFilesClient) GetMetadata(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+	if m.getMetadataFn != nil {
+		return m.getMetadataFn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) GetPreview(arg *files.PreviewArg) (*files.FileMetadata, io.ReadCloser, error) {
