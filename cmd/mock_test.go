@@ -17,6 +17,8 @@ type mockFilesClient struct {
 	copyV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 	createFolderV2Fn        func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error)
 	getMetadataFn           func(arg *files.GetMetadataArg) (files.IsMetadata, error)
+	listFolderFn            func(arg *files.ListFolderArg) (*files.ListFolderResult, error)
+	listFolderContinueFn    func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error)
 	moveV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 }
 
@@ -148,9 +150,15 @@ func (m *mockFilesClient) GetThumbnailBatch(arg *files.GetThumbnailBatchArg) (*f
 	return nil, nil
 }
 func (m *mockFilesClient) ListFolder(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+	if m.listFolderFn != nil {
+		return m.listFolderFn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) ListFolderContinue(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+	if m.listFolderContinueFn != nil {
+		return m.listFolderContinueFn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) ListFolderGetLatestCursor(arg *files.ListFolderArg) (*files.ListFolderGetLatestCursorResult, error) {

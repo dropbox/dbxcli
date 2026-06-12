@@ -4,12 +4,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	dbxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/spf13/cobra"
 )
 
 type failingReadCloser struct {
@@ -247,5 +249,357 @@ func TestGetDownloadPermanentError(t *testing.T) {
 	err := downloadFile(mock, "/nonexistent.txt", dst)
 	if err == nil {
 		t.Error("expected error for permanent failure, got nil")
+	}
+}
+
+func TestGetRecursive_DownloadsDirectoryStructure(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "output")
+
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			if arg.Path != "/remote" {
+				t.Errorf("ListFolder path = %q, want /remote", arg.Path)
+			}
+			if !arg.Recursive {
+				t.Error("expected Recursive = true")
+			}
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/remote/sub"}},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/root.txt"}, Size: 4},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/sub/deep.txt"}, Size: 4},
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			meta := &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     4,
+			}
+			return meta, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+
+	err := getRecursive(mock, "/remote", dst)
+	if err != nil {
+		t.Fatalf("getRecursive error: %v", err)
+	}
+
+	for _, rel := range []string{"root.txt", "sub/deep.txt"} {
+		p := filepath.Join(dst, filepath.FromSlash(rel))
+		got, err := os.ReadFile(p)
+		if err != nil {
+			t.Errorf("failed to read %s: %v", rel, err)
+			continue
+		}
+		if string(got) != "data" {
+			t.Errorf("%s content = %q, want %q", rel, string(got), "data")
+		}
+	}
+
+	info, err := os.Stat(filepath.Join(dst, "sub"))
+	if err != nil {
+		t.Fatalf("sub directory not created: %v", err)
+	}
+	if !info.IsDir() {
+		t.Error("sub is not a directory")
+	}
+}
+
+func TestGetRecursive_CreatesEmptyDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "output")
+
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/remote/empty"}},
+					&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/remote/empty/nested"}},
+				},
+				HasMore: false,
+			}, nil
+		},
+	}
+
+	err := getRecursive(mock, "/remote", dst)
+	if err != nil {
+		t.Fatalf("getRecursive error: %v", err)
+	}
+
+	for _, dir := range []string{"empty", "empty/nested"} {
+		p := filepath.Join(dst, filepath.FromSlash(dir))
+		info, err := os.Stat(p)
+		if err != nil {
+			t.Errorf("directory %s not created: %v", dir, err)
+			continue
+		}
+		if !info.IsDir() {
+			t.Errorf("%s is not a directory", dir)
+		}
+	}
+}
+
+func TestGetRecursive_HandlesPagination(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "output")
+
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/a.txt"}, Size: 1},
+				},
+				HasMore: true,
+				Cursor:  "page2",
+			}, nil
+		},
+		listFolderContinueFn: func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+			if arg.Cursor != "page2" {
+				t.Errorf("cursor = %q, want page2", arg.Cursor)
+			}
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/b.txt"}, Size: 1},
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			meta := &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     1,
+			}
+			return meta, io.NopCloser(strings.NewReader("x")), nil
+		},
+	}
+
+	err := getRecursive(mock, "/remote", dst)
+	if err != nil {
+		t.Fatalf("getRecursive error: %v", err)
+	}
+
+	for _, name := range []string{"a.txt", "b.txt"} {
+		if _, err := os.Stat(filepath.Join(dst, name)); err != nil {
+			t.Errorf("file %s not downloaded: %v", name, err)
+		}
+	}
+}
+
+func TestGetRecursive_ReportsDownloadErrors(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "output")
+
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/good.txt"}, Size: 4},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/bad.txt"}, Size: 4},
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			if strings.Contains(arg.Path, "bad.txt") {
+				return nil, nil, &files.DownloadAPIError{}
+			}
+			meta := &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     4,
+			}
+			return meta, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+
+	var err error
+	captureStderr(t, func() {
+		err = getRecursive(mock, "/remote", dst)
+	})
+	if err == nil {
+		t.Fatal("expected error for failed downloads")
+	}
+	if !strings.Contains(err.Error(), "1 error") {
+		t.Errorf("error = %q, want mention of 1 error", err.Error())
+	}
+
+	// Good file should still have been downloaded
+	if _, statErr := os.Stat(filepath.Join(dst, "good.txt")); statErr != nil {
+		t.Errorf("good.txt not downloaded: %v", statErr)
+	}
+}
+
+func TestGetFolderWithoutRecursiveFlag(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FolderMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := get(getCmd, []string{"/remote-folder"})
+	if err == nil {
+		t.Fatal("expected error for folder without --recursive")
+	}
+	if !strings.Contains(err.Error(), "--recursive") {
+		t.Errorf("error = %q, want mention of --recursive", err.Error())
+	}
+}
+
+func TestGetRecursiveCommandGetsMetadataThenListsFolder(t *testing.T) {
+	tmpDir := t.TempDir()
+	var calls []string
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			calls = append(calls, "metadata:"+arg.Path)
+			return &files.FolderMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			calls = append(calls, "list:"+arg.Path)
+			if !arg.Recursive {
+				t.Error("expected Recursive = true")
+			}
+			return &files.ListFolderResult{HasMore: false}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().BoolP("recursive", "r", true, "")
+
+	err := get(cmd, []string{"/remote-folder", filepath.Join(tmpDir, "out")})
+	if err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	want := []string{"metadata:/remote-folder", "list:/remote-folder"}
+	if !reflect.DeepEqual(calls, want) {
+		t.Errorf("calls = %v, want %v", calls, want)
+	}
+}
+
+func TestGetFileCommandDownloadsAfterMetadata(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "file.txt")
+	var calls []string
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			calls = append(calls, "metadata:"+arg.Path)
+			return &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     4,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			calls = append(calls, "download:"+arg.Path)
+			return &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     4,
+			}, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().BoolP("recursive", "r", false, "")
+
+	err := get(cmd, []string{"/remote-file.txt", dst})
+	if err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	want := []string{"metadata:/remote-file.txt", "download:/remote-file.txt"}
+	if !reflect.DeepEqual(calls, want) {
+		t.Errorf("calls = %v, want %v", calls, want)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("failed to read downloaded file: %v", err)
+	}
+	if string(got) != "data" {
+		t.Errorf("downloaded file = %q, want data", got)
+	}
+}
+
+func TestGetRecursive_AppendsSourceBaseWhenDstIsDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	var listPath string
+	var downloadPath string
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FolderMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			listPath = arg.Path
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/remote/folder/file.txt"}, Size: 4},
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			downloadPath = arg.Path
+			return &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     4,
+			}, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().BoolP("recursive", "r", true, "")
+
+	err := get(cmd, []string{"/remote/folder", tmpDir})
+	if err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+	if listPath != "/remote/folder" {
+		t.Errorf("ListFolder path = %q, want /remote/folder", listPath)
+	}
+	if downloadPath != "/remote/folder/file.txt" {
+		t.Errorf("Download path = %q, want /remote/folder/file.txt", downloadPath)
+	}
+	got, err := os.ReadFile(filepath.Join(tmpDir, "folder", "file.txt"))
+	if err != nil {
+		t.Fatalf("failed to read downloaded file: %v", err)
+	}
+	if string(got) != "data" {
+		t.Errorf("downloaded file = %q, want data", got)
+	}
+}
+
+func TestRelativeTo(t *testing.T) {
+	tests := []struct {
+		base, full, want string
+	}{
+		{"/remote", "/remote", ""},
+		{"/remote", "/remote/file.txt", "file.txt"},
+		{"/remote", "/remote/sub/deep.txt", "sub/deep.txt"},
+		{"/Remote", "/remote/file.txt", "file.txt"},
+		{"/remote", "/Remote/File.TXT", "File.TXT"},
+	}
+	for _, tt := range tests {
+		got, err := relativeTo(tt.base, tt.full)
+		if err != nil {
+			t.Errorf("relativeTo(%q, %q) error: %v", tt.base, tt.full, err)
+			continue
+		}
+		if got != tt.want {
+			t.Errorf("relativeTo(%q, %q) = %q, want %q", tt.base, tt.full, got, tt.want)
+		}
+	}
+}
+
+func TestRelativeToRejectsSiblingPrefix(t *testing.T) {
+	_, err := relativeTo("/remote", "/remote2/file.txt")
+	if err == nil {
+		t.Fatal("expected error for sibling path with shared prefix")
 	}
 }
