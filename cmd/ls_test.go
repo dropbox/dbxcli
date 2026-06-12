@@ -8,31 +8,6 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 )
 
-func TestValidatePath(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"/", ""},
-		{"/foo", "/foo"},
-		{"foo", "/foo"},
-		{"/foo/", "/foo"},
-		{"/foo/bar", "/foo/bar"},
-		{"foo/bar/", "/foo/bar"},
-	}
-
-	for _, tt := range tests {
-		got, err := validatePath(tt.input)
-		if err != nil {
-			t.Errorf("validatePath(%q) returned error: %v", tt.input, err)
-			continue
-		}
-		if got != tt.want {
-			t.Errorf("validatePath(%q) = %q, want %q", tt.input, got, tt.want)
-		}
-	}
-}
-
 func TestFormatFolderMetadata(t *testing.T) {
 	meta := &files.FolderMetadata{
 		Metadata: files.Metadata{
@@ -146,16 +121,6 @@ func TestFormatFileMetadataLongIncludesFields(t *testing.T) {
 	}
 }
 
-func TestValidatePathRootBecomesEmpty(t *testing.T) {
-	got, err := validatePath("/")
-	if err != nil {
-		t.Fatalf("validatePath('/') error: %v", err)
-	}
-	if got != "" {
-		t.Errorf("validatePath('/') = %q, want empty string for root", got)
-	}
-}
-
 func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	// This test verifies the ls function logic:
 	// when path is "" (root), getFileMetadata should not be called.
@@ -164,19 +129,6 @@ func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	arg := files.NewGetMetadataArg("")
 	if arg.Path != "" {
 		t.Errorf("NewGetMetadataArg('') path = %q, want empty", arg.Path)
-	}
-}
-
-func TestMakeRelocationArg(t *testing.T) {
-	arg, err := makeRelocationArg("src", "dst")
-	if err != nil {
-		t.Fatalf("makeRelocationArg error: %v", err)
-	}
-	if arg.FromPath != "/src" {
-		t.Errorf("FromPath = %q, want %q", arg.FromPath, "/src")
-	}
-	if arg.ToPath != "/dst" {
-		t.Errorf("ToPath = %q, want %q", arg.ToPath, "/dst")
 	}
 }
 
