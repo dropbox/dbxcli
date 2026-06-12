@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -30,8 +31,51 @@ import (
 )
 
 func get(cmd *cobra.Command, args []string) (err error) {
-	dbx := files.New(config)
-	return getWithClient(dbx, args)
+	if len(args) == 0 || len(args) > 2 {
+		return errors.New("`get` requires `src` and/or `dst` arguments")
+	}
+
+	src, err := validatePath(args[0])
+	if err != nil {
+		return
+	}
+
+	dst := path.Base(src)
+	if len(args) == 2 {
+		dst = args[1]
+	}
+
+	recursive, _ := cmd.Flags().GetBool("recursive")
+
+	dbx := filesNewFunc(config)
+
+	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
+	if err != nil {
+		if recursive {
+			return fmt.Errorf("get metadata for %s: %v", src, err)
+		}
+		// For non-recursive, fall through to download (will fail with proper error)
+		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
+			dst = filepath.Join(dst, path.Base(src))
+		}
+		return downloadFile(dbx, src, dst)
+	}
+
+	if _, ok := meta.(*files.FolderMetadata); ok {
+		if !recursive {
+			return fmt.Errorf("%s is a folder (use --recursive to download folders)", src)
+		}
+		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
+			dst = filepath.Join(dst, path.Base(src))
+		}
+		return getRecursive(dbx, src, dst)
+	}
+
+	if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
+		dst = filepath.Join(dst, path.Base(src))
+	}
+
+	return downloadFile(dbx, src, dst)
 }
 
 func getWithClient(dbx files.Client, args []string) (err error) {
@@ -44,17 +88,92 @@ func getWithClient(dbx files.Client, args []string) (err error) {
 		return
 	}
 
-	// Default `dst` to the base segment of the source path; use the second argument if provided.
 	dst := path.Base(src)
 	if len(args) == 2 {
 		dst = args[1]
 	}
-	// If `dst` is a directory, append the source filename.
 	if f, err := os.Stat(dst); err == nil && f.IsDir() {
 		dst = filepath.Join(dst, path.Base(src))
 	}
 
 	return downloadFile(dbx, src, dst)
+}
+
+func getRecursive(dbx files.Client, src, dst string) error {
+	arg := files.NewListFolderArg(src)
+	arg.Recursive = true
+
+	res, err := dbx.ListFolder(arg)
+	if err != nil {
+		return fmt.Errorf("list folder %s: %v", src, err)
+	}
+
+	var entries []files.IsMetadata
+	entries = append(entries, res.Entries...)
+	for res.HasMore {
+		cont := files.NewListFolderContinueArg(res.Cursor)
+		res, err = dbx.ListFolderContinue(cont)
+		if err != nil {
+			return fmt.Errorf("list folder continue: %v", err)
+		}
+		entries = append(entries, res.Entries...)
+	}
+
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	var downloadErrors []error
+
+	for _, entry := range entries {
+		switch f := entry.(type) {
+		case *files.FolderMetadata:
+			relPath, err := relativeTo(src, f.PathDisplay)
+			if err != nil {
+				downloadErrors = append(downloadErrors, err)
+				continue
+			}
+			localDir := filepath.Join(dst, filepath.FromSlash(relPath))
+			if err := os.MkdirAll(localDir, 0755); err != nil {
+				downloadErrors = append(downloadErrors, fmt.Errorf("mkdir %s: %w", localDir, err))
+			}
+		case *files.FileMetadata:
+			relPath, err := relativeTo(src, f.PathDisplay)
+			if err != nil {
+				downloadErrors = append(downloadErrors, err)
+				continue
+			}
+			localPath := filepath.Join(dst, filepath.FromSlash(relPath))
+			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+				downloadErrors = append(downloadErrors, fmt.Errorf("mkdir %s: %w", filepath.Dir(localPath), err))
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "Downloading %s -> %s\n", f.PathDisplay, localPath)
+			if err := downloadFile(dbx, f.PathDisplay, localPath); err != nil {
+				downloadErrors = append(downloadErrors, fmt.Errorf("%s: %w", f.PathDisplay, err))
+			}
+		}
+	}
+
+	if len(downloadErrors) > 0 {
+		for _, e := range downloadErrors {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", e)
+		}
+		return fmt.Errorf("get: %d error(s)", len(downloadErrors))
+	}
+
+	return nil
+}
+
+func relativeTo(base, full string) (string, error) {
+	baseLower := strings.ToLower(base)
+	fullLower := strings.ToLower(full)
+	if fullLower != baseLower && !strings.HasPrefix(fullLower, baseLower+"/") {
+		return "", fmt.Errorf("path %q is not under %q", full, base)
+	}
+	rel := full[len(base):]
+	rel = strings.TrimPrefix(rel, "/")
+	return rel, nil
 }
 
 func downloadFile(dbx files.Client, src string, dst string) error {
@@ -155,10 +274,11 @@ func downloadFileOnce(dbx files.Client, arg *files.DownloadArg, dst string) erro
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get [flags] <source> [<target>]",
-	Short: "Download a file",
+	Short: "Download a file or folder",
 	RunE:  get,
 }
 
 func init() {
 	RootCmd.AddCommand(getCmd)
+	getCmd.Flags().BoolP("recursive", "r", false, "Recursively download a folder")
 }

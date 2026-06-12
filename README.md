@@ -15,7 +15,7 @@
   * Supports search with sorting and flexible time formatting
   * Supports file revisions and file restore
   * Chunked uploads for large files, paginated listing for large directories
-  * Recursive directory uploads (`put -r`)
+  * Recursive directory uploads (`put -r`) and downloads (`get -r`)
   * Retry with exponential backoff for uploads and downloads
   * Supports a growing set of Team operations
 
@@ -80,7 +80,7 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   cp          Copy a file or folder to a different location
   du          Display usage information
-  get         Download a file
+  get         Download a file or folder
   logout      Log out of the current session
   ls          List files and folders
   mkdir       Create a new directory
@@ -181,6 +181,13 @@ The `--verbose` option will turn on verbose logging and is useful for debugging.
 $ dbxcli put file.txt /destination/file.txt        # upload a single file
 $ dbxcli put -r ./project /backup/project          # recursively upload a directory
 $ dbxcli put -r -w 8 ./large-folder /backup/large  # use 8 workers per large file
+```
+
+### Downloading files and directories
+
+```sh
+$ dbxcli get /remote/file.txt ./local-file.txt     # download a single file
+$ dbxcli get -r /remote/folder ./local-folder      # recursively download a folder
 ```
 
 ### Creating directories
