@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -82,12 +81,11 @@ func oauthConfig(tokenType string, domain string) *oauth2.Config {
 
 func validatePath(p string) (path string, err error) {
 	path = p
-
 	if !strings.HasPrefix(path, "/") {
 		path = fmt.Sprintf("/%s", path)
 	}
 
-	path = strings.TrimSuffix(path, "/")
+	path = cleanDropboxPath(path)
 
 	return
 }
@@ -160,7 +158,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return
 	}
-	filePath := path.Join(dir, ".config", "dbxcli", configFileName)
+	filePath := filepath.Join(dir, ".config", "dbxcli", configFileName)
 	tokType := tokenType(cmd)
 	conf := oauthConfig(tokType, domain)
 

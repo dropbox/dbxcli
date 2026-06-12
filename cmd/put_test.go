@@ -360,10 +360,18 @@ func TestPutDirectoryWithoutRecursiveFlag(t *testing.T) {
 
 func TestPutRecursive_WalksDirectoryStructure(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "sub", "deep"), 0755)
-	os.WriteFile(filepath.Join(dir, "root.txt"), []byte("root"), 0644)
-	os.WriteFile(filepath.Join(dir, "sub", "mid.txt"), []byte("mid"), 0644)
-	os.WriteFile(filepath.Join(dir, "sub", "deep", "leaf.txt"), []byte("leaf"), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "sub", "deep"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "root.txt"), []byte("root"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sub", "mid.txt"), []byte("mid"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sub", "deep", "leaf.txt"), []byte("leaf"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	var uploaded []string
 	origConfig := config
@@ -403,10 +411,18 @@ func TestPutRecursive_WalksDirectoryStructure(t *testing.T) {
 
 func TestPutRecursive_CreatesEmptyDirectories(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "has-files"), 0755)
-	os.MkdirAll(filepath.Join(dir, "empty"), 0755)
-	os.MkdirAll(filepath.Join(dir, "empty", "nested"), 0755)
-	os.WriteFile(filepath.Join(dir, "has-files", "a.txt"), []byte("a"), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "has-files"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "empty"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "empty", "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "has-files", "a.txt"), []byte("a"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	var uploaded []string
 	var createdDirs []string
@@ -492,8 +508,12 @@ func TestPutRecursive_CreatesEmptyRootDirectory(t *testing.T) {
 
 func TestPutRecursive_SkipsSymlinks(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "real.txt"), []byte("real"), 0644)
-	os.Symlink(filepath.Join(dir, "real.txt"), filepath.Join(dir, "link.txt"))
+	if err := os.WriteFile(filepath.Join(dir, "real.txt"), []byte("real"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "real.txt"), filepath.Join(dir, "link.txt")); err != nil {
+		t.Fatal(err)
+	}
 
 	var uploaded []string
 	origConfig := config

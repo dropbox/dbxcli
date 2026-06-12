@@ -51,7 +51,7 @@ func getWithClient(dbx files.Client, args []string) (err error) {
 	}
 	// If `dst` is a directory, append the source filename.
 	if f, err := os.Stat(dst); err == nil && f.IsDir() {
-		dst = path.Join(dst, path.Base(src))
+		dst = filepath.Join(dst, path.Base(src))
 	}
 
 	return downloadFile(dbx, src, dst)

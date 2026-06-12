@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
@@ -40,20 +41,23 @@ func cp(cmd *cobra.Command, args []string) error {
 	var cpErrors []error
 	var relocationArgs []*files.RelocationArg
 
+	dbx := filesNewFunc(config)
+	destIsFolder := len(argsToCopy) > 1 || strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
+
 	for _, argument := range argsToCopy {
-		arg, err := makeRelocationArg(argument, destination+"/"+argument)
+		dst := relocationDestination(argument, destination, destIsFolder)
+		arg, err := makeRelocationArg(argument, dst)
 		if err != nil {
-			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, destination, err)
+			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, dst, err)
 			cpErrors = append(cpErrors, relocationError)
 		} else {
 			relocationArgs = append(relocationArgs, arg)
 		}
 	}
 
-	dbx := files.New(config)
 	for _, arg := range relocationArgs {
 		if _, err := dbx.CopyV2(arg); err != nil {
-			copyError := fmt.Errorf("Copy error: %v", arg)
+			copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			cpErrors = append(cpErrors, copyError)
 		}
 	}

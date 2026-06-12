@@ -14,8 +14,10 @@ type mockFilesClient struct {
 	uploadSessionStartFn    func(arg *files.UploadSessionStartArg, content io.Reader) (*files.UploadSessionStartResult, error)
 	uploadSessionAppendV2Fn func(arg *files.UploadSessionAppendArg, content io.Reader) error
 	uploadSessionFinishFn   func(arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error)
+	copyV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 	createFolderV2Fn        func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error)
 	getMetadataFn           func(arg *files.GetMetadataArg) (files.IsMetadata, error)
+	moveV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 }
 
 func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
@@ -61,6 +63,9 @@ func (m *mockFilesClient) AlphaUpload(arg *files.UploadArg, content io.Reader) (
 	return nil, nil
 }
 func (m *mockFilesClient) CopyV2(arg *files.RelocationArg) (*files.RelocationResult, error) {
+	if m.copyV2Fn != nil {
+		return m.copyV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) Copy(arg *files.RelocationArg) (files.IsMetadata, error) {
@@ -161,6 +166,9 @@ func (m *mockFilesClient) LockFileBatch(arg *files.LockFileBatchArg) (*files.Loc
 	return nil, nil
 }
 func (m *mockFilesClient) MoveV2(arg *files.RelocationArg) (*files.RelocationResult, error) {
+	if m.moveV2Fn != nil {
+		return m.moveV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) Move(arg *files.RelocationArg) (files.IsMetadata, error) {
