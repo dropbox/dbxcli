@@ -16,11 +16,9 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -28,11 +26,10 @@ import (
 func logout(cmd *cobra.Command, args []string) error {
 	out := commandOutput(cmd)
 
-	dir, err := homedir.Dir()
+	filePath, err := authFilePath()
 	if err != nil {
 		return err
 	}
-	filePath := filepath.Join(dir, ".config", "dbxcli", configFileName)
 
 	tokMap, err := readTokens(filePath)
 	if err != nil {

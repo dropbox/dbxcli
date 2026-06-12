@@ -101,6 +101,23 @@ Flags:
 Use "dbxcli [command] --help" for more information about a command.
 ```
 
+### Authentication
+
+By default, `dbxcli` stores OAuth credentials in `~/.config/dbxcli/auth.json`.
+Set `DBXCLI_AUTH_FILE` to use a different credentials file:
+
+```sh
+$ DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli ls /
+```
+
+For automation with short-lived Dropbox access tokens, set `DBXCLI_ACCESS_TOKEN`.
+This token is used directly and is not saved or refreshed. If it expires, the
+command fails and you must provide a fresh token:
+
+```sh
+$ DBXCLI_ACCESS_TOKEN=sl.xxxxxx dbxcli ls /
+```
+
 ### Listing files
 
 ```sh
