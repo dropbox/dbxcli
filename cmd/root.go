@@ -15,24 +15,19 @@
 package cmd
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
-
-	"context"
 
 	"golang.org/x/oauth2"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
 const (
-	configFileName  = "auth.json"
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -54,11 +49,6 @@ var (
 	teamManageAppKey    = "xxe04eai4wmlitv"
 	teamManageAppSecret = "t8ms714yun7nu5s"
 )
-
-// TokenMap maps domains to a map of commands to tokens.
-// For each domain, we want to save different tokens depending on the
-// command type: personal, team access and team manage
-type TokenMap map[string]map[string]string
 
 var config dropbox.Config
 
@@ -105,40 +95,6 @@ func makeRelocationArg(s string, d string) (arg *files.RelocationArg, err error)
 	return
 }
 
-func readTokens(filePath string) (TokenMap, error) {
-	b, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var tokens TokenMap
-	if json.Unmarshal(b, &tokens) != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
-func writeTokens(filePath string, tokens TokenMap) {
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Doesn't exist; lets create it
-		err = os.MkdirAll(filepath.Dir(filePath), 0700)
-		if err != nil {
-			return
-		}
-	}
-
-	// At this point, file must exist. Lets (over)write it.
-	b, err := json.Marshal(tokens)
-	if err != nil {
-		return
-	}
-	if err = os.WriteFile(filePath, b, 0600); err != nil {
-		return
-	}
-}
-
 func tokenType(cmd *cobra.Command) string {
 	if cmd.Parent().Name() == "team" {
 		return tokenTeamManage
@@ -149,20 +105,46 @@ func tokenType(cmd *cobra.Command) string {
 	return tokenPersonal
 }
 
+func makeDropboxConfig(token string, verbose bool, asMember string, domain string) dropbox.Config {
+	logLevel := dropbox.LogOff
+	if verbose {
+		logLevel = dropbox.LogInfo
+	}
+
+	return dropbox.Config{
+		Token:           token,
+		LogLevel:        logLevel,
+		Logger:          nil,
+		AsMemberID:      asMember,
+		Domain:          domain,
+		Client:          nil,
+		HeaderGenerator: nil,
+		URLGenerator:    nil,
+	}
+}
+
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
 
-	dir, err := homedir.Dir()
-	if err != nil {
-		return
+	if accessToken := os.Getenv(envAccessToken); accessToken != "" {
+		config = makeDropboxConfig(accessToken, verbose, asMember, domain)
+		return nil
 	}
-	filePath := filepath.Join(dir, ".config", "dbxcli", configFileName)
+
+	filePath, err := authFilePath()
+	if err != nil {
+		return err
+	}
+
 	tokType := tokenType(cmd)
 	conf := oauthConfig(tokType, domain)
 
 	tokenMap, err := readTokens(filePath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("read auth file %q: %w", filePath, err)
+	}
 	if tokenMap == nil {
 		tokenMap = make(TokenMap)
 	}
@@ -188,23 +170,12 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 			return
 		}
 		tokens[tokType] = token.AccessToken
-		writeTokens(filePath, tokenMap)
+		if err = writeTokens(filePath, tokenMap); err != nil {
+			return
+		}
 	}
 
-	logLevel := dropbox.LogOff
-	if verbose {
-		logLevel = dropbox.LogInfo
-	}
-	config = dropbox.Config{
-		Token:           tokens[tokType],
-		LogLevel:        logLevel,
-		Logger:          nil,
-		AsMemberID:      asMember,
-		Domain:          domain,
-		Client:          nil,
-		HeaderGenerator: nil,
-		URLGenerator:    nil,
-	}
+	config = makeDropboxConfig(tokens[tokType], verbose, asMember, domain)
 
 	return
 }
