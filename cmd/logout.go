@@ -62,7 +62,10 @@ func logout(cmd *cobra.Command, args []string) error {
 var logoutCmd = &cobra.Command{
 	Use:   "logout [flags]",
 	Short: "Log out of the current session",
-	RunE:  logout,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
+	RunE: logout,
 }
 
 func init() {

@@ -121,3 +121,43 @@ func TestInitDbxUsesAuthFileEnv(t *testing.T) {
 		t.Fatalf("expected domain from flag, got %q", config.Domain)
 	}
 }
+
+func unsetEnvForTest(t *testing.T, key string) {
+	t.Helper()
+
+	old, exists := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if exists {
+			_ = os.Setenv(key, old)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	})
+}
+
+func TestLoadOAuthCredentialsFromEnvKeepsTeamManageSecretFallback(t *testing.T) {
+	restoreOAuthCredentials(t)
+
+	for _, key := range []string{
+		"DROPBOX_PERSONAL_APP_KEY",
+		"DROPBOX_PERSONAL_APP_SECRET",
+		"DROPBOX_TEAM_APP_KEY",
+		"DROPBOX_TEAM_APP_SECRET",
+		"DROPBOX_MANAGE_APP_KEY",
+		"DROPBOX_MANAGE_APP_SECRET",
+	} {
+		unsetEnvForTest(t, key)
+	}
+
+	teamAccessAppSecret = "team-access-secret"
+	teamManageAppSecret = "team-manage-secret"
+
+	loadOAuthCredentialsFromEnv()
+
+	if teamManageAppSecret != "team-manage-secret" {
+		t.Fatalf("expected team manage secret fallback, got %q", teamManageAppSecret)
+	}
+}

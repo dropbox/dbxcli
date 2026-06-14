@@ -58,8 +58,11 @@ Now we need to pause for a second to get development keys.
 
 5. Head to `https://www.dropbox.com/developers/apps` (sign in if necessary) and choose "Create app". Use the Dropbox API and give it Full Dropbox access. Name and create the app.
 6. You'll be presented with a dashboard with an "App key" and an "App secret".
-7. Replace the value for `personalAppKey` in  `root.go` with the key from the webpage.
-8. Replace the value for `personalAppSecret` with the secret from the webpage.
+7. Provide the app key and secret when running `dbxcli`:
+```sh
+$ export DROPBOX_PERSONAL_APP_KEY=your-app-key
+$ export DROPBOX_PERSONAL_APP_SECRET=your-app-secret
+```
 
 Finally we're ready to build. Run `go build`, and you'll see a `dbxcli` binary has been created in the current directory. Congrats, we're done!
 
@@ -81,6 +84,7 @@ Available Commands:
   cp          Copy a file or folder to a different location
   du          Display usage information
   get         Download a file or folder
+  login       Log in and save Dropbox credentials
   logout      Log out of the current session
   ls          List files and folders
   mkdir       Create a new directory
@@ -104,10 +108,34 @@ Use "dbxcli [command] --help" for more information about a command.
 ### Authentication
 
 By default, `dbxcli` stores OAuth credentials in `~/.config/dbxcli/auth.json`.
+Run `dbxcli login` to authorize dbxcli and save credentials:
+
+```sh
+$ dbxcli login
+```
+
+Commands require saved credentials. If no saved credentials are available, run
+`dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
+
+If the bundled app credentials are still in use, `dbxcli` asks for your Dropbox
+app key and app secret before printing the authorization URL. You can pass the
+app key as an option and enter the app secret at the masked prompt:
+
+```sh
+$ dbxcli login --app-key=your-app-key
+```
+
+You can also set both with environment variables to skip the prompts:
+
+```sh
+$ DROPBOX_PERSONAL_APP_KEY=your-app-key DROPBOX_PERSONAL_APP_SECRET=your-app-secret dbxcli login
+```
+
+If saved credentials expire or need to be replaced, run `dbxcli login` again.
 Set `DBXCLI_AUTH_FILE` to use a different credentials file:
 
 ```sh
-$ DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli ls /
+$ DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli login
 ```
 
 For automation with short-lived Dropbox access tokens, set `DBXCLI_ACCESS_TOKEN`.

@@ -15,12 +15,9 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
-
-	"golang.org/x/oauth2"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -31,6 +28,13 @@ const (
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
+
+	defaultPersonalAppKey      = "mvhz183vwqibe7q"
+	defaultPersonalAppSecret   = "q0kquhzgetjwcz1"
+	defaultTeamAccessAppKey    = "zud1va492pnehkc"
+	defaultTeamAccessAppSecret = "p3ginm1gy0kmj54"
+	defaultTeamManageAppKey    = "xxe04eai4wmlitv"
+	defaultTeamManageAppSecret = "t8ms714yun7nu5s"
 )
 
 func getEnv(key, fallback string) string {
@@ -42,31 +46,61 @@ func getEnv(key, fallback string) string {
 }
 
 var (
-	personalAppKey      = "mvhz183vwqibe7q"
-	personalAppSecret   = "q0kquhzgetjwcz1"
-	teamAccessAppKey    = "zud1va492pnehkc"
-	teamAccessAppSecret = "p3ginm1gy0kmj54"
-	teamManageAppKey    = "xxe04eai4wmlitv"
-	teamManageAppSecret = "t8ms714yun7nu5s"
+	personalAppKey      = defaultPersonalAppKey
+	personalAppSecret   = defaultPersonalAppSecret
+	teamAccessAppKey    = defaultTeamAccessAppKey
+	teamAccessAppSecret = defaultTeamAccessAppSecret
+	teamManageAppKey    = defaultTeamManageAppKey
+	teamManageAppSecret = defaultTeamManageAppSecret
 )
 
 var config dropbox.Config
 
-func oauthConfig(tokenType string, domain string) *oauth2.Config {
-	var appKey, appSecret string
+func oauthCredentials(tokenType string) (string, string) {
 	switch tokenType {
-	case "personal":
-		appKey, appSecret = personalAppKey, personalAppSecret
-	case "teamAccess":
-		appKey, appSecret = teamAccessAppKey, teamAccessAppSecret
-	case "teamManage":
-		appKey, appSecret = teamManageAppKey, teamManageAppSecret
+	case tokenPersonal:
+		return personalAppKey, personalAppSecret
+	case tokenTeamAccess:
+		return teamAccessAppKey, teamAccessAppSecret
+	case tokenTeamManage:
+		return teamManageAppKey, teamManageAppSecret
+	default:
+		return "", ""
 	}
-	return &oauth2.Config{
-		ClientID:     appKey,
-		ClientSecret: appSecret,
-		Endpoint:     dropbox.OAuthEndpoint(domain),
+}
+
+func defaultOAuthCredentials(tokenType string) (string, string) {
+	switch tokenType {
+	case tokenPersonal:
+		return defaultPersonalAppKey, defaultPersonalAppSecret
+	case tokenTeamAccess:
+		return defaultTeamAccessAppKey, defaultTeamAccessAppSecret
+	case tokenTeamManage:
+		return defaultTeamManageAppKey, defaultTeamManageAppSecret
+	default:
+		return "", ""
 	}
+}
+
+func setOAuthCredentials(tokenType string, appKey string, appSecret string) {
+	switch tokenType {
+	case tokenPersonal:
+		personalAppKey, personalAppSecret = appKey, appSecret
+	case tokenTeamAccess:
+		teamAccessAppKey, teamAccessAppSecret = appKey, appSecret
+	case tokenTeamManage:
+		teamManageAppKey, teamManageAppSecret = appKey, appSecret
+	}
+}
+
+func needsOAuthCredentialsOverride(tokenType string) bool {
+	appKey, appSecret := oauthCredentials(tokenType)
+	defaultAppKey, defaultAppSecret := defaultOAuthCredentials(tokenType)
+	if appKey == "" || appSecret == "" {
+		return true
+	}
+	return defaultAppKey != "" && defaultAppSecret != "" &&
+		appKey == defaultAppKey && appSecret == defaultAppSecret
 }
 
 func validatePath(p string) (path string, err error) {
@@ -133,49 +167,13 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	filePath, err := authFilePath()
+	tokType := tokenType(cmd)
+	accessToken, _, err := getAccessToken(tokType, domain, false)
 	if err != nil {
 		return err
 	}
 
-	tokType := tokenType(cmd)
-	conf := oauthConfig(tokType, domain)
-
-	tokenMap, err := readTokens(filePath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("read auth file %q: %w", filePath, err)
-	}
-	if tokenMap == nil {
-		tokenMap = make(TokenMap)
-	}
-	if tokenMap[domain] == nil {
-		tokenMap[domain] = make(map[string]string)
-	}
-	tokens := tokenMap[domain]
-
-	if err != nil || tokens[tokType] == "" {
-		fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
-		fmt.Printf("2. Click \"Allow\" (you might have to log in first).\n")
-		fmt.Printf("3. Copy the authorization code.\n")
-		fmt.Printf("Enter the authorization code here: ")
-
-		var code string
-		if _, err = fmt.Scan(&code); err != nil {
-			return
-		}
-		var token *oauth2.Token
-		ctx := context.Background()
-		token, err = conf.Exchange(ctx, code)
-		if err != nil {
-			return
-		}
-		tokens[tokType] = token.AccessToken
-		if err = writeTokens(filePath, tokenMap); err != nil {
-			return
-		}
-	}
-
-	config = makeDropboxConfig(tokens[tokType], verbose, asMember, domain)
+	config = makeDropboxConfig(accessToken, verbose, asMember, domain)
 
 	return
 }
@@ -198,6 +196,15 @@ func Execute() {
 	}
 }
 
+func loadOAuthCredentialsFromEnv() {
+	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
+	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
+	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
+	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
+	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
+	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamManageAppSecret)
+}
+
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
@@ -205,10 +212,5 @@ func init() {
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	_ = RootCmd.PersistentFlags().MarkHidden("domain")
 
-	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
-	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
-	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
-	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
-	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
-	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamAccessAppSecret)
+	loadOAuthCredentialsFromEnv()
 }
