@@ -15,11 +15,18 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/oauth2"
+	"golang.org/x/term"
 )
 
 const (
@@ -32,6 +39,72 @@ const (
 // For each domain, we want to save different tokens depending on the
 // command type: personal, team access and team manage.
 type TokenMap map[string]map[string]string
+
+type appCredentials struct {
+	Key    string
+	Secret string
+}
+
+var readAppKey = func(prompt string) (string, error) {
+	fmt.Print(prompt)
+	var value string
+	if _, err := fmt.Scan(&value); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+var readAppSecret = func(prompt string) (string, error) {
+	fmt.Print(prompt)
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		value, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		if err != nil {
+			return "", err
+		}
+		return string(value), nil
+	}
+
+	var value string
+	if _, err := fmt.Scan(&value); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+var readAppCredentials = func(tokType string) (appCredentials, error) {
+	fmt.Printf("Enter Dropbox %s app credentials.\n", appCredentialsName(tokType))
+	appKey, err := readAppKey("Dropbox app key: ")
+	if err != nil {
+		return appCredentials{}, err
+	}
+	appSecret, err := readAppSecret("Dropbox app secret: ")
+	if err != nil {
+		return appCredentials{}, err
+	}
+	return appCredentials{Key: appKey, Secret: appSecret}, nil
+}
+
+var readAuthorizationCode = func() (string, error) {
+	var code string
+	if _, err := fmt.Scan(&code); err != nil {
+		return "", err
+	}
+	return code, nil
+}
+
+var exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string) (*oauth2.Token, error) {
+	return conf.Exchange(ctx, code)
+}
+
+func oauthConfig(tokenType string, domain string) *oauth2.Config {
+	appKey, appSecret := oauthCredentials(tokenType)
+	return &oauth2.Config{
+		ClientID:     appKey,
+		ClientSecret: appSecret,
+		Endpoint:     dropbox.OAuthEndpoint(domain),
+	}
+}
 
 func authFilePath() (string, error) {
 	if filePath := os.Getenv(envAuthFile); filePath != "" {
@@ -71,4 +144,109 @@ func writeTokens(filePath string, tokens TokenMap) error {
 		return err
 	}
 	return os.WriteFile(filePath, b, 0600)
+}
+
+func getAccessToken(tokType string, domain string, force bool) (string, string, error) {
+	filePath, err := authFilePath()
+	if err != nil {
+		return "", "", err
+	}
+
+	tokenMap, err := readTokens(filePath)
+	if err != nil && !os.IsNotExist(err) {
+		return "", "", fmt.Errorf("read auth file %q: %w", filePath, err)
+	}
+	if tokenMap == nil {
+		tokenMap = make(TokenMap)
+	}
+	if tokenMap[domain] == nil {
+		tokenMap[domain] = make(map[string]string)
+	}
+	tokens := tokenMap[domain]
+
+	if force || tokens[tokType] == "" {
+		if !force && needsOAuthCredentialsOverride(tokType) {
+			return "", "", missingAccessTokenError(tokType)
+		}
+		accessToken, err := requestAccessToken(tokType, domain)
+		if err != nil {
+			return "", "", err
+		}
+		tokens[tokType] = accessToken
+		if err = writeTokens(filePath, tokenMap); err != nil {
+			return "", "", err
+		}
+	}
+
+	return tokens[tokType], filePath, nil
+}
+
+func loginCommand(tokType string) string {
+	switch tokType {
+	case tokenTeamAccess:
+		return "dbxcli login team-access --app-key=<your-app-key>"
+	case tokenTeamManage:
+		return "dbxcli login team-manage --app-key=<your-app-key>"
+	default:
+		return "dbxcli login --app-key=<your-app-key>"
+	}
+}
+
+func missingAccessTokenError(tokType string) error {
+	return fmt.Errorf("no saved Dropbox credentials; run %q first or set %s", loginCommand(tokType), envAccessToken)
+}
+
+func appCredentialsName(tokType string) string {
+	switch tokType {
+	case tokenTeamAccess:
+		return "team access"
+	case tokenTeamManage:
+		return "team manage"
+	default:
+		return "personal"
+	}
+}
+
+func ensureOAuthAppCredentials(tokType string) error {
+	if !needsOAuthCredentialsOverride(tokType) {
+		return nil
+	}
+
+	creds, err := readAppCredentials(tokType)
+	if err != nil {
+		return err
+	}
+	creds.Key = strings.TrimSpace(creds.Key)
+	creds.Secret = strings.TrimSpace(creds.Secret)
+	if creds.Key == "" || creds.Secret == "" {
+		return errors.New("Dropbox app key and secret are required")
+	}
+
+	setOAuthCredentials(tokType, creds.Key, creds.Secret)
+	return nil
+}
+
+func requestAccessToken(tokType string, domain string) (string, error) {
+	if err := ensureOAuthAppCredentials(tokType); err != nil {
+		return "", err
+	}
+
+	conf := oauthConfig(tokType, domain)
+	fmt.Printf("1. Go to %v\n", conf.AuthCodeURL("state"))
+	fmt.Printf("2. Click \"Allow\" (you might have to log in first).\n")
+	fmt.Printf("3. Copy the authorization code.\n")
+	fmt.Printf("Enter the authorization code here: ")
+
+	code, err := readAuthorizationCode()
+	if err != nil {
+		return "", err
+	}
+	token, err := exchangeAuthorizationCode(context.Background(), conf, code)
+	if err != nil {
+		return "", err
+	}
+	if token == nil || token.AccessToken == "" {
+		return "", errors.New("authorization did not return an access token")
+	}
+	return token.AccessToken, nil
 }
