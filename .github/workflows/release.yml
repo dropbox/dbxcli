@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - run: go vet ./...
+      - run: go test ./...
+      - run: ./build.sh
+        env:
+          TRAVIS_TAG: ${{ github.ref_name }}
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
