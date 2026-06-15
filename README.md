@@ -57,11 +57,10 @@ For newcomers the go build process can be a bit arcane, these steps can be follo
 Now we need to pause for a second to get development keys. 
 
 5. Head to `https://www.dropbox.com/developers/apps` (sign in if necessary) and choose "Create app". Use the Dropbox API and give it Full Dropbox access. Name and create the app.
-6. You'll be presented with a dashboard with an "App key" and an "App secret".
-7. Provide the app key and secret when running `dbxcli`:
+6. You'll be presented with a dashboard with an "App key".
+7. Provide the app key when running `dbxcli`:
 ```sh
 $ export DROPBOX_PERSONAL_APP_KEY=your-app-key
-$ export DROPBOX_PERSONAL_APP_SECRET=your-app-secret
 ```
 
 Finally we're ready to build. Run `go build`, and you'll see a `dbxcli` binary has been created in the current directory. Congrats, we're done!
@@ -118,20 +117,23 @@ Commands require saved credentials. If no saved credentials are available, run
 `dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
 
 If the bundled app credentials are still in use, `dbxcli` asks for your Dropbox
-app key and app secret before printing the authorization URL. You can pass the
-app key as an option and enter the app secret at the masked prompt:
+app key before printing the authorization URL. You can pass the app key as an
+option:
 
 ```sh
 $ dbxcli login --app-key=your-app-key
 ```
 
-You can also set both with environment variables to skip the prompts:
+You can also set it with an environment variable to skip the prompt:
 
 ```sh
-$ DROPBOX_PERSONAL_APP_KEY=your-app-key DROPBOX_PERSONAL_APP_SECRET=your-app-secret dbxcli login
+$ DROPBOX_PERSONAL_APP_KEY=your-app-key dbxcli login
 ```
 
-If saved credentials expire or need to be replaced, run `dbxcli login` again.
+Saved login credentials include a Dropbox refresh token and are refreshed
+automatically when the access token expires. If saved credentials are revoked or
+need to be replaced, run `dbxcli login` again.
+
 Set `DBXCLI_AUTH_FILE` to use a different credentials file:
 
 ```sh

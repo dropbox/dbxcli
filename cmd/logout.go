@@ -22,6 +22,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var revokeAccessToken = func(domain string, token string) error {
+	cfg := dropbox.Config{
+		Token:           token,
+		LogLevel:        dropbox.LogOff,
+		Logger:          nil,
+		AsMemberID:      "",
+		Domain:          domain,
+		Client:          nil,
+		HeaderGenerator: nil,
+		URLGenerator:    nil,
+	}
+	client := auth.New(cfg)
+	return client.TokenRevoke()
+}
+
 // Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
 	out := commandOutput(cmd)
@@ -38,18 +53,10 @@ func logout(cmd *cobra.Command, args []string) error {
 
 	for domain, tokens := range tokMap {
 		for _, token := range tokens {
-			cfg := dropbox.Config{
-				Token:           token,
-				LogLevel:        dropbox.LogOff,
-				Logger:          nil,
-				AsMemberID:      "",
-				Domain:          domain,
-				Client:          nil,
-				HeaderGenerator: nil,
-				URLGenerator:    nil,
+			if token.AccessToken == "" {
+				continue
 			}
-			client := auth.New(cfg)
-			if err = client.TokenRevoke(); err != nil {
+			if err = revokeAccessToken(domain, token.AccessToken); err != nil {
 				out.Warn("could not revoke token (may be expired): %v", err)
 			}
 		}

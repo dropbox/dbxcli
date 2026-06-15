@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -35,10 +34,6 @@ func loginTokenType(name string) (string, error) {
 	}
 }
 
-func defaultOAuthCredential(value string, defaultValue string) bool {
-	return defaultValue != "" && value == defaultValue
-}
-
 func loginAppKeyFromFlag(cmd *cobra.Command, tokType string) error {
 	appKey, _ := cmd.Flags().GetString("app-key")
 	appKey = strings.TrimSpace(appKey)
@@ -46,21 +41,7 @@ func loginAppKeyFromFlag(cmd *cobra.Command, tokType string) error {
 		return nil
 	}
 
-	_, currentAppSecret := oauthCredentials(tokType)
-	_, defaultAppSecret := defaultOAuthCredentials(tokType)
-	if currentAppSecret == "" || defaultOAuthCredential(currentAppSecret, defaultAppSecret) {
-		fmt.Printf("Enter Dropbox %s app secret.\n", appCredentialsName(tokType))
-		appSecret, err := readAppSecret("Dropbox app secret: ")
-		if err != nil {
-			return err
-		}
-		currentAppSecret = strings.TrimSpace(appSecret)
-		if currentAppSecret == "" {
-			return errors.New("Dropbox app secret is required")
-		}
-	}
-
-	setOAuthCredentials(tokType, appKey, currentAppSecret)
+	setOAuthCredentials(tokType, appKey)
 	return nil
 }
 

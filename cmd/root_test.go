@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 )
 
 func TestRootCmdUnknownCommandReturnsError(t *testing.T) {
@@ -93,6 +96,44 @@ func TestInitDbxAccessTokenEnvTakesPrecedenceOverAuthFile(t *testing.T) {
 	}
 }
 
+func TestInitDbxAccessTokenEnvBypassesRefresh(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+	restoreOAuthCredentials(t)
+
+	expired := time.Now().Add(-time.Hour)
+	authFile := filepath.Join(t.TempDir(), "auth.json")
+	if err := writeTokens(authFile, TokenMap{
+		"": {
+			tokenPersonal: {
+				AccessToken:  "file-token",
+				RefreshToken: "refresh-token",
+				Expiry:       &expired,
+				AppKey:       "app-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
+		t.Fatal("refresh should not run when DBXCLI_ACCESS_TOKEN is set")
+		return nil, nil
+	}
+
+	t.Setenv(envAccessToken, "env-token")
+	t.Setenv(envAuthFile, authFile)
+
+	cmd := newAuthTestCommand()
+	if err := initDbx(cmd, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Token != "env-token" {
+		t.Fatalf("expected %s to take precedence, got %q", envAccessToken, config.Token)
+	}
+}
+
 func TestInitDbxUsesAuthFileEnv(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()
@@ -138,26 +179,26 @@ func unsetEnvForTest(t *testing.T, key string) {
 	})
 }
 
-func TestLoadOAuthCredentialsFromEnvKeepsTeamManageSecretFallback(t *testing.T) {
+func TestLoadOAuthCredentialsFromEnvKeepsAppKeyFallbacks(t *testing.T) {
 	restoreOAuthCredentials(t)
 
 	for _, key := range []string{
 		"DROPBOX_PERSONAL_APP_KEY",
-		"DROPBOX_PERSONAL_APP_SECRET",
 		"DROPBOX_TEAM_APP_KEY",
-		"DROPBOX_TEAM_APP_SECRET",
 		"DROPBOX_MANAGE_APP_KEY",
-		"DROPBOX_MANAGE_APP_SECRET",
 	} {
 		unsetEnvForTest(t, key)
 	}
 
-	teamAccessAppSecret = "team-access-secret"
-	teamManageAppSecret = "team-manage-secret"
+	teamAccessAppKey = "team-access-key"
+	teamManageAppKey = "team-manage-key"
 
 	loadOAuthCredentialsFromEnv()
 
-	if teamManageAppSecret != "team-manage-secret" {
-		t.Fatalf("expected team manage secret fallback, got %q", teamManageAppSecret)
+	if teamManageAppKey != "team-manage-key" {
+		t.Fatalf("expected team manage app key fallback, got %q", teamManageAppKey)
+	}
+	if teamAccessAppKey != "team-access-key" {
+		t.Fatalf("expected team access app key fallback, got %q", teamAccessAppKey)
 	}
 }

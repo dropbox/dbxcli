@@ -29,12 +29,9 @@ const (
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
 
-	defaultPersonalAppKey      = "mvhz183vwqibe7q"
-	defaultPersonalAppSecret   = "q0kquhzgetjwcz1"
-	defaultTeamAccessAppKey    = "zud1va492pnehkc"
-	defaultTeamAccessAppSecret = "p3ginm1gy0kmj54"
-	defaultTeamManageAppKey    = "xxe04eai4wmlitv"
-	defaultTeamManageAppSecret = "t8ms714yun7nu5s"
+	defaultPersonalAppKey   = "mvhz183vwqibe7q"
+	defaultTeamAccessAppKey = "zud1va492pnehkc"
+	defaultTeamManageAppKey = "xxe04eai4wmlitv"
 )
 
 func getEnv(key, fallback string) string {
@@ -46,61 +43,57 @@ func getEnv(key, fallback string) string {
 }
 
 var (
-	personalAppKey      = defaultPersonalAppKey
-	personalAppSecret   = defaultPersonalAppSecret
-	teamAccessAppKey    = defaultTeamAccessAppKey
-	teamAccessAppSecret = defaultTeamAccessAppSecret
-	teamManageAppKey    = defaultTeamManageAppKey
-	teamManageAppSecret = defaultTeamManageAppSecret
+	personalAppKey   = defaultPersonalAppKey
+	teamAccessAppKey = defaultTeamAccessAppKey
+	teamManageAppKey = defaultTeamManageAppKey
 )
 
 var config dropbox.Config
 
-func oauthCredentials(tokenType string) (string, string) {
+func oauthCredentials(tokenType string) string {
 	switch tokenType {
 	case tokenPersonal:
-		return personalAppKey, personalAppSecret
+		return personalAppKey
 	case tokenTeamAccess:
-		return teamAccessAppKey, teamAccessAppSecret
+		return teamAccessAppKey
 	case tokenTeamManage:
-		return teamManageAppKey, teamManageAppSecret
+		return teamManageAppKey
 	default:
-		return "", ""
+		return ""
 	}
 }
 
-func defaultOAuthCredentials(tokenType string) (string, string) {
+func defaultOAuthCredentials(tokenType string) string {
 	switch tokenType {
 	case tokenPersonal:
-		return defaultPersonalAppKey, defaultPersonalAppSecret
+		return defaultPersonalAppKey
 	case tokenTeamAccess:
-		return defaultTeamAccessAppKey, defaultTeamAccessAppSecret
+		return defaultTeamAccessAppKey
 	case tokenTeamManage:
-		return defaultTeamManageAppKey, defaultTeamManageAppSecret
+		return defaultTeamManageAppKey
 	default:
-		return "", ""
+		return ""
 	}
 }
 
-func setOAuthCredentials(tokenType string, appKey string, appSecret string) {
+func setOAuthCredentials(tokenType string, appKey string) {
 	switch tokenType {
 	case tokenPersonal:
-		personalAppKey, personalAppSecret = appKey, appSecret
+		personalAppKey = appKey
 	case tokenTeamAccess:
-		teamAccessAppKey, teamAccessAppSecret = appKey, appSecret
+		teamAccessAppKey = appKey
 	case tokenTeamManage:
-		teamManageAppKey, teamManageAppSecret = appKey, appSecret
+		teamManageAppKey = appKey
 	}
 }
 
 func needsOAuthCredentialsOverride(tokenType string) bool {
-	appKey, appSecret := oauthCredentials(tokenType)
-	defaultAppKey, defaultAppSecret := defaultOAuthCredentials(tokenType)
-	if appKey == "" || appSecret == "" {
+	appKey := oauthCredentials(tokenType)
+	defaultAppKey := defaultOAuthCredentials(tokenType)
+	if appKey == "" {
 		return true
 	}
-	return defaultAppKey != "" && defaultAppSecret != "" &&
-		appKey == defaultAppKey && appSecret == defaultAppSecret
+	return defaultAppKey != "" && appKey == defaultAppKey
 }
 
 func validatePath(p string) (path string, err error) {
@@ -198,11 +191,8 @@ func Execute() {
 
 func loadOAuthCredentialsFromEnv() {
 	personalAppKey = getEnv("DROPBOX_PERSONAL_APP_KEY", personalAppKey)
-	personalAppSecret = getEnv("DROPBOX_PERSONAL_APP_SECRET", personalAppSecret)
 	teamAccessAppKey = getEnv("DROPBOX_TEAM_APP_KEY", teamAccessAppKey)
-	teamAccessAppSecret = getEnv("DROPBOX_TEAM_APP_SECRET", teamAccessAppSecret)
 	teamManageAppKey = getEnv("DROPBOX_MANAGE_APP_KEY", teamManageAppKey)
-	teamManageAppSecret = getEnv("DROPBOX_MANAGE_APP_SECRET", teamManageAppSecret)
 }
 
 func init() {
