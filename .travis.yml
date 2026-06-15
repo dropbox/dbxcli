@@ -1,15 +1,13 @@
 language: go
 
 go:
-  - "1.11.x"
-
-before_script:
-  - go get -u github.com/mitchellh/gox
-  - env GO111MODULE=on go vet ./...
+  - "1.25.x"
 
 install: true
 
 script:
+  - go vet ./...
+  - go test ./...
   - ./build.sh
 
 deploy:

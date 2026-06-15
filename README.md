@@ -1,6 +1,6 @@
 # `dbxcli`: A command line tool for Dropbox users and team admins [UNOFFICIAL]
 
-[![Build Status](https://travis-ci.org/dropbox/dbxcli.svg?branch=master)](https://travis-ci.org/dropbox/dbxcli)
+[![Build Status](https://app.travis-ci.com/dropbox/dbxcli.svg?branch=master)](https://app.travis-ci.com/dropbox/dbxcli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
 
 :warning: WARNING: This project is **NOT official**. What does this mean?
@@ -49,18 +49,25 @@ $ chmod +x dbxcli
 ### Instructions for building yourself
 For newcomers the go build process can be a bit arcane, these steps can be followed to build `dbxcli` yourself.
 
-1. Make sure `git`, `go`, and `gox` are installed. 
-2. Create a Go folder. For example, `mkdir $HOME/go` or `mkdir $HOME/.go`. Navigate to it.
-3. `go get github.com/dropbox/dbxcli`. That's right, you don't manually clone it, this does it for you.
-4. `cd ~/go/src/github.com/dropbox/dbxcli` (adapt accordingly based on step 2).
+1. Make sure `git` and `go` are installed.
+2. Install the latest released version:
+   ```sh
+   $ go install github.com/dropbox/dbxcli@latest
+   ```
+3. Or build from source:
+   ```sh
+   $ git clone https://github.com/dropbox/dbxcli.git
+   $ cd dbxcli
+   $ go build .
+   ```
 
-To use your own Dropbox app while developing, provide its app key when running
-`dbxcli`:
+To use your own Dropbox app while developing, provide its app key when logging in:
+
 ```sh
-$ export DROPBOX_PERSONAL_APP_KEY=your-app-key
+$ dbxcli login --app-key=your-app-key
 ```
 
-Finally we're ready to build. Run `go build`, and you'll see a `dbxcli` binary has been created in the current directory. Congrats, we're done!
+If you built from source, the `go build .` command creates a `dbxcli` binary in the current directory.
 
 ## Usage
 
