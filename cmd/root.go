@@ -29,7 +29,7 @@ const (
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
 
-	defaultPersonalAppKey   = "mvhz183vwqibe7q"
+	defaultPersonalAppKey   = "07o23gulcj8qi69"
 	defaultTeamAccessAppKey = "zud1va492pnehkc"
 	defaultTeamManageAppKey = "xxe04eai4wmlitv"
 )
@@ -89,10 +89,13 @@ func setOAuthCredentials(tokenType string, appKey string) {
 
 func needsOAuthCredentialsOverride(tokenType string) bool {
 	appKey := oauthCredentials(tokenType)
-	defaultAppKey := defaultOAuthCredentials(tokenType)
 	if appKey == "" {
 		return true
 	}
+	if tokenType == tokenPersonal {
+		return false
+	}
+	defaultAppKey := defaultOAuthCredentials(tokenType)
 	return defaultAppKey != "" && appKey == defaultAppKey
 }
 

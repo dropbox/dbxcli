@@ -257,7 +257,7 @@ func loginCommand(tokType string) string {
 	case tokenTeamManage:
 		return "dbxcli login team-manage --app-key=<your-app-key>"
 	default:
-		return "dbxcli login --app-key=<your-app-key>"
+		return "dbxcli login"
 	}
 }
 

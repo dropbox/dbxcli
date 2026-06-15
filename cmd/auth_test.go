@@ -371,7 +371,7 @@ func TestGetAccessTokenRefreshFailureLeavesAuthFileUnchanged(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected refresh failure")
 	}
-	if !strings.Contains(err.Error(), "dbxcli login --app-key=<your-app-key>") {
+	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
 	}
 
@@ -384,7 +384,7 @@ func TestGetAccessTokenRefreshFailureLeavesAuthFileUnchanged(t *testing.T) {
 	}
 }
 
-func TestGetAccessTokenMissingTokenWithBundledCredentialsReturnsLoginError(t *testing.T) {
+func TestGetAccessTokenMissingTokenWithDefaultPersonalCredentialsReturnsLoginError(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
 
@@ -415,7 +415,7 @@ func TestGetAccessTokenMissingTokenWithBundledCredentialsReturnsLoginError(t *te
 	if err == nil {
 		t.Fatal("expected missing credentials error")
 	}
-	if !strings.Contains(err.Error(), "dbxcli login --app-key=<your-app-key>") {
+	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
 	}
 	if !strings.Contains(err.Error(), envAccessToken) {
@@ -454,7 +454,7 @@ func TestGetAccessTokenMissingTokenWithConfiguredAppKeyReturnsLoginError(t *test
 	if err == nil {
 		t.Fatal("expected missing credentials error")
 	}
-	if !strings.Contains(err.Error(), "dbxcli login --app-key=<your-app-key>") {
+	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
 	}
 }
@@ -464,7 +464,7 @@ func TestLoginCommandForTokenType(t *testing.T) {
 		tokType string
 		want    string
 	}{
-		{tokenPersonal, "dbxcli login --app-key=<your-app-key>"},
+		{tokenPersonal, "dbxcli login"},
 		{tokenTeamAccess, "dbxcli login team-access --app-key=<your-app-key>"},
 		{tokenTeamManage, "dbxcli login team-manage --app-key=<your-app-key>"},
 	}
@@ -543,9 +543,9 @@ func TestRequestAccessTokenReturnsReadError(t *testing.T) {
 	}
 }
 
-func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledDefaults(t *testing.T) {
+func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledTeamDefaults(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
+	setOAuthCredentials(tokenTeamManage, defaultTeamManageAppKey)
 
 	origReadAuthorizationCode := readAuthorizationCode
 	origExchangeAuthorizationCode := exchangeAuthorizationCode
@@ -555,8 +555,8 @@ func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledDefaults(t *testing.T
 	})
 
 	readAppCredentials = func(tokType string) (appCredentials, error) {
-		if tokType != tokenPersonal {
-			t.Fatalf("expected personal app credentials prompt, got %q", tokType)
+		if tokType != tokenTeamManage {
+			t.Fatalf("expected team manage app credentials prompt, got %q", tokType)
 		}
 		return appCredentials{Key: "prompt-key"}, nil
 	}
@@ -573,15 +573,48 @@ func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledDefaults(t *testing.T
 		return &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}, nil
 	}
 
-	token, err := requestAccessToken(tokenPersonal, "")
+	token, err := requestAccessToken(tokenTeamManage, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if token != "access-token" {
 		t.Fatalf("expected access token, got %q", token)
 	}
-	if personalAppKey != "prompt-key" {
-		t.Fatalf("expected prompted app key to be saved for this process, got %q", personalAppKey)
+	if teamManageAppKey != "prompt-key" {
+		t.Fatalf("expected prompted app key to be saved for this process, got %q", teamManageAppKey)
+	}
+}
+
+func TestRequestAccessTokenUsesDefaultPersonalAppKey(t *testing.T) {
+	restoreOAuthCredentials(t)
+	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
+
+	origReadAuthorizationCode := readAuthorizationCode
+	origExchangeAuthorizationCode := exchangeAuthorizationCode
+	t.Cleanup(func() {
+		readAuthorizationCode = origReadAuthorizationCode
+		exchangeAuthorizationCode = origExchangeAuthorizationCode
+	})
+
+	readAppCredentials = func(tokType string) (appCredentials, error) {
+		t.Fatal("app credential prompt should not be used for the default personal app key")
+		return appCredentials{}, nil
+	}
+	readAuthorizationCode = func() (string, error) {
+		return "auth-code", nil
+	}
+	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
+		if conf.ClientID != defaultPersonalAppKey {
+			t.Fatalf("expected default personal app key, got %q", conf.ClientID)
+		}
+		if conf.ClientSecret != "" {
+			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
+		}
+		return &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}, nil
+	}
+
+	if _, err := requestAccessToken(tokenPersonal, ""); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -691,7 +724,7 @@ func TestRequestAccessTokenUsesConfiguredAppCredentials(t *testing.T) {
 
 func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
+	setOAuthCredentials(tokenTeamManage, defaultTeamManageAppKey)
 
 	origReadAuthorizationCode := readAuthorizationCode
 	origExchangeAuthorizationCode := exchangeAuthorizationCode
@@ -712,7 +745,7 @@ func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 		return nil, nil
 	}
 
-	if _, err := requestAccessToken(tokenPersonal, ""); err == nil {
+	if _, err := requestAccessToken(tokenTeamManage, ""); err == nil {
 		t.Fatal("expected empty app credentials to fail")
 	}
 }

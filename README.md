@@ -54,11 +54,8 @@ For newcomers the go build process can be a bit arcane, these steps can be follo
 3. `go get github.com/dropbox/dbxcli`. That's right, you don't manually clone it, this does it for you.
 4. `cd ~/go/src/github.com/dropbox/dbxcli` (adapt accordingly based on step 2).
 
-Now we need to pause for a second to get development keys. 
-
-5. Head to `https://www.dropbox.com/developers/apps` (sign in if necessary) and choose "Create app". Use the Dropbox API and give it Full Dropbox access. Name and create the app.
-6. You'll be presented with a dashboard with an "App key".
-7. Provide the app key when running `dbxcli`:
+To use your own Dropbox app while developing, provide its app key when running
+`dbxcli`:
 ```sh
 $ export DROPBOX_PERSONAL_APP_KEY=your-app-key
 ```
@@ -116,15 +113,14 @@ $ dbxcli login
 Commands require saved credentials. If no saved credentials are available, run
 `dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
 
-If the bundled app credentials are still in use, `dbxcli` asks for your Dropbox
-app key before printing the authorization URL. You can pass the app key as an
-option:
+Personal login uses the bundled Dropbox app key by default. You can pass a
+custom app key as an option:
 
 ```sh
 $ dbxcli login --app-key=your-app-key
 ```
 
-You can also set it with an environment variable to skip the prompt:
+You can also set it with an environment variable:
 
 ```sh
 $ DROPBOX_PERSONAL_APP_KEY=your-app-key dbxcli login
