@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.8...HEAD)
 
+**Changed:**
+
+- Saved OAuth credentials now use a refresh-token aware `auth.json` object format. Existing legacy token-string entries are still read, but any credential write rewrites the file in the new format.
+
 **Closed issues:**
 
 - Invalid client\_id when trying to get authorization code [\#79](https://github.com/dropbox/dbxcli/issues/79)

@@ -67,8 +67,11 @@ func TestLoginWritesCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tokens[""][tokenPersonal] != "login-token" {
-		t.Fatalf("expected login token to be saved, got %q", tokens[""][tokenPersonal])
+	if tokens[""][tokenPersonal].AccessToken != "login-token" {
+		t.Fatalf("expected login token to be saved, got %q", tokens[""][tokenPersonal].AccessToken)
+	}
+	if tokens[""][tokenPersonal].RefreshToken == "" {
+		t.Fatal("expected login credentials to include a refresh token")
 	}
 	if out.String() != "Credentials saved to "+authFile+"\n" {
 		t.Fatalf("unexpected output: %q", out.String())
@@ -90,14 +93,14 @@ func TestLoginWritesSelectedTokenType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tokens[""][tokenTeamManage] != "team-token" {
-		t.Fatalf("expected team manage token to be saved, got %q", tokens[""][tokenTeamManage])
+	if tokens[""][tokenTeamManage].AccessToken != "team-token" {
+		t.Fatalf("expected team manage token to be saved, got %q", tokens[""][tokenTeamManage].AccessToken)
 	}
 }
 
-func TestLoginUsesAppKeyFlagWithConfiguredSecret(t *testing.T) {
+func TestLoginUsesAppKeyFlag(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey, "configured-secret")
+	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
 
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
@@ -110,24 +113,20 @@ func TestLoginUsesAppKeyFlagWithConfiguredSecret(t *testing.T) {
 	})
 
 	readAppCredentials = func(tokType string) (appCredentials, error) {
-		t.Fatal("app credential prompt should not be used when app key flag and configured secret are set")
+		t.Fatal("app credential prompt should not be used when app key flag is set")
 		return appCredentials{}, nil
-	}
-	readAppSecret = func(prompt string) (string, error) {
-		t.Fatal("app secret prompt should not be used when secret is already configured")
-		return "", nil
 	}
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string) (*oauth2.Token, error) {
+	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
 		if conf.ClientID != "flag-key" {
 			t.Fatalf("expected flag app key, got %q", conf.ClientID)
 		}
-		if conf.ClientSecret != "configured-secret" {
-			t.Fatalf("expected configured app secret, got %q", conf.ClientSecret)
+		if conf.ClientSecret != "" {
+			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
 		}
-		return &oauth2.Token{AccessToken: "flag-token"}, nil
+		return &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"}, nil
 	}
 
 	cmd := newLoginTestCommand()
@@ -143,14 +142,17 @@ func TestLoginUsesAppKeyFlagWithConfiguredSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tokens[""][tokenPersonal] != "flag-token" {
-		t.Fatalf("expected login token to be saved, got %q", tokens[""][tokenPersonal])
+	if tokens[""][tokenPersonal].AccessToken != "flag-token" {
+		t.Fatalf("expected login token to be saved, got %q", tokens[""][tokenPersonal].AccessToken)
+	}
+	if tokens[""][tokenPersonal].AppKey != "flag-key" {
+		t.Fatalf("expected saved app key, got %q", tokens[""][tokenPersonal].AppKey)
 	}
 }
 
-func TestLoginAppKeyFlagPromptsForBundledSecret(t *testing.T) {
+func TestLoginAppKeyFlagUsesBundledDefaultKey(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey, defaultPersonalAppSecret)
+	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
 
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
@@ -166,20 +168,17 @@ func TestLoginAppKeyFlagPromptsForBundledSecret(t *testing.T) {
 		t.Fatal("full app credential prompt should not be used when app key flag is set")
 		return appCredentials{}, nil
 	}
-	readAppSecret = func(prompt string) (string, error) {
-		return "prompt-secret", nil
-	}
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string) (*oauth2.Token, error) {
+	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
 		if conf.ClientID != "flag-key" {
 			t.Fatalf("expected flag app key, got %q", conf.ClientID)
 		}
-		if conf.ClientSecret != "prompt-secret" {
-			t.Fatalf("expected prompted app secret, got %q", conf.ClientSecret)
+		if conf.ClientSecret != "" {
+			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
 		}
-		return &oauth2.Token{AccessToken: "flag-token"}, nil
+		return &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"}, nil
 	}
 
 	cmd := newLoginTestCommand()
@@ -192,20 +191,21 @@ func TestLoginAppKeyFlagPromptsForBundledSecret(t *testing.T) {
 	}
 }
 
-func TestLoginAppKeyFlagRejectsEmptyPromptedSecret(t *testing.T) {
+func TestLoginAppKeyFlagSetsKey(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey, defaultPersonalAppSecret)
+	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
 
 	cmd := newLoginTestCommand()
 	if err := cmd.Flags().Set("app-key", "flag-key"); err != nil {
 		t.Fatal(err)
 	}
-	readAppSecret = func(prompt string) (string, error) {
-		return " ", nil
-	}
 
-	if err := loginAppKeyFromFlag(cmd, tokenPersonal); err == nil {
-		t.Fatal("expected empty prompted app secret to fail")
+	if err := loginAppKeyFromFlag(cmd, tokenPersonal); err != nil {
+		t.Fatal(err)
+	}
+	appKey := oauthCredentials(tokenPersonal)
+	if appKey != "flag-key" {
+		t.Fatalf("expected app key from flag, got %q", appKey)
 	}
 }
 
@@ -224,11 +224,11 @@ func TestLoginAndLogoutSkipRootAuthPreRun(t *testing.T) {
 	}
 }
 
-func TestLoginCommandDefinesAppCredentialFlags(t *testing.T) {
+func TestLoginCommandDefinesAppKeyFlagOnly(t *testing.T) {
 	if loginCmd.Flags().Lookup("app-key") == nil {
 		t.Fatal("login command should define --app-key")
 	}
 	if loginCmd.Flags().Lookup("app-secret") != nil {
-		t.Fatal("login command should not define --app-secret yet")
+		t.Fatal("login command should not define --app-secret")
 	}
 }
