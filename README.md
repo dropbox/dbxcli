@@ -237,6 +237,14 @@ $ dbxcli get /remote/file.txt ./local-file.txt     # download a single file
 $ dbxcli get -r /remote/folder ./local-folder      # recursively download a folder
 ```
 
+### Removing files and folders
+
+```sh
+$ dbxcli rm /remote/file.txt                       # move a file to Dropbox trash
+$ dbxcli rm -r /remote/folder                      # remove a non-empty folder
+$ dbxcli rm --permanent /remote/file.txt           # permanently delete when Dropbox permits it
+```
+
 ### Creating directories
 
 ```sh

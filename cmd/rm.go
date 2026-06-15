@@ -23,64 +23,226 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type removeOptions struct {
+	force     bool
+	recursive bool
+	permanent bool
+	verbose   bool
+}
+
+type removeTarget struct {
+	path     string
+	metadata files.IsMetadata
+}
+
+type removeInput struct {
+	Path      string `json:"path"`
+	Permanent bool   `json:"permanent"`
+	Recursive bool   `json:"recursive"`
+	Force     bool   `json:"force"`
+}
+
+type removeMetadata struct {
+	Type        string `json:"type"`
+	PathDisplay string `json:"path_display,omitempty"`
+	ID          string `json:"id,omitempty"`
+	Rev         string `json:"rev,omitempty"`
+	Size        uint64 `json:"size,omitempty"`
+}
+
+type removeResult struct {
+	Input  removeInput    `json:"input"`
+	Result removeMetadata `json:"result"`
+}
+
 func rm(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("rm: missing operand")
 	}
 
-	force, err := cmd.Flags().GetBool("force")
+	opts, err := parseRemoveOptions(cmd)
 	if err != nil {
 		return err
 	}
 
-	var deletePaths []string
-	dbx := files.New(config)
+	dbx := filesNewFunc(config)
 
-	// Validate remove paths before executing removal
-	for i := range args {
-		path, err := validatePath(args[i])
-		if err != nil {
-			return err
-		}
-
-		pathMetaData, err := getFileMetadata(dbx, path)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := pathMetaData.(*files.FileMetadata); !ok {
-			folderArg := files.NewListFolderArg(path)
-			res, err := dbx.ListFolder(folderArg)
-			if err != nil {
-				return err
-			}
-			if len(res.Entries) != 0 && !force {
-				return fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force` or `-f` to proceed", path)
-			}
-		}
-		deletePaths = append(deletePaths, path)
+	targets, err := validateRemoveTargets(dbx, args, opts)
+	if err != nil {
+		return err
 	}
 
-	// Execute removals
-	for _, path := range deletePaths {
-		arg := files.NewDeleteArg(path)
+	results, err := removeTargets(dbx, targets, opts)
+	if err != nil {
+		return err
+	}
 
-		if _, err = dbx.DeleteV2(arg); err != nil {
-			return err
-		}
+	if opts.verbose {
+		printRemoveResults(cmd, results)
 	}
 
 	return nil
 }
 
+func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return removeOptions{}, err
+	}
+
+	recursive, err := cmd.Flags().GetBool("recursive")
+	if err != nil {
+		return removeOptions{}, err
+	}
+
+	permanent, err := cmd.Flags().GetBool("permanent")
+	if err != nil {
+		return removeOptions{}, err
+	}
+
+	verbose, _ := cmd.Flags().GetBool("verbose")
+
+	return removeOptions{
+		force:     force,
+		recursive: recursive,
+		permanent: permanent,
+		verbose:   verbose,
+	}, nil
+}
+
+func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) ([]removeTarget, error) {
+	var targets []removeTarget
+
+	// Validate remove paths before executing removal
+	for i := range args {
+		path, err := validatePath(args[i])
+		if err != nil {
+			return nil, err
+		}
+
+		pathMetaData, err := getFileMetadata(dbx, path)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := pathMetaData.(*files.FileMetadata); !ok && !opts.allowNonEmptyFolder() {
+			folderArg := files.NewListFolderArg(path)
+			res, err := dbx.ListFolder(folderArg)
+			if err != nil {
+				return nil, err
+			}
+			if len(res.Entries) != 0 {
+				return nil, fmt.Errorf("rm: cannot remove ‘%s’: Directory not empty, use `--force`/`-f` or `--recursive`/`-r` to proceed", path)
+			}
+		}
+		targets = append(targets, removeTarget{path: path, metadata: pathMetaData})
+	}
+
+	return targets, nil
+}
+
+func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions) ([]removeResult, error) {
+	results := make([]removeResult, 0, len(targets))
+
+	for _, target := range targets {
+		arg := files.NewDeleteArg(target.path)
+		metadata := target.metadata
+
+		if opts.permanent {
+			if err := dbx.PermanentlyDelete(arg); err != nil {
+				return nil, err
+			}
+		} else {
+			res, err := dbx.DeleteV2(arg)
+			if err != nil {
+				return nil, err
+			}
+			if res != nil && res.Metadata != nil {
+				metadata = res.Metadata
+			}
+		}
+
+		results = append(results, newRemoveResult(target.path, metadata, opts))
+	}
+
+	return results, nil
+}
+
+func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions) removeResult {
+	return removeResult{
+		Input: removeInput{
+			Path:      path,
+			Permanent: opts.permanent,
+			Recursive: opts.recursive,
+			Force:     opts.force,
+		},
+		Result: removeMetadataFromDropbox(path, metadata),
+	}
+}
+
+func removeMetadataFromDropbox(path string, metadata files.IsMetadata) removeMetadata {
+	switch m := metadata.(type) {
+	case *files.FileMetadata:
+		return removeMetadata{
+			Type:        "file",
+			PathDisplay: metadataDisplayPath(path, m.PathDisplay),
+			ID:          m.Id,
+			Rev:         m.Rev,
+			Size:        m.Size,
+		}
+	case *files.FolderMetadata:
+		return removeMetadata{
+			Type:        "folder",
+			PathDisplay: metadataDisplayPath(path, m.PathDisplay),
+			ID:          m.Id,
+		}
+	default:
+		return removeMetadata{
+			Type:        "unknown",
+			PathDisplay: path,
+		}
+	}
+}
+
+func metadataDisplayPath(inputPath, metadataPath string) string {
+	if metadataPath != "" {
+		return metadataPath
+	}
+	return inputPath
+}
+
+func printRemoveResults(cmd *cobra.Command, results []removeResult) {
+	out := commandOutput(cmd)
+	for _, result := range results {
+		if result.Input.Permanent {
+			out.Info("Permanently deleted %s", result.displayPath())
+			continue
+		}
+		out.Info("Deleted %s", result.displayPath())
+	}
+}
+
+func (r removeResult) displayPath() string {
+	if r.Result.PathDisplay != "" {
+		return r.Result.PathDisplay
+	}
+	return r.Input.Path
+}
+
+func (o removeOptions) allowNonEmptyFolder() bool {
+	return o.force || o.recursive
+}
+
 // rmCmd represents the rm command
 var rmCmd = &cobra.Command{
 	Use:   "rm [flags] <file>",
-	Short: "Remove files",
+	Short: "Remove files or folders",
 	RunE:  rm,
 }
 
 func init() {
 	RootCmd.AddCommand(rmCmd)
-	rmCmd.Flags().BoolP("force", "f", false, "Force removal")
+	rmCmd.Flags().BoolP("force", "f", false, "Allow removing non-empty folders; same as --recursive")
+	rmCmd.Flags().BoolP("recursive", "r", false, "Recursively remove folders")
+	rmCmd.Flags().Bool("permanent", false, "Permanently delete instead of moving to Dropbox trash")
 }
