@@ -16,10 +16,12 @@ type mockFilesClient struct {
 	uploadSessionFinishFn   func(arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error)
 	copyV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 	createFolderV2Fn        func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error)
+	deleteV2Fn              func(arg *files.DeleteArg) (*files.DeleteResult, error)
 	getMetadataFn           func(arg *files.GetMetadataArg) (files.IsMetadata, error)
 	listFolderFn            func(arg *files.ListFolderArg) (*files.ListFolderResult, error)
 	listFolderContinueFn    func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error)
 	moveV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
+	permanentlyDeleteFn     func(arg *files.DeleteArg) error
 }
 
 func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
@@ -107,6 +109,9 @@ func (m *mockFilesClient) CreateFolderBatchCheck(arg *async.PollArg) (*files.Cre
 	return nil, nil
 }
 func (m *mockFilesClient) DeleteV2(arg *files.DeleteArg) (*files.DeleteResult, error) {
+	if m.deleteV2Fn != nil {
+		return m.deleteV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) Delete(arg *files.DeleteArg) (files.IsMetadata, error) { return nil, nil }
@@ -200,7 +205,12 @@ func (m *mockFilesClient) PaperCreate(arg *files.PaperCreateArg, content io.Read
 func (m *mockFilesClient) PaperUpdate(arg *files.PaperUpdateArg, content io.Reader) (*files.PaperUpdateResult, error) {
 	return nil, nil
 }
-func (m *mockFilesClient) PermanentlyDelete(arg *files.DeleteArg) error { return nil }
+func (m *mockFilesClient) PermanentlyDelete(arg *files.DeleteArg) error {
+	if m.permanentlyDeleteFn != nil {
+		return m.permanentlyDeleteFn(arg)
+	}
+	return nil
+}
 func (m *mockFilesClient) PropertiesAdd(arg *file_properties.AddPropertiesArg) error {
 	return nil
 }
