@@ -1,8 +1,6 @@
 title: dbxcli
 description: A command line client for Dropbox built using the Go SDK
-google_analytics: 
 show_downloads: false
 theme: jekyll-theme-hacker
-
 plugins:
   - jekyll-mentions

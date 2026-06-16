@@ -1,6 +1,6 @@
 # `dbxcli`: A command line tool for Dropbox users and team admins [UNOFFICIAL]
 
-[![Build Status](https://travis-ci.org/dropbox/dbxcli.svg?branch=master)](https://travis-ci.org/dropbox/dbxcli)
+[![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
 
 :warning: WARNING: This project is **NOT official**. What does this mean?
@@ -47,23 +47,24 @@ $ chmod +x dbxcli
 ```
 
 ### Instructions for building yourself
-For newcomers the go build process can be a bit arcane, these steps can be followed to build `dbxcli` yourself.
 
-1. Make sure `git`, `go`, and `gox` are installed. 
-2. Create a Go folder. For example, `mkdir $HOME/go` or `mkdir $HOME/.go`. Navigate to it.
-3. `go get github.com/dropbox/dbxcli`. That's right, you don't manually clone it, this does it for you.
-4. `cd ~/go/src/github.com/dropbox/dbxcli` (adapt accordingly based on step 2).
+1. Make sure `git` and `go` are installed.
+2. Install the latest released version:
+   ```sh
+   $ go install github.com/dropbox/dbxcli@latest
+   ```
+3. Or build from source:
+   ```sh
+   $ git clone https://github.com/dropbox/dbxcli.git
+   $ cd dbxcli
+   $ go build .
+   ```
 
-Now we need to pause for a second to get development keys. 
+To use your own Dropbox app while developing, provide its app key when logging in:
 
-5. Head to `https://www.dropbox.com/developers/apps` (sign in if necessary) and choose "Create app". Use the Dropbox API and give it Full Dropbox access. Name and create the app.
-6. You'll be presented with a dashboard with an "App key".
-7. Provide the app key when running `dbxcli`:
 ```sh
-$ export DROPBOX_PERSONAL_APP_KEY=your-app-key
+$ dbxcli login --app-key=your-app-key
 ```
-
-Finally we're ready to build. Run `go build`, and you'll see a `dbxcli` binary has been created in the current directory. Congrats, we're done!
 
 ## Usage
 
@@ -116,15 +117,14 @@ $ dbxcli login
 Commands require saved credentials. If no saved credentials are available, run
 `dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
 
-If the bundled app credentials are still in use, `dbxcli` asks for your Dropbox
-app key before printing the authorization URL. You can pass the app key as an
-option:
+Personal login uses the bundled Dropbox app key by default. You can pass a
+custom app key as an option:
 
 ```sh
 $ dbxcli login --app-key=your-app-key
 ```
 
-You can also set it with an environment variable to skip the prompt:
+You can also set it with an environment variable:
 
 ```sh
 $ DROPBOX_PERSONAL_APP_KEY=your-app-key dbxcli login
