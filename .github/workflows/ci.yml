@@ -10,25 +10,24 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
       - run: go vet ./...
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25"
       - run: go test ./...
+      - run: go build ./...
 
-  build:
+  release-build:
+    name: Release binary build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -36,3 +35,38 @@ jobs:
         with:
           go-version: "1.25"
       - run: ./build.sh
+        env:
+          VERSION: ci
+      - run: ./packaging/package-release.sh ci
+
+  chocolatey:
+    name: Chocolatey package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - name: Build Windows binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -ldflags "-s -w -X main.version=0.0.1" -o dist/dbxcli-windows-amd64.exe .
+      - name: Package Windows archive
+        shell: bash
+        env:
+          TARGETS: windows/amd64
+        run: ./packaging/package-release.sh 0.0.1
+      - name: Pack and install Chocolatey package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $zip = Resolve-Path .\dist\dbxcli_0.0.1_windows_amd64.zip
+          $checksum = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          choco pack .\packaging\chocolatey\dbxcli\dbxcli.nuspec --version 0.0.1 --outputdirectory .\dist
+          $env:DBXCLI_CHOCOLATEY_URL64 = $zip.Path
+          $env:DBXCLI_CHOCOLATEY_CHECKSUM64 = $checksum
+          choco install dbxcli --source (Resolve-Path .\dist).Path --version 0.0.1 -y --no-progress
+          dbxcli --help
+          choco uninstall dbxcli -y --no-progress

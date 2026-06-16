@@ -17,9 +17,16 @@ jobs:
           go-version: "1.25"
       - run: go vet ./...
       - run: go test ./...
+      - run: go build ./...
       - run: ./build.sh
         env:
-          TRAVIS_TAG: ${{ github.ref_name }}
+          VERSION: ${{ github.ref_name }}
+      - run: ./packaging/package-release.sh
+        env:
+          VERSION: ${{ github.ref_name }}
       - uses: softprops/action-gh-release@v3
         with:
-          files: dist/*
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/SHA256SUMS

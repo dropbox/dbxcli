@@ -2,7 +2,8 @@
 
 set -e
 
-VERSION="${TRAVIS_TAG:-${GITHUB_REF_NAME:-dev}}"
+RAW_VERSION="${VERSION:-${TRAVIS_TAG:-${GITHUB_REF_NAME:-dev}}}"
+VERSION="${RAW_VERSION#v}"
 LDFLAGS="-s -w -X main.version=${VERSION}"
 
 TARGETS="darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm openbsd/amd64 windows/amd64"
