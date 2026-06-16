@@ -21,9 +21,20 @@
 
 ## Installation
 
-Download pre-compiled binaries for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
+Download release archives for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
 
-### Mac OSX Installation of pre-compiled binaries
+Release assets use these names, where `X.Y.Z` is the release version without the leading `v`:
+
+* `dbxcli_X.Y.Z_darwin_amd64.tar.gz`
+* `dbxcli_X.Y.Z_darwin_arm64.tar.gz`
+* `dbxcli_X.Y.Z_linux_amd64.tar.gz`
+* `dbxcli_X.Y.Z_linux_arm64.tar.gz`
+* `dbxcli_X.Y.Z_linux_arm.tar.gz`
+* `dbxcli_X.Y.Z_openbsd_amd64.tar.gz`
+* `dbxcli_X.Y.Z_windows_amd64.zip`
+* `SHA256SUMS`
+
+### macOS installation from release archives
 These instructions aim to help both experts and novice `dbxcli` users. Please submit an issue if they don't work for you.  
 
 1. Make sure you download and place the binary in a folder that's on your `$PATH`.  If you are unsure what this means, go to *step 2*. Otherwise, skip to *step 3*
@@ -36,10 +47,13 @@ $ cd ~/bin
 ```sh
 export PATH=$PATH:$HOME/bin
 ```
-4. Download the `dbxcli` binary for OSX and rename it.  *IMPORTANT:* Check that the tag `v3.2.1` on the URL below is the latest release tag on the [Releases](https://github.com/dropbox/dbxcli/releases) page.
+4. Download the `dbxcli` archive for your Mac architecture and unpack it.  Replace `X.Y.Z` with the latest release tag from the [Releases](https://github.com/dropbox/dbxcli/releases) page, without the leading `v`.
 ```sh
-$ wget https://github.com/dropbox/dbxcli/releases/download/v3.2.1/dbxcli-darwin-amd64 
-$ mv dbxcli-darwin-amd64 dbxcli
+$ curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_darwin_amd64.tar.gz
+$ curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS
+$ grep 'dbxcli_X.Y.Z_darwin_amd64.tar.gz' SHA256SUMS | shasum -a 256 -c -
+$ tar -xzf dbxcli_X.Y.Z_darwin_amd64.tar.gz
+$ mv dbxcli_X.Y.Z_darwin_amd64/dbxcli dbxcli
 ```
 5. Finally, make the binary an executable file and you are good to go!
 ```

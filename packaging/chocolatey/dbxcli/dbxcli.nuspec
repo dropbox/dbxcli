@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>dbxcli</id>
+    <version>0.0.0</version>
+    <packageSourceUrl>https://github.com/dropbox/dbxcli</packageSourceUrl>
+    <owners>Dropbox</owners>
+    <title>dbxcli</title>
+    <authors>Dropbox</authors>
+    <projectUrl>https://github.com/dropbox/dbxcli</projectUrl>
+    <projectSourceUrl>https://github.com/dropbox/dbxcli</projectSourceUrl>
+    <docsUrl>https://github.com/dropbox/dbxcli#readme</docsUrl>
+    <bugTrackerUrl>https://github.com/dropbox/dbxcli/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/dropbox/dbxcli/blob/master/LICENSE</licenseUrl>
+    <releaseNotes>https://github.com/dropbox/dbxcli/releases</releaseNotes>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Command-line tool for Dropbox users and team admins.</summary>
+    <description>
+dbxcli is an unofficial command-line client for Dropbox users and team admins.
+It supports common file operations, account information, sharing commands, and
+team administration workflows.
+    </description>
+    <tags>dropbox dbxcli cli files sync team-admin</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+    <file src="legal\**" target="legal" />
+  </files>
+</package>

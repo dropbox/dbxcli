@@ -1,0 +1,16 @@
+VERIFICATION
+
+This package downloads the official dbxcli Windows release archive from:
+
+https://github.com/dropbox/dbxcli/releases
+
+For each package version:
+
+1. Download dbxcli_<version>_windows_amd64.zip.
+2. Download SHA256SUMS from the same GitHub Release.
+3. Verify that the archive checksum matches the SHA256SUMS entry.
+4. Use that checksum as checksum64 in tools/chocolateyInstall.ps1.
+
+The package source is available at:
+
+https://github.com/dropbox/dbxcli
