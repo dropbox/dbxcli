@@ -1,0 +1,34 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - README.md
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare site content
+        run: |
+          mkdir -p site
+          cp README.md site/index.md
+          cat > site/_config.yml << 'EOF'
+          title: dbxcli
+          description: A command line client for Dropbox built using the Go SDK
+          show_downloads: false
+          theme: jekyll-theme-hacker
+          plugins:
+            - jekyll-mentions
+          EOF
+
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site
+          clean-exclude: images
