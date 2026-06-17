@@ -14,6 +14,6 @@ class Dbxcli < Formula
   end
 
   test do
-    assert_match "Usage:", shell_output("#{bin}/dbxcli --help")
+    assert_match "dbxcli version: #{version}", shell_output("#{bin}/dbxcli version")
   end
 end
