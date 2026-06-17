@@ -108,10 +108,10 @@ func oauthConfigWithAppKey(appKey string, domain string) *oauth2.Config {
 	}
 }
 
-func (t *storedCredential) UnmarshalJSON(b []byte) error {
+func (c *storedCredential) UnmarshalJSON(b []byte) error {
 	var accessToken string
 	if err := json.Unmarshal(b, &accessToken); err == nil {
-		*t = storedCredential{AccessToken: accessToken}
+		*c = storedCredential{AccessToken: accessToken}
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func (t *storedCredential) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &credential); err != nil {
 		return err
 	}
-	*t = storedCredential(credential)
+	*c = storedCredential(credential)
 	return nil
 }
 
@@ -138,7 +138,7 @@ func storedCredentialFromOAuthToken(token *oauth2.Token, appKey string) storedCr
 	return credential
 }
 
-func (c storedCredential) oauthToken() *oauth2.Token {
+func (c *storedCredential) oauthToken() *oauth2.Token {
 	token := &oauth2.Token{
 		AccessToken:  c.AccessToken,
 		TokenType:    c.TokenType,
@@ -150,7 +150,7 @@ func (c storedCredential) oauthToken() *oauth2.Token {
 	return token
 }
 
-func (c storedCredential) shouldRefresh(now time.Time) bool {
+func (c *storedCredential) shouldRefresh(now time.Time) bool {
 	if c.RefreshToken == "" {
 		return false
 	}
@@ -253,9 +253,9 @@ func getAccessToken(tokType string, domain string, force bool) (string, string, 
 func loginCommand(tokType string) string {
 	switch tokType {
 	case tokenTeamAccess:
-		return "dbxcli login team-access --app-key=<your-app-key>"
+		return "dbxcli login team-access"
 	case tokenTeamManage:
-		return "dbxcli login team-manage --app-key=<your-app-key>"
+		return "dbxcli login team-manage"
 	default:
 		return "dbxcli login"
 	}

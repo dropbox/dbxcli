@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
 	"testing"
+	"text/tabwriter"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -76,7 +79,7 @@ func TestSetPathDisplayAsDeleted(t *testing.T) {
 	file := &files.FileMetadata{
 		Metadata: files.Metadata{PathDisplay: "/file.txt"},
 	}
-	SetPathDisplayAsDeleted(file)
+	setPathDisplayAsDeleted(file)
 	if file.PathDisplay != "<</file.txt>>" {
 		t.Errorf("file PathDisplay = %q, want %q", file.PathDisplay, "<</file.txt>>")
 	}
@@ -84,7 +87,7 @@ func TestSetPathDisplayAsDeleted(t *testing.T) {
 	folder := &files.FolderMetadata{
 		Metadata: files.Metadata{PathDisplay: "/folder"},
 	}
-	SetPathDisplayAsDeleted(folder)
+	setPathDisplayAsDeleted(folder)
 	if folder.PathDisplay != "<</folder>>" {
 		t.Errorf("folder PathDisplay = %q, want %q", folder.PathDisplay, "<</folder>>")
 	}
@@ -92,7 +95,7 @@ func TestSetPathDisplayAsDeleted(t *testing.T) {
 	deleted := &files.DeletedMetadata{
 		Metadata: files.Metadata{PathDisplay: "/gone"},
 	}
-	SetPathDisplayAsDeleted(deleted)
+	setPathDisplayAsDeleted(deleted)
 	if deleted.PathDisplay != "<</gone>>" {
 		t.Errorf("deleted PathDisplay = %q, want %q", deleted.PathDisplay, "<</gone>>")
 	}
@@ -129,6 +132,51 @@ func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	arg := files.NewGetMetadataArg("")
 	if arg.Path != "" {
 		t.Errorf("NewGetMetadataArg('') path = %q, want empty", arg.Path)
+	}
+}
+
+func TestFinishListOutputAddsTrailingNewlineForPartialShortRows(t *testing.T) {
+	var out strings.Builder
+	w := new(tabwriter.Writer)
+	w.Init(&out, 4, 8, 1, ' ', 0)
+
+	fmt.Fprint(w, "/one\t")
+	if err := finishListOutput(w, 1, listOptions{}); err != nil {
+		t.Fatalf("finishListOutput returned error: %v", err)
+	}
+
+	if got := out.String(); !strings.HasSuffix(got, "\n") {
+		t.Fatalf("output %q does not end with newline", got)
+	}
+}
+
+func TestIsListFolderNotFolderErrorHandlesWrappedErrors(t *testing.T) {
+	apiErr := files.ListFolderAPIError{
+		EndpointError: &files.ListFolderError{
+			Path: &files.LookupError{Tagged: dropbox.Tagged{Tag: files.LookupErrorNotFolder}},
+		},
+	}
+
+	if !isListFolderNotFolderError(apiErr) {
+		t.Fatal("expected raw list_folder not_folder error to match")
+	}
+	if !isListFolderNotFolderError(fmt.Errorf("wrapped: %w", apiErr)) {
+		t.Fatal("expected wrapped list_folder not_folder error to match")
+	}
+}
+
+func TestIsListRevisionsNotFileErrorHandlesWrappedErrors(t *testing.T) {
+	apiErr := files.ListRevisionsAPIError{
+		EndpointError: &files.ListRevisionsError{
+			Path: &files.LookupError{Tagged: dropbox.Tagged{Tag: files.LookupErrorNotFile}},
+		},
+	}
+
+	if !isListRevisionsNotFileError(apiErr) {
+		t.Fatal("expected raw list_revisions not_file error to match")
+	}
+	if !isListRevisionsNotFileError(fmt.Errorf("wrapped: %w", apiErr)) {
+		t.Fatal("expected wrapped list_revisions not_file error to match")
 	}
 }
 
