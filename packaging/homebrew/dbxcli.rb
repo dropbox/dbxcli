@@ -14,6 +14,9 @@ class Dbxcli < Formula
   end
 
   test do
-    assert_match "dbxcli version: #{version}", shell_output("#{bin}/dbxcli version")
+    ENV.delete "DBXCLI_ACCESS_TOKEN"
+    ENV["DBXCLI_AUTH_FILE"] = testpath/"missing-auth.json"
+    output = shell_output("#{bin}/dbxcli ls 2>&1", 1)
+    assert_match "no saved Dropbox credentials", output
   end
 end
