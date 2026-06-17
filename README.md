@@ -131,17 +131,19 @@ $ dbxcli login
 Commands require saved credentials. If no saved credentials are available, run
 `dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
 
-Personal login uses the bundled Dropbox app key by default. You can pass a
-custom app key as an option:
+Personal and team logins use bundled Dropbox app keys by default. You can pass
+a custom app key as an option:
 
 ```sh
 $ dbxcli login --app-key=your-app-key
 ```
 
-You can also set it with an environment variable:
+You can also set custom app keys with environment variables:
 
 ```sh
 $ DROPBOX_PERSONAL_APP_KEY=your-app-key dbxcli login
+$ DROPBOX_TEAM_APP_KEY=your-app-key dbxcli login team-access
+$ DROPBOX_MANAGE_APP_KEY=your-app-key dbxcli login team-manage
 ```
 
 Saved login credentials include a Dropbox refresh token and are refreshed

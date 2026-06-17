@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -43,12 +44,12 @@ func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
 
 // Invoked by search.go
 func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) {
-	fmt.Fprint(w, formatFolderMetadata(e, longFormat))
+	_, _ = fmt.Fprint(w, formatFolderMetadata(e, longFormat))
 }
 
 // Invoked by search.go and revs.go
 func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
-	fmt.Fprint(w, formatFileMetadata(e, longFormat))
+	_, _ = fmt.Fprint(w, formatFileMetadata(e, longFormat))
 }
 
 func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
@@ -80,7 +81,7 @@ func formatDeletedMetadata(e *files.DeletedMetadata, longFormat bool) string {
 	return text
 }
 
-func SetPathDisplayAsDeleted(metadata files.IsMetadata) {
+func setPathDisplayAsDeleted(metadata files.IsMetadata) {
 	switch item := metadata.(type) {
 	case *files.FileMetadata:
 		item.PathDisplay = fmt.Sprintf(deletedItemFormatString, item.PathDisplay)
@@ -127,16 +128,16 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	itemCounter := 0
 	printItem := func(message string) {
 		itemCounter = itemCounter + 1
-		fmt.Fprint(w, message)
+		_, _ = fmt.Fprint(w, message)
 		if (itemCounter%4 == 0) || opts.long {
-			fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w)
 		}
 	}
 
 	dbx := files.New(config)
 
 	if opts.long {
-		fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
+		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
 	if path != "" {
@@ -150,8 +151,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		case *files.FileMetadata:
 			if !onlyDeleted {
 				printItem(formatFileMetadataWithOpts(f, opts))
-				err = w.Flush()
-				return err
+				return finishListOutput(w, itemCounter, opts)
 			}
 		}
 	}
@@ -160,22 +160,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	var entries []files.IsMetadata
 	if err != nil {
-		listRevisionError, ok := err.(files.ListRevisionsAPIError)
-		if ok {
-			// Don't treat a "not_folder" error as fatal; recover by sending a
-			// get_metadata request for the same path and using that response instead.
-			if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFolder {
-				var metaRes files.IsMetadata
-				metaRes, _ = getFileMetadata(dbx, path)
-				entries = []files.IsMetadata{metaRes}
-			} else {
-				// Return if there's an error other than "not_folder" or if the follow-up
-				// metadata request fails.
-				return err
-			}
-		} else {
+		if !isListFolderNotFolderError(err) {
 			return err
 		}
+		// Don't treat a "not_folder" error as fatal; recover by sending a
+		// get_metadata request for the same path and using that response instead.
+		var metaRes files.IsMetadata
+		metaRes, _ = getFileMetadata(dbx, path)
+		entries = []files.IsMetadata{metaRes}
 	} else {
 		entries = res.Entries
 
@@ -199,18 +191,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 			revisionArg := files.NewListRevisionsArg(deletedItem.PathLower)
 			res, err := dbx.ListRevisions(revisionArg)
 			if err != nil {
-				listRevisionError, ok := err.(files.ListRevisionsAPIError)
-				if ok {
-					// We have a ListRevisionsAPIERror
-					if listRevisionError.EndpointError.Path.Tag == files.LookupErrorNotFile {
-						// Don't treat a "not_file" error as fatal; recover by sending a
-						// get_metadata request for the same path and using that response instead.
-						revision, err := getFileMetadata(dbx, deletedItem.PathLower)
-						if err != nil {
-							return err
-						}
-						entry = revision
+				if isListRevisionsNotFileError(err) {
+					// Don't treat a "not_file" error as fatal; recover by sending a
+					// get_metadata request for the same path and using that response instead.
+					revision, err := getFileMetadata(dbx, deletedItem.PathLower)
+					if err != nil {
+						return err
 					}
+					entry = revision
 				}
 			} else if len(res.Entries) == 0 {
 				// Occasionally revisions will be returned with an empty Revision entry list.
@@ -218,7 +206,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 			} else {
 				entry = res.Entries[0]
 			}
-			SetPathDisplayAsDeleted(entry)
+			setPathDisplayAsDeleted(entry)
 		}
 		switch f := entry.(type) {
 		case *files.FileMetadata:
@@ -234,8 +222,30 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	err = w.Flush()
-	return err
+	return finishListOutput(w, itemCounter, opts)
+}
+
+func isListFolderNotFolderError(err error) bool {
+	var apiErr files.ListFolderAPIError
+	return errors.As(err, &apiErr) &&
+		apiErr.EndpointError != nil &&
+		apiErr.EndpointError.Path != nil &&
+		apiErr.EndpointError.Path.Tag == files.LookupErrorNotFolder
+}
+
+func isListRevisionsNotFileError(err error) bool {
+	var apiErr files.ListRevisionsAPIError
+	return errors.As(err, &apiErr) &&
+		apiErr.EndpointError != nil &&
+		apiErr.EndpointError.Path != nil &&
+		apiErr.EndpointError.Path.Tag == files.LookupErrorNotFile
+}
+
+func finishListOutput(w *tabwriter.Writer, itemCounter int, opts listOptions) error {
+	if itemCounter > 0 && !opts.long && itemCounter%4 != 0 {
+		_, _ = fmt.Fprintln(w)
+	}
+	return w.Flush()
 }
 
 // lsCmd represents the ls command

@@ -30,8 +30,8 @@ const (
 	tokenTeamManage = "teamManage"
 
 	defaultPersonalAppKey   = "07o23gulcj8qi69"
-	defaultTeamAccessAppKey = "zud1va492pnehkc"
-	defaultTeamManageAppKey = "xxe04eai4wmlitv"
+	defaultTeamAccessAppKey = "qyy1w4mbkj2wpiv"
+	defaultTeamManageAppKey = "sa9pv32eixm1i3p"
 )
 
 func getEnv(key, fallback string) string {
@@ -63,19 +63,6 @@ func oauthCredentials(tokenType string) string {
 	}
 }
 
-func defaultOAuthCredentials(tokenType string) string {
-	switch tokenType {
-	case tokenPersonal:
-		return defaultPersonalAppKey
-	case tokenTeamAccess:
-		return defaultTeamAccessAppKey
-	case tokenTeamManage:
-		return defaultTeamManageAppKey
-	default:
-		return ""
-	}
-}
-
 func setOAuthCredentials(tokenType string, appKey string) {
 	switch tokenType {
 	case tokenPersonal:
@@ -88,15 +75,7 @@ func setOAuthCredentials(tokenType string, appKey string) {
 }
 
 func needsOAuthCredentialsOverride(tokenType string) bool {
-	appKey := oauthCredentials(tokenType)
-	if appKey == "" {
-		return true
-	}
-	if tokenType == tokenPersonal {
-		return false
-	}
-	defaultAppKey := defaultOAuthCredentials(tokenType)
-	return defaultAppKey != "" && appKey == defaultAppKey
+	return oauthCredentials(tokenType) == ""
 }
 
 func validatePath(p string) (path string, err error) {

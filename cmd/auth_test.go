@@ -465,8 +465,8 @@ func TestLoginCommandForTokenType(t *testing.T) {
 		want    string
 	}{
 		{tokenPersonal, "dbxcli login"},
-		{tokenTeamAccess, "dbxcli login team-access --app-key=<your-app-key>"},
-		{tokenTeamManage, "dbxcli login team-manage --app-key=<your-app-key>"},
+		{tokenTeamAccess, "dbxcli login team-access"},
+		{tokenTeamManage, "dbxcli login team-manage"},
 	}
 
 	for _, tt := range tests {
@@ -543,7 +543,7 @@ func TestRequestAccessTokenReturnsReadError(t *testing.T) {
 	}
 }
 
-func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledTeamDefaults(t *testing.T) {
+func TestRequestAccessTokenUsesDefaultTeamManageAppKey(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenTeamManage, defaultTeamManageAppKey)
 
@@ -555,17 +555,15 @@ func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledTeamDefaults(t *testi
 	})
 
 	readAppCredentials = func(tokType string) (appCredentials, error) {
-		if tokType != tokenTeamManage {
-			t.Fatalf("expected team manage app credentials prompt, got %q", tokType)
-		}
-		return appCredentials{Key: "prompt-key"}, nil
+		t.Fatal("app credential prompt should not be used for the default team manage app key")
+		return appCredentials{}, nil
 	}
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
 	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != "prompt-key" {
-			t.Fatalf("expected prompted app key, got %q", conf.ClientID)
+		if conf.ClientID != defaultTeamManageAppKey {
+			t.Fatalf("expected default team manage app key, got %q", conf.ClientID)
 		}
 		if conf.ClientSecret != "" {
 			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
@@ -579,9 +577,6 @@ func TestRequestAccessTokenPromptsForAppKeyWhenUsingBundledTeamDefaults(t *testi
 	}
 	if token != "access-token" {
 		t.Fatalf("expected access token, got %q", token)
-	}
-	if teamManageAppKey != "prompt-key" {
-		t.Fatalf("expected prompted app key to be saved for this process, got %q", teamManageAppKey)
 	}
 }
 
@@ -724,7 +719,7 @@ func TestRequestAccessTokenUsesConfiguredAppCredentials(t *testing.T) {
 
 func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 	restoreOAuthCredentials(t)
-	setOAuthCredentials(tokenTeamManage, defaultTeamManageAppKey)
+	setOAuthCredentials(tokenTeamManage, "")
 
 	origReadAuthorizationCode := readAuthorizationCode
 	origExchangeAuthorizationCode := exchangeAuthorizationCode
