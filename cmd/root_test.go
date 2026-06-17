@@ -38,6 +38,62 @@ func newAuthTestCommand() *cobra.Command {
 	return cmd
 }
 
+func TestInitDbxSkipsAuthForLocalCommands(t *testing.T) {
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
+
+	tests := []struct {
+		name string
+		cmd  *cobra.Command
+	}{
+		{
+			name: "version",
+			cmd:  &cobra.Command{Use: "version"},
+		},
+		{
+			name: "help",
+			cmd:  &cobra.Command{Use: "help"},
+		},
+		{
+			name: "completion",
+			cmd: func() *cobra.Command {
+				root := &cobra.Command{Use: "dbxcli"}
+				completion := &cobra.Command{Use: "completion"}
+				bash := &cobra.Command{Use: "bash"}
+				completion.AddCommand(bash)
+				root.AddCommand(completion)
+				return bash
+			}(),
+		},
+		{
+			name: "complete",
+			cmd:  &cobra.Command{Use: "__complete"},
+		},
+		{
+			name: "complete-no-desc",
+			cmd:  &cobra.Command{Use: "__completeNoDesc"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := initDbx(tt.cmd, nil); err != nil {
+				t.Fatalf("expected auth to be skipped, got %v", err)
+			}
+		})
+	}
+}
+
+func TestInitDbxStillRequiresAuthForDropboxCommands(t *testing.T) {
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
+
+	cmd := newAuthTestCommand()
+	if err := initDbx(cmd, nil); err == nil {
+		t.Fatal("expected Dropbox command to require auth")
+	}
+}
+
 func TestInitDbxUsesAccessTokenEnv(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()

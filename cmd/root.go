@@ -50,6 +50,16 @@ var (
 
 var config dropbox.Config
 
+func commandSkipsAuth(cmd *cobra.Command) bool {
+	for c := cmd; c != nil; c = c.Parent() {
+		switch c.Name() {
+		case "__complete", "__completeNoDesc", "completion", "help", "version":
+			return true
+		}
+	}
+	return false
+}
+
 func oauthCredentials(tokenType string) string {
 	switch tokenType {
 	case tokenPersonal:
@@ -133,6 +143,10 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 }
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
+	if commandSkipsAuth(cmd) {
+		return nil
+	}
+
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
