@@ -17,7 +17,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
+	"io"
+	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
@@ -35,27 +36,37 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	arg := files.NewListRevisionsArg(path)
 
-	dbx := files.New(config)
+	dbx := filesNewFunc(config)
 	res, err := dbx.ListRevisions(arg)
 	if err != nil {
 		return
 	}
 
-	long, _ := cmd.Flags().GetBool("long")
+	opts := parseLsOptions(cmd)
 
-	if long {
-		fmt.Printf("Revision\tSize\tLast modified\tPath\n")
+	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+		return renderRevisionResults(w, res.Entries, opts)
+	})
+}
+
+func renderRevisionResults(out io.Writer, entries []*files.FileMetadata, opts listOptions) error {
+	w := new(tabwriter.Writer)
+	w.Init(out, 4, 8, 1, ' ', 0)
+
+	if opts.long {
+		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
 
-	for _, e := range res.Entries {
-		if long {
-			printFileMetadata(os.Stdout, e, long)
+	for _, entry := range entries {
+		if opts.long {
+			_, _ = fmt.Fprint(w, formatFileMetadataWithOpts(entry, opts))
+			_, _ = fmt.Fprintln(w)
 		} else {
-			fmt.Printf("%s\n", e.Rev)
+			_, _ = fmt.Fprintln(w, entry.Rev)
 		}
 	}
 
-	return
+	return w.Flush()
 }
 
 // revsCmd represents the revs command
@@ -69,4 +80,6 @@ func init() {
 	RootCmd.AddCommand(revsCmd)
 
 	revsCmd.Flags().BoolP("long", "l", false, "Long listing")
+	revsCmd.Flags().String("time", "server", "Time field: server, client")
+	revsCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
 }

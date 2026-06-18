@@ -20,8 +20,10 @@ type mockFilesClient struct {
 	getMetadataFn           func(arg *files.GetMetadataArg) (files.IsMetadata, error)
 	listFolderFn            func(arg *files.ListFolderArg) (*files.ListFolderResult, error)
 	listFolderContinueFn    func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error)
+	listRevisionsFn         func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error)
 	moveV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 	permanentlyDeleteFn     func(arg *files.DeleteArg) error
+	restoreFn               func(arg *files.RestoreArg) (*files.FileMetadata, error)
 	searchV2Fn              func(arg *files.SearchV2Arg) (*files.SearchV2Result, error)
 	searchContinueV2Fn      func(arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error)
 }
@@ -175,6 +177,9 @@ func (m *mockFilesClient) ListFolderLongpoll(arg *files.ListFolderLongpollArg) (
 	return nil, nil
 }
 func (m *mockFilesClient) ListRevisions(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
+	if m.listRevisionsFn != nil {
+		return m.listRevisionsFn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) LockFileBatch(arg *files.LockFileBatchArg) (*files.LockFileBatchResult, error) {
@@ -232,6 +237,9 @@ func (m *mockFilesClient) PropertiesUpdate(arg *file_properties.UpdateProperties
 	return nil
 }
 func (m *mockFilesClient) Restore(arg *files.RestoreArg) (*files.FileMetadata, error) {
+	if m.restoreFn != nil {
+		return m.restoreFn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) SaveUrl(arg *files.SaveUrlArg) (*files.SaveUrlResult, error) {
