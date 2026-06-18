@@ -22,6 +22,8 @@ type mockFilesClient struct {
 	listFolderContinueFn    func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error)
 	moveV2Fn                func(arg *files.RelocationArg) (*files.RelocationResult, error)
 	permanentlyDeleteFn     func(arg *files.DeleteArg) error
+	searchV2Fn              func(arg *files.SearchV2Arg) (*files.SearchV2Result, error)
+	searchContinueV2Fn      func(arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error)
 }
 
 func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
@@ -242,9 +244,15 @@ func (m *mockFilesClient) Search(arg *files.SearchArg) (*files.SearchResult, err
 	return nil, nil
 }
 func (m *mockFilesClient) SearchV2(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+	if m.searchV2Fn != nil {
+		return m.searchV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) SearchContinueV2(arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error) {
+	if m.searchContinueV2Fn != nil {
+		return m.searchContinueV2Fn(arg)
+	}
 	return nil, nil
 }
 func (m *mockFilesClient) TagsAdd(arg *files.AddTagArg) error { return nil }

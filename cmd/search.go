@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -31,7 +30,6 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		return errors.New("`search` requires a `query` argument")
 	}
 
-	// Parse path scope, if provided.
 	var scope string
 	if len(args) == 2 {
 		scope = args[1]
@@ -40,32 +38,54 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	arg := files.NewSearchArg(scope, args[0])
+	arg := files.NewSearchV2Arg(args[0])
+	if scope != "" {
+		opts := files.NewSearchOptions()
+		opts.Path = scope
+		arg.Options = opts
+	}
 
-	dbx := files.New(config)
-	res, err := dbx.Search(arg)
+	dbx := filesNewFunc(config)
+	res, err := dbx.SearchV2(arg)
 	if err != nil {
-		return
+		return err
+	}
+
+	var entries []files.IsMetadata
+	for _, m := range res.Matches {
+		if m.Metadata != nil && m.Metadata.Metadata != nil {
+			entries = append(entries, m.Metadata.Metadata)
+		}
+	}
+
+	for res.HasMore {
+		contArg := files.NewSearchV2ContinueArg(res.Cursor)
+		res, err = dbx.SearchContinueV2(contArg)
+		if err != nil {
+			return err
+		}
+		for _, m := range res.Matches {
+			if m.Metadata != nil && m.Metadata.Metadata != nil {
+				entries = append(entries, m.Metadata.Metadata)
+			}
+		}
 	}
 
 	opts := parseLsOptions(cmd)
+	sortEntries(entries, opts)
 
-	return renderSearchResults(os.Stdout, res, opts)
+	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+		return renderSearchResults(w, entries, opts)
+	})
 }
 
-func renderSearchResults(out io.Writer, res *files.SearchResult, opts listOptions) error {
+func renderSearchResults(out io.Writer, entries []files.IsMetadata, opts listOptions) error {
 	w := new(tabwriter.Writer)
 	w.Init(out, 4, 8, 1, ' ', 0)
 
 	if opts.long {
 		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
 	}
-
-	entries := make([]files.IsMetadata, 0, len(res.Matches))
-	for _, m := range res.Matches {
-		entries = append(entries, m.Metadata)
-	}
-	sortEntries(entries, opts)
 
 	for _, entry := range entries {
 		switch f := entry.(type) {
