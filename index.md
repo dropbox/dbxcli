@@ -175,7 +175,7 @@ def456                4.5 MiB 1 month ago   /Photos/family.png
 
 #### Time format
 
-By default, `ls -l` and `search -l` show relative timestamps ("3 weeks ago"). Use `--time-format` for absolute dates:
+By default, `ls -l`, `search -l`, and `revs -l` show relative timestamps ("3 weeks ago"). Use `--time-format` for absolute dates:
 
 ```sh
 $ dbxcli ls -l --time-format=short /Photos
@@ -211,7 +211,7 @@ $ dbxcli ls -l --sort=type /Documents           # folders, files, deleted
 $ dbxcli search -l --time-format=short --sort=size "report"
 ```
 
-All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `ls` and `search`.
+All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `ls` and `search`. The `--time` and `--time-format` flags also work with `revs -l`.
 
 ### Team management
 
