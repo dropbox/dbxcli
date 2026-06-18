@@ -21,9 +21,47 @@
 
 ## Installation
 
-Download release archives for Mac, Windows and Linux from the [releases](https://github.com/dropbox/dbxcli/releases) page.
+### Homebrew (macOS and Linux)
 
-Release assets use these names, where `X.Y.Z` is the release version without the leading `v`:
+```sh
+brew install dbxcli
+```
+
+### Linux
+
+Download the archive for your architecture, verify its checksum, and install. Replace `X.Y.Z` with the latest version from the [Releases](https://github.com/dropbox/dbxcli/releases) page (without the leading `v`).
+
+```sh
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_linux_amd64.tar.gz
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS
+grep 'dbxcli_X.Y.Z_linux_amd64.tar.gz' SHA256SUMS | sha256sum -c -
+tar -xzf dbxcli_X.Y.Z_linux_amd64.tar.gz
+sudo mv dbxcli_X.Y.Z_linux_amd64/dbxcli /usr/local/bin/
+```
+
+For ARM systems, use `linux_arm64` or `linux_arm` instead of `linux_amd64`.
+
+### macOS (manual)
+
+If you prefer not to use Homebrew:
+
+```sh
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_darwin_arm64.tar.gz
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS
+grep 'dbxcli_X.Y.Z_darwin_arm64.tar.gz' SHA256SUMS | shasum -a 256 -c -
+tar -xzf dbxcli_X.Y.Z_darwin_arm64.tar.gz
+sudo mv dbxcli_X.Y.Z_darwin_arm64/dbxcli /usr/local/bin/
+```
+
+Use `darwin_amd64` for Intel Macs.
+
+### Windows
+
+Download `dbxcli_X.Y.Z_windows_amd64.zip` from the [Releases](https://github.com/dropbox/dbxcli/releases) page, extract it, and add the directory to your `PATH`.
+
+### Release assets
+
+All release archives are available at the [releases](https://github.com/dropbox/dbxcli/releases) page:
 
 * `dbxcli_X.Y.Z_darwin_amd64.tar.gz`
 * `dbxcli_X.Y.Z_darwin_arm64.tar.gz`
@@ -33,32 +71,6 @@ Release assets use these names, where `X.Y.Z` is the release version without the
 * `dbxcli_X.Y.Z_openbsd_amd64.tar.gz`
 * `dbxcli_X.Y.Z_windows_amd64.zip`
 * `SHA256SUMS`
-
-### macOS installation from release archives
-These instructions aim to help both experts and novice `dbxcli` users. Please submit an issue if they don't work for you.  
-
-1. Make sure you download and place the binary in a folder that's on your `$PATH`.  If you are unsure what this means, go to *step 2*. Otherwise, skip to *step 3*
-2. Create a `bin` directory under your home directory.
-```
-$ mkdir ~/bin
-$ cd ~/bin
-```
-3. Add the following line at the end of your `~/.bash_profile` file.  [Link with instructions](https://natelandau.com/my-mac-osx-bash_profile/) on how to find this file
-```sh
-export PATH=$PATH:$HOME/bin
-```
-4. Download the `dbxcli` archive for your Mac architecture and unpack it.  Replace `X.Y.Z` with the latest release tag from the [Releases](https://github.com/dropbox/dbxcli/releases) page, without the leading `v`.
-```sh
-$ curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_darwin_amd64.tar.gz
-$ curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS
-$ grep 'dbxcli_X.Y.Z_darwin_amd64.tar.gz' SHA256SUMS | shasum -a 256 -c -
-$ tar -xzf dbxcli_X.Y.Z_darwin_amd64.tar.gz
-$ mv dbxcli_X.Y.Z_darwin_amd64/dbxcli dbxcli
-```
-5. Finally, make the binary an executable file and you are good to go!
-```
-$ chmod +x dbxcli
-```
 
 ### Instructions for building yourself
 
