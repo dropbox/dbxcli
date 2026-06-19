@@ -265,6 +265,21 @@ $ dbxcli get /remote/file.txt ./local-file.txt     # download a single file
 $ dbxcli get -r /remote/folder ./local-folder      # recursively download a folder
 ```
 
+### Piping with stdin/stdout
+
+Use `-` as the local operand to stream through pipes:
+
+```sh
+$ printf 'hello' | dbxcli put - /hello.txt         # upload from stdin
+$ tar cz ./src | dbxcli put - /backups/src.tgz     # pipe archive to Dropbox
+$ dbxcli get /backups/src.tgz - | tar tz           # download to stdout and list
+$ dbxcli get /file.txt - > local-copy.txt          # download to stdout, redirect to file
+```
+
+Stdin uploads are spooled to a temp file before uploading, so disk space up to the full input size is required. Stdout downloads are byte-clean: all progress and diagnostic output goes to stderr.
+
+A bare `-` means stream only when it is the local operand. Dropbox paths named `-` are valid, for example `dbxcli put - /-` and `dbxcli get /- -`. To upload a local file literally named `-`, use `./-`.
+
 ### Removing files and folders
 
 ```sh
