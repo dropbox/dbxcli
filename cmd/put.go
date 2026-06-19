@@ -203,6 +203,10 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	src := args[0]
 
+	if src == "-" {
+		return putStdin(cmd, args, opts, recursive)
+	}
+
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		return
@@ -232,6 +236,56 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return putFile(src, dst, opts)
+}
+
+func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool) error {
+	if len(args) < 2 {
+		return errors.New("`put -` requires an explicit target path")
+	}
+	if recursive {
+		return errors.New("`put -` cannot be used with --recursive")
+	}
+
+	dst := args[1]
+	if strings.HasSuffix(dst, "/") {
+		return fmt.Errorf("cannot upload stdin to directory target %q; provide a full Dropbox file path", dst)
+	}
+
+	dstPath, err := validatePath(dst)
+	if err != nil {
+		return err
+	}
+
+	dbx := filesNewFunc(config)
+	if isRemoteFolder(dbx, dstPath) {
+		return fmt.Errorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dstPath)
+	}
+
+	tmpPath, _, cleanup, err := spoolStdinToTemp(cmd.InOrStdin())
+	if err != nil {
+		return err
+	}
+
+	uploadErr := putFile(tmpPath, dstPath, opts)
+	cleanupErr := cleanup()
+
+	if uploadErr != nil {
+		if cleanupErr != nil {
+			reportStdinCleanupFailure(tmpPath, cleanupErr)
+		}
+		return uploadErr
+	}
+
+	if cleanupErr != nil {
+		reportStdinCleanupFailure(tmpPath, cleanupErr)
+		return fmt.Errorf("failed to remove temp file %s after upload; sensitive stdin data may remain on disk: %w", tmpPath, cleanupErr)
+	}
+
+	return nil
+}
+
+func reportStdinCleanupFailure(tmpPath string, err error) {
+	fmt.Fprintf(os.Stderr, "error: failed to remove temp file %s: %v; sensitive stdin data may remain on disk\n", tmpPath, err)
 }
 
 func resolveDestination(dbx files.Client, src, dst string, dstIsDir bool) string {
@@ -386,7 +440,14 @@ var putCmd = &cobra.Command{
 	Long: `Upload files or directories to Dropbox.
   - If target is not provided, uploads to the root of your Dropbox.
   - Use --recursive (-r) to upload entire directories.
+  - Use - as source to read from stdin (target is required).
+    Stdin is spooled to a temp file before upload and may use disk
+    space up to the full input size.
 `,
+	Example: `  dbxcli put file.txt /destination/file.txt
+  dbxcli put -r ./project /backup/project
+  printf 'hello' | dbxcli put - /hello.txt
+  tar cz ./src | dbxcli put - /backups/src.tgz`,
 	RunE: put,
 }
 
