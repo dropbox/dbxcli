@@ -47,6 +47,10 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	recursive, _ := cmd.Flags().GetBool("recursive")
 
+	if dst == "-" {
+		return getStdout(cmd, src, recursive)
+	}
+
 	dbx := filesNewFunc(config)
 
 	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
@@ -76,6 +80,23 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return downloadFile(dbx, src, dst)
+}
+
+func getStdout(cmd *cobra.Command, src string, recursive bool) error {
+	if recursive {
+		return errors.New("`get -` cannot be used with --recursive")
+	}
+
+	dbx := filesNewFunc(config)
+
+	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
+	if err == nil {
+		if _, ok := meta.(*files.FolderMetadata); ok {
+			return fmt.Errorf("%s is a folder; cannot download folder to stdout", src)
+		}
+	}
+
+	return downloadToStdout(dbx, src, cmd.OutOrStdout())
 }
 
 func getWithClient(dbx files.Client, args []string) (err error) {
@@ -229,7 +250,7 @@ func downloadFileOnce(dbx files.Client, arg *files.DownloadArg, dst string) erro
 	if err != nil {
 		return err
 	}
-	defer contents.Close()
+	defer func() { _ = contents.Close() }()
 
 	finalDst, err := downloadDestinationPath(dst)
 	if err != nil {
@@ -275,7 +296,16 @@ func downloadFileOnce(dbx files.Client, arg *files.DownloadArg, dst string) erro
 var getCmd = &cobra.Command{
 	Use:   "get [flags] <source> [<target>]",
 	Short: "Download a file or folder",
-	RunE:  get,
+	Long: `Download a file or folder from Dropbox.
+  - Use --recursive (-r) to download entire directories.
+  - Use - as target to write file bytes to stdout.
+    Stdout is byte-clean: all progress and errors go to stderr.
+`,
+	Example: `  dbxcli get /remote/file.txt ./local-file.txt
+  dbxcli get -r /remote/folder ./local-folder
+  dbxcli get /backups/src.tgz - | tar tz
+  dbxcli get /file.txt - > local-copy.txt`,
+	RunE: get,
 }
 
 func init() {
