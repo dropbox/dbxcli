@@ -47,11 +47,6 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 	_, _ = fmt.Fprint(w, formatFolderMetadata(e, longFormat))
 }
 
-// Invoked by search.go and revs.go
-func printFileMetadata(w io.Writer, e *files.FileMetadata, longFormat bool) {
-	_, _ = fmt.Fprint(w, formatFileMetadata(e, longFormat))
-}
-
 func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
 	text := fmt.Sprintf("%s\t", e.PathDisplay)
 	if longFormat {

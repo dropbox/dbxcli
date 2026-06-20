@@ -64,6 +64,10 @@ func (r *Renderer) Error(format string, args ...any) {
 	_, _ = fmt.Fprintf(r.stderr, "Error: "+format+"\n", args...)
 }
 
+func (r *Renderer) Status(format string, args ...any) {
+	_, _ = fmt.Fprintf(r.stderr, format+"\n", args...)
+}
+
 func (r *Renderer) Info(format string, args ...any) {
 	_, _ = fmt.Fprintf(r.stdout, format+"\n", args...)
 }
