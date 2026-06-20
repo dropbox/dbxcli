@@ -26,7 +26,7 @@ import (
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return errors.New("`share link create` requires a `path` argument")
+		return errors.New("`share-link create` requires a `path` argument")
 	}
 
 	path, err := validatePath(args[0])
@@ -40,11 +40,13 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
 	link, err := dbx.CreateSharedLinkWithSettings(arg)
+	usedExisting := false
 	if err != nil {
 		link, err = existingSharedLink(dbx, path, err)
 		if err != nil {
 			return err
 		}
+		usedExisting = true
 	}
 
 	url, ok := sharedLinkURL(link)
@@ -52,7 +54,14 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		return errors.New("shared link response did not include a URL")
 	}
 
-	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+	out := commandOutput(cmd)
+	if usedExisting {
+		commandVerboseStatus(cmd, "Using existing shared link for %s", path)
+	} else {
+		commandVerboseStatus(cmd, "Created shared link for %s", path)
+	}
+
+	return out.RenderText(func(w io.Writer) error {
 		_, err := fmt.Fprintln(w, url)
 		return err
 	})

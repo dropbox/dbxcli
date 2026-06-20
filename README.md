@@ -228,10 +228,14 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 ### Sharing
 
 ```sh
-$ dbxcli share link create /file.txt # create or return an existing shared link
-$ dbxcli share list link             # list existing shared links
+$ dbxcli share-link create /file.txt # create or return an existing shared link
+$ dbxcli share-link list             # list existing shared links
+$ dbxcli share-link list /file.txt   # list direct shared links for a path
+$ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```
+
+New and changed commands should write command results to stdout. Status, progress, warnings, diagnostics, and verbose logs should go to stderr.
 
 ### Team management
 

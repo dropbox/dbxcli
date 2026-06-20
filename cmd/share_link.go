@@ -30,10 +30,10 @@ var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
 }
 
 var shareLinkCmd = &cobra.Command{
-	Use:   "link",
+	Use:   "share-link",
 	Short: "Shared link commands",
 }
 
 func init() {
-	shareCmd.AddCommand(shareLinkCmd)
+	RootCmd.AddCommand(shareLinkCmd)
 }
