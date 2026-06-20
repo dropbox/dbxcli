@@ -28,3 +28,25 @@ func commandOutputFormat(cmd *cobra.Command) output.Format {
 	}
 	return output.FormatText
 }
+
+func commandVerbose(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+	verbose, err := cmd.Flags().GetBool("verbose")
+	if err == nil {
+		return verbose
+	}
+	verbose, err = cmd.InheritedFlags().GetBool("verbose")
+	if err == nil {
+		return verbose
+	}
+	verbose, err = cmd.PersistentFlags().GetBool("verbose")
+	return err == nil && verbose
+}
+
+func commandVerboseStatus(cmd *cobra.Command, format string, args ...any) {
+	if commandVerbose(cmd) {
+		commandOutput(cmd).Status(format, args...)
+	}
+}

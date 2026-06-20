@@ -31,12 +31,12 @@ type shareLinkUpdateOptions struct {
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return errors.New("`share link update` requires a `url` argument")
+		return errors.New("`share-link update` requires a `url` argument")
 	}
 
 	url := args[0]
 	if url == "" {
-		return errors.New("`share link update` requires a non-empty URL")
+		return errors.New("`share-link update` requires a non-empty URL")
 	}
 
 	opts, err := parseShareLinkUpdateOptions(cmd)
@@ -60,10 +60,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose {
-		commandOutput(cmd).Status("Updated shared link %s", url)
-	}
+	commandVerboseStatus(cmd, "Updated shared link %s", url)
 
 	return nil
 }

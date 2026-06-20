@@ -15,61 +15,121 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
 
 func shareListLinks(cmd *cobra.Command, args []string) (err error) {
-	arg := sharing.NewListSharedLinksArg()
+	return shareLinkList(cmd, args)
+}
 
-	dbx := sharing.New(config)
-	res, err := dbx.ListSharedLinks(arg)
-	if err != nil {
-		return
+func shareLinkList(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 {
+		return errors.New("`share-link list` accepts at most one `path` argument")
 	}
 
-	printLinks(res.Links)
+	arg := sharing.NewListSharedLinksArg()
+	if len(args) == 1 {
+		path, err := validatePath(args[0])
+		if err != nil {
+			return err
+		}
+		arg.Path = path
+		arg.DirectOnly = true
+	}
 
-	for res.HasMore {
+	dbx := newSharedLinkClient(config)
+	links, err := listSharedLinks(dbx, arg)
+	if err != nil {
+		return err
+	}
+
+	if arg.Path != "" {
+		commandVerboseStatus(cmd, "Listed %d shared links for %s", len(links), arg.Path)
+	} else {
+		commandVerboseStatus(cmd, "Listed %d shared links", len(links))
+	}
+
+	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+		return renderSharedLinks(w, links)
+	})
+}
+
+func listSharedLinks(dbx sharedLinkClient, arg *sharing.ListSharedLinksArg) ([]sharing.IsSharedLinkMetadata, error) {
+	var links []sharing.IsSharedLinkMetadata
+	for {
+		res, err := dbx.ListSharedLinks(arg)
+		if err != nil {
+			return nil, err
+		}
+		links = append(links, res.Links...)
+
+		if !res.HasMore {
+			break
+		}
+		if res.Cursor == "" {
+			return nil, errors.New("shared link list has more results but no cursor")
+		}
 		arg = sharing.NewListSharedLinksArg()
 		arg.Cursor = res.Cursor
-
-		res, err = dbx.ListSharedLinks(arg)
-		if err != nil {
-			return
-		}
-
-		printLinks(res.Links)
 	}
 
-	return
+	return links, nil
 }
 
-func printLinks(links []sharing.IsSharedLinkMetadata) {
+func renderSharedLinks(out io.Writer, links []sharing.IsSharedLinkMetadata) error {
 	for _, l := range links {
-		switch sl := l.(type) {
-		case *sharing.FileLinkMetadata:
-			printLink(sl.SharedLinkMetadata)
-		case *sharing.FolderLinkMetadata:
-			printLink(sl.SharedLinkMetadata)
-		default:
-			fmt.Printf("found unknown shared link type")
+		name, url, ok := sharedLinkDisplay(l)
+		if !ok {
+			return errors.New("found unknown shared link type")
 		}
+		if _, err := fmt.Fprintf(out, "%s\t%s\n", name, url); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sharedLinkDisplay(link sharing.IsSharedLinkMetadata) (name string, url string, ok bool) {
+	switch sl := link.(type) {
+	case *sharing.FileLinkMetadata:
+		return sharedLinkMetadataDisplay(sl.SharedLinkMetadata)
+	case *sharing.FolderLinkMetadata:
+		return sharedLinkMetadataDisplay(sl.SharedLinkMetadata)
+	case *sharing.SharedLinkMetadata:
+		return sharedLinkMetadataDisplay(*sl)
+	default:
+		return "", "", false
 	}
 }
 
-func printLink(sl sharing.SharedLinkMetadata) {
-	fmt.Printf("%v\t%v\n", sl.Name, sl.Url)
+func sharedLinkMetadataDisplay(sl sharing.SharedLinkMetadata) (name string, url string, ok bool) {
+	name = sl.Name
+	if name == "" {
+		name = sl.PathLower
+	}
+	return name, sl.Url, sl.Url != ""
+}
+
+var shareLinkListCmd = &cobra.Command{
+	Use:   "list [path]",
+	Short: "List shared links",
+	RunE:  shareLinkList,
 }
 
 var shareListLinksCmd = &cobra.Command{
-	Use:   "link",
-	Short: "List shared links",
-	RunE:  shareListLinks,
+	Use:        "link",
+	Short:      "List shared links",
+	Deprecated: "use `dbxcli share-link list` instead",
+	RunE:       shareListLinks,
 }
 
 func init() {
+	shareLinkCmd.AddCommand(shareLinkListCmd)
 	shareListCmd.AddCommand(shareListLinksCmd)
 }
