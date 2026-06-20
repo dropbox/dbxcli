@@ -225,6 +225,14 @@ $ dbxcli search -l --time-format=short --sort=size "report"
 
 All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `ls` and `search`. The `--time` and `--time-format` flags also work with `revs -l`.
 
+### Sharing
+
+```sh
+$ dbxcli share link create /file.txt # create or return an existing shared link
+$ dbxcli share list link             # list existing shared links
+$ dbxcli share list folder           # list shared folders
+```
+
 ### Team management
 
 ```sh
