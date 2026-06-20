@@ -256,7 +256,10 @@ The `--verbose` option will turn on verbose logging and is useful for debugging.
 $ dbxcli put file.txt /destination/file.txt        # upload a single file
 $ dbxcli put -r ./project /backup/project          # recursively upload a directory
 $ dbxcli put -r -w 8 ./large-folder /backup/large  # use 8 workers per large file
+$ dbxcli put --if-exists skip file.txt /dest.txt   # skip if the file already exists
 ```
+
+By default, `put` overwrites existing destination files. Use `--if-exists overwrite|skip|fail` to choose whether existing files are overwritten, skipped, or treated as an error.
 
 ### Downloading files and directories
 

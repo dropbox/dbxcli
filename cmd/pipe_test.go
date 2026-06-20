@@ -19,6 +19,15 @@ func testPutCmdWithStdin(stdin io.Reader) *cobra.Command {
 	return cmd
 }
 
+type failReadReader struct {
+	t *testing.T
+}
+
+func (r failReadReader) Read(_ []byte) (int, error) {
+	r.t.Fatal("stdin should not be read")
+	return 0, io.EOF
+}
+
 func TestPutStdin_RequiresTarget(t *testing.T) {
 	cmd := testPutCmdWithStdin(strings.NewReader("data"))
 	err := put(cmd, []string{"-"})
@@ -100,6 +109,32 @@ func TestPutStdin_UploadsContent(t *testing.T) {
 	}
 	if !strings.Contains(string(uploadedContent), content) {
 		t.Errorf("uploaded content = %q, want to contain %q", uploadedContent, content)
+	}
+}
+
+func TestPutStdinIfExistsSkipDoesNotReadStdin(t *testing.T) {
+	cmd := testPutCmdWithStdin(failReadReader{t: t})
+	_ = cmd.Flags().Set("if-exists", "skip")
+	var stderr bytes.Buffer
+	cmd.SetErr(&stderr)
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+		uploadFn: func(arg *files.UploadArg, r io.Reader) (*files.FileMetadata, error) {
+			t.Fatal("upload should not be called for existing destination with --if-exists skip")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := put(cmd, []string{"-", "/existing.txt"})
+	if err != nil {
+		t.Fatalf("put stdin error: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "Skipping /existing.txt") {
+		t.Errorf("stderr = %q, want skip message", stderr.String())
 	}
 }
 

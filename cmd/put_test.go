@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -243,7 +244,59 @@ func testPutCmd() *cobra.Command {
 	cmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
 	cmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
 	cmd.Flags().BoolP("debug", "d", false, "Print debug timing")
+	cmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, or fail")
 	return cmd
+}
+
+func getMetadataNotFoundError() files.GetMetadataAPIError {
+	return files.GetMetadataAPIError{
+		EndpointError: &files.GetMetadataError{
+			Tagged: dropbox.Tagged{Tag: files.GetMetadataErrorPath},
+			Path: &files.LookupError{
+				Tagged: dropbox.Tagged{Tag: files.LookupErrorNotFound},
+			},
+		},
+	}
+}
+
+func writeConflictError(conflictTag string) *files.WriteError {
+	return &files.WriteError{
+		Tagged: dropbox.Tagged{Tag: files.WriteErrorConflict},
+		Conflict: &files.WriteConflictError{
+			Tagged: dropbox.Tagged{Tag: conflictTag},
+		},
+	}
+}
+
+func uploadPathConflictError(conflictTag string) files.UploadAPIError {
+	return files.UploadAPIError{
+		EndpointError: &files.UploadError{
+			Tagged: dropbox.Tagged{Tag: files.UploadErrorPath},
+			Path: files.NewUploadWriteFailed(
+				writeConflictError(conflictTag),
+				"session123",
+			),
+		},
+	}
+}
+
+func uploadSessionFinishPathConflictError(conflictTag string) files.UploadSessionFinishAPIError {
+	return files.UploadSessionFinishAPIError{
+		EndpointError: &files.UploadSessionFinishError{
+			Tagged: dropbox.Tagged{Tag: files.UploadSessionFinishErrorPath},
+			Path:   writeConflictError(conflictTag),
+		},
+	}
+}
+
+func uploadPathConflictErrorPtr(conflictTag string) *files.UploadAPIError {
+	err := uploadPathConflictError(conflictTag)
+	return &err
+}
+
+func uploadSessionFinishPathConflictErrorPtr(conflictTag string) *files.UploadSessionFinishAPIError {
+	err := uploadSessionFinishPathConflictError(conflictTag)
+	return &err
 }
 
 func TestResolveDestination_TargetIsFolder(t *testing.T) {
@@ -555,6 +608,319 @@ func TestPutChunkSizeValidation(t *testing.T) {
 	err := put(cmd, []string{tmpFile, "/test.txt"})
 	if err == nil || err.Error() != "`put` requires chunk size to be multiple of 4MiB" {
 		t.Errorf("expected chunk size validation error, got %v", err)
+	}
+}
+
+func TestPutIfExistsValidation(t *testing.T) {
+	cmd := testPutCmd()
+	_ = cmd.Flags().Set("if-exists", "replace")
+
+	_, err := parsePutOptions(cmd)
+	if err == nil {
+		t.Fatal("expected invalid --if-exists error")
+	}
+	if !bytes.Contains([]byte(err.Error()), []byte("overwrite, skip, or fail")) {
+		t.Errorf("error = %q, want valid option list", err.Error())
+	}
+}
+
+func TestPutFileIfExistsSkipSkipsExistingFile(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatal("upload should not be called for existing destination with --if-exists skip")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	stderr := captureStderr(t, func() {
+		err := putFile(tmpFile, "/existing.txt", putOptions{
+			chunkSize: 1 << 24,
+			workers:   4,
+			ifExists:  putIfExistsSkip,
+		})
+		if err != nil {
+			t.Fatalf("putFile error: %v", err)
+		}
+	})
+	if !bytes.Contains([]byte(stderr), []byte("Skipping /existing.txt")) {
+		t.Errorf("stderr = %q, want skip message", stderr)
+	}
+}
+
+func TestPutFileIfExistsFailFailsExistingFile(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatal("upload should not be called for existing destination with --if-exists fail")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := putFile(tmpFile, "/existing.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsFail,
+	})
+	if err == nil {
+		t.Fatal("expected existing destination error")
+	}
+	if !bytes.Contains([]byte(err.Error()), []byte("already exists")) {
+		t.Errorf("error = %q, want already exists", err.Error())
+	}
+}
+
+func TestPutFileIfExistsFailUploadsMissingFileWithAddMode(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var mode string
+	var strictConflict bool
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			mode = arg.Mode.Tag
+			strictConflict = arg.StrictConflict
+			return &files.FileMetadata{}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := putFile(tmpFile, "/new.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsFail,
+	})
+	if err != nil {
+		t.Fatalf("putFile error: %v", err)
+	}
+	if mode != files.WriteModeAdd {
+		t.Errorf("write mode = %q, want %q", mode, files.WriteModeAdd)
+	}
+	if !strictConflict {
+		t.Error("strict conflict = false, want true")
+	}
+}
+
+func TestPutFileIfExistsOverwriteUsesOverwriteMode(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	metadataCalls := 0
+	var mode string
+	var strictConflict bool
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			metadataCalls++
+			return &files.FileMetadata{}, nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			mode = arg.Mode.Tag
+			strictConflict = arg.StrictConflict
+			return &files.FileMetadata{}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := putFile(tmpFile, "/existing.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsOverwrite,
+	})
+	if err != nil {
+		t.Fatalf("putFile error: %v", err)
+	}
+	if metadataCalls != 0 {
+		t.Errorf("metadata calls = %d, want 0 for overwrite", metadataCalls)
+	}
+	if mode != files.WriteModeOverwrite {
+		t.Errorf("write mode = %q, want %q", mode, files.WriteModeOverwrite)
+	}
+	if strictConflict {
+		t.Error("strict conflict = true, want false for overwrite")
+	}
+}
+
+func TestPutFileIfExistsSkipTreatsUploadFileConflictAsSkip(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var strictConflict bool
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			strictConflict = arg.StrictConflict
+			return nil, uploadPathConflictError(files.WriteConflictErrorFile)
+		},
+	}
+	stubFilesClient(t, mock)
+
+	stderr := captureStderr(t, func() {
+		err := putFile(tmpFile, "/race.txt", putOptions{
+			chunkSize: 1 << 24,
+			workers:   4,
+			ifExists:  putIfExistsSkip,
+		})
+		if err != nil {
+			t.Fatalf("putFile error: %v", err)
+		}
+	})
+	if !strings.Contains(stderr, "Skipping /race.txt") {
+		t.Fatalf("stderr = %q, want skip message", stderr)
+	}
+	if !strictConflict {
+		t.Error("strict conflict = false, want true")
+	}
+}
+
+func TestPutFileIfExistsSkipReturnsNonFileConflicts(t *testing.T) {
+	tests := []struct {
+		name        string
+		conflictTag string
+	}{
+		{"folder", files.WriteConflictErrorFolder},
+		{"file ancestor", files.WriteConflictErrorFileAncestor},
+		{"other", files.WriteConflictErrorOther},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpFile := filepath.Join(t.TempDir(), "test.txt")
+			if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			mock := &mockFilesClient{
+				getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+					return nil, getMetadataNotFoundError()
+				},
+				uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+					return nil, uploadPathConflictError(tt.conflictTag)
+				},
+			}
+			stubFilesClient(t, mock)
+
+			stderr := captureStderr(t, func() {
+				err := putFile(tmpFile, "/bad-conflict.txt", putOptions{
+					chunkSize: 1 << 24,
+					workers:   4,
+					ifExists:  putIfExistsSkip,
+				})
+				if err == nil {
+					t.Fatal("expected non-file conflict error")
+				}
+			})
+			if strings.Contains(stderr, "Skipping ") {
+				t.Fatalf("stderr = %q, should not skip non-file conflicts", stderr)
+			}
+		})
+	}
+}
+
+func TestIsUploadDestinationFileConflict(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"upload file conflict", uploadPathConflictError(files.WriteConflictErrorFile), true},
+		{"upload folder conflict", uploadPathConflictError(files.WriteConflictErrorFolder), false},
+		{"upload pointer file conflict", uploadPathConflictErrorPtr(files.WriteConflictErrorFile), true},
+		{"finish file conflict", uploadSessionFinishPathConflictError(files.WriteConflictErrorFile), true},
+		{"finish file ancestor conflict", uploadSessionFinishPathConflictError(files.WriteConflictErrorFileAncestor), false},
+		{"finish pointer file conflict", uploadSessionFinishPathConflictErrorPtr(files.WriteConflictErrorFile), true},
+		{"generic write conflict without subtype", uploadWriteConflictError(), false},
+		{"plain conflict string", fmt.Errorf("path/conflict/file/"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isUploadDestinationFileConflict(tt.err)
+			if got != tt.want {
+				t.Fatalf("isUploadDestinationFileConflict() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPutRecursiveIfExistsSkipContinuesPastExistingFiles(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "existing.txt"), []byte("existing"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "new.txt"), []byte("new"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var uploaded []string
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path == "/backup/existing.txt" {
+				return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: arg.Path}}, nil
+			}
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploaded = append(uploaded, arg.Path)
+			return &files.FileMetadata{}, nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return &files.CreateFolderResult{}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stderr bytes.Buffer
+	cmd := testPutCmd()
+	cmd.SetErr(&stderr)
+
+	err := putRecursive(dir, "/backup", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsSkip,
+		output:    commandOutput(cmd),
+	})
+	if err != nil {
+		t.Fatalf("putRecursive error: %v", err)
+	}
+
+	if len(uploaded) != 1 || uploaded[0] != "/backup/new.txt" {
+		t.Fatalf("uploaded = %v, want [/backup/new.txt]", uploaded)
+	}
+	if strings.Contains(stderr.String(), "Uploading ") {
+		t.Fatalf("stderr = %q, should not print uploading before skip decision", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "Processing ") {
+		t.Fatalf("stderr = %q, want processing status", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "Skipping /backup/existing.txt") {
+		t.Fatalf("stderr = %q, want skip status", stderr.String())
 	}
 }
 

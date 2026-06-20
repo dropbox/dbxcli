@@ -23,6 +23,21 @@ func TestWarnWritesToStderr(t *testing.T) {
 	}
 }
 
+func TestStatusWritesToStderrWithoutPrefix(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	out := New(&stdout, &stderr, FormatText)
+	out.Status("Skipping %s (already exists)", "/file.txt")
+
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty", got)
+	}
+	if got, want := stderr.String(), "Skipping /file.txt (already exists)\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
+
 func TestRenderText(t *testing.T) {
 	var stdout bytes.Buffer
 	out := New(&stdout, nil, FormatText)
