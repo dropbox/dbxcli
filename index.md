@@ -233,14 +233,18 @@ $ dbxcli share-link create /file.txt --access viewer # create a link with reques
 $ dbxcli share-link create /file.txt --audience team # create a link with requested audience
 $ dbxcli share-link create /file.txt --allow-download # create a downloadable shared link
 $ dbxcli share-link create /file.txt --expires 2026-07-01T00:00:00Z # create an expiring shared link
+$ dbxcli share-link create /file.txt --password-prompt # create a password-protected shared link
 $ dbxcli share-link create /file.txt --remove-expiration # remove expiration when returning an existing link
 $ dbxcli share-link download <url> [target] # download a shared-link file
+$ dbxcli share-link download <url> [target] --recursive # download a folder shared link
 $ dbxcli share-link info <url>       # display shared link information
 $ dbxcli share-link list             # list existing shared links
 $ dbxcli share-link list /file.txt   # list direct shared links for a path
 $ dbxcli share-link revoke <url>     # revoke a shared link
 $ dbxcli share-link update <url> --allow-download # update shared link settings
 $ dbxcli share-link update <url> --audience public # update shared link audience
+$ dbxcli share-link update <url> --password-prompt # set or change a shared link password
+$ dbxcli share-link update <url> --remove-password # remove a shared link password
 $ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```
@@ -248,7 +252,9 @@ $ dbxcli share list folder           # list shared folders
 `share-link create --access` supports `viewer`, `editor`, and `max`. Dropbox does not support changing access for an existing shared link, so `--access` fails clearly if the link already exists.
 `share-link create --audience` and `share-link update --audience` support `public`, `team`, `members`, and `no-one`. Dropbox team and folder policies can still resolve the effective audience differently.
 
-`share-link download` writes to the metadata filename when `target` is omitted. Use `-` as the target to write file bytes to stdout, and `--password` for password-protected shared links.
+`share-link create`, `share-link update`, and `share-link download` support `--password <value>`, `--password-prompt`, and `--password-file <path>` for password-protected links. Use `--password-prompt` for interactive use so the password is not echoed.
+
+`share-link download` writes to the metadata filename when `target` is omitted. Use `-` as the target to write file bytes to stdout. Folder shared links require `--recursive` and cannot be written to stdout.
 
 New and changed commands should write command results to stdout. Status, progress, warnings, diagnostics, and verbose logs should go to stderr.
 
