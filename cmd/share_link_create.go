@@ -32,6 +32,7 @@ type shareLinkCreateOptions struct {
 	allowDownload    bool
 	access           *sharing.RequestedLinkAccessLevel
 	audience         *sharing.LinkAudience
+	password         sharedLinkPasswordOptions
 }
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
@@ -133,6 +134,12 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 		opts.audience = audience
 	}
 
+	password, err := sharedLinkPasswordFromFlags(cmd)
+	if err != nil {
+		return opts, err
+	}
+	opts.password = password
+
 	if opts.expires != nil && opts.removeExpiration {
 		return opts, errors.New("`--expires` and `--remove-expiration` cannot be used together")
 	}
@@ -144,7 +151,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 	if opts.access != nil {
 		return nil, errors.New("cannot apply `--access` because the shared link already exists")
 	}
-	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && opts.audience == nil {
+	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && opts.audience == nil && !opts.password.set {
 		return link, nil
 	}
 
@@ -163,7 +170,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 }
 
 func (opts shareLinkCreateOptions) hasCreateSettings() bool {
-	return opts.expires != nil || opts.allowDownload || opts.access != nil || opts.audience != nil
+	return opts.expires != nil || opts.allowDownload || opts.access != nil || opts.audience != nil || opts.password.set
 }
 
 func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts shareLinkCreateOptions) {
@@ -178,6 +185,10 @@ func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts sh
 	}
 	if opts.audience != nil {
 		settings.Audience = opts.audience
+	}
+	if opts.password.set {
+		settings.RequirePassword = true
+		settings.LinkPassword = opts.password.password
 	}
 }
 
@@ -361,5 +372,6 @@ func init() {
 	shareLinkCreateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")
 	shareLinkCreateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
+	addSharedLinkPasswordFlags(shareLinkCreateCmd)
 	shareLinkCmd.AddCommand(shareLinkCreateCmd)
 }

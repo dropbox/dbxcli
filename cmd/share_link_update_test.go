@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -251,6 +252,117 @@ func TestShareLinkUpdateAllowsDownload(t *testing.T) {
 	}
 }
 
+func TestShareLinkUpdateSetsPassword(t *testing.T) {
+	mock := &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Url != "https://example.com/link" {
+				t.Fatalf("url = %q, want https://example.com/link", arg.Url)
+			}
+			if arg.Settings == nil || !arg.Settings.RequirePassword || arg.Settings.LinkPassword != "secret" {
+				t.Fatalf("settings = %#v, want password settings", arg.Settings)
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/link"), nil
+		},
+		removeSharedLinkPasswordFn: func(url string) error {
+			t.Fatal("RemoveSharedLinkPassword should not be called")
+			return nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("password", "secret"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/link"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+}
+
+func TestShareLinkUpdateReadsPasswordFile(t *testing.T) {
+	passwordFile := t.TempDir() + "/password.txt"
+	if err := os.WriteFile(passwordFile, []byte("file-secret\n"), 0600); err != nil {
+		t.Fatalf("write password file: %v", err)
+	}
+
+	mock := &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil || !arg.Settings.RequirePassword || arg.Settings.LinkPassword != "file-secret" {
+				t.Fatalf("settings = %#v, want password from file", arg.Settings)
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/link"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("password-file", passwordFile); err != nil {
+		t.Fatalf("set password-file: %v", err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/link"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+}
+
+func TestShareLinkUpdateRemovesPassword(t *testing.T) {
+	var removedURL string
+	mock := &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatal("ModifySharedLinkSettings should not be called for remove-password only")
+			return nil, nil
+		},
+		removeSharedLinkPasswordFn: func(url string) error {
+			removedURL = url
+			return nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("remove-password", "true"); err != nil {
+		t.Fatalf("set remove-password: %v", err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/link"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+	if removedURL != "https://example.com/link" {
+		t.Fatalf("removed URL = %q, want https://example.com/link", removedURL)
+	}
+}
+
+func TestShareLinkUpdateRejectsPasswordAndRemovePassword(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+		removeSharedLinkPasswordFn: func(url string) error {
+			called = true
+			return nil
+		},
+	})
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("password", "secret"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+	if err := cmd.Flags().Set("remove-password", "true"); err != nil {
+		t.Fatalf("set remove-password: %v", err)
+	}
+
+	err := shareLinkUpdate(cmd, []string{"https://example.com/link"})
+	if err == nil || !strings.Contains(err.Error(), "password-setting flags and `--remove-password` cannot be used together") {
+		t.Fatalf("error = %v, want password mutual exclusion error", err)
+	}
+	if called {
+		t.Fatal("shared link API should not be called")
+	}
+}
+
 func TestShareLinkUpdateSetsAudience(t *testing.T) {
 	mock := &mockSharedLinkClient{
 		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
@@ -339,6 +451,18 @@ func TestShareLinkUpdateCommandIsRegistered(t *testing.T) {
 	if shareLinkUpdateCmd.Flags().Lookup("audience") == nil {
 		t.Fatal("share-link update should define --audience")
 	}
+	if shareLinkUpdateCmd.Flags().Lookup("password") == nil {
+		t.Fatal("share-link update should define --password")
+	}
+	if shareLinkUpdateCmd.Flags().Lookup("password-prompt") == nil {
+		t.Fatal("share-link update should define --password-prompt")
+	}
+	if shareLinkUpdateCmd.Flags().Lookup("password-file") == nil {
+		t.Fatal("share-link update should define --password-file")
+	}
+	if shareLinkUpdateCmd.Flags().Lookup("remove-password") == nil {
+		t.Fatal("share-link update should define --remove-password")
+	}
 }
 
 func newShareLinkUpdateTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
@@ -347,6 +471,8 @@ func newShareLinkUpdateTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command 
 	cmd.Flags().String("expires", "", "")
 	cmd.Flags().Bool("remove-expiration", false, "")
 	cmd.Flags().Bool("allow-download", false, "")
+	addSharedLinkPasswordFlags(cmd)
+	cmd.Flags().Bool("remove-password", false, "")
 	cmd.Flags().Bool("verbose", false, "")
 	if stdout != nil {
 		cmd.SetOut(stdout)
