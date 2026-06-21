@@ -28,11 +28,20 @@ type sharedLinkClient interface {
 	GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
 	ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
 	ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
+	RemoveSharedLinkPassword(url string) error
 	RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error
 }
 
+type sdkSharedLinkClient struct {
+	sharing.Client
+	cfg dropbox.Config
+}
+
 var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
-	return sharing.New(cfg)
+	return &sdkSharedLinkClient{
+		Client: sharing.New(cfg),
+		cfg:    cfg,
+	}
 }
 
 var shareLinkCmd = &cobra.Command{
