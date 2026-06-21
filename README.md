@@ -229,6 +229,7 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 
 ```sh
 $ dbxcli share-link create /file.txt # create or return an existing shared link
+$ dbxcli share-link download <url> [target] # download a shared-link file
 $ dbxcli share-link info <url>       # display shared link information
 $ dbxcli share-link list             # list existing shared links
 $ dbxcli share-link list /file.txt   # list direct shared links for a path
@@ -237,6 +238,8 @@ $ dbxcli share-link update <url> --allow-download # update shared link settings
 $ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```
+
+`share-link download` writes to the metadata filename when `target` is omitted. Use `-` as the target to write file bytes to stdout, and `--password` for password-protected shared links.
 
 New and changed commands should write command results to stdout. Status, progress, warnings, diagnostics, and verbose logs should go to stderr.
 

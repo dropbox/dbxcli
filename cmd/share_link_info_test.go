@@ -193,4 +193,12 @@ func TestShareLinkInfoDoesNotBreakOtherCommands(t *testing.T) {
 	if cmd != shareLinkRevokeCmd {
 		t.Fatalf("share-link revoke resolved to %q", cmd.CommandPath())
 	}
+
+	cmd, _, err = RootCmd.Find([]string{"share-link", "download"})
+	if err != nil {
+		t.Fatalf("find share-link download: %v", err)
+	}
+	if cmd != shareLinkDownloadCmd {
+		t.Fatalf("share-link download resolved to %q", cmd.CommandPath())
+	}
 }

@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"path"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 
 type mockSharedLinkClient struct {
 	createSharedLinkWithSettingsFn func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
+	getSharedLinkFileFn            func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error)
 	getSharedLinkMetadataFn        func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
 	listSharedLinksFn              func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
 	modifySharedLinkSettingsFn     func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
@@ -40,6 +42,13 @@ func (m *mockSharedLinkClient) CreateSharedLinkWithSettings(arg *sharing.CreateS
 		return m.createSharedLinkWithSettingsFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockSharedLinkClient) GetSharedLinkFile(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+	if m.getSharedLinkFileFn != nil {
+		return m.getSharedLinkFileFn(arg)
+	}
+	return nil, nil, nil
 }
 
 func (m *mockSharedLinkClient) GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
