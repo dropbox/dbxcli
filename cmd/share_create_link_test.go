@@ -29,6 +29,7 @@ import (
 type mockSharedLinkClient struct {
 	createSharedLinkWithSettingsFn func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
 	listSharedLinksFn              func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
+	modifySharedLinkSettingsFn     func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
 }
 
 func (m *mockSharedLinkClient) CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
@@ -43,6 +44,13 @@ func (m *mockSharedLinkClient) ListSharedLinks(arg *sharing.ListSharedLinksArg) 
 		return m.listSharedLinksFn(arg)
 	}
 	return &sharing.ListSharedLinksResult{}, nil
+}
+
+func (m *mockSharedLinkClient) ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+	if m.modifySharedLinkSettingsFn != nil {
+		return m.modifySharedLinkSettingsFn(arg)
+	}
+	return nil, nil
 }
 
 func stubSharedLinkClient(t *testing.T, client sharedLinkClient) {
