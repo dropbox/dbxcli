@@ -22,8 +22,10 @@ import (
 
 type sharedLinkClient interface {
 	CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
+	GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
 	ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
 	ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
+	RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error
 }
 
 var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
@@ -31,10 +33,10 @@ var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
 }
 
 var shareLinkCmd = &cobra.Command{
-	Use:   "link",
+	Use:   "share-link",
 	Short: "Shared link commands",
 }
 
 func init() {
-	shareCmd.AddCommand(shareLinkCmd)
+	RootCmd.AddCommand(shareLinkCmd)
 }

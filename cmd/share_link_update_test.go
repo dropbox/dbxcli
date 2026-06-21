@@ -276,12 +276,12 @@ func TestShareLinkUpdateReturnsAPIErrors(t *testing.T) {
 }
 
 func TestShareLinkUpdateCommandIsRegistered(t *testing.T) {
-	cmd, _, err := RootCmd.Find([]string{"share", "link", "update", "https://example.com/link"})
+	cmd, _, err := RootCmd.Find([]string{"share-link", "update", "https://example.com/link"})
 	if err != nil {
-		t.Fatalf("find share link update: %v", err)
+		t.Fatalf("find share-link update: %v", err)
 	}
 	if cmd != shareLinkUpdateCmd {
-		t.Fatalf("share link update resolved to %q", cmd.CommandPath())
+		t.Fatalf("share-link update resolved to %q", cmd.CommandPath())
 	}
 }
 

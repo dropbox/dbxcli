@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -28,13 +29,22 @@ import (
 
 type mockSharedLinkClient struct {
 	createSharedLinkWithSettingsFn func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
+	getSharedLinkMetadataFn        func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
 	listSharedLinksFn              func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
 	modifySharedLinkSettingsFn     func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
+	revokeSharedLinkFn             func(arg *sharing.RevokeSharedLinkArg) error
 }
 
 func (m *mockSharedLinkClient) CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
 	if m.createSharedLinkWithSettingsFn != nil {
 		return m.createSharedLinkWithSettingsFn(arg)
+	}
+	return nil, nil
+}
+
+func (m *mockSharedLinkClient) GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+	if m.getSharedLinkMetadataFn != nil {
+		return m.getSharedLinkMetadataFn(arg)
 	}
 	return nil, nil
 }
@@ -51,6 +61,13 @@ func (m *mockSharedLinkClient) ModifySharedLinkSettings(arg *sharing.ModifyShare
 		return m.modifySharedLinkSettingsFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockSharedLinkClient) RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error {
+	if m.revokeSharedLinkFn != nil {
+		return m.revokeSharedLinkFn(arg)
+	}
+	return nil
 }
 
 func stubSharedLinkClient(t *testing.T, client sharedLinkClient) {
@@ -81,7 +98,7 @@ func TestSharedLinkCreateRequiresExactlyOnePath(t *testing.T) {
 			})
 
 			err := shareLinkCreate(&cobra.Command{}, tt.args)
-			if err == nil || !strings.Contains(err.Error(), "requires a `path` argument") {
+			if err == nil || !strings.Contains(err.Error(), "`share-link create` requires a `path` argument") {
 				t.Fatalf("error = %v, want path argument error", err)
 			}
 			if called {
@@ -145,9 +162,11 @@ func TestSharedLinkCreateVerboseStillPrintsURLOnly(t *testing.T) {
 	stubSharedLinkClient(t, mock)
 
 	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd := &cobra.Command{}
 	cmd.Flags().Bool("verbose", true, "")
 	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
 
 	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
 		t.Fatalf("shareLinkCreate error: %v", err)
@@ -155,6 +174,9 @@ func TestSharedLinkCreateVerboseStillPrintsURLOnly(t *testing.T) {
 
 	if got := stdout.String(); got != "https://example.com/file\n" {
 		t.Fatalf("stdout = %q, want URL only", got)
+	}
+	if got, want := stderr.String(), "Created shared link for /file.txt\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
 	}
 }
 
@@ -221,6 +243,34 @@ func TestSharedLinkCreateExistingMetadataPrintsURLWithoutList(t *testing.T) {
 
 	if got := stdout.String(); got != "https://example.com/docs\n" {
 		t.Fatalf("stdout = %q, want existing URL only", got)
+	}
+}
+
+func TestSharedLinkCreateVerboseReportsExistingLinkOnStderr(t *testing.T) {
+	existing := sharedLinkFolder("/docs", "https://example.com/docs")
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			return nil, alreadyExistsError(existing)
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("verbose", true, "")
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+
+	if err := shareLinkCreate(cmd, []string{"/docs"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	if got := stdout.String(); got != "https://example.com/docs\n" {
+		t.Fatalf("stdout = %q, want existing URL only", got)
+	}
+	if got, want := stderr.String(), "Using existing shared link for /docs\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
 	}
 }
 
@@ -336,12 +386,12 @@ func TestSharedLinkCreateFallbackPaginationRequiresCursor(t *testing.T) {
 }
 
 func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
-	cmd, _, err := RootCmd.Find([]string{"share", "link", "create", "/file.txt"})
+	cmd, _, err := RootCmd.Find([]string{"share-link", "create", "/file.txt"})
 	if err != nil {
-		t.Fatalf("find share link create: %v", err)
+		t.Fatalf("find share-link create: %v", err)
 	}
 	if cmd != shareLinkCreateCmd {
-		t.Fatalf("share link create resolved to %q", cmd.CommandPath())
+		t.Fatalf("share-link create resolved to %q", cmd.CommandPath())
 	}
 
 	cmd, _, err = RootCmd.Find([]string{"share", "list", "link"})
@@ -351,16 +401,170 @@ func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
 	if cmd != shareListLinksCmd {
 		t.Fatalf("share list link resolved to %q", cmd.CommandPath())
 	}
+	if shareListLinksCmd.Deprecated == "" {
+		t.Fatal("share list link should be deprecated")
+	}
+	if !strings.Contains(shareListLinksCmd.Deprecated, "share-link list") {
+		t.Fatalf("deprecation message = %q, want share-link list replacement", shareListLinksCmd.Deprecated)
+	}
+}
+
+func TestShareLinkListListsAllLinks(t *testing.T) {
+	var listArg *sharing.ListSharedLinksArg
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			listArg = arg
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/file.txt", "https://example.com/file"),
+				sharedLinkFolder("/docs", "https://example.com/docs"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+
+	if err := shareLinkList(cmd, nil); err != nil {
+		t.Fatalf("shareLinkList error: %v", err)
+	}
+
+	if listArg == nil {
+		t.Fatal("expected ListSharedLinks to be called")
+	}
+	if listArg.Path != "" {
+		t.Fatalf("ListSharedLinks path = %q, want empty", listArg.Path)
+	}
+	if listArg.DirectOnly {
+		t.Fatal("ListSharedLinks DirectOnly = true, want false")
+	}
+	want := "file.txt\thttps://example.com/file\n" +
+		"docs\thttps://example.com/docs\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestShareLinkListVerboseWritesStatusToStderr(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/file.txt", "https://example.com/file"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("verbose", true, "")
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+
+	if err := shareLinkList(cmd, []string{"/docs/file.txt"}); err != nil {
+		t.Fatalf("shareLinkList error: %v", err)
+	}
+
+	if got, want := stdout.String(), "file.txt\thttps://example.com/file\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+	if got, want := stderr.String(), "Listed 1 shared links for /docs/file.txt\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
+
+func TestShareLinkListPathFilterUsesDirectOnly(t *testing.T) {
+	var listArg *sharing.ListSharedLinksArg
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			listArg = arg
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/file.txt", "https://example.com/file"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+
+	if err := shareLinkList(cmd, []string{"docs/file.txt"}); err != nil {
+		t.Fatalf("shareLinkList error: %v", err)
+	}
+
+	if listArg == nil {
+		t.Fatal("expected ListSharedLinks to be called")
+	}
+	if listArg.Path != "/docs/file.txt" {
+		t.Fatalf("ListSharedLinks path = %q, want /docs/file.txt", listArg.Path)
+	}
+	if !listArg.DirectOnly {
+		t.Fatal("ListSharedLinks DirectOnly = false, want true")
+	}
+	want := "file.txt\thttps://example.com/file\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestShareLinkListFollowsPagination(t *testing.T) {
+	var cursors []string
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			cursors = append(cursors, arg.Cursor)
+			if arg.Cursor == "" {
+				res := sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+					sharedLinkFile("/docs/one.txt", "https://example.com/one"),
+				}, true)
+				res.Cursor = "next-page"
+				return res, nil
+			}
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/two.txt", "https://example.com/two"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+
+	if err := shareLinkList(cmd, nil); err != nil {
+		t.Fatalf("shareLinkList error: %v", err)
+	}
+
+	if got := strings.Join(cursors, ","); got != ",next-page" {
+		t.Fatalf("cursors = %q, want first call then next-page", got)
+	}
+	got := stdout.String()
+	for _, want := range []string{"https://example.com/one", "https://example.com/two"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("stdout = %q, missing %q", got, want)
+		}
+	}
+}
+
+func TestShareLinkListPaginationRequiresCursor(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			return sharing.NewListSharedLinksResult(nil, true), nil
+		},
+	})
+
+	err := shareLinkList(&cobra.Command{}, nil)
+	if err == nil || !strings.Contains(err.Error(), "more results but no cursor") {
+		t.Fatalf("error = %v, want missing cursor error", err)
+	}
 }
 
 func sharedLinkFile(pathLower string, url string) *sharing.FileLinkMetadata {
-	link := sharing.NewFileLinkMetadata(url, strings.TrimPrefix(pathLower, "/"), nil, time.Time{}, time.Time{}, "rev", 1)
+	link := sharing.NewFileLinkMetadata(url, path.Base(pathLower), nil, time.Time{}, time.Time{}, "rev", 1)
 	link.PathLower = strings.ToLower(pathLower)
 	return link
 }
 
 func sharedLinkFolder(pathLower string, url string) *sharing.FolderLinkMetadata {
-	link := sharing.NewFolderLinkMetadata(url, strings.TrimPrefix(pathLower, "/"), nil)
+	link := sharing.NewFolderLinkMetadata(url, path.Base(pathLower), nil)
 	link.PathLower = strings.ToLower(pathLower)
 	return link
 }

@@ -73,3 +73,39 @@ func TestCommandOutputHonorsInheritedJSONFlag(t *testing.T) {
 		t.Fatalf("stdout = %q, want %q", got, want)
 	}
 }
+
+func TestCommandVerboseHonorsInheritedVerboseFlag(t *testing.T) {
+	root := &cobra.Command{}
+	root.PersistentFlags().BoolP("verbose", "v", false, "")
+
+	cmd := &cobra.Command{}
+	root.AddCommand(cmd)
+
+	if err := root.PersistentFlags().Set("verbose", "true"); err != nil {
+		t.Fatalf("set verbose: %v", err)
+	}
+
+	if !commandVerbose(cmd) {
+		t.Fatal("commandVerbose = false, want true")
+	}
+}
+
+func TestCommandVerboseStatusWritesOnlyWhenVerbose(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("verbose", false, "")
+	cmd.SetErr(&stderr)
+
+	commandVerboseStatus(cmd, "done %s", "quietly")
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+
+	if err := cmd.Flags().Set("verbose", "true"); err != nil {
+		t.Fatalf("set verbose: %v", err)
+	}
+	commandVerboseStatus(cmd, "done %s", "loudly")
+	if got, want := stderr.String(), "done loudly\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
