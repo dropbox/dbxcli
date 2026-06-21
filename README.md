@@ -229,6 +229,7 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 
 ```sh
 $ dbxcli share-link create /file.txt # create or return an existing shared link
+$ dbxcli share-link create /file.txt --access viewer # create a link with requested access
 $ dbxcli share-link create /file.txt --allow-download # create a downloadable shared link
 $ dbxcli share-link create /file.txt --expires 2026-07-01T00:00:00Z # create an expiring shared link
 $ dbxcli share-link create /file.txt --remove-expiration # remove expiration when returning an existing link
@@ -241,6 +242,8 @@ $ dbxcli share-link update <url> --allow-download # update shared link settings
 $ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```
+
+`share-link create --access` supports `viewer`, `editor`, and `max`. Dropbox does not support changing access for an existing shared link, so `--access` fails clearly if the link already exists.
 
 `share-link download` writes to the metadata filename when `target` is omitted. Use `-` as the target to write file bytes to stdout, and `--password` for password-protected shared links.
 

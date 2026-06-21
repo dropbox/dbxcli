@@ -228,6 +228,40 @@ func TestSharedLinkCreateWithAllowDownloadSetsAllowDownload(t *testing.T) {
 	}
 }
 
+func TestSharedLinkCreateWithAccessSetsAccess(t *testing.T) {
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil {
+				t.Fatal("settings = nil, want access settings")
+			}
+			if arg.Settings.Access == nil {
+				t.Fatal("access = nil, want editor")
+			}
+			if arg.Settings.Access.Tag != sharing.RequestedLinkAccessLevelEditor {
+				t.Fatalf("access = %q, want editor", arg.Settings.Access.Tag)
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().String("access", "", "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("access", "editor"); err != nil {
+		t.Fatalf("set access: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	if got := stdout.String(); got != "https://example.com/file\n" {
+		t.Fatalf("stdout = %q, want URL only", got)
+	}
+}
+
 func TestSharedLinkCreateWithInvalidExpiresReturnsError(t *testing.T) {
 	called := false
 	stubSharedLinkClient(t, &mockSharedLinkClient{
@@ -246,6 +280,30 @@ func TestSharedLinkCreateWithInvalidExpiresReturnsError(t *testing.T) {
 	err := shareLinkCreate(cmd, []string{"/file.txt"})
 	if err == nil || !strings.Contains(err.Error(), `invalid --expires "tomorrow": use RFC3339 timestamp`) {
 		t.Fatalf("error = %v, want invalid expires error", err)
+	}
+	if called {
+		t.Fatal("CreateSharedLinkWithSettings should not be called")
+	}
+}
+
+func TestSharedLinkCreateWithInvalidAccessReturnsError(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+	})
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("access", "", "")
+	if err := cmd.Flags().Set("access", "owner"); err != nil {
+		t.Fatalf("set access: %v", err)
+	}
+
+	err := shareLinkCreate(cmd, []string{"/file.txt"})
+	if err == nil || !strings.Contains(err.Error(), `invalid --access "owner": use viewer, editor, or max`) {
+		t.Fatalf("error = %v, want invalid access error", err)
 	}
 	if called {
 		t.Fatal("CreateSharedLinkWithSettings should not be called")
@@ -429,6 +487,39 @@ func TestSharedLinkCreateVerboseReportsExistingLinkOnStderr(t *testing.T) {
 	}
 	if got, want := stderr.String(), "Using existing shared link for /docs\n"; got != want {
 		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
+
+func TestSharedLinkCreateWithAccessErrorsForExistingLink(t *testing.T) {
+	existing := sharedLinkFile("/file.txt", "https://example.com/file-old")
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil || arg.Settings.Access == nil || arg.Settings.Access.Tag != sharing.RequestedLinkAccessLevelMax {
+				t.Fatalf("create settings = %#v, want max access", arg.Settings)
+			}
+			return nil, alreadyExistsError(existing)
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatal("ModifySharedLinkSettings should not be called because access cannot be modified")
+			return nil, nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().String("access", "", "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("access", "max"); err != nil {
+		t.Fatalf("set access: %v", err)
+	}
+
+	err := shareLinkCreate(cmd, []string{"/file.txt"})
+	if err == nil || !strings.Contains(err.Error(), "cannot apply `--access` because the shared link already exists") {
+		t.Fatalf("error = %v, want existing link access error", err)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on error", got)
 	}
 }
 
@@ -671,6 +762,9 @@ func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
 	}
 	if cmd != shareLinkCreateCmd {
 		t.Fatalf("share-link create resolved to %q", cmd.CommandPath())
+	}
+	if shareLinkCreateCmd.Flags().Lookup("access") == nil {
+		t.Fatal("share-link create should define --access")
 	}
 	if shareLinkCreateCmd.Flags().Lookup("allow-download") == nil {
 		t.Fatal("share-link create should define --allow-download")
