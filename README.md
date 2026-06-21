@@ -231,6 +231,7 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 $ dbxcli share-link create /file.txt # create or return an existing shared link
 $ dbxcli share-link list             # list existing shared links
 $ dbxcli share-link list /file.txt   # list direct shared links for a path
+$ dbxcli share-link revoke <url>     # revoke a shared link
 $ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```

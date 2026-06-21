@@ -15,26 +15,38 @@
 package cmd
 
 import (
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"errors"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
 
-type sharedLinkClient interface {
-	CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
-	ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
-	RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error
+func shareLinkRevoke(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return errors.New("`share-link revoke` requires a `url` argument")
+	}
+
+	url := args[0]
+	if url == "" {
+		return errors.New("`share-link revoke` requires a non-empty URL")
+	}
+
+	dbx := newSharedLinkClient(config)
+	arg := sharing.NewRevokeSharedLinkArg(url)
+	if err := dbx.RevokeSharedLink(arg); err != nil {
+		return err
+	}
+
+	commandVerboseStatus(cmd, "Revoked shared link %s", url)
+	return nil
 }
 
-var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
-	return sharing.New(cfg)
-}
-
-var shareLinkCmd = &cobra.Command{
-	Use:   "share-link",
-	Short: "Shared link commands",
+var shareLinkRevokeCmd = &cobra.Command{
+	Use:   "revoke <url>",
+	Short: "Revoke a shared link",
+	RunE:  shareLinkRevoke,
 }
 
 func init() {
-	RootCmd.AddCommand(shareLinkCmd)
+	shareLinkCmd.AddCommand(shareLinkRevokeCmd)
 }
