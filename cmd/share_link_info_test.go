@@ -115,6 +115,63 @@ func TestShareLinkInfoCallsAPIWithURLAndPrintsFileInfo(t *testing.T) {
 	}
 }
 
+func TestShareLinkInfoPassesPathAndPassword(t *testing.T) {
+	var requestedPath string
+	var requestedPassword string
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			requestedPath = arg.Path
+			requestedPassword = arg.LinkPassword
+			return sharedLinkFile("/docs/report.txt", "https://www.dropbox.com/s/abc123"), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkInfoTestCommand(&stdout)
+	if err := cmd.Flags().Set("path", "docs/report.txt"); err != nil {
+		t.Fatalf("set path: %v", err)
+	}
+	if err := cmd.Flags().Set("password", "secret"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+
+	if err := shareLinkInfo(cmd, []string{"https://www.dropbox.com/s/abc123"}); err != nil {
+		t.Fatalf("shareLinkInfo error: %v", err)
+	}
+	if requestedPath != "/docs/report.txt" {
+		t.Fatalf("path = %q, want /docs/report.txt", requestedPath)
+	}
+	if requestedPassword != "secret" {
+		t.Fatalf("password = %q, want secret", requestedPassword)
+	}
+	if !strings.Contains(stdout.String(), "URL:") {
+		t.Fatalf("stdout = %q, want rendered metadata", stdout.String())
+	}
+}
+
+func TestShareLinkInfoRejectsEmptyPathFlag(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+	})
+
+	cmd := newShareLinkInfoTestCommand(nil)
+	if err := cmd.Flags().Set("path", ""); err != nil {
+		t.Fatalf("set path: %v", err)
+	}
+
+	err := shareLinkInfo(cmd, []string{"https://www.dropbox.com/s/abc123"})
+	if err == nil || !strings.Contains(err.Error(), "`--path` requires a non-empty path") {
+		t.Fatalf("error = %v, want empty path error", err)
+	}
+	if called {
+		t.Fatal("GetSharedLinkMetadata should not be called")
+	}
+}
+
 func TestShareLinkInfoPrintsFolderInfo(t *testing.T) {
 	link := sharedLinkFolder("/docs", "https://www.dropbox.com/s/folder")
 	link.Id = "id:folder123"
@@ -169,6 +226,18 @@ func TestShareLinkInfoDoesNotBreakOtherCommands(t *testing.T) {
 	if cmd != shareLinkInfoCmd {
 		t.Fatalf("share-link info resolved to %q", cmd.CommandPath())
 	}
+	if shareLinkInfoCmd.Flags().Lookup("path") == nil {
+		t.Fatal("share-link info should define --path")
+	}
+	if shareLinkInfoCmd.Flags().Lookup("password") == nil {
+		t.Fatal("share-link info should define --password")
+	}
+	if shareLinkInfoCmd.Flags().Lookup("password-prompt") == nil {
+		t.Fatal("share-link info should define --password-prompt")
+	}
+	if shareLinkInfoCmd.Flags().Lookup("password-file") == nil {
+		t.Fatal("share-link info should define --password-file")
+	}
 
 	cmd, _, err = RootCmd.Find([]string{"share-link", "create"})
 	if err != nil {
@@ -201,4 +270,14 @@ func TestShareLinkInfoDoesNotBreakOtherCommands(t *testing.T) {
 	if cmd != shareLinkDownloadCmd {
 		t.Fatalf("share-link download resolved to %q", cmd.CommandPath())
 	}
+}
+
+func newShareLinkInfoTestCommand(stdout *bytes.Buffer) *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("path", "", "")
+	addSharedLinkPasswordFlags(cmd)
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	return cmd
 }

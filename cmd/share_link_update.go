@@ -27,6 +27,7 @@ type shareLinkUpdateOptions struct {
 	expires          *time.Time
 	removeExpiration bool
 	allowDownload    bool
+	disallowDownload bool
 	audience         *sharing.LinkAudience
 	password         sharedLinkPasswordOptions
 	removePassword   bool
@@ -47,6 +48,15 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	dbx := newSharedLinkClient(config)
+	if opts.usesRawSettings() {
+		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromUpdateOptions(opts), opts.removeExpiration); err != nil {
+			return err
+		}
+		commandVerboseStatus(cmd, "Updated shared link %s", url)
+		return nil
+	}
+
 	settings := sharing.NewSharedLinkSettings()
 	if opts.expires != nil {
 		settings.Expires = opts.expires
@@ -65,18 +75,11 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
 	arg.RemoveExpiration = opts.removeExpiration
 
-	dbx := newSharedLinkClient(config)
 	if opts.hasSDKSettings() {
 		if _, err := dbx.ModifySharedLinkSettings(arg); err != nil {
 			return err
 		}
 	}
-	if opts.removePassword {
-		if err := dbx.RemoveSharedLinkPassword(url); err != nil {
-			return err
-		}
-	}
-
 	commandVerboseStatus(cmd, "Updated shared link %s", url)
 
 	return nil
@@ -89,6 +92,10 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		return shareLinkUpdateOptions{}, err
 	}
 	allowDownload, err := cmd.Flags().GetBool("allow-download")
+	if err != nil {
+		return shareLinkUpdateOptions{}, err
+	}
+	disallowDownload, err := cmd.Flags().GetBool("disallow-download")
 	if err != nil {
 		return shareLinkUpdateOptions{}, err
 	}
@@ -105,10 +112,13 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	if expiresChanged && removeExpiration {
 		return shareLinkUpdateOptions{}, errors.New("`--expires` and `--remove-expiration` cannot be used together")
 	}
+	if allowDownload && disallowDownload {
+		return shareLinkUpdateOptions{}, errors.New("`--allow-download` and `--disallow-download` cannot be used together")
+	}
 	if password.set && removePassword {
 		return shareLinkUpdateOptions{}, errors.New("password-setting flags and `--remove-password` cannot be used together")
 	}
-	if !expiresChanged && !removeExpiration && !allowDownload && !audienceChanged && !password.set && !removePassword {
+	if !expiresChanged && !removeExpiration && !allowDownload && !disallowDownload && !audienceChanged && !password.set && !removePassword {
 		return shareLinkUpdateOptions{}, errors.New("at least one shared link setting flag is required")
 	}
 
@@ -138,6 +148,7 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		expires:          expires,
 		removeExpiration: removeExpiration,
 		allowDownload:    allowDownload,
+		disallowDownload: disallowDownload,
 		audience:         audience,
 		password:         password,
 		removePassword:   removePassword,
@@ -146,6 +157,31 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 
 func (opts shareLinkUpdateOptions) hasSDKSettings() bool {
 	return opts.expires != nil || opts.removeExpiration || opts.allowDownload || opts.audience != nil || opts.password.set
+}
+
+func (opts shareLinkUpdateOptions) usesRawSettings() bool {
+	return opts.disallowDownload || opts.removePassword
+}
+
+func rawSharedLinkSettingsFromUpdateOptions(opts shareLinkUpdateOptions) *rawSharedLinkSettings {
+	settings := &rawSharedLinkSettings{
+		Expires:  opts.expires,
+		Audience: opts.audience,
+	}
+	if opts.allowDownload || opts.disallowDownload {
+		allowDownload := opts.allowDownload
+		settings.AllowDownload = &allowDownload
+	}
+	if opts.password.set {
+		requirePassword := true
+		settings.RequirePassword = &requirePassword
+		settings.LinkPassword = opts.password.password
+	}
+	if opts.removePassword {
+		requirePassword := false
+		settings.RequirePassword = &requirePassword
+	}
+	return settings
 }
 
 var shareLinkUpdateCmd = &cobra.Command{
@@ -159,6 +195,7 @@ func init() {
 	shareLinkUpdateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkUpdateCmd.Flags().Bool("remove-expiration", false, "Remove the shared link expiration time")
 	shareLinkUpdateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")
+	shareLinkUpdateCmd.Flags().Bool("disallow-download", false, "Disallow downloads from the shared link")
 	addSharedLinkPasswordFlags(shareLinkUpdateCmd)
 	shareLinkUpdateCmd.Flags().Bool("remove-password", false, "Remove the shared link password")
 	shareLinkCmd.AddCommand(shareLinkUpdateCmd)

@@ -26,6 +26,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type shareLinkInfoOptions struct {
+	path     string
+	password sharedLinkPasswordOptions
+}
+
 func shareLinkInfo(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link info` requires a `url` argument")
@@ -36,8 +41,20 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 		return errors.New("`share-link info` requires a non-empty URL")
 	}
 
+	opts, err := parseShareLinkInfoOptions(cmd)
+	if err != nil {
+		return err
+	}
+
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewGetSharedLinkMetadataArg(url)
+	if opts.path != "" {
+		arg.Path = sharedLinkAPIPath(opts.path)
+	}
+	if opts.password.set {
+		arg.LinkPassword = opts.password.password
+	}
+
 	link, err := dbx.GetSharedLinkMetadata(arg)
 	if err != nil {
 		return err
@@ -46,6 +63,29 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 	return commandOutput(cmd).RenderText(func(w io.Writer) error {
 		return renderSharedLinkInfo(w, link)
 	})
+}
+
+func parseShareLinkInfoOptions(cmd *cobra.Command) (shareLinkInfoOptions, error) {
+	var opts shareLinkInfoOptions
+
+	if localFlagChanged(cmd, "path") {
+		path, err := localStringFlag(cmd, "path")
+		if err != nil {
+			return opts, err
+		}
+		if path == "" {
+			return opts, errors.New("`--path` requires a non-empty path")
+		}
+		opts.path = path
+	}
+
+	password, err := sharedLinkPasswordFromFlags(cmd)
+	if err != nil {
+		return opts, err
+	}
+	opts.password = password
+
+	return opts, nil
 }
 
 func renderSharedLinkInfo(out io.Writer, link sharing.IsSharedLinkMetadata) error {
@@ -119,5 +159,7 @@ var shareLinkInfoCmd = &cobra.Command{
 }
 
 func init() {
+	shareLinkInfoCmd.Flags().String("path", "", "Display metadata for a path inside the shared link")
+	addSharedLinkPasswordFlags(shareLinkInfoCmd)
 	shareLinkCmd.AddCommand(shareLinkInfoCmd)
 }

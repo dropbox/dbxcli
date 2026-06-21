@@ -30,6 +30,7 @@ type shareLinkCreateOptions struct {
 	expires          *time.Time
 	removeExpiration bool
 	allowDownload    bool
+	disallowDownload bool
 	access           *sharing.RequestedLinkAccessLevel
 	audience         *sharing.LinkAudience
 	password         sharedLinkPasswordOptions
@@ -54,12 +55,7 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	dbx := newSharedLinkClient(config)
-	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
-	if opts.hasCreateSettings() {
-		arg.Settings = sharing.NewSharedLinkSettings()
-		applySharedLinkCreateSettings(arg.Settings, opts)
-	}
-	link, err := dbx.CreateSharedLinkWithSettings(arg)
+	link, err := createSharedLink(dbx, path, opts)
 	usedExisting := false
 	if err != nil {
 		link, err = existingSharedLink(dbx, path, err)
@@ -91,6 +87,19 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	})
 }
 
+func createSharedLink(dbx sharedLinkClient, path string, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
+	if opts.disallowDownload {
+		return dbx.CreateSharedLinkWithRawSettings(path, rawSharedLinkSettingsFromCreateOptions(opts))
+	}
+
+	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
+	if opts.hasCreateSettings() {
+		arg.Settings = sharing.NewSharedLinkSettings()
+		applySharedLinkCreateSettings(arg.Settings, opts)
+	}
+	return dbx.CreateSharedLinkWithSettings(arg)
+}
+
 func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, error) {
 	var opts shareLinkCreateOptions
 
@@ -118,6 +127,14 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 		opts.allowDownload = allowDownload
 	}
 
+	if cmd.Flags().Changed("disallow-download") {
+		disallowDownload, err := cmd.Flags().GetBool("disallow-download")
+		if err != nil {
+			return opts, err
+		}
+		opts.disallowDownload = disallowDownload
+	}
+
 	if cmd.Flags().Changed("access") {
 		access, err := shareLinkAccessFlag(cmd)
 		if err != nil {
@@ -143,6 +160,9 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 	if opts.expires != nil && opts.removeExpiration {
 		return opts, errors.New("`--expires` and `--remove-expiration` cannot be used together")
 	}
+	if opts.allowDownload && opts.disallowDownload {
+		return opts, errors.New("`--allow-download` and `--disallow-download` cannot be used together")
+	}
 
 	return opts, nil
 }
@@ -151,7 +171,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 	if opts.access != nil {
 		return nil, errors.New("cannot apply `--access` because the shared link already exists")
 	}
-	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && opts.audience == nil && !opts.password.set {
+	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && !opts.disallowDownload && opts.audience == nil && !opts.password.set {
 		return link, nil
 	}
 
@@ -160,13 +180,28 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 		return nil, errors.New("existing shared link response did not include a URL")
 	}
 
-	settings := sharing.NewSharedLinkSettings()
-	applySharedLinkCreateSettings(settings, opts)
+	if opts.disallowDownload {
+		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromCreateOptions(opts), opts.removeExpiration); err != nil {
+			return nil, err
+		}
+		return link, nil
+	}
 
-	arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
-	arg.RemoveExpiration = opts.removeExpiration
+	if opts.expires != nil || opts.removeExpiration || opts.allowDownload || opts.audience != nil || opts.password.set {
+		settings := sharing.NewSharedLinkSettings()
+		applySharedLinkCreateSettings(settings, opts)
 
-	return dbx.ModifySharedLinkSettings(arg)
+		arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
+		arg.RemoveExpiration = opts.removeExpiration
+
+		updated, err := dbx.ModifySharedLinkSettings(arg)
+		if err != nil {
+			return nil, err
+		}
+		link = updated
+	}
+
+	return link, nil
 }
 
 func (opts shareLinkCreateOptions) hasCreateSettings() bool {
@@ -190,6 +225,24 @@ func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts sh
 		settings.RequirePassword = true
 		settings.LinkPassword = opts.password.password
 	}
+}
+
+func rawSharedLinkSettingsFromCreateOptions(opts shareLinkCreateOptions) *rawSharedLinkSettings {
+	settings := &rawSharedLinkSettings{
+		Expires:  opts.expires,
+		Audience: opts.audience,
+		Access:   opts.access,
+	}
+	if opts.allowDownload || opts.disallowDownload {
+		allowDownload := opts.allowDownload
+		settings.AllowDownload = &allowDownload
+	}
+	if opts.password.set {
+		requirePassword := true
+		settings.RequirePassword = &requirePassword
+		settings.LinkPassword = opts.password.password
+	}
+	return settings
 }
 
 func existingSharedLink(dbx sharedLinkClient, path string, err error) (sharing.IsSharedLinkMetadata, error) {
@@ -370,6 +423,7 @@ func init() {
 	shareLinkCreateCmd.Flags().String("access", "", "Set shared link access level: viewer, editor, or max")
 	shareLinkCreateCmd.Flags().String("audience", "", "Set shared link audience: public, team, members, or no-one")
 	shareLinkCreateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")
+	shareLinkCreateCmd.Flags().Bool("disallow-download", false, "Disallow downloads from the shared link")
 	shareLinkCreateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
 	addSharedLinkPasswordFlags(shareLinkCreateCmd)
