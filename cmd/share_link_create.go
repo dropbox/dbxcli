@@ -19,10 +19,17 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
+
+type shareLinkCreateOptions struct {
+	expires          *time.Time
+	removeExpiration bool
+	allowDownload    bool
+}
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
@@ -37,12 +44,25 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		return errors.New("cannot create a shared link for Dropbox root")
 	}
 
+	opts, err := parseShareLinkCreateOptions(cmd)
+	if err != nil {
+		return err
+	}
+
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
+	if opts.expires != nil || opts.allowDownload {
+		arg.Settings = sharing.NewSharedLinkSettings()
+		applySharedLinkCreateSettings(arg.Settings, opts)
+	}
 	link, err := dbx.CreateSharedLinkWithSettings(arg)
 	usedExisting := false
 	if err != nil {
 		link, err = existingSharedLink(dbx, path, err)
+		if err != nil {
+			return err
+		}
+		link, err = applyExistingSharedLinkCreateOptions(dbx, link, opts)
 		if err != nil {
 			return err
 		}
@@ -65,6 +85,68 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		_, err := fmt.Fprintln(w, url)
 		return err
 	})
+}
+
+func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, error) {
+	var opts shareLinkCreateOptions
+
+	if cmd.Flags().Changed("expires") {
+		expires, err := shareLinkExpiresFlag(cmd)
+		if err != nil {
+			return opts, err
+		}
+		opts.expires = expires
+	}
+
+	if cmd.Flags().Changed("remove-expiration") {
+		removeExpiration, err := cmd.Flags().GetBool("remove-expiration")
+		if err != nil {
+			return opts, err
+		}
+		opts.removeExpiration = removeExpiration
+	}
+
+	if cmd.Flags().Changed("allow-download") {
+		allowDownload, err := cmd.Flags().GetBool("allow-download")
+		if err != nil {
+			return opts, err
+		}
+		opts.allowDownload = allowDownload
+	}
+
+	if opts.expires != nil && opts.removeExpiration {
+		return opts, errors.New("`--expires` and `--remove-expiration` cannot be used together")
+	}
+
+	return opts, nil
+}
+
+func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsSharedLinkMetadata, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
+	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload {
+		return link, nil
+	}
+
+	url, ok := sharedLinkURL(link)
+	if !ok {
+		return nil, errors.New("existing shared link response did not include a URL")
+	}
+
+	settings := sharing.NewSharedLinkSettings()
+	applySharedLinkCreateSettings(settings, opts)
+
+	arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
+	arg.RemoveExpiration = opts.removeExpiration
+
+	return dbx.ModifySharedLinkSettings(arg)
+}
+
+func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts shareLinkCreateOptions) {
+	if opts.expires != nil {
+		settings.Expires = opts.expires
+	}
+	if opts.allowDownload {
+		settings.AllowDownload = true
+	}
 }
 
 func existingSharedLink(dbx sharedLinkClient, path string, err error) (sharing.IsSharedLinkMetadata, error) {
@@ -179,6 +261,18 @@ func sameDropboxPath(a string, b string) bool {
 	return strings.EqualFold(cleanDropboxPath(a), cleanDropboxPath(b))
 }
 
+func shareLinkExpiresFlag(cmd *cobra.Command) (*time.Time, error) {
+	value, err := cmd.Flags().GetString("expires")
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid --expires %q: use RFC3339 timestamp", value)
+	}
+	return &parsed, nil
+}
+
 var shareLinkCreateCmd = &cobra.Command{
 	Use:   "create <path>",
 	Short: "Create a shared link",
@@ -186,5 +280,8 @@ var shareLinkCreateCmd = &cobra.Command{
 }
 
 func init() {
+	shareLinkCreateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")
+	shareLinkCreateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
+	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
 	shareLinkCmd.AddCommand(shareLinkCreateCmd)
 }

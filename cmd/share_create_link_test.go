@@ -162,6 +162,155 @@ func TestSharedLinkCreatePrintsURLAndUsesDefaultSettings(t *testing.T) {
 	}
 }
 
+func TestSharedLinkCreateWithExpiresSetsExpiration(t *testing.T) {
+	wantExpires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil {
+				t.Fatal("settings = nil, want expiration settings")
+			}
+			if arg.Settings.Expires == nil {
+				t.Fatal("expires = nil, want expiration time")
+			}
+			if !arg.Settings.Expires.Equal(wantExpires) {
+				t.Fatalf("expires = %s, want %s", arg.Settings.Expires.Format(time.RFC3339), wantExpires.Format(time.RFC3339))
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().String("expires", "", "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("expires", wantExpires.Format(time.RFC3339)); err != nil {
+		t.Fatalf("set expires: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	if got := stdout.String(); got != "https://example.com/file\n" {
+		t.Fatalf("stdout = %q, want URL only", got)
+	}
+}
+
+func TestSharedLinkCreateWithAllowDownloadSetsAllowDownload(t *testing.T) {
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil {
+				t.Fatal("settings = nil, want allow-download settings")
+			}
+			if !arg.Settings.AllowDownload {
+				t.Fatal("AllowDownload = false, want true")
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("allow-download", false, "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("allow-download", "true"); err != nil {
+		t.Fatalf("set allow-download: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	if got := stdout.String(); got != "https://example.com/file\n" {
+		t.Fatalf("stdout = %q, want URL only", got)
+	}
+}
+
+func TestSharedLinkCreateWithInvalidExpiresReturnsError(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+	})
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("expires", "", "")
+	if err := cmd.Flags().Set("expires", "tomorrow"); err != nil {
+		t.Fatalf("set expires: %v", err)
+	}
+
+	err := shareLinkCreate(cmd, []string{"/file.txt"})
+	if err == nil || !strings.Contains(err.Error(), `invalid --expires "tomorrow": use RFC3339 timestamp`) {
+		t.Fatalf("error = %v, want invalid expires error", err)
+	}
+	if called {
+		t.Fatal("CreateSharedLinkWithSettings should not be called")
+	}
+}
+
+func TestSharedLinkCreateRejectsExpiresWithRemoveExpiration(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+	})
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("expires", "", "")
+	cmd.Flags().Bool("remove-expiration", false, "")
+	if err := cmd.Flags().Set("expires", "2026-07-01T00:00:00Z"); err != nil {
+		t.Fatalf("set expires: %v", err)
+	}
+	if err := cmd.Flags().Set("remove-expiration", "true"); err != nil {
+		t.Fatalf("set remove-expiration: %v", err)
+	}
+
+	err := shareLinkCreate(cmd, []string{"/file.txt"})
+	if err == nil || !strings.Contains(err.Error(), "`--expires` and `--remove-expiration` cannot be used together") {
+		t.Fatalf("error = %v, want mutually exclusive error", err)
+	}
+	if called {
+		t.Fatal("CreateSharedLinkWithSettings should not be called")
+	}
+}
+
+func TestSharedLinkCreateWithRemoveExpirationUsesDefaultCreateSettings(t *testing.T) {
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings != nil {
+				t.Fatalf("settings = %#v, want nil for new link with remove-expiration", arg.Settings)
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file"), nil
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatal("ModifySharedLinkSettings should not be called for a newly created link")
+			return nil, nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("remove-expiration", false, "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("remove-expiration", "true"); err != nil {
+		t.Fatalf("set remove-expiration: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+	if got := stdout.String(); got != "https://example.com/file\n" {
+		t.Fatalf("stdout = %q, want URL only", got)
+	}
+}
+
 func TestSharedLinkCreateVerboseStillPrintsURLOnly(t *testing.T) {
 	mock := &mockSharedLinkClient{
 		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
@@ -283,6 +432,127 @@ func TestSharedLinkCreateVerboseReportsExistingLinkOnStderr(t *testing.T) {
 	}
 }
 
+func TestSharedLinkCreateWithExpiresUpdatesExistingLink(t *testing.T) {
+	wantExpires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	existing := sharedLinkFile("/file.txt", "https://example.com/file-old")
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil || arg.Settings.Expires == nil || !arg.Settings.Expires.Equal(wantExpires) {
+				t.Fatalf("create settings = %#v, want expires %s", arg.Settings, wantExpires.Format(time.RFC3339))
+			}
+			return nil, alreadyExistsError(existing)
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Url != "https://example.com/file-old" {
+				t.Fatalf("modify URL = %q, want existing URL", arg.Url)
+			}
+			if arg.RemoveExpiration {
+				t.Fatal("RemoveExpiration = true, want false")
+			}
+			if arg.Settings == nil || arg.Settings.Expires == nil || !arg.Settings.Expires.Equal(wantExpires) {
+				t.Fatalf("modify settings = %#v, want expires %s", arg.Settings, wantExpires.Format(time.RFC3339))
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file-new"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().String("expires", "", "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("expires", wantExpires.Format(time.RFC3339)); err != nil {
+		t.Fatalf("set expires: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+	if got := stdout.String(); got != "https://example.com/file-new\n" {
+		t.Fatalf("stdout = %q, want updated URL", got)
+	}
+}
+
+func TestSharedLinkCreateWithRemoveExpirationUpdatesExistingLink(t *testing.T) {
+	existing := sharedLinkFile("/file.txt", "https://example.com/file-old")
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings != nil {
+				t.Fatalf("create settings = %#v, want nil", arg.Settings)
+			}
+			return nil, alreadyExistsError(existing)
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Url != "https://example.com/file-old" {
+				t.Fatalf("modify URL = %q, want existing URL", arg.Url)
+			}
+			if !arg.RemoveExpiration {
+				t.Fatal("RemoveExpiration = false, want true")
+			}
+			if arg.Settings == nil {
+				t.Fatal("settings = nil, want empty settings object")
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file-new"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("remove-expiration", false, "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("remove-expiration", "true"); err != nil {
+		t.Fatalf("set remove-expiration: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+	if got := stdout.String(); got != "https://example.com/file-new\n" {
+		t.Fatalf("stdout = %q, want updated URL", got)
+	}
+}
+
+func TestSharedLinkCreateWithAllowDownloadUpdatesExistingLink(t *testing.T) {
+	existing := sharedLinkFile("/file.txt", "https://example.com/file-old")
+	mock := &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Settings == nil || !arg.Settings.AllowDownload {
+				t.Fatalf("create settings = %#v, want allow download", arg.Settings)
+			}
+			return nil, alreadyExistsError(existing)
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Url != "https://example.com/file-old" {
+				t.Fatalf("modify URL = %q, want existing URL", arg.Url)
+			}
+			if arg.RemoveExpiration {
+				t.Fatal("RemoveExpiration = true, want false")
+			}
+			if arg.Settings == nil || !arg.Settings.AllowDownload {
+				t.Fatalf("modify settings = %#v, want allow download", arg.Settings)
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/file-new"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("allow-download", false, "")
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set("allow-download", "true"); err != nil {
+		t.Fatalf("set allow-download: %v", err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+	if got := stdout.String(); got != "https://example.com/file-new\n" {
+		t.Fatalf("stdout = %q, want updated URL", got)
+	}
+}
+
 func TestSharedLinkCreateFallbackPrefersExactPathLower(t *testing.T) {
 	var listArg *sharing.ListSharedLinksArg
 	mock := &mockSharedLinkClient{
@@ -401,6 +671,15 @@ func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
 	}
 	if cmd != shareLinkCreateCmd {
 		t.Fatalf("share-link create resolved to %q", cmd.CommandPath())
+	}
+	if shareLinkCreateCmd.Flags().Lookup("allow-download") == nil {
+		t.Fatal("share-link create should define --allow-download")
+	}
+	if shareLinkCreateCmd.Flags().Lookup("expires") == nil {
+		t.Fatal("share-link create should define --expires")
+	}
+	if shareLinkCreateCmd.Flags().Lookup("remove-expiration") == nil {
+		t.Fatal("share-link create should define --remove-expiration")
 	}
 
 	cmd, _, err = RootCmd.Find([]string{"share", "list", "link"})

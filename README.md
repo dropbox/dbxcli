@@ -229,6 +229,9 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 
 ```sh
 $ dbxcli share-link create /file.txt # create or return an existing shared link
+$ dbxcli share-link create /file.txt --allow-download # create a downloadable shared link
+$ dbxcli share-link create /file.txt --expires 2026-07-01T00:00:00Z # create an expiring shared link
+$ dbxcli share-link create /file.txt --remove-expiration # remove expiration when returning an existing link
 $ dbxcli share-link download <url> [target] # download a shared-link file
 $ dbxcli share-link info <url>       # display shared link information
 $ dbxcli share-link list             # list existing shared links
