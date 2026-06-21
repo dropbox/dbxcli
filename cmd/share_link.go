@@ -22,6 +22,7 @@ import (
 
 type sharedLinkClient interface {
 	CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
+	GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
 	ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
 	RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error
 }
