@@ -27,6 +27,7 @@ type shareLinkUpdateOptions struct {
 	expires          *time.Time
 	removeExpiration bool
 	allowDownload    bool
+	audience         *sharing.LinkAudience
 }
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
@@ -50,6 +51,9 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	}
 	if opts.allowDownload {
 		settings.AllowDownload = true
+	}
+	if opts.audience != nil {
+		settings.Audience = opts.audience
 	}
 
 	arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
@@ -75,11 +79,12 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	if err != nil {
 		return shareLinkUpdateOptions{}, err
 	}
+	audienceChanged := cmd.Flags().Changed("audience")
 
 	if expiresChanged && removeExpiration {
 		return shareLinkUpdateOptions{}, errors.New("`--expires` and `--remove-expiration` cannot be used together")
 	}
-	if !expiresChanged && !removeExpiration && !allowDownload {
+	if !expiresChanged && !removeExpiration && !allowDownload && !audienceChanged {
 		return shareLinkUpdateOptions{}, errors.New("at least one shared link setting flag is required")
 	}
 
@@ -96,10 +101,20 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		expires = &parsed
 	}
 
+	var audience *sharing.LinkAudience
+	if audienceChanged {
+		parsed, err := shareLinkAudienceFlag(cmd)
+		if err != nil {
+			return shareLinkUpdateOptions{}, err
+		}
+		audience = parsed
+	}
+
 	return shareLinkUpdateOptions{
 		expires:          expires,
 		removeExpiration: removeExpiration,
 		allowDownload:    allowDownload,
+		audience:         audience,
 	}, nil
 }
 
@@ -110,6 +125,7 @@ var shareLinkUpdateCmd = &cobra.Command{
 }
 
 func init() {
+	shareLinkUpdateCmd.Flags().String("audience", "", "Set shared link audience: public, team, members, or no-one")
 	shareLinkUpdateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkUpdateCmd.Flags().Bool("remove-expiration", false, "Remove the shared link expiration time")
 	shareLinkUpdateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")

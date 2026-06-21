@@ -114,6 +114,29 @@ func TestShareLinkUpdateRejectsInvalidExpires(t *testing.T) {
 	}
 }
 
+func TestShareLinkUpdateRejectsInvalidAudience(t *testing.T) {
+	called := false
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			called = true
+			return nil, nil
+		},
+	})
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("audience", "password"); err != nil {
+		t.Fatalf("set audience: %v", err)
+	}
+
+	err := shareLinkUpdate(cmd, []string{"https://example.com/link"})
+	if err == nil || !strings.Contains(err.Error(), `invalid --audience "password": use public, team, members, or no-one`) {
+		t.Fatalf("error = %v, want invalid audience error", err)
+	}
+	if called {
+		t.Fatal("ModifySharedLinkSettings should not be called")
+	}
+}
+
 func TestShareLinkUpdateRejectsExpiresAndRemoveExpiration(t *testing.T) {
 	called := false
 	stubSharedLinkClient(t, &mockSharedLinkClient{
@@ -228,6 +251,36 @@ func TestShareLinkUpdateAllowsDownload(t *testing.T) {
 	}
 }
 
+func TestShareLinkUpdateSetsAudience(t *testing.T) {
+	mock := &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Url != "https://example.com/link" {
+				t.Fatalf("url = %q, want https://example.com/link", arg.Url)
+			}
+			if arg.Settings == nil || arg.Settings.Audience == nil {
+				t.Fatal("audience setting was not sent")
+			}
+			if arg.Settings.Audience.Tag != sharing.LinkAudienceNoOne {
+				t.Fatalf("audience = %q, want no_one", arg.Settings.Audience.Tag)
+			}
+			if arg.RemoveExpiration {
+				t.Fatal("remove expiration = true, want false")
+			}
+			return sharedLinkFile("/file.txt", "https://example.com/link"), nil
+		},
+	}
+	stubSharedLinkClient(t, mock)
+
+	cmd := newShareLinkUpdateTestCommand(nil, nil)
+	if err := cmd.Flags().Set("audience", "no-one"); err != nil {
+		t.Fatalf("set audience: %v", err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/link"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+}
+
 func TestShareLinkUpdateVerboseWritesStatusToStderr(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -283,10 +336,14 @@ func TestShareLinkUpdateCommandIsRegistered(t *testing.T) {
 	if cmd != shareLinkUpdateCmd {
 		t.Fatalf("share-link update resolved to %q", cmd.CommandPath())
 	}
+	if shareLinkUpdateCmd.Flags().Lookup("audience") == nil {
+		t.Fatal("share-link update should define --audience")
+	}
 }
 
 func newShareLinkUpdateTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	cmd := &cobra.Command{}
+	cmd.Flags().String("audience", "", "")
 	cmd.Flags().String("expires", "", "")
 	cmd.Flags().Bool("remove-expiration", false, "")
 	cmd.Flags().Bool("allow-download", false, "")

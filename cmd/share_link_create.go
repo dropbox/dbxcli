@@ -31,6 +31,7 @@ type shareLinkCreateOptions struct {
 	removeExpiration bool
 	allowDownload    bool
 	access           *sharing.RequestedLinkAccessLevel
+	audience         *sharing.LinkAudience
 }
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
@@ -124,6 +125,14 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 		opts.access = access
 	}
 
+	if cmd.Flags().Changed("audience") {
+		audience, err := shareLinkAudienceFlag(cmd)
+		if err != nil {
+			return opts, err
+		}
+		opts.audience = audience
+	}
+
 	if opts.expires != nil && opts.removeExpiration {
 		return opts, errors.New("`--expires` and `--remove-expiration` cannot be used together")
 	}
@@ -135,7 +144,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 	if opts.access != nil {
 		return nil, errors.New("cannot apply `--access` because the shared link already exists")
 	}
-	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload {
+	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && opts.audience == nil {
 		return link, nil
 	}
 
@@ -154,7 +163,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 }
 
 func (opts shareLinkCreateOptions) hasCreateSettings() bool {
-	return opts.expires != nil || opts.allowDownload || opts.access != nil
+	return opts.expires != nil || opts.allowDownload || opts.access != nil || opts.audience != nil
 }
 
 func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts shareLinkCreateOptions) {
@@ -166,6 +175,9 @@ func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts sh
 	}
 	if opts.access != nil {
 		settings.Access = opts.access
+	}
+	if opts.audience != nil {
+		settings.Audience = opts.audience
 	}
 }
 
@@ -314,6 +326,29 @@ func requestedLinkAccessLevel(tag string) *sharing.RequestedLinkAccessLevel {
 	return &sharing.RequestedLinkAccessLevel{Tagged: dropbox.Tagged{Tag: tag}}
 }
 
+func shareLinkAudienceFlag(cmd *cobra.Command) (*sharing.LinkAudience, error) {
+	value, err := cmd.Flags().GetString("audience")
+	if err != nil {
+		return nil, err
+	}
+	switch value {
+	case sharing.LinkAudiencePublic:
+		return linkAudience(sharing.LinkAudiencePublic), nil
+	case sharing.LinkAudienceTeam:
+		return linkAudience(sharing.LinkAudienceTeam), nil
+	case sharing.LinkAudienceMembers:
+		return linkAudience(sharing.LinkAudienceMembers), nil
+	case "no-one":
+		return linkAudience(sharing.LinkAudienceNoOne), nil
+	default:
+		return nil, fmt.Errorf("invalid --audience %q: use public, team, members, or no-one", value)
+	}
+}
+
+func linkAudience(tag string) *sharing.LinkAudience {
+	return &sharing.LinkAudience{Tagged: dropbox.Tagged{Tag: tag}}
+}
+
 var shareLinkCreateCmd = &cobra.Command{
 	Use:   "create <path>",
 	Short: "Create a shared link",
@@ -322,6 +357,7 @@ var shareLinkCreateCmd = &cobra.Command{
 
 func init() {
 	shareLinkCreateCmd.Flags().String("access", "", "Set shared link access level: viewer, editor, or max")
+	shareLinkCreateCmd.Flags().String("audience", "", "Set shared link audience: public, team, members, or no-one")
 	shareLinkCreateCmd.Flags().Bool("allow-download", false, "Allow downloads from the shared link")
 	shareLinkCreateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
