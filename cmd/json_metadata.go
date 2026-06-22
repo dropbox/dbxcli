@@ -51,6 +51,14 @@ func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
 	}
 }
 
+func jsonMetadataListFromDropbox(entries []files.IsMetadata) []jsonMetadata {
+	result := make([]jsonMetadata, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, jsonMetadataFromDropbox(entry))
+	}
+	return result
+}
+
 func jsonTime(t time.Time) *string {
 	if t.IsZero() {
 		return nil
