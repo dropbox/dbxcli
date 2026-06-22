@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,6 +31,7 @@ func TestRootCmdInvalidFlagReturnsError(t *testing.T) {
 
 func newAuthTestCommand() *cobra.Command {
 	root := &cobra.Command{Use: "dbxcli"}
+	root.PersistentFlags().String(outputFlag, "text", "")
 	cmd := &cobra.Command{Use: "ls"}
 	cmd.Flags().BoolP("verbose", "v", false, "")
 	cmd.Flags().String("as-member", "", "")
@@ -81,6 +83,42 @@ func TestInitDbxSkipsAuthForLocalCommands(t *testing.T) {
 				t.Fatalf("expected auth to be skipped, got %v", err)
 			}
 		})
+	}
+}
+
+func TestInitDbxValidatesOutputBeforeAuth(t *testing.T) {
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
+
+	cmd := newAuthTestCommand()
+	if err := cmd.Root().PersistentFlags().Set(outputFlag, "yaml"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := initDbx(cmd, nil)
+	if err == nil {
+		t.Fatal("expected invalid output format to fail")
+	}
+	if !strings.Contains(err.Error(), `unsupported output format "yaml"`) {
+		t.Fatalf("error = %q, want output format error", err.Error())
+	}
+}
+
+func TestInitDbxRejectsUnsupportedStructuredOutputBeforeAuth(t *testing.T) {
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
+
+	cmd := newAuthTestCommand()
+	if err := cmd.Root().PersistentFlags().Set(outputFlag, "json"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := initDbx(cmd, nil)
+	if err == nil {
+		t.Fatal("expected unsupported structured output to fail")
+	}
+	if !strings.Contains(err.Error(), "structured output is not supported") {
+		t.Fatalf("error = %q, want structured output error", err.Error())
 	}
 }
 

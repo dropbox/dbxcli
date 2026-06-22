@@ -2,6 +2,7 @@ package output
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,8 @@ const (
 	FormatText Format = "text"
 	FormatJSON Format = "json"
 )
+
+var ErrStructuredOutputUnsupported = errors.New("structured output is not supported for this command yet")
 
 type Renderer struct {
 	stdout io.Writer
@@ -37,7 +40,7 @@ func New(stdout, stderr io.Writer, format Format) *Renderer {
 
 func (r *Renderer) RenderText(render func(io.Writer) error) error {
 	if r.format != FormatText {
-		return fmt.Errorf("output format %q requires structured output data", r.format)
+		return ErrStructuredOutputUnsupported
 	}
 	return r.Render(render, nil)
 }

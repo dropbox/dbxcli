@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"strings"
 	"testing"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -27,11 +30,11 @@ func TestCommandOutputUsesCobraWriters(t *testing.T) {
 	}
 }
 
-func TestCommandOutputHonorsJSONFlag(t *testing.T) {
+func TestCommandOutputHonorsOutputJSON(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd := &cobra.Command{}
 	cmd.SetOut(&stdout)
-	cmd.Flags().Bool(jsonOutputFlag, true, "")
+	cmd.Flags().String(outputFlag, "json", "")
 
 	out := commandOutput(cmd)
 	err := out.Render(func(w io.Writer) error {
@@ -49,10 +52,10 @@ func TestCommandOutputHonorsJSONFlag(t *testing.T) {
 	}
 }
 
-func TestCommandOutputHonorsInheritedJSONFlag(t *testing.T) {
+func TestCommandOutputHonorsInheritedOutputJSON(t *testing.T) {
 	var stdout bytes.Buffer
 	root := &cobra.Command{}
-	root.PersistentFlags().Bool(jsonOutputFlag, true, "")
+	root.PersistentFlags().String(outputFlag, "json", "")
 
 	cmd := &cobra.Command{}
 	cmd.SetOut(&stdout)
@@ -71,6 +74,76 @@ func TestCommandOutputHonorsInheritedJSONFlag(t *testing.T) {
 
 	if got, want := stdout.String(), "{\"status\":\"ok\"}\n"; got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestValidateOutputFormatRejectsInvalidValue(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, "yaml", "")
+
+	err := validateOutputFormat(cmd)
+	if err == nil {
+		t.Fatal("expected invalid output format to fail")
+	}
+	if !strings.Contains(err.Error(), `unsupported output format "yaml": use text or json`) {
+		t.Fatalf("error = %q, want unsupported output format", err.Error())
+	}
+}
+
+func TestValidateOutputFormatRejectsUnsupportedJSONCommand(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, "json", "")
+
+	err := validateOutputFormat(cmd)
+	if !errors.Is(err, output.ErrStructuredOutputUnsupported) {
+		t.Fatalf("error = %v, want ErrStructuredOutputUnsupported", err)
+	}
+}
+
+func TestValidateOutputFormatAllowsSupportedJSONCommand(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, "json", "")
+	enableStructuredOutput(cmd)
+
+	if err := validateOutputFormat(cmd); err != nil {
+		t.Fatalf("validateOutputFormat returned error: %v", err)
+	}
+}
+
+func TestValidateOutputFormatHonorsInheritedOutput(t *testing.T) {
+	root := &cobra.Command{}
+	root.PersistentFlags().String(outputFlag, "json", "")
+
+	cmd := &cobra.Command{}
+	enableStructuredOutput(cmd)
+	root.AddCommand(cmd)
+
+	if err := validateOutputFormat(cmd); err != nil {
+		t.Fatalf("validateOutputFormat returned error: %v", err)
+	}
+}
+
+func TestStructuredOutputSupportDoesNotInheritFromParent(t *testing.T) {
+	root := &cobra.Command{}
+	root.PersistentFlags().String(outputFlag, "json", "")
+	enableStructuredOutput(root)
+
+	cmd := &cobra.Command{}
+	root.AddCommand(cmd)
+
+	err := validateOutputFormat(cmd)
+	if !errors.Is(err, output.ErrStructuredOutputUnsupported) {
+		t.Fatalf("error = %v, want ErrStructuredOutputUnsupported", err)
+	}
+}
+
+func TestRootCommandDefinesOutputFlag(t *testing.T) {
+	flag := RootCmd.PersistentFlags().Lookup(outputFlag)
+	if flag == nil {
+		t.Fatal("root command should define --output")
+	}
+	if got, want := flag.DefValue, "text"; got != want {
+		t.Fatalf("--output default = %q, want %q", got, want)
 	}
 }
 

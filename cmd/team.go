@@ -25,6 +25,9 @@ var teamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Team management commands",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateOutputFormat(cmd); err != nil {
+			return err
+		}
 		if member, _ := cmd.Flags().GetString("as-member"); member != "" {
 			return fmt.Errorf("Flag `as-member` is invalid for team sub-commands")
 		}

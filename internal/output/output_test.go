@@ -79,8 +79,8 @@ func TestRenderTextRequiresTextFormat(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for text-only renderer in JSON format")
 	}
-	if !strings.Contains(err.Error(), "requires structured output data") {
-		t.Fatalf("error = %q, want structured output data", err.Error())
+	if !errors.Is(err, ErrStructuredOutputUnsupported) {
+		t.Fatalf("error = %q, want ErrStructuredOutputUnsupported", err.Error())
 	}
 }
 
