@@ -21,9 +21,25 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
+
+type searchInput struct {
+	Query      string `json:"query"`
+	Path       string `json:"path,omitempty"`
+	Long       bool   `json:"long"`
+	Sort       string `json:"sort,omitempty"`
+	Reverse    bool   `json:"reverse"`
+	Time       string `json:"time,omitempty"`
+	TimeFormat string `json:"time_format,omitempty"`
+}
+
+type searchOutput struct {
+	Input   searchInput    `json:"input"`
+	Entries []jsonMetadata `json:"entries"`
+}
 
 func search(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 {
@@ -74,9 +90,33 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	opts := parseLsOptions(cmd)
 	sortEntries(entries, opts)
 
-	return commandOutput(cmd).RenderText(func(w io.Writer) error {
-		return renderSearchResults(w, entries, opts)
+	return renderSearchOutput(cmd, args[0], scope, entries, opts)
+}
+
+func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files.IsMetadata, opts listOptions) error {
+	out := commandOutput(cmd)
+	if commandOutputFormat(cmd) != output.FormatJSON {
+		return out.RenderText(func(w io.Writer) error {
+			return renderSearchResults(w, entries, opts)
+		})
+	}
+
+	return out.Render(nil, searchOutput{
+		Input:   newSearchInput(query, scope, opts),
+		Entries: jsonMetadataListFromDropbox(entries),
 	})
+}
+
+func newSearchInput(query, scope string, opts listOptions) searchInput {
+	return searchInput{
+		Query:      query,
+		Path:       scope,
+		Long:       opts.long,
+		Sort:       opts.sortBy,
+		Reverse:    opts.reverse,
+		Time:       opts.timeField,
+		TimeFormat: opts.timeFormat,
+	}
 }
 
 func renderSearchResults(out io.Writer, entries []files.IsMetadata, opts listOptions) error {
@@ -115,4 +155,5 @@ func init() {
 	searchCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")
 	searchCmd.Flags().String("time", "server", "Time field: server, client")
 	searchCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
+	enableStructuredOutput(searchCmd)
 }

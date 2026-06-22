@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -126,6 +128,132 @@ func TestSearchUsesSearchV2AndCommandOutput(t *testing.T) {
 	}
 }
 
+func TestSearchJSONOutputsInputAndEntries(t *testing.T) {
+	cmd, stdout := testSearchCmd()
+	setSearchOutputJSON(t, cmd)
+	setSearchFlag(t, cmd, "long", "true")
+	setSearchFlag(t, cmd, "sort", "name")
+	setSearchFlag(t, cmd, "reverse", "true")
+	setSearchFlag(t, cmd, "time", "client")
+	setSearchFlag(t, cmd, "time-format", "rfc3339")
+	var firstArg *files.SearchV2Arg
+
+	mock := &mockFilesClient{
+		searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+			firstArg = arg
+			return files.NewSearchV2Result([]*files.SearchMatchV2{
+				searchMatch(&files.FileMetadata{
+					Metadata: files.Metadata{
+						PathDisplay: "/docs/report.txt",
+						PathLower:   "/docs/report.txt",
+					},
+					Id:   "id:file",
+					Rev:  "rev-file",
+					Size: 42,
+				}),
+				searchMatch(&files.FolderMetadata{
+					Metadata: files.Metadata{
+						PathDisplay: "/docs/archive",
+						PathLower:   "/docs/archive",
+					},
+					Id: "id:folder",
+				}),
+			}, false), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := search(cmd, []string{"report", "/docs"}); err != nil {
+		t.Fatalf("search error: %v", err)
+	}
+	if firstArg == nil {
+		t.Fatal("SearchV2 was not called")
+	}
+	if firstArg.Query != "report" {
+		t.Fatalf("query = %q, want report", firstArg.Query)
+	}
+	if firstArg.Options == nil || firstArg.Options.Path != "/docs" {
+		t.Fatalf("options path = %#v, want /docs", firstArg.Options)
+	}
+
+	got := decodeSearchOutput(t, stdout)
+	if got.Input.Query != "report" || got.Input.Path != "/docs" {
+		t.Fatalf("input = %#v, want query report path /docs", got.Input)
+	}
+	if !got.Input.Long || got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
+		t.Fatalf("input options = %#v, want long/sort/reverse/time/time-format", got.Input)
+	}
+	if len(got.Entries) != 2 {
+		t.Fatalf("entries = %d, want 2", len(got.Entries))
+	}
+	if got.Entries[0].Type != "file" || got.Entries[0].Rev != "rev-file" || got.Entries[0].Size == nil || *got.Entries[0].Size != 42 {
+		t.Fatalf("first entry = %#v, want file metadata", got.Entries[0])
+	}
+	if got.Entries[1].Type != "folder" || got.Entries[1].ID != "id:folder" {
+		t.Fatalf("second entry = %#v, want folder metadata", got.Entries[1])
+	}
+}
+
+func TestSearchJSONOmitsPathWithoutScope(t *testing.T) {
+	cmd, stdout := testSearchCmd()
+	setSearchOutputJSON(t, cmd)
+
+	mock := &mockFilesClient{
+		searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+			if arg.Options != nil && arg.Options.Path != "" {
+				t.Fatalf("options path = %q, want empty", arg.Options.Path)
+			}
+			return files.NewSearchV2Result(nil, false), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := search(cmd, []string{"report"}); err != nil {
+		t.Fatalf("search error: %v", err)
+	}
+	output := append([]byte(nil), stdout.Bytes()...)
+	got := decodeSearchOutput(t, stdout)
+	if got.Input.Query != "report" || got.Input.Path != "" {
+		t.Fatalf("input = %#v, want query report and empty path", got.Input)
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(output, &raw); err != nil {
+		t.Fatalf("decode raw JSON output: %v\noutput: %s", err, string(output))
+	}
+	input, ok := raw["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("raw input = %#v, want object", raw["input"])
+	}
+	if _, ok := input["path"]; ok {
+		t.Fatalf("input path key is present in %s, want omitted", string(output))
+	}
+}
+
+func TestSearchJSONErrorWritesNoOutput(t *testing.T) {
+	cmd, stdout := testSearchCmd()
+	setSearchOutputJSON(t, cmd)
+
+	mock := &mockFilesClient{
+		searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+			return nil, fmt.Errorf("search failed")
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := search(cmd, []string{"report"}); err == nil {
+		t.Fatal("expected search error")
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on error", got)
+	}
+}
+
+func TestSearchCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(searchCmd) {
+		t.Fatal("search command should support structured output")
+	}
+}
+
 func testSearchCmd() (*cobra.Command, *bytes.Buffer) {
 	var stdout bytes.Buffer
 	cmd := &cobra.Command{Use: "search"}
@@ -135,7 +263,30 @@ func testSearchCmd() (*cobra.Command, *bytes.Buffer) {
 	cmd.Flags().BoolP("reverse", "r", false, "")
 	cmd.Flags().String("time", "server", "")
 	cmd.Flags().String("time-format", "", "")
+	cmd.Flags().String(outputFlag, "text", "")
 	return cmd, &stdout
+}
+
+func setSearchOutputJSON(t *testing.T, cmd *cobra.Command) {
+	t.Helper()
+	setSearchFlag(t, cmd, outputFlag, "json")
+}
+
+func setSearchFlag(t *testing.T, cmd *cobra.Command, name, value string) {
+	t.Helper()
+	if err := cmd.Flags().Set(name, value); err != nil {
+		t.Fatalf("set %s: %v", name, err)
+	}
+}
+
+func decodeSearchOutput(t *testing.T, out *bytes.Buffer) searchOutput {
+	t.Helper()
+
+	var got searchOutput
+	if err := json.NewDecoder(out).Decode(&got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
+	}
+	return got
 }
 
 func searchMatch(metadata files.IsMetadata) *files.SearchMatchV2 {

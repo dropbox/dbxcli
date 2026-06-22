@@ -139,12 +139,13 @@ Text output is the default. JSON output is available through the global `--outpu
 ```sh
 $ dbxcli <command> --output=json
 $ dbxcli ls --output=json /
+$ dbxcli search --output=json report /Reports
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Currently migrated commands are `ls`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+JSON support is rolling out command by command. Currently migrated commands are `ls`, `search`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -190,7 +191,7 @@ Commands that operate on multiple paths return a `results` array:
 }
 ```
 
-List commands such as `ls` return an `input` object and an `entries` array:
+Commands that return entry lists, such as `ls` and `search`, return an `input` object and an `entries` array. `ls` input includes the listed path; `search` input includes the query and optional path scope:
 
 ```json
 {
