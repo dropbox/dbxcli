@@ -70,7 +70,7 @@ var logoutCmd = &cobra.Command{
 	Use:   "logout [flags]",
 	Short: "Log out of the current session",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return nil
+		return validateOutputFormat(cmd)
 	},
 	RunE: logout,
 }

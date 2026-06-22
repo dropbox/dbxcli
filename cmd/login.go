@@ -78,7 +78,7 @@ By default, login stores credentials for regular Dropbox user commands.
 Use "team-access" for --as-member commands or "team-manage" for team commands.`,
 	Args: cobra.MaximumNArgs(1),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return nil
+		return validateOutputFormat(cmd)
 	},
 	RunE: login,
 }

@@ -143,6 +143,10 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 }
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
+	if err := validateOutputFormat(cmd); err != nil {
+		return err
+	}
+
 	if commandSkipsAuth(cmd) {
 		return nil
 	}
@@ -193,6 +197,7 @@ func loadOAuthCredentialsFromEnv() {
 
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
+	RootCmd.PersistentFlags().String(outputFlag, "text", "Output format: text, json")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
