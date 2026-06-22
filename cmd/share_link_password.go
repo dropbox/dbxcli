@@ -22,9 +22,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -142,49 +139,4 @@ func localStringFlag(cmd *cobra.Command, name string) (string, error) {
 		return "", nil
 	}
 	return cmd.Flags().GetString(name)
-}
-
-type removeSharedLinkPasswordArgs struct {
-	URL              string                            `json:"url"`
-	Settings         *removeSharedLinkPasswordSettings `json:"settings"`
-	RemoveExpiration bool                              `json:"remove_expiration"`
-}
-
-type removeSharedLinkPasswordSettings struct {
-	RequirePassword bool `json:"require_password"`
-}
-
-func (dbx *sdkSharedLinkClient) RemoveSharedLinkPassword(url string) error {
-	arg := &removeSharedLinkPasswordArgs{
-		URL: url,
-		Settings: &removeSharedLinkPasswordSettings{
-			RequirePassword: false,
-		},
-		RemoveExpiration: false,
-	}
-	req := dropbox.Request{
-		Host:      "api",
-		Namespace: "sharing",
-		Route:     "modify_shared_link_settings",
-		Auth:      "user",
-		Style:     "rpc",
-		Arg:       arg,
-	}
-
-	ctx := dropbox.NewContext(dbx.cfg)
-	resp, respBody, err := (&ctx).Execute(req, nil)
-	if err != nil {
-		var appErr sharing.ModifySharedLinkSettingsAPIError
-		err = auth.ParseError(err, &appErr)
-		if err == &appErr {
-			return appErr
-		}
-		return err
-	}
-	if respBody != nil {
-		_ = respBody.Close()
-	}
-
-	_ = resp
-	return nil
 }
