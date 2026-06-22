@@ -246,6 +246,8 @@ $ dbxcli share-link revoke <url>     # revoke a shared link
 $ dbxcli share-link update <url> --allow-download # update shared link settings
 $ dbxcli share-link update <url> --disallow-download # disable downloads from a shared link
 $ dbxcli share-link update <url> --audience public # update shared link audience
+$ dbxcli share-link update <url> --expires 2026-07-01T00:00:00Z # update shared link expiration
+$ dbxcli share-link update <url> --remove-expiration # remove shared link expiration
 $ dbxcli share-link update <url> --password-prompt # set or change a shared link password
 $ dbxcli share-link update <url> --remove-password # remove a shared link password
 $ dbxcli share list link             # deprecated compatibility command
@@ -253,6 +255,7 @@ $ dbxcli share list folder           # list shared folders
 ```
 
 `share-link create --access` supports `viewer`, `editor`, and `max`. Dropbox does not support changing access for an existing shared link, so `--access` fails clearly if the link already exists.
+
 `share-link create --audience` and `share-link update --audience` support `public`, `team`, `members`, and `no-one`. Dropbox team and folder policies can still resolve the effective audience differently.
 
 `share-link create`, `share-link update`, `share-link info`, and `share-link download` support `--password <value>`, `--password-prompt`, and `--password-file <path>` for password-protected links. Use `--password-prompt` for interactive use so the password is not echoed.
