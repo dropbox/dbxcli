@@ -30,6 +30,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type shareLinkDownloadOptions struct {
+	path      string
+	password  sharedLinkPasswordOptions
+	recursive bool
+}
+
 func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`share-link download` requires a `url` and optional `target` argument")
@@ -49,27 +55,27 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	arg := sharing.NewGetSharedLinkMetadataArg(url)
-	password, err := sharedLinkPasswordFromFlags(cmd)
+	opts, err := parseShareLinkDownloadOptions(cmd)
 	if err != nil {
 		return err
 	}
-	if password.set {
-		arg.LinkPassword = password.password
-	}
-
-	recursive, err := cmd.Flags().GetBool("recursive")
-	if err != nil {
-		return err
+	if opts.password.set {
+		arg.LinkPassword = opts.password.password
 	}
 
 	dbx := newSharedLinkClient(config)
+	if opts.path != "" {
+		arg.Path = opts.path
+		return downloadSharedLinkPath(cmd, dbx, arg, target)
+	}
+
 	link, err := dbx.GetSharedLinkMetadata(arg)
 	if err != nil {
 		return err
 	}
 
 	if folder, ok := link.(*sharing.FolderLinkMetadata); ok {
-		if !recursive {
+		if !opts.recursive {
 			return errors.New("shared link is a folder (use --recursive to download folders)")
 		}
 		if target == "-" {
@@ -88,7 +94,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	if target == "-" {
-		if recursive {
+		if opts.recursive {
 			return errors.New("`share-link download -` cannot be used with --recursive")
 		}
 		if err := downloadSharedLinkToStdout(dbx, arg, cmd.OutOrStdout()); err != nil {
@@ -103,6 +109,63 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	commandVerboseStatus(cmd, "Downloaded shared link to %s", dst)
+	return nil
+}
+
+func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions, error) {
+	var opts shareLinkDownloadOptions
+
+	password, err := sharedLinkPasswordFromFlags(cmd)
+	if err != nil {
+		return opts, err
+	}
+	opts.password = password
+
+	recursive, err := cmd.Flags().GetBool("recursive")
+	if err != nil {
+		return opts, err
+	}
+	opts.recursive = recursive
+
+	if localFlagChanged(cmd, "path") {
+		pathArg, err := localStringFlag(cmd, "path")
+		if err != nil {
+			return opts, err
+		}
+		if pathArg == "" {
+			return opts, errors.New("`--path` requires a non-empty path")
+		}
+		path, err := validatePath(pathArg)
+		if err != nil {
+			return opts, err
+		}
+		if path == "" {
+			return opts, errors.New("cannot download shared-link root with `--path`")
+		}
+		opts.path = path
+	}
+
+	if opts.path != "" && opts.recursive {
+		return opts, errors.New("`--path` cannot be used with --recursive")
+	}
+
+	return opts, nil
+}
+
+func downloadSharedLinkPath(cmd *cobra.Command, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, target string) error {
+	if target == "-" {
+		if err := downloadSharedLinkToStdout(dbx, arg, cmd.OutOrStdout()); err != nil {
+			return err
+		}
+		commandVerboseStatus(cmd, "Downloaded shared link path %s to stdout", arg.Path)
+		return nil
+	}
+
+	dst, err := downloadSharedLinkToFile(dbx, arg, target, cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	commandVerboseStatus(cmd, "Downloaded shared link path %s to %s", arg.Path, dst)
 	return nil
 }
 
@@ -438,18 +501,21 @@ var shareLinkDownloadCmd = &cobra.Command{
 	Short: "Download a shared link file",
 	Long: `Download a file from a Dropbox shared link.
   - If target is omitted, the local filename comes from shared-link metadata.
+  - Use --path to download a file inside a folder shared link.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
   - Use --recursive (-r) to download folder shared links.
 `,
 	Example: `  dbxcli share-link download https://www.dropbox.com/s/example/file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt ./local-file.txt
+  dbxcli share-link download https://www.dropbox.com/s/example/folder --path /nested/file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt - | tar tz`,
 	RunE: shareLinkDownload,
 }
 
 func init() {
 	addSharedLinkPasswordFlags(shareLinkDownloadCmd)
+	shareLinkDownloadCmd.Flags().String("path", "", "Download a file path inside a folder shared link")
 	shareLinkDownloadCmd.Flags().BoolP("recursive", "r", false, "Recursively download a folder shared link")
 	shareLinkCmd.AddCommand(shareLinkDownloadCmd)
 }

@@ -227,6 +227,8 @@ All `--sort`, `--reverse`, `--time`, and `--time-format` flags work with both `l
 
 ### Sharing
 
+Create shared links:
+
 ```sh
 $ dbxcli share-link create /file.txt # create or return an existing shared link
 $ dbxcli share-link create /file.txt --access viewer # create a link with requested access
@@ -236,14 +238,29 @@ $ dbxcli share-link create /file.txt --disallow-download # create a shared link 
 $ dbxcli share-link create /file.txt --expires 2026-07-01T00:00:00Z # create an expiring shared link
 $ dbxcli share-link create /file.txt --password-prompt # create a password-protected shared link
 $ dbxcli share-link create /file.txt --remove-expiration # remove expiration when returning an existing link
-$ dbxcli share-link download <url> [target] # download a shared-link file
-$ dbxcli share-link download <url> [target] --recursive # download a folder shared link
+```
+
+Inspect and list shared links:
+
+```sh
 $ dbxcli share-link info <url>       # display shared link information
 $ dbxcli share-link info <url> --path /nested/file.txt # display information for a path inside the shared link
 $ dbxcli share-link list             # list existing shared links
 $ dbxcli share-link list /file.txt   # list direct shared links for a path
-$ dbxcli share-link revoke <url>     # revoke a shared link
-$ dbxcli share-link revoke --path /file.txt # revoke direct shared links for a path
+```
+
+Download shared links:
+
+```sh
+$ dbxcli share-link download <url> [target] # download a shared-link file
+$ dbxcli share-link download <url> --path /nested/file.txt # download a file inside a folder shared link
+$ dbxcli share-link download <url> ./local.txt --path /nested/file.txt # download nested file to a local target
+$ dbxcli share-link download <url> [target] --recursive # download a folder shared link
+```
+
+Update shared links:
+
+```sh
 $ dbxcli share-link update <url> --allow-download # update shared link settings
 $ dbxcli share-link update <url> --disallow-download # disable downloads from a shared link
 $ dbxcli share-link update <url> --audience public # update shared link audience
@@ -251,6 +268,18 @@ $ dbxcli share-link update <url> --expires 2026-07-01T00:00:00Z # update shared 
 $ dbxcli share-link update <url> --remove-expiration # remove shared link expiration
 $ dbxcli share-link update <url> --password-prompt # set or change a shared link password
 $ dbxcli share-link update <url> --remove-password # remove a shared link password
+```
+
+Revoke shared links:
+
+```sh
+$ dbxcli share-link revoke <url>     # revoke a shared link
+$ dbxcli share-link revoke --path /file.txt # revoke direct shared links for a path
+```
+
+Compatibility and shared folders:
+
+```sh
 $ dbxcli share list link             # deprecated compatibility command
 $ dbxcli share list folder           # list shared folders
 ```
@@ -263,7 +292,7 @@ Dropbox account, team, and folder policies can reject shared-link settings such 
 
 `share-link create`, `share-link update`, `share-link info`, and `share-link download` support `--password <value>`, `--password-prompt`, and `--password-file <path>` for password-protected links. Use `--password-prompt` for interactive use so the password is not echoed.
 
-`share-link download` writes to the metadata filename when `target` is omitted. Use `-` as the target to write file bytes to stdout. Folder shared links require `--recursive` and cannot be written to stdout.
+`share-link download` writes to the metadata filename when `target` is omitted. Use `--path` to download a single file inside a folder shared link. Use `-` as the target to write file bytes to stdout. Folder shared links require `--recursive` and cannot be written to stdout.
 
 New and changed commands should write command results to stdout. Status, progress, warnings, diagnostics, and verbose logs should go to stderr.
 
