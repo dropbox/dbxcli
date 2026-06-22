@@ -143,9 +143,65 @@ $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Commands that have not been migrated return `structured output is not supported for this command yet` when used with `--output=json`.
+JSON support is rolling out command by command. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
-Command results are written to stdout. Status, progress, warnings, diagnostics, errors, and verbose logs are written to stderr. JSON errors are not wrapped in a JSON response object.
+Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
+
+Successful JSON responses are command-specific. Commands that operate on one path usually return an `input` object and a `result` metadata object:
+
+```json
+{
+  "input": {
+    "path": "/new-folder",
+    "parents": false
+  },
+  "result": {
+    "type": "folder",
+    "path_display": "/new-folder",
+    "path_lower": "/new-folder",
+    "id": "id:..."
+  }
+}
+```
+
+Commands that operate on multiple paths return a `results` array:
+
+```json
+{
+  "results": [
+    {
+      "input": {
+        "path": "/old-file.txt",
+        "permanent": false,
+        "recursive": false,
+        "force": false
+      },
+      "result": {
+        "type": "file",
+        "path_display": "/old-file.txt",
+        "path_lower": "/old-file.txt",
+        "id": "id:...",
+        "rev": "...",
+        "size": 123
+      }
+    }
+  ]
+}
+```
+
+In JSON mode, command errors are also written to stdout. The process still exits with a non-zero status:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "message": "path exists and is not a folder: /old-file.txt",
+    "code": "path_conflict"
+  }
+}
+```
+
+Error `code` values are stable identifiers intended for scripts. Current codes are `structured_output_unsupported`, `unsupported_output_format`, `unknown_command`, `unknown_flag`, `path_conflict`, `invalid_arguments`, and `command_failed`.
 
 ### Authentication
 

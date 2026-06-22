@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/spf13/cobra"
@@ -11,6 +13,16 @@ const (
 	outputFlag                          = "output"
 	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
 )
+
+type jsonErrorResponse struct {
+	OK    bool      `json:"ok"`
+	Error jsonError `json:"error"`
+}
+
+type jsonError struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
+}
 
 func commandOutput(cmd *cobra.Command) *output.Renderer {
 	if cmd == nil {
@@ -42,6 +54,10 @@ func commandOutputFlagValue(cmd *cobra.Command) string {
 		return value
 	}
 	value, err = cmd.InheritedFlags().GetString(outputFlag)
+	if err == nil {
+		return value
+	}
+	value, err = cmd.PersistentFlags().GetString(outputFlag)
 	if err == nil {
 		return value
 	}
@@ -100,5 +116,77 @@ func commandVerbose(cmd *cobra.Command) bool {
 func commandVerboseStatus(cmd *cobra.Command, format string, args ...any) {
 	if commandVerbose(cmd) {
 		commandOutput(cmd).Status(format, args...)
+	}
+}
+
+func renderCommandError(cmd *cobra.Command, err error) {
+	renderCommandErrorWithJSON(cmd, err, false)
+}
+
+func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
+	if err == nil {
+		return
+	}
+	if cmd == nil {
+		cmd = RootCmd
+	}
+
+	if forceJSON || commandOutputFormat(cmd) == output.FormatJSON {
+		renderErr := output.New(cmd.OutOrStdout(), cmd.ErrOrStderr(), output.FormatJSON).Render(nil, jsonErrorResponse{
+			OK: false,
+			Error: jsonError{
+				Message: err.Error(),
+				Code:    jsonErrorCode(err),
+			},
+		})
+		if renderErr == nil {
+			return
+		}
+		err = renderErr
+	}
+
+	_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Error: %v\n", err)
+	if jsonErrorCode(err) == "unknown_command" {
+		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s --help' for usage.\n", cmd.CommandPath())
+	}
+}
+
+// outputJSONRequested is a narrow pre-parse fallback for errors that happen
+// before Cobra has resolved a command/flag context, such as unknown commands.
+func outputJSONRequested(args []string) bool {
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--":
+			return false
+		case "--output=json":
+			return true
+		case "--output":
+			return i+1 < len(args) && args[i+1] == "json"
+		}
+	}
+	return false
+}
+
+// jsonErrorCode derives stable script-facing codes from existing CLI errors.
+// If a matched error message changes, update this mapping with it.
+func jsonErrorCode(err error) string {
+	if errors.Is(err, output.ErrStructuredOutputUnsupported) {
+		return "structured_output_unsupported"
+	}
+
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "unsupported output format"):
+		return "unsupported_output_format"
+	case strings.Contains(message, "unknown command"):
+		return "unknown_command"
+	case strings.Contains(message, "unknown flag"):
+		return "unknown_flag"
+	case strings.Contains(message, "path exists and is not a folder"):
+		return "path_conflict"
+	case strings.Contains(message, "requires a"):
+		return "invalid_arguments"
+	default:
+		return "command_failed"
 	}
 }

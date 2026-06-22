@@ -178,13 +178,17 @@ var RootCmd = &cobra.Command{
 	Long: `Use dbxcli to quickly interact with your Dropbox, upload/download files,
 manage your team and more. It is easy, scriptable and works on all platforms!`,
 	SilenceUsage:      true,
+	SilenceErrors:     true,
 	PersistentPreRunE: initDbx,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := RootCmd.Execute(); err != nil {
+	jsonErrorOutput := outputJSONRequested(os.Args[1:])
+	cmd, err := RootCmd.ExecuteC()
+	if err != nil {
+		renderCommandErrorWithJSON(cmd, err, jsonErrorOutput)
 		os.Exit(1)
 	}
 }
