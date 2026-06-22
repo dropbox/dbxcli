@@ -498,8 +498,8 @@ func sharedLinkDownloadSize(link sharing.IsSharedLinkMetadata) uint64 {
 
 var shareLinkDownloadCmd = &cobra.Command{
 	Use:   "download <url> [target]",
-	Short: "Download a shared link file",
-	Long: `Download a file from a Dropbox shared link.
+	Short: "Download shared link content",
+	Long: `Download content from a Dropbox shared link.
   - If target is omitted, the local filename comes from shared-link metadata.
   - Use --path to download a file inside a folder shared link.
   - Use - as target to write file bytes to stdout.

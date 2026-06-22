@@ -416,7 +416,15 @@ func linkAudience(tag string) *sharing.LinkAudience {
 var shareLinkCreateCmd = &cobra.Command{
 	Use:   "create <path>",
 	Short: "Create a shared link",
-	RunE:  shareLinkCreate,
+	Long: `Create a shared link for a Dropbox file or folder.
+If a direct shared link already exists, dbxcli returns that existing URL.
+Settings flags request Dropbox shared-link settings; account, team, and folder policies may still restrict the result.`,
+	Example: `  dbxcli share-link create /file.txt
+  dbxcli share-link create /folder
+  dbxcli share-link create /file.txt --audience team
+  dbxcli share-link create /file.txt --expires 2026-07-01T00:00:00Z
+  dbxcli share-link create /file.txt --password-prompt`,
+	RunE: shareLinkCreate,
 }
 
 func init() {

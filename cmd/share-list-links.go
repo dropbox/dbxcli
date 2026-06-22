@@ -119,7 +119,11 @@ func sharedLinkMetadataDisplay(sl sharing.SharedLinkMetadata) (name string, url 
 var shareLinkListCmd = &cobra.Command{
 	Use:   "list [path]",
 	Short: "List shared links",
-	RunE:  shareLinkList,
+	Long: `List shared links.
+When path is supplied, dbxcli lists direct shared links for that Dropbox path only.`,
+	Example: `  dbxcli share-link list
+  dbxcli share-link list /file.txt`,
+	RunE: shareLinkList,
 }
 
 var shareListLinksCmd = &cobra.Command{
