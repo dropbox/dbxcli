@@ -126,10 +126,23 @@ Available Commands:
 
 Flags:
       --as-member string   Member ID to perform action as
+      --output string      Output format: text, json (default "text")
   -v, --verbose            Enable verbose logging
 
 Use "dbxcli [command] --help" for more information about a command.
 ```
+
+### Output formats
+
+Text output is the default. JSON output is available through the global `--output` flag as commands are migrated:
+
+```sh
+$ dbxcli <command> --output=json
+```
+
+JSON support is rolling out command by command. Commands that have not been migrated return `structured output is not supported for this command yet` when used with `--output=json`.
+
+Command results are written to stdout. Status, progress, warnings, diagnostics, errors, and verbose logs are written to stderr. JSON errors are not wrapped in a JSON response object.
 
 ### Authentication
 
@@ -314,6 +327,7 @@ Available Commands:
 
 Global Flags:
       --as-member string   Member ID to perform action as
+      --output string      Output format: text, json (default "text")
   -v, --verbose            Enable verbose logging
 
 Use "dbxcli team [command] --help" for more information about a command.
