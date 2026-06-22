@@ -18,15 +18,33 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
+	"strings"
 	"text/tabwriter"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
 const deletedItemFormatString = "<<%s>>"
+
+type lsInput struct {
+	Path           string `json:"path"`
+	Recursive      bool   `json:"recursive"`
+	IncludeDeleted bool   `json:"include_deleted"`
+	OnlyDeleted    bool   `json:"only_deleted"`
+	Long           bool   `json:"long"`
+	Sort           string `json:"sort,omitempty"`
+	Reverse        bool   `json:"reverse"`
+	Time           string `json:"time,omitempty"`
+	TimeFormat     string `json:"time_format,omitempty"`
+}
+
+type lsOutput struct {
+	Input   lsInput        `json:"input"`
+	Entries []jsonMetadata `json:"entries"`
+}
 
 // Sends a get_metadata request for a given path and returns the response
 func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
@@ -118,23 +136,9 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
 	opts := parseLsOptions(cmd)
 
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
-	itemCounter := 0
-	printItem := func(message string) {
-		itemCounter = itemCounter + 1
-		_, _ = fmt.Fprint(w, message)
-		if (itemCounter%4 == 0) || opts.long {
-			_, _ = fmt.Fprintln(w)
-		}
-	}
+	dbx := filesNewFunc(config)
 
-	dbx := files.New(config)
-
-	if opts.long {
-		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
-	}
-
+	var entries []files.IsMetadata
 	if path != "" {
 		var metaRes files.IsMetadata
 		metaRes, err = getFileMetadata(dbx, path)
@@ -145,15 +149,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		switch f := metaRes.(type) {
 		case *files.FileMetadata:
 			if !onlyDeleted {
-				printItem(formatFileMetadataWithOpts(f, opts))
-				return finishListOutput(w, itemCounter, opts)
+				entries = []files.IsMetadata{f}
+				return renderLsOutput(cmd, path, arg, onlyDeleted, opts, entries)
 			}
 		}
 	}
 
 	res, err := dbx.ListFolder(arg)
 
-	var entries []files.IsMetadata
 	if err != nil {
 		if !isListFolderNotFolderError(err) {
 			return err
@@ -179,7 +182,16 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	sortEntries(entries, opts)
+	entries, err = prepareLsEntries(dbx, entries, onlyDeleted)
+	if err != nil {
+		return err
+	}
 
+	return renderLsOutput(cmd, path, arg, onlyDeleted, opts, entries)
+}
+
+func prepareLsEntries(dbx files.Client, entries []files.IsMetadata, onlyDeleted bool) ([]files.IsMetadata, error) {
+	var filtered []files.IsMetadata
 	for _, entry := range entries {
 		deletedItem, isDeleted := entry.(*files.DeletedMetadata)
 		if isDeleted {
@@ -191,7 +203,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 					// get_metadata request for the same path and using that response instead.
 					revision, err := getFileMetadata(dbx, deletedItem.PathLower)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					entry = revision
 				}
@@ -203,15 +215,96 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 			}
 			setPathDisplayAsDeleted(entry)
 		}
+		switch entry.(type) {
+		case *files.FileMetadata, *files.FolderMetadata:
+			if !onlyDeleted {
+				filtered = append(filtered, entry)
+			}
+		case *files.DeletedMetadata:
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered, nil
+}
+
+func renderLsOutput(cmd *cobra.Command, path string, arg *files.ListFolderArg, onlyDeleted bool, opts listOptions, entries []files.IsMetadata) error {
+	out := commandOutput(cmd)
+	if commandOutputFormat(cmd) != output.FormatJSON {
+		return out.RenderText(func(w io.Writer) error {
+			return renderLsResults(w, entries, opts)
+		})
+	}
+
+	return out.Render(nil, lsOutput{
+		Input:   newLsInput(path, arg, onlyDeleted, opts),
+		Entries: jsonMetadataListFromLsEntries(entries),
+	})
+}
+
+func newLsInput(path string, arg *files.ListFolderArg, onlyDeleted bool, opts listOptions) lsInput {
+	displayPath := path
+	if displayPath == "" {
+		displayPath = "/"
+	}
+	return lsInput{
+		Path:           displayPath,
+		Recursive:      arg.Recursive,
+		IncludeDeleted: arg.IncludeDeleted,
+		OnlyDeleted:    onlyDeleted,
+		Long:           opts.long,
+		Sort:           opts.sortBy,
+		Reverse:        opts.reverse,
+		Time:           opts.timeField,
+		TimeFormat:     opts.timeFormat,
+	}
+}
+
+func jsonMetadataListFromLsEntries(entries []files.IsMetadata) []jsonMetadata {
+	result := make([]jsonMetadata, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, jsonMetadataFromLsEntry(entry))
+	}
+	return result
+}
+
+func jsonMetadataFromLsEntry(entry files.IsMetadata) jsonMetadata {
+	result := jsonMetadataFromDropbox(entry)
+	if path, ok := undecoratedDeletedPath(result.PathDisplay); ok {
+		result.PathDisplay = path
+		result.Deleted = true
+	}
+	return result
+}
+
+func undecoratedDeletedPath(path string) (string, bool) {
+	if strings.HasPrefix(path, "<<") && strings.HasSuffix(path, ">>") {
+		return strings.TrimSuffix(strings.TrimPrefix(path, "<<"), ">>"), true
+	}
+	return path, false
+}
+
+func renderLsResults(out io.Writer, entries []files.IsMetadata, opts listOptions) error {
+	w := new(tabwriter.Writer)
+	w.Init(out, 4, 8, 1, ' ', 0)
+	itemCounter := 0
+	printItem := func(message string) {
+		itemCounter = itemCounter + 1
+		_, _ = fmt.Fprint(w, message)
+		if (itemCounter%4 == 0) || opts.long {
+			_, _ = fmt.Fprintln(w)
+		}
+	}
+
+	if opts.long {
+		_, _ = fmt.Fprint(w, "Revision\tSize\tLast modified\tPath\n")
+	}
+
+	for _, entry := range entries {
 		switch f := entry.(type) {
 		case *files.FileMetadata:
-			if !onlyDeleted {
-				printItem(formatFileMetadataWithOpts(f, opts))
-			}
+			printItem(formatFileMetadataWithOpts(f, opts))
 		case *files.FolderMetadata:
-			if !onlyDeleted {
-				printItem(formatFolderMetadata(f, opts.long))
-			}
+			printItem(formatFolderMetadata(f, opts.long))
 		case *files.DeletedMetadata:
 			printItem(formatDeletedMetadata(f, opts.long))
 		}
@@ -265,4 +358,5 @@ func init() {
 	lsCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")
 	lsCmd.Flags().String("time", "server", "Time field: server, client")
 	lsCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
+	enableStructuredOutput(lsCmd)
 }

@@ -138,12 +138,13 @@ Text output is the default. JSON output is available through the global `--outpu
 
 ```sh
 $ dbxcli <command> --output=json
+$ dbxcli ls --output=json /
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+JSON support is rolling out command by command. Currently migrated commands are `ls`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -184,6 +185,32 @@ Commands that operate on multiple paths return a `results` array:
         "rev": "...",
         "size": 123
       }
+    }
+  ]
+}
+```
+
+List commands such as `ls` return an `input` object and an `entries` array:
+
+```json
+{
+  "input": {
+    "path": "/Reports",
+    "recursive": false,
+    "include_deleted": false,
+    "only_deleted": false,
+    "long": false,
+    "reverse": false,
+    "time": "server"
+  },
+  "entries": [
+    {
+      "type": "file",
+      "path_display": "/Reports/q1.pdf",
+      "path_lower": "/reports/q1.pdf",
+      "id": "id:...",
+      "rev": "...",
+      "size": 123
     }
   ]
 }
