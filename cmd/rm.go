@@ -17,6 +17,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
@@ -42,17 +43,13 @@ type removeInput struct {
 	Force     bool   `json:"force"`
 }
 
-type removeMetadata struct {
-	Type        string `json:"type"`
-	PathDisplay string `json:"path_display,omitempty"`
-	ID          string `json:"id,omitempty"`
-	Rev         string `json:"rev,omitempty"`
-	Size        uint64 `json:"size,omitempty"`
+type removeResult struct {
+	Input  removeInput  `json:"input"`
+	Result jsonMetadata `json:"result"`
 }
 
-type removeResult struct {
-	Input  removeInput    `json:"input"`
-	Result removeMetadata `json:"result"`
+type removeOutput struct {
+	Results []removeResult `json:"results"`
 }
 
 func rm(cmd *cobra.Command, args []string) error {
@@ -77,11 +74,12 @@ func rm(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if opts.verbose {
-		printRemoveResults(cmd, results)
-	}
-
-	return nil
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		if !opts.verbose {
+			return nil
+		}
+		return renderRemoveResults(w, results)
+	}, removeOutput{Results: results})
 }
 
 func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {
@@ -180,28 +178,10 @@ func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions)
 	}
 }
 
-func removeMetadataFromDropbox(path string, metadata files.IsMetadata) removeMetadata {
-	switch m := metadata.(type) {
-	case *files.FileMetadata:
-		return removeMetadata{
-			Type:        "file",
-			PathDisplay: metadataDisplayPath(path, m.PathDisplay),
-			ID:          m.Id,
-			Rev:         m.Rev,
-			Size:        m.Size,
-		}
-	case *files.FolderMetadata:
-		return removeMetadata{
-			Type:        "folder",
-			PathDisplay: metadataDisplayPath(path, m.PathDisplay),
-			ID:          m.Id,
-		}
-	default:
-		return removeMetadata{
-			Type:        "unknown",
-			PathDisplay: path,
-		}
-	}
+func removeMetadataFromDropbox(path string, metadata files.IsMetadata) jsonMetadata {
+	result := jsonMetadataFromDropbox(metadata)
+	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
+	return result
 }
 
 func metadataDisplayPath(inputPath, metadataPath string) string {
@@ -211,15 +191,19 @@ func metadataDisplayPath(inputPath, metadataPath string) string {
 	return inputPath
 }
 
-func printRemoveResults(cmd *cobra.Command, results []removeResult) {
-	out := commandOutput(cmd)
+func renderRemoveResults(w io.Writer, results []removeResult) error {
 	for _, result := range results {
 		if result.Input.Permanent {
-			out.Info("Permanently deleted %s", result.displayPath())
+			if _, err := fmt.Fprintf(w, "Permanently deleted %s\n", result.displayPath()); err != nil {
+				return err
+			}
 			continue
 		}
-		out.Info("Deleted %s", result.displayPath())
+		if _, err := fmt.Fprintf(w, "Deleted %s\n", result.displayPath()); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (r removeResult) displayPath() string {
@@ -242,6 +226,7 @@ var rmCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(rmCmd)
+	enableStructuredOutput(rmCmd)
 	rmCmd.Flags().BoolP("force", "f", false, "Allow removing non-empty folders; same as --recursive")
 	rmCmd.Flags().BoolP("recursive", "r", false, "Recursively remove folders")
 	rmCmd.Flags().Bool("permanent", false, "Permanently delete instead of moving to Dropbox trash")
