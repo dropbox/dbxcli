@@ -16,11 +16,22 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
+
+type mkdirInput struct {
+	Path    string `json:"path"`
+	Parents bool   `json:"parents"`
+}
+
+type mkdirResult struct {
+	Input  mkdirInput   `json:"input"`
+	Result jsonMetadata `json:"result"`
+}
 
 func mkdir(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
@@ -36,15 +47,98 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 	parents, _ := cmd.Flags().GetBool("parents")
 
-	dbx := files.New(config)
-	if _, err = dbx.CreateFolderV2(arg); err != nil {
-		if parents && isConflictError(err) {
-			return nil
+	dbx := filesNewFunc(config)
+	created, err := dbx.CreateFolderV2(arg)
+	var metadata *files.FolderMetadata
+	if err != nil {
+		if !parents {
+			return err
 		}
-		return
+
+		conflictTag, ok := createFolderConflictTag(err)
+		switch {
+		case ok && conflictTag == files.WriteConflictErrorFolder:
+			if commandOutputFormat(cmd) == "text" {
+				return nil
+			}
+			metadata, err = existingFolderMetadata(dbx, dst)
+			if err != nil {
+				return err
+			}
+		case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
+			return fmt.Errorf("path exists and is not a folder: %s", dst)
+		case ok:
+			return err
+		case isConflictError(err):
+			if commandOutputFormat(cmd) == "text" {
+				return nil
+			}
+			metadata, err = existingFolderMetadata(dbx, dst)
+			if err != nil {
+				return err
+			}
+		default:
+			return err
+		}
+	} else {
+		if created == nil || created.Metadata == nil {
+			return errors.New("create folder returned no metadata")
+		}
+		metadata = created.Metadata
 	}
 
-	return
+	result := newMkdirResult(dst, parents, metadata)
+	return commandOutput(cmd).Render(nil, result)
+}
+
+func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata, error) {
+	metadata, err := dbx.GetMetadata(files.NewGetMetadataArg(dst))
+	if err != nil {
+		return nil, err
+	}
+	folder, ok := metadata.(*files.FolderMetadata)
+	if !ok || folder == nil {
+		return nil, fmt.Errorf("path exists and is not a folder: %s", dst)
+	}
+	return folder, nil
+}
+
+func newMkdirResult(path string, parents bool, metadata *files.FolderMetadata) mkdirResult {
+	result := jsonMetadataFromDropbox(metadata)
+	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
+
+	return mkdirResult{
+		Input: mkdirInput{
+			Path:    path,
+			Parents: parents,
+		},
+		Result: result,
+	}
+}
+
+func createFolderConflictTag(err error) (string, bool) {
+	var apiErrPtr *files.CreateFolderV2APIError
+	if errors.As(err, &apiErrPtr) && apiErrPtr != nil {
+		return createFolderEndpointConflictTag(apiErrPtr.EndpointError)
+	}
+
+	var apiErr files.CreateFolderV2APIError
+	if errors.As(err, &apiErr) {
+		return createFolderEndpointConflictTag(apiErr.EndpointError)
+	}
+
+	return "", false
+}
+
+func createFolderEndpointConflictTag(endpointErr *files.CreateFolderError) (string, bool) {
+	if endpointErr == nil ||
+		endpointErr.Tag != files.CreateFolderErrorPath ||
+		endpointErr.Path == nil ||
+		endpointErr.Path.Tag != files.WriteErrorConflict ||
+		endpointErr.Path.Conflict == nil {
+		return "", false
+	}
+	return endpointErr.Path.Conflict.Tag, true
 }
 
 func isConflictError(err error) bool {
@@ -61,4 +155,5 @@ var mkdirCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(mkdirCmd)
 	mkdirCmd.Flags().BoolP("parents", "p", false, "No error if existing, create parent directories as needed")
+	enableStructuredOutput(mkdirCmd)
 }

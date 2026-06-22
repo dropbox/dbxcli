@@ -138,6 +138,7 @@ Text output is the default. JSON output is available through the global `--outpu
 
 ```sh
 $ dbxcli <command> --output=json
+$ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
