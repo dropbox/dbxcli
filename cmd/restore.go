@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -27,19 +29,9 @@ type restoreInput struct {
 	Revision string `json:"revision"`
 }
 
-type restoreMetadata struct {
-	Type           string    `json:"type"`
-	PathDisplay    string    `json:"path_display,omitempty"`
-	ID             string    `json:"id,omitempty"`
-	Rev            string    `json:"rev,omitempty"`
-	Size           uint64    `json:"size,omitempty"`
-	ClientModified time.Time `json:"client_modified"`
-	ServerModified time.Time `json:"server_modified"`
-}
-
 type restoreResult struct {
-	Input  restoreInput    `json:"input"`
-	Result restoreMetadata `json:"result"`
+	Input  restoreInput `json:"input"`
+	Result jsonMetadata `json:"result"`
 }
 
 func restore(cmd *cobra.Command, args []string) (err error) {
@@ -63,11 +55,14 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose {
-		printRestoreResult(cmd, newRestoreResult(path, rev, metadata))
-	}
+	result := newRestoreResult(path, rev, metadata)
 
-	return
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		if !verbose {
+			return nil
+		}
+		return renderRestoreResult(w, result)
+	}, result)
 }
 
 func newRestoreResult(path, revision string, metadata *files.FileMetadata) restoreResult {
@@ -80,38 +75,41 @@ func newRestoreResult(path, revision string, metadata *files.FileMetadata) resto
 	}
 }
 
-func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) restoreMetadata {
+func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) jsonMetadata {
 	if metadata == nil {
-		return restoreMetadata{
+		return jsonMetadata{
 			Type:        "file",
 			PathDisplay: path,
 		}
 	}
-	return restoreMetadata{
-		Type:           "file",
-		PathDisplay:    metadataDisplayPath(path, metadata.PathDisplay),
-		ID:             metadata.Id,
-		Rev:            metadata.Rev,
-		Size:           metadata.Size,
-		ClientModified: metadata.ClientModified,
-		ServerModified: metadata.ServerModified,
-	}
+
+	result := jsonMetadataFromDropbox(metadata)
+	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
+	return result
 }
 
-func printRestoreResult(cmd *cobra.Command, result restoreResult) {
+func renderRestoreResult(w io.Writer, result restoreResult) error {
 	path := result.Result.PathDisplay
 	if path == "" {
 		path = result.Input.Path
 	}
 
 	if result.Result.Rev != "" && result.Result.Rev != result.Input.Revision {
-		commandOutput(cmd).Info("Restored %s to revision %s (current revision %s, server modified %s)",
-			path, result.Input.Revision, result.Result.Rev, result.Result.ServerModified.Format(time.RFC3339))
-		return
+		_, err := fmt.Fprintf(w, "Restored %s to revision %s (current revision %s, server modified %s)\n",
+			path, result.Input.Revision, result.Result.Rev, restoreResultServerModified(result))
+		return err
 	}
 
-	commandOutput(cmd).Info("Restored %s to revision %s (server modified %s)",
-		path, result.Input.Revision, result.Result.ServerModified.Format(time.RFC3339))
+	_, err := fmt.Fprintf(w, "Restored %s to revision %s (server modified %s)\n",
+		path, result.Input.Revision, restoreResultServerModified(result))
+	return err
+}
+
+func restoreResultServerModified(result restoreResult) string {
+	if result.Result.ServerModified != nil {
+		return *result.Result.ServerModified
+	}
+	return time.Time{}.Format(time.RFC3339)
 }
 
 // restoreCmd represents the restore command
@@ -129,4 +127,5 @@ Use "dbxcli revs <target-path>" to list available revisions.`,
 
 func init() {
 	RootCmd.AddCommand(restoreCmd)
+	enableStructuredOutput(restoreCmd)
 }
