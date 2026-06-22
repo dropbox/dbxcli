@@ -139,6 +139,7 @@ Text output is the default. JSON output is available through the global `--outpu
 ```sh
 $ dbxcli <command> --output=json
 $ dbxcli rm --output=json /old-file.txt
+$ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
 JSON support is rolling out command by command. Commands that have not been migrated return `structured output is not supported for this command yet` when used with `--output=json`.

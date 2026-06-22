@@ -184,13 +184,6 @@ func removeMetadataFromDropbox(path string, metadata files.IsMetadata) jsonMetad
 	return result
 }
 
-func metadataDisplayPath(inputPath, metadataPath string) string {
-	if metadataPath != "" {
-		return metadataPath
-	}
-	return inputPath
-}
-
 func renderRemoveResults(w io.Writer, results []removeResult) error {
 	for _, result := range results {
 		if result.Input.Permanent {

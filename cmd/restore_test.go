@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -45,7 +47,7 @@ func TestRestoreQuietByDefault(t *testing.T) {
 		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
 			restoreArg = arg
 			return &files.FileMetadata{
-				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf"},
+				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf", PathLower: "/reports/old.pdf"},
 				Rev:            "current-rev",
 				ServerModified: serverModified,
 			}, nil
@@ -77,7 +79,7 @@ func TestRestoreVerbosePrintsRevisionAndServerModifiedTime(t *testing.T) {
 	mock := &mockFilesClient{
 		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
 			return &files.FileMetadata{
-				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf"},
+				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf", PathLower: "/reports/old.pdf"},
 				Rev:            "current-rev",
 				ServerModified: serverModified,
 			}, nil
@@ -101,6 +103,7 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	result := newRestoreResult("/Reports/old.pdf", "target-rev", &files.FileMetadata{
 		Metadata: files.Metadata{
 			PathDisplay: "/Reports/old.pdf",
+			PathLower:   "/reports/old.pdf",
 		},
 		Id:             "id:abc",
 		Rev:            "current-rev",
@@ -115,11 +118,141 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	if result.Result.Type != "file" || result.Result.PathDisplay != "/Reports/old.pdf" {
 		t.Fatalf("metadata = %#v, want file path metadata", result.Result)
 	}
-	if result.Result.ID != "id:abc" || result.Result.Rev != "current-rev" || result.Result.Size != 123 {
+	if result.Result.ID != "id:abc" || result.Result.Rev != "current-rev" ||
+		result.Result.Size == nil || *result.Result.Size != 123 {
 		t.Fatalf("metadata = %#v, want id, current rev, and size", result.Result)
 	}
-	if !result.Result.ClientModified.Equal(clientModified) || !result.Result.ServerModified.Equal(serverModified) {
-		t.Fatalf("metadata times = %#v, want client and server modified times", result.Result)
+	if result.Result.ServerModified == nil || *result.Result.ServerModified != "2026-06-17T12:30:00Z" {
+		t.Fatalf("server modified = %v, want 2026-06-17T12:30:00Z", result.Result.ServerModified)
+	}
+	if result.Result.ClientModified == nil || *result.Result.ClientModified != "2026-06-16T10:00:00Z" {
+		t.Fatalf("client modified = %v, want 2026-06-16T10:00:00Z", result.Result.ClientModified)
+	}
+}
+
+func TestRestoreJSONOutputsInputAndMetadata(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	setRestoreOutputJSON(t, cmd)
+	var restoreArg *files.RestoreArg
+	clientModified := time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC)
+	serverModified := time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC)
+	mock := &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			restoreArg = arg
+			return &files.FileMetadata{
+				Metadata: files.Metadata{
+					PathDisplay: "/Reports/old.pdf",
+					PathLower:   "/reports/old.pdf",
+				},
+				Id:             "id:abc",
+				Rev:            "current-rev",
+				Size:           123,
+				ClientModified: clientModified,
+				ServerModified: serverModified,
+			}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err != nil {
+		t.Fatalf("restore error: %v", err)
+	}
+	if restoreArg == nil || restoreArg.Path != "/Reports/old.pdf" || restoreArg.Rev != "target-rev" {
+		t.Fatalf("restore arg = %#v, want path /Reports/old.pdf and rev target-rev", restoreArg)
+	}
+
+	got := decodeRestoreOutput(t, stdout)
+	if got.Input.Path != "/Reports/old.pdf" || got.Input.Revision != "target-rev" {
+		t.Fatalf("input = %#v, want path and target revision", got.Input)
+	}
+	if got.Result.Type != "file" || got.Result.PathDisplay != "/Reports/old.pdf" || got.Result.PathLower != "/reports/old.pdf" {
+		t.Fatalf("metadata = %#v, want file path metadata", got.Result)
+	}
+	if got.Result.ID != "id:abc" || got.Result.Rev != "current-rev" {
+		t.Fatalf("metadata = %#v, want returned id and current revision", got.Result)
+	}
+	if got.Result.Size == nil || *got.Result.Size != 123 {
+		t.Fatalf("size = %v, want 123", got.Result.Size)
+	}
+	if got.Result.ServerModified == nil || *got.Result.ServerModified != "2026-06-17T12:30:00Z" {
+		t.Fatalf("server modified = %v, want 2026-06-17T12:30:00Z", got.Result.ServerModified)
+	}
+	if got.Result.ClientModified == nil || *got.Result.ClientModified != "2026-06-16T10:00:00Z" {
+		t.Fatalf("client modified = %v, want 2026-06-16T10:00:00Z", got.Result.ClientModified)
+	}
+}
+
+func TestRestoreJSONUsesInputPathWhenMetadataPathDisplayMissing(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	setRestoreOutputJSON(t, cmd)
+	mock := &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			return &files.FileMetadata{Rev: "current-rev"}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err != nil {
+		t.Fatalf("restore error: %v", err)
+	}
+
+	got := decodeRestoreOutput(t, stdout)
+	if got.Result.PathDisplay != "/Reports/old.pdf" {
+		t.Fatalf("path_display = %q, want fallback input path", got.Result.PathDisplay)
+	}
+}
+
+func TestRestoreJSONVerboseDoesNotPrintText(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	setRestoreOutputJSON(t, cmd)
+	if err := cmd.Flags().Set("verbose", "true"); err != nil {
+		t.Fatalf("set verbose: %v", err)
+	}
+
+	mock := &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			return &files.FileMetadata{
+				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf"},
+				Rev:            "current-rev",
+				ServerModified: time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC),
+			}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err != nil {
+		t.Fatalf("restore error: %v", err)
+	}
+	if strings.Contains(stdout.String(), "Restored ") {
+		t.Fatalf("stdout = %q, want JSON only", stdout.String())
+	}
+	got := decodeRestoreOutput(t, stdout)
+	if got.Result.Rev != "current-rev" {
+		t.Fatalf("rev = %q, want current-rev", got.Result.Rev)
+	}
+}
+
+func TestRestoreJSONErrorWritesNoOutput(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	setRestoreOutputJSON(t, cmd)
+	mock := &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			return nil, errors.New("restore failed")
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err == nil {
+		t.Fatal("expected restore error")
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on error", got)
+	}
+}
+
+func TestRestoreCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(restoreCmd) {
+		t.Fatal("restore command should support structured output")
 	}
 }
 
@@ -128,5 +261,24 @@ func testRestoreCmd() (*cobra.Command, *bytes.Buffer) {
 	cmd := &cobra.Command{Use: "restore"}
 	cmd.SetOut(&stdout)
 	cmd.Flags().BoolP("verbose", "v", false, "")
+	cmd.Flags().String(outputFlag, "text", "")
 	return cmd, &stdout
+}
+
+func setRestoreOutputJSON(t *testing.T, cmd *cobra.Command) {
+	t.Helper()
+
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func decodeRestoreOutput(t *testing.T, stdout *bytes.Buffer) restoreResult {
+	t.Helper()
+
+	var got restoreResult
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	return got
 }
