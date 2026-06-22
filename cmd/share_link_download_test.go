@@ -273,6 +273,136 @@ func TestShareLinkDownloadUsesTargetDirectory(t *testing.T) {
 	assertFileContent(t, filepath.Join(targetDir, "report.txt"), content)
 }
 
+func TestShareLinkDownloadPathDownloadsNestedFile(t *testing.T) {
+	tmp := t.TempDir()
+	targetDir := filepath.Join(tmp, "downloads")
+	if err := os.Mkdir(targetDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	content := "nested content"
+	var requested *sharing.GetSharedLinkMetadataArg
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatal("GetSharedLinkMetadata should not be called for --path file downloads")
+			return nil, nil
+		},
+		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+			requested = arg
+			return downloadableSharedLinkFile("nested.txt", "/docs/sub/nested.txt", "https://example.com/folder", uint64(len(content))),
+				io.NopCloser(strings.NewReader(content)), nil
+		},
+	})
+
+	cmd := newShareLinkDownloadTestCommand(nil, nil)
+	if err := cmd.Flags().Set("path", "sub/nested.txt"); err != nil {
+		t.Fatalf("set path: %v", err)
+	}
+	if err := cmd.Flags().Set("password", "secret"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+
+	if err := shareLinkDownload(cmd, []string{"https://example.com/folder", targetDir}); err != nil {
+		t.Fatalf("shareLinkDownload error: %v", err)
+	}
+
+	if requested == nil {
+		t.Fatal("GetSharedLinkFile was not called")
+	}
+	if requested.Url != "https://example.com/folder" {
+		t.Fatalf("url = %q, want https://example.com/folder", requested.Url)
+	}
+	if requested.Path != "/sub/nested.txt" {
+		t.Fatalf("path = %q, want /sub/nested.txt", requested.Path)
+	}
+	if requested.LinkPassword != "secret" {
+		t.Fatalf("password = %q, want secret", requested.LinkPassword)
+	}
+	assertFileContent(t, filepath.Join(targetDir, "nested.txt"), content)
+}
+
+func TestShareLinkDownloadPathToStdoutIsByteClean(t *testing.T) {
+	content := "nested stdout content"
+	var requested *sharing.GetSharedLinkMetadataArg
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+			requested = arg
+			return downloadableSharedLinkFile("nested.txt", "/docs/sub/nested.txt", "https://example.com/folder", uint64(len(content))),
+				io.NopCloser(strings.NewReader(content)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := newShareLinkDownloadTestCommand(&stdout, &stderr)
+	if err := cmd.Flags().Set("path", "/sub/nested.txt"); err != nil {
+		t.Fatalf("set path: %v", err)
+	}
+
+	if err := shareLinkDownload(cmd, []string{"https://example.com/folder", "-"}); err != nil {
+		t.Fatalf("shareLinkDownload error: %v", err)
+	}
+	if requested == nil {
+		t.Fatal("GetSharedLinkFile was not called")
+	}
+	if requested.Path != "/sub/nested.txt" {
+		t.Fatalf("path = %q, want /sub/nested.txt", requested.Path)
+	}
+	if stdout.String() != content {
+		t.Fatalf("stdout = %q, want file bytes", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, want empty without verbose", stderr.String())
+	}
+}
+
+func TestShareLinkDownloadPathRejectsInvalidCombinations(t *testing.T) {
+	tests := []struct {
+		name      string
+		path      string
+		recursive bool
+		want      string
+	}{
+		{name: "empty path", path: "", want: "`--path` requires a non-empty path"},
+		{name: "root path", path: "/", want: "cannot download shared-link root with `--path`"},
+		{name: "recursive path", path: "/sub/nested.txt", recursive: true, want: "`--path` cannot be used with --recursive"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			stubSharedLinkClient(t, &mockSharedLinkClient{
+				getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+					called = true
+					return nil, nil, nil
+				},
+				getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+					called = true
+					return nil, nil
+				},
+			})
+
+			cmd := newShareLinkDownloadTestCommand(nil, nil)
+			if err := cmd.Flags().Set("path", tt.path); err != nil {
+				t.Fatalf("set path: %v", err)
+			}
+			if tt.recursive {
+				if err := cmd.Flags().Set("recursive", "true"); err != nil {
+					t.Fatalf("set recursive: %v", err)
+				}
+			}
+
+			err := shareLinkDownload(cmd, []string{"https://example.com/folder", filepath.Join(t.TempDir(), "target")})
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want %q", err, tt.want)
+			}
+			if called {
+				t.Fatal("shared link API should not be called")
+			}
+		})
+	}
+}
+
 func TestShareLinkDownloadFolderRequiresRecursive(t *testing.T) {
 	called := false
 	stubSharedLinkClient(t, &mockSharedLinkClient{
@@ -747,6 +877,9 @@ func TestShareLinkDownloadCommandIsRegistered(t *testing.T) {
 	if shareLinkDownloadCmd.Flags().Lookup("password-file") == nil {
 		t.Fatal("share-link download should define --password-file")
 	}
+	if shareLinkDownloadCmd.Flags().Lookup("path") == nil {
+		t.Fatal("share-link download should define --path")
+	}
 	if shareLinkDownloadCmd.Flags().Lookup("recursive") == nil {
 		t.Fatal("share-link download should define --recursive")
 	}
@@ -755,6 +888,7 @@ func TestShareLinkDownloadCommandIsRegistered(t *testing.T) {
 func newShareLinkDownloadTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	cmd := &cobra.Command{}
 	addSharedLinkPasswordFlags(cmd)
+	cmd.Flags().String("path", "", "")
 	cmd.Flags().BoolP("recursive", "r", false, "")
 	cmd.Flags().Bool("verbose", false, "")
 	if stdout != nil {
