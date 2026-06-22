@@ -154,17 +154,29 @@ func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
 // outputJSONRequested is a narrow pre-parse fallback for errors that happen
 // before Cobra has resolved a command/flag context, such as unknown commands.
 func outputJSONRequested(args []string) bool {
+	jsonRequested := false
 	for i := 0; i < len(args); i++ {
-		switch args[i] {
+		arg := args[i]
+		switch arg {
 		case "--":
-			return false
+			return jsonRequested
 		case "--output=json":
-			return true
+			jsonRequested = true
+		case "--output=text":
+			jsonRequested = false
 		case "--output":
-			return i+1 < len(args) && args[i+1] == "json"
+			if i+1 >= len(args) {
+				return false
+			}
+			jsonRequested = args[i+1] == "json"
+			i++
+		default:
+			if strings.HasPrefix(arg, "--output=") {
+				jsonRequested = strings.TrimPrefix(arg, "--output=") == "json"
+			}
 		}
 	}
-	return false
+	return jsonRequested
 }
 
 // jsonErrorCode derives stable script-facing codes from existing CLI errors.

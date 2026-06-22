@@ -356,9 +356,44 @@ func TestOutputJSONRequested(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "invalid format before json",
+			args: []string{"--output", "yaml", "--output", "json", "missing"},
+			want: true,
+		},
+		{
+			name: "invalid format after json",
+			args: []string{"--output", "json", "--output", "yaml", "missing"},
+			want: false,
+		},
+		{
+			name: "last separate flag wins text",
+			args: []string{"--output", "json", "--output", "text", "missing"},
+			want: false,
+		},
+		{
+			name: "last separate flag wins json",
+			args: []string{"--output", "text", "--output", "json", "missing"},
+			want: true,
+		},
+		{
+			name: "last equals flag wins text",
+			args: []string{"--output=json", "--output=text", "missing"},
+			want: false,
+		},
+		{
+			name: "last equals flag wins json",
+			args: []string{"--output=text", "--output=json", "missing"},
+			want: true,
+		},
+		{
 			name: "after double dash",
 			args: []string{"mkdir", "--", "--output=json"},
 			want: false,
+		},
+		{
+			name: "output before double dash",
+			args: []string{"--output=json", "mkdir", "--", "--output=text"},
+			want: true,
 		},
 	}
 
