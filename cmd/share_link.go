@@ -48,6 +48,7 @@ var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
 var shareLinkCmd = &cobra.Command{
 	Use:   "share-link",
 	Short: "Shared link commands",
+	Long:  "Create, list, inspect, download, update, and revoke Dropbox shared links.",
 }
 
 func init() {

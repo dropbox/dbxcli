@@ -187,7 +187,14 @@ func rawSharedLinkSettingsFromUpdateOptions(opts shareLinkUpdateOptions) *rawSha
 var shareLinkUpdateCmd = &cobra.Command{
 	Use:   "update <url>",
 	Short: "Update shared link settings",
-	RunE:  shareLinkUpdate,
+	Long: `Update settings for an existing shared link.
+At least one setting flag is required. Dropbox account, team, and folder policies may reject or constrain requested settings.`,
+	Example: `  dbxcli share-link update https://www.dropbox.com/s/example/file.txt --audience team
+  dbxcli share-link update https://www.dropbox.com/s/example/file.txt --expires 2026-07-01T00:00:00Z
+  dbxcli share-link update https://www.dropbox.com/s/example/file.txt --remove-expiration
+  dbxcli share-link update https://www.dropbox.com/s/example/file.txt --password-prompt
+  dbxcli share-link update https://www.dropbox.com/s/example/file.txt --remove-password`,
+	RunE: shareLinkUpdate,
 }
 
 func init() {

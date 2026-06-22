@@ -155,7 +155,11 @@ func sharedLinkBaseMetadata(link sharing.IsSharedLinkMetadata) (*sharing.SharedL
 var shareLinkInfoCmd = &cobra.Command{
 	Use:   "info <url>",
 	Short: "Display shared link information",
-	RunE:  shareLinkInfo,
+	Long: `Display metadata and permissions for a shared link.
+Use --path to inspect a file or folder inside a folder shared link.`,
+	Example: `  dbxcli share-link info https://www.dropbox.com/s/example/file.txt
+  dbxcli share-link info https://www.dropbox.com/s/example/folder --path /nested/file.txt`,
+	RunE: shareLinkInfo,
 }
 
 func init() {
