@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -20,6 +22,7 @@ func testRmCmd(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	cmd.Flags().BoolP("recursive", "r", false, "")
 	cmd.Flags().Bool("permanent", false, "")
 	cmd.Flags().BoolP("verbose", "v", false, "")
+	cmd.Flags().String(outputFlag, "text", "")
 	return cmd, &stdout
 }
 
@@ -36,6 +39,7 @@ func rmFileMetadata(path string) *files.FileMetadata {
 		Metadata: files.Metadata{
 			Name:        strings.TrimPrefix(path, "/"),
 			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
 		},
 		Id:   "id:file",
 		Rev:  "rev",
@@ -48,9 +52,34 @@ func rmFolderMetadata(path string) *files.FolderMetadata {
 		Metadata: files.Metadata{
 			Name:        strings.TrimPrefix(path, "/"),
 			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
 		},
 		Id: "id:folder",
 	}
+}
+
+func setRmOutputJSON(t *testing.T, cmd *cobra.Command) {
+	t.Helper()
+
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func decodeRemoveOutput(t *testing.T, stdout *bytes.Buffer) removeOutput {
+	t.Helper()
+
+	return decodeRemoveOutputString(t, stdout.String())
+}
+
+func decodeRemoveOutputString(t *testing.T, output string) removeOutput {
+	t.Helper()
+
+	var got removeOutput
+	if err := json.Unmarshal([]byte(output), &got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, output)
+	}
+	return got
 }
 
 func rmNonEmptyFolderResult() *files.ListFolderResult {
@@ -378,5 +407,217 @@ func TestRmVerbosePrintsPermanentDeleteResults(t *testing.T) {
 	}
 	if got, want := stdout.String(), "Permanently deleted /File.txt\n"; got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestRmJSONDeletesFile(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	file := rmFileMetadata("/File.txt")
+	deletedFile := rmFileMetadata("/File.txt")
+	deletedFile.Rev = "deleted-rev"
+	deletedFile.Size = 456
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			return files.NewDeleteResult(deletedFile), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+
+	got := decodeRemoveOutput(t, stdout)
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Input.Path != "/File.txt" {
+		t.Fatalf("input path = %q, want /File.txt", result.Input.Path)
+	}
+	if result.Input.Permanent || result.Input.Recursive || result.Input.Force {
+		t.Fatalf("input flags = %+v, want all false", result.Input)
+	}
+	if result.Result.Type != "file" {
+		t.Fatalf("result type = %q, want file", result.Result.Type)
+	}
+	if result.Result.PathDisplay != "/File.txt" {
+		t.Fatalf("path_display = %q, want /File.txt", result.Result.PathDisplay)
+	}
+	if result.Result.PathLower != "/file.txt" {
+		t.Fatalf("path_lower = %q, want /file.txt", result.Result.PathLower)
+	}
+	if result.Result.ID != "id:file" {
+		t.Fatalf("id = %q, want id:file", result.Result.ID)
+	}
+	if result.Result.Rev != "deleted-rev" {
+		t.Fatalf("rev = %q, want deleted-rev", result.Result.Rev)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 456 {
+		t.Fatalf("size = %v, want 456", result.Result.Size)
+	}
+}
+
+func TestRmJSONFolderOmitsFileFields(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	setRmFlag(t, cmd, "recursive")
+	folder := rmFolderMetadata("/Folder")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return folder, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			return files.NewDeleteResult(folder), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/Folder"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+
+	output := stdout.String()
+	if strings.Contains(output, `"rev"`) || strings.Contains(output, `"size"`) {
+		t.Fatalf("folder JSON output = %s, want no file-only fields", output)
+	}
+	got := decodeRemoveOutputString(t, output)
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Result.Type != "folder" {
+		t.Fatalf("result type = %q, want folder", result.Result.Type)
+	}
+	if !result.Input.Recursive {
+		t.Fatalf("recursive = false, want true")
+	}
+}
+
+func TestRmJSONPermanentUsesValidatedMetadata(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	setRmFlag(t, cmd, "permanent")
+	file := rmFileMetadata("/File.txt")
+	file.Rev = "validated-rev"
+	var permanentlyDeleted []string
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			t.Fatalf("DeleteV2 called for permanent delete: %v", arg)
+			return nil, nil
+		},
+		permanentlyDeleteFn: func(arg *files.DeleteArg) error {
+			permanentlyDeleted = append(permanentlyDeleted, arg.Path)
+			return nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+	if len(permanentlyDeleted) != 1 || permanentlyDeleted[0] != "/File.txt" {
+		t.Fatalf("permanentlyDeleted = %v, want [/File.txt]", permanentlyDeleted)
+	}
+	got := decodeRemoveOutput(t, stdout)
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if !result.Input.Permanent {
+		t.Fatalf("permanent = false, want true")
+	}
+	if result.Result.Rev != "validated-rev" {
+		t.Fatalf("rev = %q, want validated-rev", result.Result.Rev)
+	}
+}
+
+func TestRmJSONMultipleTargets(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return rmFileMetadata(arg.Path), nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			return files.NewDeleteResult(rmFileMetadata(arg.Path)), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/one.txt", "/two.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+
+	got := decodeRemoveOutput(t, stdout)
+	if len(got.Results) != 2 {
+		t.Fatalf("results len = %d, want 2", len(got.Results))
+	}
+	if got.Results[0].Input.Path != "/one.txt" || got.Results[1].Input.Path != "/two.txt" {
+		t.Fatalf("result paths = %q, %q; want /one.txt, /two.txt", got.Results[0].Input.Path, got.Results[1].Input.Path)
+	}
+}
+
+func TestRmJSONVerboseDoesNotPrintText(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	setRmFlag(t, cmd, "verbose")
+	file := rmFileMetadata("/File.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			return files.NewDeleteResult(file), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+	if strings.Contains(stdout.String(), "Deleted ") {
+		t.Fatalf("stdout = %q, want JSON only", stdout.String())
+	}
+	got := decodeRemoveOutput(t, stdout)
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+}
+
+func TestRmJSONErrorWritesNoOutput(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, errors.New("metadata failed")
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err == nil {
+		t.Fatal("expected rm error")
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on error", got)
+	}
+}
+
+func TestRmCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(rmCmd) {
+		t.Fatal("rm command should support structured output")
 	}
 }
