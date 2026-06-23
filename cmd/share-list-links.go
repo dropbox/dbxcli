@@ -23,6 +23,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type shareLinkListInput struct {
+	Path       string `json:"path,omitempty"`
+	DirectOnly bool   `json:"direct_only"`
+}
+
+type shareLinkListOutput struct {
+	Input   shareLinkListInput      `json:"input"`
+	Entries []shareLinkJSONMetadata `json:"entries"`
+}
+
 func shareListLinks(cmd *cobra.Command, args []string) (err error) {
 	return shareLinkList(cmd, args)
 }
@@ -54,8 +64,19 @@ func shareLinkList(cmd *cobra.Command, args []string) error {
 		commandVerboseStatus(cmd, "Listed %d shared links", len(links))
 	}
 
-	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+	entries, ok := shareLinkJSONMetadataListFromDropbox(links)
+	if !ok {
+		return errors.New("found unknown shared link type")
+	}
+
+	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinks(w, links)
+	}, shareLinkListOutput{
+		Input: shareLinkListInput{
+			Path:       arg.Path,
+			DirectOnly: arg.DirectOnly,
+		},
+		Entries: entries,
 	})
 }
 
@@ -136,4 +157,6 @@ var shareListLinksCmd = &cobra.Command{
 func init() {
 	shareLinkCmd.AddCommand(shareLinkListCmd)
 	shareListCmd.AddCommand(shareListLinksCmd)
+	enableStructuredOutput(shareLinkListCmd)
+	enableStructuredOutput(shareListLinksCmd)
 }

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +32,22 @@ type shareLinkUpdateOptions struct {
 	audience         *sharing.LinkAudience
 	password         sharedLinkPasswordOptions
 	removePassword   bool
+}
+
+type shareLinkUpdateInput struct {
+	URL              string `json:"url"`
+	Audience         string `json:"audience,omitempty"`
+	Expires          string `json:"expires,omitempty"`
+	RemoveExpiration bool   `json:"remove_expiration,omitempty"`
+	AllowDownload    bool   `json:"allow_download,omitempty"`
+	DisallowDownload bool   `json:"disallow_download,omitempty"`
+	Password         bool   `json:"password,omitempty"`
+	RemovePassword   bool   `json:"remove_password,omitempty"`
+}
+
+type shareLinkUpdateOutput struct {
+	Input  shareLinkUpdateInput  `json:"input"`
+	Result shareLinkJSONMetadata `json:"result"`
 }
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
@@ -53,8 +70,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromUpdateOptions(opts), opts.removeExpiration); err != nil {
 			return err
 		}
-		commandVerboseStatus(cmd, "Updated shared link %s", url)
-		return nil
+		return renderShareLinkUpdateOutput(cmd, dbx, url, opts, nil)
 	}
 
 	settings := sharing.NewSharedLinkSettings()
@@ -76,13 +92,62 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	arg.RemoveExpiration = opts.removeExpiration
 
 	if opts.hasSDKSettings() {
-		if _, err := dbx.ModifySharedLinkSettings(arg); err != nil {
+		link, err := dbx.ModifySharedLinkSettings(arg)
+		if err != nil {
+			return err
+		}
+		return renderShareLinkUpdateOutput(cmd, dbx, url, opts, link)
+	}
+
+	return renderShareLinkUpdateOutput(cmd, dbx, url, opts, nil)
+}
+
+func renderShareLinkUpdateOutput(cmd *cobra.Command, dbx sharedLinkClient, url string, opts shareLinkUpdateOptions, link sharing.IsSharedLinkMetadata) error {
+	commandVerboseStatus(cmd, "Updated shared link %s", url)
+
+	if commandOutputFormat(cmd) != output.FormatJSON {
+		return nil
+	}
+
+	if link == nil {
+		arg := sharing.NewGetSharedLinkMetadataArg(url)
+		if opts.password.set {
+			arg.LinkPassword = opts.password.password
+		}
+		var err error
+		link, err = dbx.GetSharedLinkMetadata(arg)
+		if err != nil {
 			return err
 		}
 	}
-	commandVerboseStatus(cmd, "Updated shared link %s", url)
 
-	return nil
+	result, ok := shareLinkJSONMetadataFromDropbox(link)
+	if !ok {
+		return errors.New("found unknown shared link type")
+	}
+
+	return commandOutput(cmd).Render(nil, shareLinkUpdateOutput{
+		Input:  newShareLinkUpdateInput(url, opts),
+		Result: result,
+	})
+}
+
+func newShareLinkUpdateInput(url string, opts shareLinkUpdateOptions) shareLinkUpdateInput {
+	input := shareLinkUpdateInput{
+		URL:              url,
+		RemoveExpiration: opts.removeExpiration,
+		AllowDownload:    opts.allowDownload,
+		DisallowDownload: opts.disallowDownload,
+		Password:         opts.password.set,
+		RemovePassword:   opts.removePassword,
+	}
+	if opts.audience != nil {
+		input.Audience = opts.audience.Tag
+	}
+	if opts.expires != nil {
+		input.Expires = opts.expires.UTC().Format(time.RFC3339)
+	}
+	return input
 }
 
 func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, error) {
@@ -206,4 +271,5 @@ func init() {
 	addSharedLinkPasswordFlags(shareLinkUpdateCmd)
 	shareLinkUpdateCmd.Flags().Bool("remove-password", false, "Remove the shared link password")
 	shareLinkCmd.AddCommand(shareLinkUpdateCmd)
+	enableStructuredOutput(shareLinkUpdateCmd)
 }

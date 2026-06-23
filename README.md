@@ -143,12 +143,14 @@ $ dbxcli du --output=json
 $ dbxcli ls --output=json /
 $ dbxcli search --output=json report /Reports
 $ dbxcli revs --output=json /Reports/old.pdf
+$ dbxcli share-link create --output=json /Reports/old.pdf
+$ dbxcli share-link list --output=json /Reports/old.pdf
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+JSON support is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -244,6 +246,27 @@ Account and usage commands return command-specific objects:
   }
 }
 ```
+
+Shared-link commands return command-specific objects built around shared-link metadata:
+
+```json
+{
+  "input": {
+    "path": "/Reports/old.pdf"
+  },
+  "result": {
+    "type": "file",
+    "url": "https://www.dropbox.com/s/...",
+    "name": "old.pdf",
+    "path_lower": "/reports/old.pdf",
+    "rev": "...",
+    "size": 123
+  },
+  "existing": false
+}
+```
+
+`share-link download --output=json <url> -` is not supported because stdout is reserved for downloaded file bytes when the target is `-`.
 
 In JSON mode, command errors are also written to stdout. The process still exits with a non-zero status:
 
