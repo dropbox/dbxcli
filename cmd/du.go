@@ -16,34 +16,87 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
+type duOutput struct {
+	Used       uint64       `json:"used"`
+	Allocation duAllocation `json:"allocation"`
+}
+
+type duAllocation struct {
+	Type                          string  `json:"type"`
+	Allocated                     *uint64 `json:"allocated,omitempty"`
+	Used                          *uint64 `json:"used,omitempty"`
+	UserWithinTeamSpaceAllocated  *uint64 `json:"user_within_team_space_allocated,omitempty"`
+	UserWithinTeamSpaceUsedCached *uint64 `json:"user_within_team_space_used_cached,omitempty"`
+	UserWithinTeamSpaceLimitType  string  `json:"user_within_team_space_limit_type,omitempty"`
+}
+
 func du(cmd *cobra.Command, args []string) (err error) {
-	dbx := users.New(config)
+	dbx := usersNewFunc(config)
 	usage, err := dbx.GetSpaceUsage()
 	if err != nil {
 		return
 	}
 
-	fmt.Printf("Used: %s\n", humanize.IBytes(usage.Used))
-	fmt.Printf("Type: %s\n", usage.Allocation.Tag)
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderUsage(w, usage)
+	}, newDuOutput(usage))
+}
+
+func renderUsage(out io.Writer, usage *users.SpaceUsage) error {
+	fmt.Fprintf(out, "Used: %s\n", humanize.IBytes(usage.Used))
+	fmt.Fprintf(out, "Type: %s\n", usage.Allocation.Tag)
 
 	allocation := usage.Allocation
 
 	switch allocation.Tag {
 	case "individual":
-		fmt.Printf("Allocated: %s\n", humanize.IBytes(allocation.Individual.Allocated))
+		fmt.Fprintf(out, "Allocated: %s\n", humanize.IBytes(allocation.Individual.Allocated))
 	case "team":
-		fmt.Printf("Allocated: %s (Used: %s)\n",
+		fmt.Fprintf(out, "Allocated: %s (Used: %s)\n",
 			humanize.IBytes(allocation.Team.Allocated),
 			humanize.IBytes(allocation.Team.Used))
 	}
 
-	return
+	return nil
+}
+
+func newDuOutput(usage *users.SpaceUsage) duOutput {
+	return duOutput{
+		Used:       usage.Used,
+		Allocation: newDuAllocation(usage.Allocation),
+	}
+}
+
+func newDuAllocation(allocation *users.SpaceAllocation) duAllocation {
+	result := duAllocation{
+		Type: allocation.Tag,
+	}
+
+	switch allocation.Tag {
+	case "individual":
+		result.Allocated = uint64Ptr(allocation.Individual.Allocated)
+	case "team":
+		result.Allocated = uint64Ptr(allocation.Team.Allocated)
+		result.Used = uint64Ptr(allocation.Team.Used)
+		result.UserWithinTeamSpaceAllocated = uint64Ptr(allocation.Team.UserWithinTeamSpaceAllocated)
+		result.UserWithinTeamSpaceUsedCached = uint64Ptr(allocation.Team.UserWithinTeamSpaceUsedCached)
+		if allocation.Team.UserWithinTeamSpaceLimitType != nil {
+			result.UserWithinTeamSpaceLimitType = allocation.Team.UserWithinTeamSpaceLimitType.Tag
+		}
+	}
+
+	return result
+}
+
+func uint64Ptr(value uint64) *uint64 {
+	return &value
 }
 
 // duCmd represents the du command
@@ -55,4 +108,5 @@ var duCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(duCmd)
+	enableStructuredOutput(duCmd)
 }

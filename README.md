@@ -138,6 +138,8 @@ Text output is the default. JSON output is available through the global `--outpu
 
 ```sh
 $ dbxcli <command> --output=json
+$ dbxcli account --output=json
+$ dbxcli du --output=json
 $ dbxcli ls --output=json /
 $ dbxcli search --output=json report /Reports
 $ dbxcli revs --output=json /Reports/old.pdf
@@ -146,7 +148,7 @@ $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Currently migrated commands are `ls`, `search`, `revs`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+JSON support is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -215,6 +217,31 @@ Commands that return entry lists, such as `ls`, `search`, and `revs`, return an 
       "size": 123
     }
   ]
+}
+```
+
+Account and usage commands return command-specific objects:
+
+```json
+{
+  "input": {},
+  "account": {
+    "type": "full",
+    "account_id": "dbid:...",
+    "email": "user@example.com",
+    "email_verified": true,
+    "disabled": false
+  }
+}
+```
+
+```json
+{
+  "used": 123,
+  "allocation": {
+    "type": "individual",
+    "allocated": 100000
+  }
 }
 ```
 

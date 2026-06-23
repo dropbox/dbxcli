@@ -413,6 +413,13 @@ func TestJSONErrorCodePathConflict(t *testing.T) {
 	}
 }
 
+func TestJSONErrorCodeOptionalArgumentValidation(t *testing.T) {
+	err := errors.New("`account` accepts an optional `id` argument")
+	if got, want := jsonErrorCode(err), "invalid_arguments"; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
+}
+
 func decodeJSONErrorResponse(t *testing.T, value string) jsonErrorResponse {
 	t.Helper()
 

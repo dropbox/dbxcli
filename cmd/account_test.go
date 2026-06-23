@@ -1,0 +1,184 @@
+package cmd
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users_common"
+	"github.com/spf13/cobra"
+)
+
+func TestAccountCurrentTextUsesCommandOutput(t *testing.T) {
+	cmd, stdout := testAccountCmd()
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testFullAccount(), nil
+		},
+	})
+
+	if err := account(cmd, nil); err != nil {
+		t.Fatalf("account returned error: %v", err)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "Logged in as Test User <test@example.com>") {
+		t.Fatalf("stdout = %q, want current account text output", output)
+	}
+	if !strings.Contains(output, "Account Type:") {
+		t.Fatalf("stdout = %q, want account type", output)
+	}
+}
+
+func TestAccountCurrentJSONOutputsAccount(t *testing.T) {
+	cmd, stdout := testAccountCmd()
+	setAccountOutputJSON(t, cmd)
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testFullAccount(), nil
+		},
+	})
+
+	if err := account(cmd, nil); err != nil {
+		t.Fatalf("account returned error: %v", err)
+	}
+
+	got := decodeAccountOutput(t, stdout)
+	if got.Input.AccountID != "" {
+		t.Fatalf("input.account_id = %q, want empty for current account", got.Input.AccountID)
+	}
+	account := got.Account
+	if account.Type != "full" || account.AccountID != "dbid:current" || account.Email != "test@example.com" {
+		t.Fatalf("account = %#v, want current full account", account)
+	}
+	if account.Name == nil || account.Name.DisplayName != "Test User" {
+		t.Fatalf("name = %#v, want display name", account.Name)
+	}
+	if account.AccountType != "business" {
+		t.Fatalf("account_type = %q, want business", account.AccountType)
+	}
+	if account.IsPaired == nil || *account.IsPaired {
+		t.Fatalf("is_paired = %#v, want false pointer", account.IsPaired)
+	}
+	if account.Team == nil || account.Team.ID != "team-id" || account.Team.MemberID != "dbmid:member" {
+		t.Fatalf("team = %#v, want team metadata", account.Team)
+	}
+}
+
+func TestAccountLookupJSONUsesAccountID(t *testing.T) {
+	cmd, stdout := testAccountCmd()
+	setAccountOutputJSON(t, cmd)
+	var gotArg *users.GetAccountArg
+	stubUsersClient(t, &mockUsersClient{
+		getAccountFn: func(arg *users.GetAccountArg) (*users.BasicAccount, error) {
+			gotArg = arg
+			return testBasicAccount(), nil
+		},
+	})
+
+	if err := account(cmd, []string{"dbid:lookup"}); err != nil {
+		t.Fatalf("account returned error: %v", err)
+	}
+	if gotArg == nil || gotArg.AccountId != "dbid:lookup" {
+		t.Fatalf("GetAccount arg = %#v, want dbid:lookup", gotArg)
+	}
+
+	got := decodeAccountOutput(t, stdout)
+	if got.Input.AccountID != "dbid:lookup" {
+		t.Fatalf("input.account_id = %q, want dbid:lookup", got.Input.AccountID)
+	}
+	account := got.Account
+	if account.Type != "basic" || account.AccountID != "dbid:lookup" || account.Email != "lookup@example.com" {
+		t.Fatalf("account = %#v, want lookup basic account", account)
+	}
+	if account.IsTeammate == nil || *account.IsTeammate {
+		t.Fatalf("is_teammate = %#v, want false pointer", account.IsTeammate)
+	}
+}
+
+func TestAccountJSONErrorWritesNoOutput(t *testing.T) {
+	cmd, stdout := testAccountCmd()
+	setAccountOutputJSON(t, cmd)
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return nil, errors.New("account failed")
+		},
+	})
+
+	if err := account(cmd, nil); err == nil {
+		t.Fatal("expected account error")
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on error", got)
+	}
+}
+
+func TestAccountCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(accountCmd) {
+		t.Fatal("account command should support structured output")
+	}
+}
+
+func testAccountCmd() (*cobra.Command, *bytes.Buffer) {
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{Use: "account"}
+	cmd.SetOut(&stdout)
+	cmd.Flags().String(outputFlag, "text", "")
+	return cmd, &stdout
+}
+
+func setAccountOutputJSON(t *testing.T, cmd *cobra.Command) {
+	t.Helper()
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		t.Fatalf("set output: %v", err)
+	}
+}
+
+func decodeAccountOutput(t *testing.T, out *bytes.Buffer) accountOutput {
+	t.Helper()
+
+	var got accountOutput
+	if err := json.NewDecoder(out).Decode(&got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
+	}
+	return got
+}
+
+func testFullAccount() *users.FullAccount {
+	account := users.NewFullAccount(
+		"dbid:current",
+		users.NewName("Test", "User", "Test", "Test User", "TU"),
+		"test@example.com",
+		true,
+		false,
+		"en",
+		"https://dropbox.example/ref",
+		false,
+		accountType(users_common.AccountTypeBusiness),
+		nil,
+	)
+	account.ProfilePhotoUrl = "https://dropbox.example/photo"
+	account.Team = users.NewFullTeam("team-id", "Team Name", nil, nil)
+	account.TeamMemberId = "dbmid:member"
+	return account
+}
+
+func testBasicAccount() *users.BasicAccount {
+	return users.NewBasicAccount(
+		"dbid:lookup",
+		users.NewName("Lookup", "User", "Lookup", "Lookup User", "LU"),
+		"lookup@example.com",
+		false,
+		false,
+		false,
+	)
+}
+
+func accountType(tag string) *users_common.AccountType {
+	return &users_common.AccountType{
+		Tagged: dropbox.Tagged{Tag: tag},
+	}
+}
