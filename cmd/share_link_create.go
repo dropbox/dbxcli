@@ -36,6 +36,23 @@ type shareLinkCreateOptions struct {
 	password         sharedLinkPasswordOptions
 }
 
+type shareLinkCreateInput struct {
+	Path             string `json:"path"`
+	Access           string `json:"access,omitempty"`
+	Audience         string `json:"audience,omitempty"`
+	Expires          string `json:"expires,omitempty"`
+	RemoveExpiration bool   `json:"remove_expiration,omitempty"`
+	AllowDownload    bool   `json:"allow_download,omitempty"`
+	DisallowDownload bool   `json:"disallow_download,omitempty"`
+	Password         bool   `json:"password,omitempty"`
+}
+
+type shareLinkCreateOutput struct {
+	Input    shareLinkCreateInput  `json:"input"`
+	Result   shareLinkJSONMetadata `json:"result"`
+	Existing bool                  `json:"existing"`
+}
+
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link create` requires a `path` argument")
@@ -81,10 +98,39 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		commandVerboseStatus(cmd, "Created shared link for %s", path)
 	}
 
-	return out.RenderText(func(w io.Writer) error {
+	result, ok := shareLinkJSONMetadataFromDropbox(link)
+	if !ok {
+		return errors.New("found unknown shared link type")
+	}
+
+	return out.Render(func(w io.Writer) error {
 		_, err := fmt.Fprintln(w, url)
 		return err
+	}, shareLinkCreateOutput{
+		Input:    newShareLinkCreateInput(path, opts),
+		Result:   result,
+		Existing: usedExisting,
 	})
+}
+
+func newShareLinkCreateInput(path string, opts shareLinkCreateOptions) shareLinkCreateInput {
+	input := shareLinkCreateInput{
+		Path:             path,
+		RemoveExpiration: opts.removeExpiration,
+		AllowDownload:    opts.allowDownload,
+		DisallowDownload: opts.disallowDownload,
+		Password:         opts.password.set,
+	}
+	if opts.access != nil {
+		input.Access = opts.access.Tag
+	}
+	if opts.audience != nil {
+		input.Audience = opts.audience.Tag
+	}
+	if opts.expires != nil {
+		input.Expires = opts.expires.UTC().Format(time.RFC3339)
+	}
+	return input
 }
 
 func createSharedLink(dbx sharedLinkClient, path string, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
@@ -436,4 +482,5 @@ func init() {
 	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
 	addSharedLinkPasswordFlags(shareLinkCreateCmd)
 	shareLinkCmd.AddCommand(shareLinkCreateCmd)
+	enableStructuredOutput(shareLinkCreateCmd)
 }

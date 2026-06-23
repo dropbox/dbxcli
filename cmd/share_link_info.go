@@ -31,6 +31,17 @@ type shareLinkInfoOptions struct {
 	password sharedLinkPasswordOptions
 }
 
+type shareLinkInfoInput struct {
+	URL      string `json:"url"`
+	Path     string `json:"path,omitempty"`
+	Password bool   `json:"password,omitempty"`
+}
+
+type shareLinkInfoOutput struct {
+	Input  shareLinkInfoInput    `json:"input"`
+	Result shareLinkJSONMetadata `json:"result"`
+}
+
 func shareLinkInfo(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link info` requires a `url` argument")
@@ -60,8 +71,20 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return commandOutput(cmd).RenderText(func(w io.Writer) error {
+	result, ok := shareLinkJSONMetadataFromDropbox(link)
+	if !ok {
+		return errors.New("found unknown shared link type")
+	}
+
+	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinkInfo(w, link)
+	}, shareLinkInfoOutput{
+		Input: shareLinkInfoInput{
+			URL:      url,
+			Path:     opts.path,
+			Password: opts.password.set,
+		},
+		Result: result,
 	})
 }
 
@@ -166,4 +189,5 @@ func init() {
 	shareLinkInfoCmd.Flags().String("path", "", "Display metadata for a path inside the shared link")
 	addSharedLinkPasswordFlags(shareLinkInfoCmd)
 	shareLinkCmd.AddCommand(shareLinkInfoCmd)
+	enableStructuredOutput(shareLinkInfoCmd)
 }
