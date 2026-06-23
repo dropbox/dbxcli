@@ -20,9 +20,22 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
+
+type revsInput struct {
+	Path       string `json:"path"`
+	Long       bool   `json:"long"`
+	Time       string `json:"time,omitempty"`
+	TimeFormat string `json:"time_format,omitempty"`
+}
+
+type revsOutput struct {
+	Input   revsInput      `json:"input"`
+	Entries []jsonMetadata `json:"entries"`
+}
 
 func revs(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
@@ -44,9 +57,38 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	opts := parseLsOptions(cmd)
 
-	return commandOutput(cmd).RenderText(func(w io.Writer) error {
-		return renderRevisionResults(w, res.Entries, opts)
+	return renderRevisionsOutput(cmd, path, res.Entries, opts)
+}
+
+func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.FileMetadata, opts listOptions) error {
+	out := commandOutput(cmd)
+	if commandOutputFormat(cmd) != output.FormatJSON {
+		return out.RenderText(func(w io.Writer) error {
+			return renderRevisionResults(w, entries, opts)
+		})
+	}
+
+	return out.Render(nil, revsOutput{
+		Input:   newRevsInput(path, opts),
+		Entries: jsonMetadataListFromRevisions(entries),
 	})
+}
+
+func newRevsInput(path string, opts listOptions) revsInput {
+	return revsInput{
+		Path:       path,
+		Long:       opts.long,
+		Time:       opts.timeField,
+		TimeFormat: opts.timeFormat,
+	}
+}
+
+func jsonMetadataListFromRevisions(entries []*files.FileMetadata) []jsonMetadata {
+	result := make([]jsonMetadata, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, jsonMetadataFromDropbox(entry))
+	}
+	return result
 }
 
 func renderRevisionResults(out io.Writer, entries []*files.FileMetadata, opts listOptions) error {
@@ -82,4 +124,5 @@ func init() {
 	revsCmd.Flags().BoolP("long", "l", false, "Long listing")
 	revsCmd.Flags().String("time", "server", "Time field: server, client")
 	revsCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
+	enableStructuredOutput(revsCmd)
 }
