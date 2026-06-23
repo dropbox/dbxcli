@@ -198,6 +198,8 @@ func jsonErrorCode(err error) string {
 		return "path_conflict"
 	case strings.Contains(message, "requires a"):
 		return "invalid_arguments"
+	case strings.Contains(message, "accepts an optional"):
+		return "invalid_arguments"
 	default:
 		return "command_failed"
 	}
