@@ -74,10 +74,13 @@ func uploadChunkAlreadyAccepted(err error, expectedOffset uint64) bool {
 		endpointErr.IncorrectOffset.CorrectOffset == expectedOffset
 }
 
-func uploadProgressReader(r io.Reader, size int64) *ioprogress.Reader {
+func uploadProgressReader(r io.Reader, size int64, errOut io.Writer) *ioprogress.Reader {
+	if errOut == nil {
+		errOut = os.Stderr
+	}
 	return &ioprogress.Reader{
 		Reader: r,
-		DrawFunc: ioprogress.DrawTerminalf(os.Stderr, func(progress, total int64) string {
+		DrawFunc: ioprogress.DrawTerminalf(errOut, func(progress, total int64) string {
 			return fmt.Sprintf("Uploading %s/%s",
 				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
 		}),
@@ -85,17 +88,20 @@ func uploadProgressReader(r io.Reader, size int64) *ioprogress.Reader {
 	}
 }
 
-func uploadSingleShot(dbx files.Client, r io.ReadSeeker, uploadArg *files.UploadArg, size int64) error {
-	return retryWithBackoff(func() error {
+func uploadSingleShot(dbx files.Client, r io.ReadSeeker, uploadArg *files.UploadArg, size int64, errOut io.Writer) (*files.FileMetadata, error) {
+	var metadata *files.FileMetadata
+	err := retryWithBackoff(func() error {
 		if _, err := r.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		_, err := dbx.Upload(uploadArg, uploadProgressReader(r, size))
+		var err error
+		metadata, err = dbx.Upload(uploadArg, uploadProgressReader(r, size, errOut))
 		return err
 	})
+	return metadata, err
 }
 
-func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (err error) {
+func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (metadata *files.FileMetadata, err error) {
 	t0 := time.Now()
 	startArgs := files.NewUploadSessionStartArg()
 	startArgs.SessionType = &files.UploadSessionType{}
@@ -141,14 +147,14 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	for written < sizeTotal {
 		data, err := io.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		expectedLen := chunkSize
 		if written+chunkSize > sizeTotal {
 			expectedLen = sizeTotal - written
 		}
 		if len(data) != int(expectedLen) {
-			return fmt.Errorf("failed to read %d bytes from source", expectedLen)
+			return nil, fmt.Errorf("failed to read %d bytes from source", expectedLen)
 		}
 
 		chunk := uploadChunk{
@@ -160,7 +166,7 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 		select {
 		case workCh <- chunk:
 		case err := <-errCh:
-			return err
+			return nil, err
 		}
 
 		written += int64(len(data))
@@ -170,7 +176,7 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	wg.Wait()
 	select {
 	case err := <-errCh:
-		return err
+		return nil, err
 	default:
 	}
 	if debug {
@@ -181,13 +187,14 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
 	finishArgs := files.NewUploadSessionFinishArg(cursor, commitInfo)
 	err = retryWithBackoff(func() error {
-		_, e := dbx.UploadSessionFinish(finishArgs, nil)
+		var e error
+		metadata, e = dbx.UploadSessionFinish(finishArgs, nil)
 		return e
 	})
 	if debug {
 		log.Printf("Finish took: %v\n", time.Since(t2))
 	}
-	return
+	return metadata, err
 }
 
 type putOptions struct {
@@ -196,6 +203,42 @@ type putOptions struct {
 	debug     bool
 	ifExists  string
 	output    *output.Renderer
+	errOut    io.Writer
+}
+
+const (
+	putStatusUploaded = "uploaded"
+	putStatusSkipped  = "skipped"
+	putStatusCreated  = "created"
+	putStatusExisting = "existing"
+
+	putKindFile   = "file"
+	putKindFolder = "folder"
+)
+
+type putCommandInput struct {
+	Source    string `json:"source"`
+	Target    string `json:"target"`
+	Recursive bool   `json:"recursive"`
+	IfExists  string `json:"if_exists"`
+	Stdin     bool   `json:"stdin"`
+}
+
+type putResultInput struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+type putResult struct {
+	Status string         `json:"status"`
+	Kind   string         `json:"kind"`
+	Input  putResultInput `json:"input"`
+	Result *jsonMetadata  `json:"result,omitempty"`
+}
+
+type putOutputData struct {
+	Input   putCommandInput `json:"input"`
+	Results []putResult     `json:"results"`
 }
 
 type putDestinationAction int
@@ -204,6 +247,29 @@ const (
 	putDestinationUpload putDestinationAction = iota
 	putDestinationSkip
 )
+
+func newPutResult(status, kind, source, target string, metadata files.IsMetadata) putResult {
+	result := putResult{
+		Status: status,
+		Kind:   kind,
+		Input: putResultInput{
+			Source: source,
+			Target: target,
+		},
+	}
+	if metadata != nil {
+		jsonResult := jsonMetadataFromDropbox(metadata)
+		result.Result = &jsonResult
+	}
+	return result
+}
+
+func renderPutResults(cmd *cobra.Command, input putCommandInput, results []putResult) error {
+	return commandOutput(cmd).Render(nil, putOutputData{
+		Input:   input,
+		Results: results,
+	})
+}
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
@@ -248,10 +314,33 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if srcInfo.IsDir() {
-		return putRecursive(src, dst, opts)
+		if commandOutputFormat(cmd) == output.FormatText {
+			return putRecursive(src, dst, opts)
+		}
+		results, err := putRecursiveWithResults(src, dst, opts)
+		if err != nil {
+			return err
+		}
+		return renderPutResults(cmd, putCommandInput{
+			Source:    src,
+			Target:    dst,
+			Recursive: true,
+			IfExists:  opts.ifExists,
+			Stdin:     false,
+		}, results)
 	}
 
-	return putFile(src, dst, opts)
+	result, err := putFileWithResult(src, dst, opts)
+	if err != nil {
+		return err
+	}
+	return renderPutResults(cmd, putCommandInput{
+		Source:    src,
+		Target:    dst,
+		Recursive: false,
+		IfExists:  opts.ifExists,
+		Stdin:     false,
+	}, []putResult{result})
 }
 
 func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool) error {
@@ -273,13 +362,20 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 	}
 
 	dbx := filesNewFunc(config)
-	action, err := checkPutStdinDestination(dbx, dstPath, opts.ifExists)
+	action, existingMetadata, err := checkPutStdinDestination(dbx, dstPath, opts.ifExists)
 	if err != nil {
 		return err
 	}
 	if action == putDestinationSkip {
 		reportPutSkipped(opts, dstPath)
-		return nil
+		result := newPutResult(putStatusSkipped, putKindFile, "-", dstPath, existingMetadata)
+		return renderPutResults(cmd, putCommandInput{
+			Source:    "-",
+			Target:    dstPath,
+			Recursive: false,
+			IfExists:  opts.ifExists,
+			Stdin:     true,
+		}, []putResult{result})
 	}
 
 	tmpPath, _, cleanup, err := spoolStdinToTemp(cmd.InOrStdin())
@@ -287,7 +383,7 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		return err
 	}
 
-	uploadErr := putFile(tmpPath, dstPath, opts)
+	result, uploadErr := putFileWithResult(tmpPath, dstPath, opts)
 	cleanupErr := cleanup()
 
 	if uploadErr != nil {
@@ -302,7 +398,14 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		return fmt.Errorf("failed to remove temp file %s after upload; sensitive stdin data may remain on disk: %w", tmpPath, cleanupErr)
 	}
 
-	return nil
+	result.Input.Source = "-"
+	return renderPutResults(cmd, putCommandInput{
+		Source:    "-",
+		Target:    dstPath,
+		Recursive: false,
+		IfExists:  opts.ifExists,
+		Stdin:     true,
+	}, []putResult{result})
 }
 
 func reportStdinCleanupFailure(opts putOptions, tmpPath string, err error) {
@@ -349,6 +452,7 @@ func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
 		debug:     debug,
 		ifExists:  ifExists,
 		output:    commandOutput(cmd),
+		errOut:    cmd.ErrOrStderr(),
 	}, nil
 }
 
@@ -373,30 +477,35 @@ func normalizePutIfExists(ifExists string) (string, error) {
 }
 
 func putFile(src, dst string, opts putOptions) error {
+	_, err := putFileWithResult(src, dst, opts)
+	return err
+}
+
+func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	ifExists, err := normalizePutIfExists(opts.ifExists)
 	if err != nil {
-		return err
+		return putResult{}, err
 	}
 
 	dbx := filesNewFunc(config)
-	action, err := checkPutDestination(dbx, dst, ifExists)
+	action, existingMetadata, err := checkPutDestination(dbx, dst, ifExists)
 	if err != nil {
-		return err
+		return putResult{}, err
 	}
 	if action == putDestinationSkip {
 		reportPutSkipped(opts, dst)
-		return nil
+		return newPutResult(putStatusSkipped, putKindFile, src, dst, existingMetadata), nil
 	}
 
 	contents, err := os.Open(src)
 	if err != nil {
-		return err
+		return putResult{}, err
 	}
 	defer contents.Close()
 
 	contentsInfo, err := contents.Stat()
 	if err != nil {
-		return err
+		return putResult{}, err
 	}
 
 	commitInfo := files.NewCommitInfo(dst)
@@ -408,21 +517,27 @@ func putFile(src, dst string, opts putOptions) error {
 	commitInfo.ClientModified = &ts
 
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {
-		err = uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size()), commitInfo, contentsInfo.Size(), opts.workers, opts.chunkSize, opts.debug)
+		metadata, err := uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size(), putErrorOutput(opts)), commitInfo, contentsInfo.Size(), opts.workers, opts.chunkSize, opts.debug)
 		if err != nil && ifExists == putIfExistsSkip && isUploadDestinationFileConflict(err) {
 			reportPutSkipped(opts, dst)
-			return nil
+			return newPutResult(putStatusSkipped, putKindFile, src, dst, nil), nil
 		}
-		return err
+		if err != nil {
+			return putResult{}, err
+		}
+		return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata), nil
 	}
 
 	uploadArg := &files.UploadArg{CommitInfo: *commitInfo}
-	err = uploadSingleShot(dbx, contents, uploadArg, contentsInfo.Size())
+	metadata, err := uploadSingleShot(dbx, contents, uploadArg, contentsInfo.Size(), putErrorOutput(opts))
 	if err != nil && ifExists == putIfExistsSkip && isUploadDestinationFileConflict(err) {
 		reportPutSkipped(opts, dst)
-		return nil
+		return newPutResult(putStatusSkipped, putKindFile, src, dst, nil), nil
 	}
-	return err
+	if err != nil {
+		return putResult{}, err
+	}
+	return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata), nil
 }
 
 func writeModeForIfExists(ifExists string) string {
@@ -432,58 +547,58 @@ func writeModeForIfExists(ifExists string) string {
 	return files.WriteModeAdd
 }
 
-func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, error) {
+func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
 	ifExists, err := normalizePutIfExists(ifExists)
 	if err != nil {
-		return putDestinationUpload, err
+		return putDestinationUpload, nil, err
 	}
 
 	meta, exists, err := getDestinationMetadata(dbx, dst)
 	if err != nil {
 		if ifExists == putIfExistsOverwrite {
-			return putDestinationUpload, nil
+			return putDestinationUpload, nil, nil
 		}
-		return putDestinationUpload, err
+		return putDestinationUpload, nil, err
 	}
 	if !exists {
-		return putDestinationUpload, nil
+		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, fmt.Errorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dst)
+		return putDestinationUpload, nil, fmt.Errorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dst)
 	}
-	return actionForExistingDestination(dst, ifExists)
+	return actionForExistingDestination(dst, ifExists, meta)
 }
 
-func checkPutDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, error) {
+func checkPutDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
 	ifExists, err := normalizePutIfExists(ifExists)
 	if err != nil {
-		return putDestinationUpload, err
+		return putDestinationUpload, nil, err
 	}
 	if ifExists == putIfExistsOverwrite {
-		return putDestinationUpload, nil
+		return putDestinationUpload, nil, nil
 	}
 
 	meta, exists, err := getDestinationMetadata(dbx, dst)
 	if err != nil {
-		return putDestinationUpload, err
+		return putDestinationUpload, nil, err
 	}
 	if !exists {
-		return putDestinationUpload, nil
+		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, fmt.Errorf("destination %q is a folder", dst)
+		return putDestinationUpload, nil, fmt.Errorf("destination %q is a folder", dst)
 	}
-	return actionForExistingDestination(dst, ifExists)
+	return actionForExistingDestination(dst, ifExists, meta)
 }
 
-func actionForExistingDestination(dst string, ifExists string) (putDestinationAction, error) {
+func actionForExistingDestination(dst string, ifExists string, metadata files.IsMetadata) (putDestinationAction, files.IsMetadata, error) {
 	switch ifExists {
 	case putIfExistsSkip:
-		return putDestinationSkip, nil
+		return putDestinationSkip, metadata, nil
 	case putIfExistsFail:
-		return putDestinationUpload, fmt.Errorf("destination %q already exists", dst)
+		return putDestinationUpload, nil, fmt.Errorf("destination %q already exists", dst)
 	default:
-		return putDestinationUpload, nil
+		return putDestinationUpload, nil, nil
 	}
 }
 
@@ -575,8 +690,25 @@ func putOutput(opts putOptions) *output.Renderer {
 	return output.New(nil, nil, output.FormatText)
 }
 
+func putErrorOutput(opts putOptions) io.Writer {
+	if opts.errOut != nil {
+		return opts.errOut
+	}
+	return os.Stderr
+}
+
 func putRecursive(src, dst string, opts putOptions) error {
+	_, err := putRecursiveInternal(src, dst, opts, false)
+	return err
+}
+
+func putRecursiveWithResults(src, dst string, opts putOptions) ([]putResult, error) {
+	return putRecursiveInternal(src, dst, opts, true)
+}
+
+func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool) ([]putResult, error) {
 	src = filepath.Clean(src)
+	var results []putResult
 	var uploadErrors []error
 	dirsWithFiles := make(map[string]bool)
 
@@ -601,21 +733,37 @@ func putRecursive(src, dst string, opts putOptions) error {
 		remotePath := path.Join(dst, filepath.ToSlash(relPath))
 		putOutput(opts).Status("Processing %s -> %s", filePath, remotePath)
 
+		if collectResults {
+			result, err := putFileWithResult(filePath, remotePath, opts)
+			if err != nil {
+				uploadErrors = append(uploadErrors, fmt.Errorf("%s: %w", filePath, err))
+				return nil
+			}
+			results = append(results, result)
+			return nil
+		}
 		if err := putFile(filePath, remotePath, opts); err != nil {
 			uploadErrors = append(uploadErrors, fmt.Errorf("%s: %w", filePath, err))
+			return nil
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dbx := filesNewFunc(config)
 
 	putOutput(opts).Status("Creating directory %s", dst)
-	arg := files.NewCreateFolderArg(dst)
-	if _, mkdirErr := dbx.CreateFolderV2(arg); mkdirErr != nil {
-		if !isConflictError(mkdirErr) {
+	if collectResults {
+		result, mkdirErr := putDirectoryWithResult(dbx, src, dst)
+		if mkdirErr != nil {
+			uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", dst, mkdirErr))
+		} else {
+			results = append(results, result)
+		}
+	} else {
+		if mkdirErr := putDirectory(dbx, dst); mkdirErr != nil {
 			uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", dst, mkdirErr))
 		}
 	}
@@ -641,22 +789,72 @@ func putRecursive(src, dst string, opts putOptions) error {
 
 		remotePath := path.Join(dst, filepath.ToSlash(relPath))
 		putOutput(opts).Status("Creating directory %s", remotePath)
-		arg := files.NewCreateFolderArg(remotePath)
-		if _, mkdirErr := dbx.CreateFolderV2(arg); mkdirErr != nil {
-			if !isConflictError(mkdirErr) {
+		if collectResults {
+			result, mkdirErr := putDirectoryWithResult(dbx, dirPath, remotePath)
+			if mkdirErr != nil {
 				uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", remotePath, mkdirErr))
+				return nil
+			}
+			results = append(results, result)
+		} else {
+			if mkdirErr := putDirectory(dbx, remotePath); mkdirErr != nil {
+				uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", remotePath, mkdirErr))
+				return nil
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(uploadErrors) > 0 {
-		return fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
+		return nil, fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
 	}
-	return nil
+	return results, nil
+}
+
+func putDirectory(dbx files.Client, dst string) error {
+	_, err := dbx.CreateFolderV2(files.NewCreateFolderArg(dst))
+	if err == nil {
+		return nil
+	}
+	return putDirectoryConflictError(dst, err)
+}
+
+func putDirectoryWithResult(dbx files.Client, src, dst string) (putResult, error) {
+	arg := files.NewCreateFolderArg(dst)
+	created, err := dbx.CreateFolderV2(arg)
+	if err != nil {
+		if conflictErr := putDirectoryConflictError(dst, err); conflictErr != nil {
+			return putResult{}, conflictErr
+		}
+		metadata, metaErr := existingFolderMetadata(dbx, dst)
+		if metaErr != nil {
+			return putResult{}, metaErr
+		}
+		return newPutResult(putStatusExisting, putKindFolder, src, dst, metadata), nil
+	}
+	if created == nil {
+		return newPutResult(putStatusCreated, putKindFolder, src, dst, nil), nil
+	}
+	return newPutResult(putStatusCreated, putKindFolder, src, dst, created.Metadata), nil
+}
+
+func putDirectoryConflictError(dst string, err error) error {
+	conflictTag, ok := createFolderConflictTag(err)
+	switch {
+	case ok && conflictTag == files.WriteConflictErrorFolder:
+		return nil
+	case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
+		return fmt.Errorf("path exists and is not a folder: %s", dst)
+	case ok:
+		return err
+	case isConflictError(err):
+		return nil
+	default:
+		return err
+	}
 }
 
 // putCmd represents the put command
@@ -679,6 +877,7 @@ var putCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(putCmd)
+	enableStructuredOutput(putCmd)
 	putCmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
 	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
