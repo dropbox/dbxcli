@@ -145,6 +145,7 @@ $ dbxcli search --output=json report /Reports
 $ dbxcli revs --output=json /Reports/old.pdf
 $ dbxcli cp --output=json /Reports/old.pdf /Reports/copy.pdf
 $ dbxcli mv --output=json /Reports/copy.pdf /Reports/archive/copy.pdf
+$ dbxcli put --output=json README.md /README.md
 $ dbxcli share-link create --output=json /Reports/old.pdf
 $ dbxcli share-link list --output=json /Reports/old.pdf
 $ dbxcli mkdir --output=json /new-folder
@@ -152,7 +153,7 @@ $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -212,6 +213,38 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
         "type": "file",
         "path_display": "/old-file.txt",
         "path_lower": "/old-file.txt",
+        "id": "id:...",
+        "rev": "...",
+        "size": 123
+      }
+    }
+  ]
+}
+```
+
+`put` always returns a `results` array, including single-file and stdin uploads. The top-level `input` describes the command request; each result reports whether a file was `uploaded`, `skipped`, or a directory was `created` or already `existing`:
+
+```json
+{
+  "input": {
+    "source": "README.md",
+    "target": "/README.md",
+    "recursive": false,
+    "if_exists": "overwrite",
+    "stdin": false
+  },
+  "results": [
+    {
+      "status": "uploaded",
+      "kind": "file",
+      "input": {
+        "source": "README.md",
+        "target": "/README.md"
+      },
+      "result": {
+        "type": "file",
+        "path_display": "/README.md",
+        "path_lower": "/readme.md",
         "id": "id:...",
         "rev": "...",
         "size": 123
