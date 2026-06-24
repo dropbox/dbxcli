@@ -47,12 +47,24 @@ func testGetJSONCmd(stdout, stderr *bytes.Buffer) *cobra.Command {
 	return cmd
 }
 
+type getOutputData struct {
+	Input    getCommandInput `json:"input"`
+	Results  []getResult     `json:"results"`
+	Warnings []jsonWarning   `json:"warnings"`
+}
+
 func decodeGetOutput(t *testing.T, stdout *bytes.Buffer) getOutputData {
 	t.Helper()
 
 	var got getOutputData
 	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
 		t.Fatalf("decode get JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }

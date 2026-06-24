@@ -257,8 +257,8 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	if got := stderr.String(); got != "" {
 		t.Fatalf("stderr = %q, want empty", got)
 	}
-	output := stdout.String()
-	got := decodeJSONErrorResponse(t, output)
+	rendered := stdout.String()
+	got := decodeJSONErrorResponse(t, rendered)
 	if got.OK {
 		t.Fatalf("ok = true, want false")
 	}
@@ -271,8 +271,8 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	if len(got.Warnings) != 0 {
 		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
-	if !strings.Contains(output, `"warnings":[]`) {
-		t.Fatalf("output = %q, want warnings array", output)
+	if !strings.Contains(rendered, `"warnings":[]`) {
+		t.Fatalf("output = %q, want warnings array", rendered)
 	}
 }
 
@@ -370,6 +370,71 @@ func TestNewJSONOperationOutputNormalizesResults(t *testing.T) {
 	}
 	if got.Results == nil {
 		t.Fatal("results is nil, want empty slice")
+	}
+}
+
+func TestRenderJSONOperationOutput(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	err := renderJSONOperationOutput(
+		cmd,
+		struct {
+			Path string `json:"path"`
+		}{Path: "/file.txt"},
+		[]jsonOperationResult{
+			newJSONOperationResult(
+				"downloaded",
+				"file",
+				struct {
+					Source string `json:"source"`
+				}{Source: "/file.txt"},
+				struct {
+					Type string `json:"type"`
+				}{Type: "file"},
+			),
+		},
+	)
+	if err != nil {
+		t.Fatalf("renderJSONOperationOutput returned error: %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, want := range []string{
+		`"input":{"path":"/file.txt"}`,
+		`"results":[{"status":"downloaded","kind":"file"`,
+		`"warnings":[]`,
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("output = %s, want %s", rendered, want)
+		}
+	}
+}
+
+func TestNewJSONOperationResultOmitsEmptyFields(t *testing.T) {
+	got := newJSONOperationResult(
+		"",
+		"",
+		struct {
+			Path string `json:"path"`
+		}{Path: "/file.txt"},
+		nil,
+	)
+
+	encoded, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("marshal operation result: %v", err)
+	}
+	rendered := string(encoded)
+	for _, unwanted := range []string{`"status"`, `"kind"`, `"result"`} {
+		if strings.Contains(rendered, unwanted) {
+			t.Fatalf("encoded output = %s, did not expect %s", rendered, unwanted)
+		}
+	}
+	if !strings.Contains(rendered, `"input":{"path":"/file.txt"}`) {
+		t.Fatalf("encoded output = %s, want input", rendered)
 	}
 }
 

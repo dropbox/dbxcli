@@ -63,11 +63,6 @@ type getResult struct {
 	Result *jsonMetadata  `json:"result,omitempty"`
 }
 
-type getOutputData struct {
-	Input   getCommandInput `json:"input"`
-	Results []getResult     `json:"results"`
-}
-
 func get(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`get` requires `src` and/or `dst` arguments")
@@ -184,10 +179,19 @@ func newGetResult(status, kind, source, target string, metadata files.IsMetadata
 }
 
 func renderGetResults(cmd *cobra.Command, input getCommandInput, results []getResult) error {
-	return commandOutput(cmd).Render(nil, getOutputData{
-		Input:   input,
-		Results: results,
-	})
+	return renderJSONOperationOutput(cmd, input, getOperationResults(results))
+}
+
+func getOperationResults(results []getResult) []jsonOperationResult {
+	operationResults := make([]jsonOperationResult, 0, len(results))
+	for _, result := range results {
+		var metadata any
+		if result.Result != nil {
+			metadata = result.Result
+		}
+		operationResults = append(operationResults, newJSONOperationResult(result.Status, result.Kind, result.Input, metadata))
+	}
+	return operationResults
 }
 
 func getStdout(cmd *cobra.Command, src string, recursive bool) error {
