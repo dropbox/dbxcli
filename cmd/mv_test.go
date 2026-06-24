@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 )
@@ -72,5 +75,100 @@ func TestMvMoveErrorIncludesAPIError(t *testing.T) {
 	}
 	if strings.Contains(stderr, "&{{") {
 		t.Errorf("stderr still contains formatted relocation arg: %q", stderr)
+	}
+}
+
+func TestMvJSONOutputsRelocationResults(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("path/not_found/")
+		},
+		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			metadata := files.NewFileMetadata("file-moved.txt", "id:file-moved", time.Time{}, time.Time{}, "rev-moved", 64)
+			metadata.PathDisplay = arg.ToPath
+			metadata.PathLower = strings.ToLower(arg.ToPath)
+			return files.NewRelocationResult(metadata), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+
+	if err := mv(cmd, []string{"/src/file.txt", "/dest/file-moved.txt"}); err != nil {
+		t.Fatalf("mv error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Input.FromPath != "/src/file.txt" || result.Input.ToPath != "/dest/file-moved.txt" {
+		t.Fatalf("input = %#v, want source and destination", result.Input)
+	}
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/dest/file-moved.txt" {
+		t.Fatalf("result = %#v, want moved file metadata", result.Result)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 64 {
+		t.Fatalf("size = %#v, want 64", result.Result.Size)
+	}
+}
+
+func TestMvJSONMultipleSourcesOutputsMultipleResults(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			name := path.Base(arg.ToPath)
+			metadata := files.NewFileMetadata(name, "id:"+name, time.Time{}, time.Time{}, "rev", 1)
+			metadata.PathDisplay = arg.ToPath
+			metadata.PathLower = strings.ToLower(arg.ToPath)
+			return files.NewRelocationResult(metadata), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+
+	if err := mv(cmd, []string{"/src/a.txt", "/src/b.txt", "/dest"}); err != nil {
+		t.Fatalf("mv error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
+	}
+	if got.Results[0].Input.ToPath != "/dest/a.txt" || got.Results[1].Input.ToPath != "/dest/b.txt" {
+		t.Fatalf("results = %#v, want folder destinations", got.Results)
+	}
+}
+
+func TestMvJSONErrorUsesCommandStderr(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("path/not_found/")
+		},
+		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return nil, fmt.Errorf("path/malformed_path/")
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, &stderr)
+
+	err := mv(cmd, []string{"/src/file.txt", "/dest/file.txt"})
+	if err == nil {
+		t.Fatal("expected mv error")
+	}
+	if stdout.String() != "" {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `move "/src/file.txt" to "/dest/file.txt": path/malformed_path/`) {
+		t.Fatalf("stderr = %q, want move API error", stderr.String())
+	}
+}
+
+func TestMvCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(mvCmd) {
+		t.Fatal("mv should support structured output")
 	}
 }

@@ -17,7 +17,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -40,6 +39,7 @@ func cp(cmd *cobra.Command, args []string) error {
 
 	var cpErrors []error
 	var relocationArgs []*files.RelocationArg
+	var results []relocationResult
 
 	dbx := filesNewFunc(config)
 	destIsFolder := len(argsToCopy) > 1 || strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
@@ -56,20 +56,23 @@ func cp(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, arg := range relocationArgs {
-		if _, err := dbx.CopyV2(arg); err != nil {
+		res, err := dbx.CopyV2(arg)
+		if err != nil {
 			copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			cpErrors = append(cpErrors, copyError)
+			continue
 		}
+		results = append(results, newRelocationResult(arg, res))
 	}
 
 	if len(cpErrors) > 0 {
 		for _, cpError := range cpErrors {
-			_, _ = fmt.Fprintf(os.Stderr, "%v\n", cpError)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%v\n", cpError)
 		}
 		return fmt.Errorf("cp: %d error(s)", len(cpErrors))
 	}
 
-	return nil
+	return commandOutput(cmd).Render(nil, relocationOutput{Results: results})
 }
 
 // cpCmd represents the cp command
@@ -82,4 +85,5 @@ var cpCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(cpCmd)
+	enableStructuredOutput(cpCmd)
 }
