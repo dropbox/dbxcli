@@ -29,7 +29,14 @@ type restoreInput struct {
 	Revision string `json:"revision"`
 }
 
+const (
+	restoreStatusRestored = "restored"
+	restoreKindFile       = "file"
+)
+
 type restoreResult struct {
+	Status string       `json:"status"`
+	Kind   string       `json:"kind"`
 	Input  restoreInput `json:"input"`
 	Result jsonMetadata `json:"result"`
 }
@@ -62,17 +69,23 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 			return nil
 		}
 		return renderRestoreResult(w, result)
-	}, result)
+	}, newJSONOperationOutput(result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
 }
 
 func newRestoreResult(path, revision string, metadata *files.FileMetadata) restoreResult {
 	return restoreResult{
+		Status: restoreStatusRestored,
+		Kind:   restoreKindFile,
 		Input: restoreInput{
 			Path:     path,
 			Revision: revision,
 		},
 		Result: restoreMetadataFromDropbox(path, metadata),
 	}
+}
+
+func restoreOperationResult(result restoreResult) jsonOperationResult {
+	return newJSONOperationResult(result.Status, result.Kind, result.Input, result.Result)
 }
 
 func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) jsonMetadata {

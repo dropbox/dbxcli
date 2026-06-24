@@ -158,7 +158,7 @@ Structured success output is rolling out command by command. Currently migrated 
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. New operation-style JSON payloads should use the same `warnings` field.
 
-Successful JSON responses are command-specific. Commands that operate on one path usually return an `input` object and a `result` metadata object:
+Successful JSON responses are command-specific. Operation commands return an `input` object, a `results` array, and a `warnings` array. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
 {
@@ -166,16 +166,27 @@ Successful JSON responses are command-specific. Commands that operate on one pat
     "path": "/new-folder",
     "parents": false
   },
-  "result": {
-    "type": "folder",
-    "path_display": "/new-folder",
-    "path_lower": "/new-folder",
-    "id": "id:..."
-  }
+  "results": [
+    {
+      "status": "created",
+      "kind": "folder",
+      "input": {
+        "path": "/new-folder",
+        "parents": false
+      },
+      "result": {
+        "type": "folder",
+        "path_display": "/new-folder",
+        "path_lower": "/new-folder",
+        "id": "id:..."
+      }
+    }
+  ],
+  "warnings": []
 }
 ```
 
-Commands that operate on multiple paths return a `results` array. For `cp` and `mv`, each `input` object uses `from_path` and `to_path`:
+For `cp` and `mv`, each result input object uses `from_path` and `to_path`:
 
 ```json
 {

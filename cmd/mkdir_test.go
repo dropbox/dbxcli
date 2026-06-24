@@ -74,17 +74,24 @@ func TestMkdirJSONOutputsCreatedFolder(t *testing.T) {
 	if got.Input.Path != "/Projects" || got.Input.Parents {
 		t.Fatalf("input = %#v, want path /Projects and parents false", got.Input)
 	}
-	if got.Result.Type != "folder" {
-		t.Fatalf("result type = %q, want folder", got.Result.Type)
+	result := got.Results[0]
+	if result.Status != mkdirStatusCreated || result.Kind != mkdirKindFolder {
+		t.Fatalf("status/kind = %s/%s, want created/folder", result.Status, result.Kind)
 	}
-	if got.Result.PathDisplay != "/Projects" {
-		t.Fatalf("path_display = %q, want /Projects", got.Result.PathDisplay)
+	if result.Input.Path != "/Projects" || result.Input.Parents {
+		t.Fatalf("result input = %#v, want path /Projects and parents false", result.Input)
 	}
-	if got.Result.PathLower != "/projects" {
-		t.Fatalf("path_lower = %q, want /projects", got.Result.PathLower)
+	if result.Result.Type != "folder" {
+		t.Fatalf("result type = %q, want folder", result.Result.Type)
 	}
-	if got.Result.ID != "id:folder" {
-		t.Fatalf("id = %q, want id:folder", got.Result.ID)
+	if result.Result.PathDisplay != "/Projects" {
+		t.Fatalf("path_display = %q, want /Projects", result.Result.PathDisplay)
+	}
+	if result.Result.PathLower != "/projects" {
+		t.Fatalf("path_lower = %q, want /projects", result.Result.PathLower)
+	}
+	if result.Result.ID != "id:folder" {
+		t.Fatalf("id = %q, want id:folder", result.Result.ID)
 	}
 	if strings.Contains(stdout.String(), `"rev"`) || strings.Contains(stdout.String(), `"size"`) {
 		t.Fatalf("folder JSON output = %s, want no file-only fields", stdout.String())
@@ -121,8 +128,12 @@ func TestMkdirJSONParentsReturnsExistingFolderMetadata(t *testing.T) {
 	if got.Input.Path != "/Existing" || !got.Input.Parents {
 		t.Fatalf("input = %#v, want path /Existing and parents true", got.Input)
 	}
-	if got.Result.Type != "folder" || got.Result.PathDisplay != "/Existing" {
-		t.Fatalf("result = %#v, want existing folder metadata", got.Result)
+	result := got.Results[0]
+	if result.Status != mkdirStatusExisting || result.Kind != mkdirKindFolder {
+		t.Fatalf("status/kind = %s/%s, want existing/folder", result.Status, result.Kind)
+	}
+	if result.Result.Type != "folder" || result.Result.PathDisplay != "/Existing" {
+		t.Fatalf("result = %#v, want existing folder metadata", result.Result)
 	}
 }
 
@@ -211,8 +222,8 @@ func TestMkdirJSONUsesInputPathWhenMetadataPathDisplayMissing(t *testing.T) {
 	}
 
 	got := decodeMkdirOutput(t, stdout)
-	if got.Result.PathDisplay != "/Projects" {
-		t.Fatalf("path_display = %q, want fallback input path", got.Result.PathDisplay)
+	if got.Results[0].Result.PathDisplay != "/Projects" {
+		t.Fatalf("path_display = %q, want fallback input path", got.Results[0].Result.PathDisplay)
 	}
 }
 
@@ -294,12 +305,27 @@ func createFolderConflictError(conflictTag string) files.CreateFolderV2APIError 
 	}
 }
 
-func decodeMkdirOutput(t *testing.T, stdout *bytes.Buffer) mkdirResult {
+type mkdirOutput struct {
+	Input    mkdirInput    `json:"input"`
+	Results  []mkdirResult `json:"results"`
+	Warnings []jsonWarning `json:"warnings"`
+}
+
+func decodeMkdirOutput(t *testing.T, stdout *bytes.Buffer) mkdirOutput {
 	t.Helper()
 
-	var got mkdirResult
+	var got mkdirOutput
 	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
 	}
 	return got
 }

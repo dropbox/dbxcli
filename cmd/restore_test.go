@@ -115,6 +115,9 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	if result.Input.Path != "/Reports/old.pdf" || result.Input.Revision != "target-rev" {
 		t.Fatalf("input = %#v, want path and target revision", result.Input)
 	}
+	if result.Status != restoreStatusRestored || result.Kind != restoreKindFile {
+		t.Fatalf("status/kind = %s/%s, want restored/file", result.Status, result.Kind)
+	}
 	if result.Result.Type != "file" || result.Result.PathDisplay != "/Reports/old.pdf" {
 		t.Fatalf("metadata = %#v, want file path metadata", result.Result)
 	}
@@ -165,20 +168,27 @@ func TestRestoreJSONOutputsInputAndMetadata(t *testing.T) {
 	if got.Input.Path != "/Reports/old.pdf" || got.Input.Revision != "target-rev" {
 		t.Fatalf("input = %#v, want path and target revision", got.Input)
 	}
-	if got.Result.Type != "file" || got.Result.PathDisplay != "/Reports/old.pdf" || got.Result.PathLower != "/reports/old.pdf" {
-		t.Fatalf("metadata = %#v, want file path metadata", got.Result)
+	result := got.Results[0]
+	if result.Status != restoreStatusRestored || result.Kind != restoreKindFile {
+		t.Fatalf("status/kind = %s/%s, want restored/file", result.Status, result.Kind)
 	}
-	if got.Result.ID != "id:abc" || got.Result.Rev != "current-rev" {
-		t.Fatalf("metadata = %#v, want returned id and current revision", got.Result)
+	if result.Input.Path != "/Reports/old.pdf" || result.Input.Revision != "target-rev" {
+		t.Fatalf("result input = %#v, want path and target revision", result.Input)
 	}
-	if got.Result.Size == nil || *got.Result.Size != 123 {
-		t.Fatalf("size = %v, want 123", got.Result.Size)
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/Reports/old.pdf" || result.Result.PathLower != "/reports/old.pdf" {
+		t.Fatalf("metadata = %#v, want file path metadata", result.Result)
 	}
-	if got.Result.ServerModified == nil || *got.Result.ServerModified != "2026-06-17T12:30:00Z" {
-		t.Fatalf("server modified = %v, want 2026-06-17T12:30:00Z", got.Result.ServerModified)
+	if result.Result.ID != "id:abc" || result.Result.Rev != "current-rev" {
+		t.Fatalf("metadata = %#v, want returned id and current revision", result.Result)
 	}
-	if got.Result.ClientModified == nil || *got.Result.ClientModified != "2026-06-16T10:00:00Z" {
-		t.Fatalf("client modified = %v, want 2026-06-16T10:00:00Z", got.Result.ClientModified)
+	if result.Result.Size == nil || *result.Result.Size != 123 {
+		t.Fatalf("size = %v, want 123", result.Result.Size)
+	}
+	if result.Result.ServerModified == nil || *result.Result.ServerModified != "2026-06-17T12:30:00Z" {
+		t.Fatalf("server modified = %v, want 2026-06-17T12:30:00Z", result.Result.ServerModified)
+	}
+	if result.Result.ClientModified == nil || *result.Result.ClientModified != "2026-06-16T10:00:00Z" {
+		t.Fatalf("client modified = %v, want 2026-06-16T10:00:00Z", result.Result.ClientModified)
 	}
 }
 
@@ -197,8 +207,8 @@ func TestRestoreJSONUsesInputPathWhenMetadataPathDisplayMissing(t *testing.T) {
 	}
 
 	got := decodeRestoreOutput(t, stdout)
-	if got.Result.PathDisplay != "/Reports/old.pdf" {
-		t.Fatalf("path_display = %q, want fallback input path", got.Result.PathDisplay)
+	if got.Results[0].Result.PathDisplay != "/Reports/old.pdf" {
+		t.Fatalf("path_display = %q, want fallback input path", got.Results[0].Result.PathDisplay)
 	}
 }
 
@@ -227,8 +237,8 @@ func TestRestoreJSONVerboseDoesNotPrintText(t *testing.T) {
 		t.Fatalf("stdout = %q, want JSON only", stdout.String())
 	}
 	got := decodeRestoreOutput(t, stdout)
-	if got.Result.Rev != "current-rev" {
-		t.Fatalf("rev = %q, want current-rev", got.Result.Rev)
+	if got.Results[0].Result.Rev != "current-rev" {
+		t.Fatalf("rev = %q, want current-rev", got.Results[0].Result.Rev)
 	}
 }
 
@@ -273,12 +283,27 @@ func setRestoreOutputJSON(t *testing.T, cmd *cobra.Command) {
 	}
 }
 
-func decodeRestoreOutput(t *testing.T, stdout *bytes.Buffer) restoreResult {
+type restoreOutput struct {
+	Input    restoreInput    `json:"input"`
+	Results  []restoreResult `json:"results"`
+	Warnings []jsonWarning   `json:"warnings"`
+}
+
+func decodeRestoreOutput(t *testing.T, stdout *bytes.Buffer) restoreOutput {
 	t.Helper()
 
-	var got restoreResult
+	var got restoreOutput
 	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
 	}
 	return got
 }

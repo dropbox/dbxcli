@@ -28,7 +28,16 @@ type mkdirInput struct {
 	Parents bool   `json:"parents"`
 }
 
+const (
+	mkdirStatusCreated  = "created"
+	mkdirStatusExisting = "existing"
+
+	mkdirKindFolder = "folder"
+)
+
 type mkdirResult struct {
+	Status string       `json:"status"`
+	Kind   string       `json:"kind"`
 	Input  mkdirInput   `json:"input"`
 	Result jsonMetadata `json:"result"`
 }
@@ -50,6 +59,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 	dbx := filesNewFunc(config)
 	created, err := dbx.CreateFolderV2(arg)
 	var metadata *files.FolderMetadata
+	status := mkdirStatusCreated
 	if err != nil {
 		if !parents {
 			return err
@@ -65,6 +75,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 			if err != nil {
 				return err
 			}
+			status = mkdirStatusExisting
 		case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
 			return fmt.Errorf("path exists and is not a folder: %s", dst)
 		case ok:
@@ -77,6 +88,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 			if err != nil {
 				return err
 			}
+			status = mkdirStatusExisting
 		default:
 			return err
 		}
@@ -87,8 +99,8 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 		metadata = created.Metadata
 	}
 
-	result := newMkdirResult(dst, parents, metadata)
-	return commandOutput(cmd).Render(nil, result)
+	result := newMkdirResult(status, dst, parents, metadata)
+	return renderJSONOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)})
 }
 
 func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata, error) {
@@ -103,17 +115,23 @@ func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata
 	return folder, nil
 }
 
-func newMkdirResult(path string, parents bool, metadata *files.FolderMetadata) mkdirResult {
+func newMkdirResult(status, path string, parents bool, metadata *files.FolderMetadata) mkdirResult {
 	result := jsonMetadataFromDropbox(metadata)
 	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
 
 	return mkdirResult{
+		Status: status,
+		Kind:   mkdirKindFolder,
 		Input: mkdirInput{
 			Path:    path,
 			Parents: parents,
 		},
 		Result: result,
 	}
+}
+
+func mkdirOperationResult(result mkdirResult) jsonOperationResult {
+	return newJSONOperationResult(result.Status, result.Kind, result.Input, result.Result)
 }
 
 func createFolderConflictTag(err error) (string, bool) {
