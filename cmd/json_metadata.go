@@ -21,6 +21,9 @@ type jsonMetadata struct {
 func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
 	switch m := metadata.(type) {
 	case *files.FileMetadata:
+		if m == nil {
+			return jsonMetadata{Type: "unknown"}
+		}
 		size := m.Size
 		return jsonMetadata{
 			Type:           "file",
@@ -33,6 +36,9 @@ func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
 			ClientModified: jsonTime(m.ClientModified),
 		}
 	case *files.FolderMetadata:
+		if m == nil {
+			return jsonMetadata{Type: "unknown"}
+		}
 		return jsonMetadata{
 			Type:        "folder",
 			PathDisplay: m.PathDisplay,
@@ -40,6 +46,9 @@ func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
 			ID:          m.Id,
 		}
 	case *files.DeletedMetadata:
+		if m == nil {
+			return jsonMetadata{Type: "unknown"}
+		}
 		return jsonMetadata{
 			Type:        "deleted",
 			PathDisplay: m.PathDisplay,

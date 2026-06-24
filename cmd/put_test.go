@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -188,7 +189,7 @@ func TestUploadSingleShot_RetryOnServerErrorResetsReader(t *testing.T) {
 		},
 	}
 
-	err := uploadSingleShot(mock, reader, uploadArg, int64(len(data)))
+	_, err := uploadSingleShot(mock, reader, uploadArg, int64(len(data)), nil)
 	if err != nil {
 		t.Errorf("expected nil error after retry, got %v", err)
 	}
@@ -225,7 +226,7 @@ func TestUploadSingleShot_RetriesTooManyWriteOperations(t *testing.T) {
 		},
 	}
 
-	err := uploadSingleShot(mock, reader, uploadArg, int64(len(data)))
+	_, err := uploadSingleShot(mock, reader, uploadArg, int64(len(data)), nil)
 	if err != nil {
 		t.Errorf("expected nil error after write-throttle retry, got %v", err)
 	}
@@ -246,6 +247,55 @@ func testPutCmd() *cobra.Command {
 	cmd.Flags().BoolP("debug", "d", false, "Print debug timing")
 	cmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, or fail")
 	return cmd
+}
+
+func testPutJSONCmd(stdout, stderr *bytes.Buffer) *cobra.Command {
+	cmd := testPutCmd()
+	cmd.Flags().String(outputFlag, "text", "")
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		panic(err)
+	}
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	if stderr != nil {
+		cmd.SetErr(stderr)
+	}
+	return cmd
+}
+
+func decodePutOutput(t *testing.T, stdout *bytes.Buffer) putOutputData {
+	t.Helper()
+
+	var got putOutputData
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode put JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	return got
+}
+
+func putFileMetadata(path string, size uint64) *files.FileMetadata {
+	return &files.FileMetadata{
+		Metadata: files.Metadata{
+			Name:        strings.TrimPrefix(path, "/"),
+			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
+		},
+		Id:   "id:" + strings.TrimPrefix(path, "/"),
+		Rev:  "rev:" + strings.TrimPrefix(path, "/"),
+		Size: size,
+	}
+}
+
+func putFolderMetadata(path string) *files.FolderMetadata {
+	return &files.FolderMetadata{
+		Metadata: files.Metadata{
+			Name:        strings.TrimPrefix(path, "/"),
+			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
+		},
+		Id: "id:" + strings.TrimPrefix(path, "/"),
+	}
 }
 
 func getMetadataNotFoundError() files.GetMetadataAPIError {
@@ -624,6 +674,349 @@ func TestPutIfExistsValidation(t *testing.T) {
 	}
 }
 
+func TestPutJSONSingleFileOutputsUploadedResult(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			if arg.Path != "/uploaded.txt" {
+				t.Fatalf("upload path = %q, want /uploaded.txt", arg.Path)
+			}
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return putFileMetadata(arg.Path, 4), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout, stderr bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, &stderr)
+	if err := put(cmd, []string{tmpFile, "/uploaded.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Source != tmpFile || got.Input.Target != "/uploaded.txt" || got.Input.Recursive || got.Input.Stdin {
+		t.Fatalf("input = %+v", got.Input)
+	}
+	if got.Input.IfExists != putIfExistsOverwrite {
+		t.Fatalf("if_exists = %q", got.Input.IfExists)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != putStatusUploaded || result.Kind != putKindFile {
+		t.Fatalf("result status/kind = %s/%s", result.Status, result.Kind)
+	}
+	if result.Input.Source != tmpFile || result.Input.Target != "/uploaded.txt" {
+		t.Fatalf("result input = %+v", result.Input)
+	}
+	if result.Result == nil {
+		t.Fatal("result metadata is nil")
+	}
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/uploaded.txt" || result.Result.PathLower != "/uploaded.txt" {
+		t.Fatalf("metadata = %+v", result.Result)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 4 {
+		t.Fatalf("size = %v, want 4", result.Result.Size)
+	}
+}
+
+func TestPutJSONDefaultTargetUsesComputedPath(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "local.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			if arg.Path != "/local.txt" {
+				t.Fatalf("upload path = %q, want /local.txt", arg.Path)
+			}
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return putFileMetadata(arg.Path, 4), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := put(cmd, []string{tmpFile}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Target != "/local.txt" {
+		t.Fatalf("target = %q, want /local.txt", got.Input.Target)
+	}
+	if got.Results[0].Input.Target != "/local.txt" {
+		t.Fatalf("result target = %q, want /local.txt", got.Results[0].Input.Target)
+	}
+}
+
+func TestPutJSONIfExistsSkipOutputsSkippedResult(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return putFileMetadata(arg.Path, 12), nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatal("upload should not be called for skipped destination")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout, stderr bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, &stderr)
+	if err := cmd.Flags().Set("if-exists", putIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+	if err := put(cmd, []string{tmpFile, "/existing.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != putStatusSkipped || result.Kind != putKindFile {
+		t.Fatalf("result status/kind = %s/%s", result.Status, result.Kind)
+	}
+	if result.Result == nil || result.Result.PathDisplay != "/existing.txt" {
+		t.Fatalf("metadata = %+v", result.Result)
+	}
+	if !strings.Contains(stderr.String(), "Skipping /existing.txt") {
+		t.Fatalf("stderr = %q, want skip status", stderr.String())
+	}
+}
+
+func TestPutJSONIfExistsFailReturnsErrorWithoutStdout(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return putFileMetadata(arg.Path, 12), nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatal("upload should not be called for failed destination")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", putIfExistsFail); err != nil {
+		t.Fatal(err)
+	}
+	err := put(cmd, []string{tmpFile, "/existing.txt"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty on error", stdout.String())
+	}
+}
+
+func TestPutJSONStdinDoesNotExposeTempPath(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			body, err := io.ReadAll(content)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(body) != "hello" {
+				t.Fatalf("uploaded body = %q, want hello", string(body))
+			}
+			return putFileMetadata(arg.Path, uint64(len(body))), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	cmd.SetIn(strings.NewReader("hello"))
+	if err := put(cmd, []string{"-", "/stdin.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	output := stdout.String()
+	if strings.Contains(output, "dbxcli-stdin") {
+		t.Fatalf("stdout exposes temp path: %s", output)
+	}
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Source != "-" || !got.Input.Stdin || got.Input.Target != "/stdin.txt" {
+		t.Fatalf("input = %+v", got.Input)
+	}
+	if got.Results[0].Input.Source != "-" || got.Results[0].Input.Target != "/stdin.txt" {
+		t.Fatalf("result input = %+v", got.Results[0].Input)
+	}
+}
+
+func TestPutJSONRecursiveOutputsDirectoryAndFileResults(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "empty"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("file"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return putFileMetadata(arg.Path, 4), nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return files.NewCreateFolderResult(putFolderMetadata(arg.Path)), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout, stderr bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, &stderr)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := put(cmd, []string{dir, "/remote"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if !got.Input.Recursive || got.Input.Source != dir || got.Input.Target != "/remote" {
+		t.Fatalf("input = %+v", got.Input)
+	}
+	want := map[string]string{
+		"/remote/file.txt": putStatusUploaded,
+		"/remote":          putStatusCreated,
+		"/remote/empty":    putStatusCreated,
+	}
+	if len(got.Results) != len(want) {
+		t.Fatalf("results len = %d, want %d: %+v", len(got.Results), len(want), got.Results)
+	}
+	for _, result := range got.Results {
+		wantStatus, ok := want[result.Input.Target]
+		if !ok {
+			t.Fatalf("unexpected result target %q", result.Input.Target)
+		}
+		if result.Status != wantStatus {
+			t.Fatalf("status for %s = %s, want %s", result.Input.Target, result.Status, wantStatus)
+		}
+		if result.Result == nil {
+			t.Fatalf("result metadata for %s is nil", result.Input.Target)
+		}
+	}
+	if !strings.Contains(stderr.String(), "Processing ") || !strings.Contains(stderr.String(), "Creating directory ") {
+		t.Fatalf("stderr = %q, want recursive status", stderr.String())
+	}
+	if !json.Valid(stdout.Bytes()) {
+		t.Fatalf("stdout is not valid JSON: %s", stdout.String())
+	}
+}
+
+func TestPutJSONRecursiveFailsWhenDirectoryTargetIsExistingFile(t *testing.T) {
+	dir := t.TempDir()
+
+	mock := &mockFilesClient{
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return nil, createFolderConflictError(files.WriteConflictErrorFile)
+		},
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatal("GetMetadata should not be called for typed file conflicts")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	err := put(cmd, []string{dir, "/remote-file"})
+	if err == nil {
+		t.Fatal("expected existing file conflict")
+	}
+	if !strings.Contains(err.Error(), "path exists and is not a folder: /remote-file") {
+		t.Fatalf("error = %q, want not-a-folder error", err.Error())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty on error", stdout.String())
+	}
+}
+
+func TestPutRecursiveTextModeDoesNotFetchExistingFolderMetadata(t *testing.T) {
+	dir := t.TempDir()
+
+	mock := &mockFilesClient{
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return nil, createFolderConflictError(files.WriteConflictErrorFolder)
+		},
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatal("GetMetadata should not be called in text mode for existing folders")
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := testPutCmd()
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	err := put(cmd, []string{dir, "/existing-folder"})
+	if err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+}
+
+func TestPutTextModeWritesNoStdoutOnSuccess(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return putFileMetadata(arg.Path, 4), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutCmd()
+	cmd.SetOut(&stdout)
+	if err := put(cmd, []string{tmpFile, "/text.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
 func TestPutFileIfExistsSkipSkipsExistingFile(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "test.txt")
 	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
@@ -957,7 +1350,7 @@ func TestUploadChunked_RetriesSessionStart(t *testing.T) {
 	reader := bytes.NewReader(data)
 	commitInfo := files.NewCommitInfo("/test.txt")
 
-	err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
+	_, err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
 	}
@@ -997,7 +1390,7 @@ func TestUploadChunked_RetriesFinishTooManyWriteOperations(t *testing.T) {
 	reader := bytes.NewReader(data)
 	commitInfo := files.NewCommitInfo("/test.txt")
 
-	err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
+	_, err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
 	if err != nil {
 		t.Errorf("expected nil error after finish retry, got %v", err)
 	}
@@ -1030,7 +1423,7 @@ func TestUploadChunked_Success(t *testing.T) {
 	reader := bytes.NewReader(data)
 	commitInfo := files.NewCommitInfo("/test.txt")
 
-	err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
+	_, err := uploadChunked(mock, reader, commitInfo, int64(len(data)), 1, 512, false)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
 	}
