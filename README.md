@@ -143,6 +143,8 @@ $ dbxcli du --output=json
 $ dbxcli ls --output=json /
 $ dbxcli search --output=json report /Reports
 $ dbxcli revs --output=json /Reports/old.pdf
+$ dbxcli cp --output=json /Reports/old.pdf /Reports/copy.pdf
+$ dbxcli mv --output=json /Reports/copy.pdf /Reports/archive/copy.pdf
 $ dbxcli share-link create --output=json /Reports/old.pdf
 $ dbxcli share-link list --output=json /Reports/old.pdf
 $ dbxcli mkdir --output=json /new-folder
@@ -150,7 +152,7 @@ $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-JSON support is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
 
@@ -171,7 +173,30 @@ Successful JSON responses are command-specific. Commands that operate on one pat
 }
 ```
 
-Commands that operate on multiple paths return a `results` array:
+Commands that operate on multiple paths return a `results` array. For `cp` and `mv`, each `input` object uses `from_path` and `to_path`:
+
+```json
+{
+  "results": [
+    {
+      "input": {
+        "from_path": "/Reports/old.pdf",
+        "to_path": "/Reports/copy.pdf"
+      },
+      "result": {
+        "type": "file",
+        "path_display": "/Reports/copy.pdf",
+        "path_lower": "/reports/copy.pdf",
+        "id": "id:...",
+        "rev": "...",
+        "size": 123
+      }
+    }
+  ]
+}
+```
+
+For commands such as `rm`, `input` uses command-specific path and flag fields:
 
 ```json
 {
@@ -268,7 +293,7 @@ Shared-link commands return command-specific objects built around shared-link me
 
 `share-link download --output=json <url> -` is not supported because stdout is reserved for downloaded file bytes when the target is `-`.
 
-In JSON mode, command errors are also written to stdout. The process still exits with a non-zero status:
+In JSON mode, command errors are written to stdout as JSON, including errors from commands that do not yet support structured success output. The process still exits with a non-zero status. Detailed diagnostics may also be written to stderr:
 
 ```json
 {
