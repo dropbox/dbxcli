@@ -1,0 +1,75 @@
+package cmd
+
+type jsonErrorResponse struct {
+	OK       bool          `json:"ok"`
+	Error    jsonError     `json:"error"`
+	Warnings []jsonWarning `json:"warnings"`
+}
+
+type jsonError struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
+}
+
+type jsonWarning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Path    string `json:"path,omitempty"`
+}
+
+type jsonOperationOutput struct {
+	Input    any                   `json:"input"`
+	Results  []jsonOperationResult `json:"results"`
+	Warnings []jsonWarning         `json:"warnings"`
+}
+
+type jsonOperationResult struct {
+	Status string `json:"status,omitempty"`
+	Kind   string `json:"kind,omitempty"`
+	Input  any    `json:"input,omitempty"`
+	Result any    `json:"result,omitempty"`
+}
+
+func newJSONErrorResponse(err error) jsonErrorResponse {
+	return jsonErrorResponse{
+		OK: false,
+		Error: jsonError{
+			Message: err.Error(),
+			Code:    jsonErrorCode(err),
+		},
+		Warnings: emptyJSONWarnings(),
+	}
+}
+
+func newJSONOperationOutput(input any, results []jsonOperationResult, warnings []jsonWarning) jsonOperationOutput {
+	return jsonOperationOutput{
+		Input:    normalizeJSONInput(input),
+		Results:  normalizeJSONOperationResults(results),
+		Warnings: normalizeJSONWarnings(warnings),
+	}
+}
+
+func normalizeJSONInput(input any) any {
+	if input == nil {
+		return struct{}{}
+	}
+	return input
+}
+
+func normalizeJSONOperationResults(results []jsonOperationResult) []jsonOperationResult {
+	if results == nil {
+		return []jsonOperationResult{}
+	}
+	return results
+}
+
+func emptyJSONWarnings() []jsonWarning {
+	return []jsonWarning{}
+}
+
+func normalizeJSONWarnings(warnings []jsonWarning) []jsonWarning {
+	if warnings == nil {
+		return emptyJSONWarnings()
+	}
+	return warnings
+}

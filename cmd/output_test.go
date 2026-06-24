@@ -257,7 +257,8 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	if got := stderr.String(); got != "" {
 		t.Fatalf("stderr = %q, want empty", got)
 	}
-	got := decodeJSONErrorResponse(t, stdout.String())
+	output := stdout.String()
+	got := decodeJSONErrorResponse(t, output)
 	if got.OK {
 		t.Fatalf("ok = true, want false")
 	}
@@ -266,6 +267,12 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	}
 	if got.Error.Code != "command_failed" {
 		t.Fatalf("code = %q, want command_failed", got.Error.Code)
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	if !strings.Contains(output, `"warnings":[]`) {
+		t.Fatalf("output = %q, want warnings array", output)
 	}
 }
 
@@ -289,6 +296,9 @@ func TestRenderCommandErrorWritesUnsupportedStructuredOutputAsJSON(t *testing.T)
 	if !strings.Contains(got.Error.Message, "structured output is not supported") {
 		t.Fatalf("message = %q, want structured output error", got.Error.Message)
 	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
 }
 
 func TestRenderCommandErrorWithJSONForcesJSONError(t *testing.T) {
@@ -307,6 +317,59 @@ func TestRenderCommandErrorWithJSONForcesJSONError(t *testing.T) {
 	got := decodeJSONErrorResponse(t, stdout.String())
 	if got.Error.Code != "unknown_command" {
 		t.Fatalf("code = %q, want unknown_command", got.Error.Code)
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+}
+
+func TestNewJSONOperationOutputNormalizesWarnings(t *testing.T) {
+	got := newJSONOperationOutput(
+		struct {
+			Path string `json:"path"`
+		}{Path: "/file.txt"},
+		[]jsonOperationResult{
+			{
+				Status: "downloaded",
+				Kind:   "file",
+				Input: struct {
+					Path string `json:"path"`
+				}{Path: "/file.txt"},
+				Result: struct {
+					Type string `json:"type"`
+				}{Type: "file"},
+			},
+		},
+		nil,
+	)
+
+	encoded, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("marshal operation output: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"warnings":[]`) {
+		t.Fatalf("encoded output = %s, want warnings array", encoded)
+	}
+	if got.Warnings == nil {
+		t.Fatal("warnings is nil, want empty slice")
+	}
+}
+
+func TestNewJSONOperationOutputNormalizesResults(t *testing.T) {
+	got := newJSONOperationOutput(nil, nil, nil)
+
+	encoded, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("marshal operation output: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"results":[]`) {
+		t.Fatalf("encoded output = %s, want results array", encoded)
+	}
+	if !strings.Contains(string(encoded), `"input":{}`) {
+		t.Fatalf("encoded output = %s, want input object", encoded)
+	}
+	if got.Results == nil {
+		t.Fatal("results is nil, want empty slice")
 	}
 }
 
