@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -39,6 +38,7 @@ func mv(cmd *cobra.Command, args []string) error {
 
 	var mvErrors []error
 	var relocationArgs []*files.RelocationArg
+	var results []relocationResult
 
 	dbx := filesNewFunc(config)
 	destIsFolder := len(argsToMove) > 1 || strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
@@ -54,20 +54,23 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, arg := range relocationArgs {
-		if _, err := dbx.MoveV2(arg); err != nil {
+		res, err := dbx.MoveV2(arg)
+		if err != nil {
 			moveError := fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			mvErrors = append(mvErrors, moveError)
+			continue
 		}
+		results = append(results, newRelocationResult(arg, res))
 	}
 
 	if len(mvErrors) > 0 {
 		for _, mvError := range mvErrors {
-			_, _ = fmt.Fprintf(os.Stderr, "%v\n", mvError)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%v\n", mvError)
 		}
 		return fmt.Errorf("mv: %d error(s)", len(mvErrors))
 	}
 
-	return nil
+	return commandOutput(cmd).Render(nil, relocationOutput{Results: results})
 }
 
 // mvCmd represents the mv command
@@ -79,4 +82,5 @@ var mvCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(mvCmd)
+	enableStructuredOutput(mvCmd)
 }

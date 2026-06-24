@@ -1,14 +1,20 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/spf13/cobra"
 )
 
 func stubFilesClient(t *testing.T, client files.Client) {
@@ -193,4 +199,123 @@ func TestCpCopyErrorIncludesAPIError(t *testing.T) {
 	if strings.Contains(stderr, "&{{") {
 		t.Errorf("stderr still contains formatted relocation arg: %q", stderr)
 	}
+}
+
+func TestCpJSONOutputsRelocationResults(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("path/not_found/")
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			metadata := files.NewFileMetadata("file-copy.txt", "id:file-copy", time.Time{}, time.Time{}, "rev-copy", 42)
+			metadata.PathDisplay = arg.ToPath
+			metadata.PathLower = strings.ToLower(arg.ToPath)
+			return files.NewRelocationResult(metadata), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file-copy.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Input.FromPath != "/src/file.txt" || result.Input.ToPath != "/dest/file-copy.txt" {
+		t.Fatalf("input = %#v, want source and destination", result.Input)
+	}
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/dest/file-copy.txt" {
+		t.Fatalf("result = %#v, want copied file metadata", result.Result)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 42 {
+		t.Fatalf("size = %#v, want 42", result.Result.Size)
+	}
+}
+
+func TestCpJSONMultipleSourcesOutputsMultipleResults(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			name := path.Base(arg.ToPath)
+			metadata := files.NewFileMetadata(name, "id:"+name, time.Time{}, time.Time{}, "rev", 1)
+			metadata.PathDisplay = arg.ToPath
+			metadata.PathLower = strings.ToLower(arg.ToPath)
+			return files.NewRelocationResult(metadata), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+
+	if err := cp(cmd, []string{"/src/a.txt", "/src/b.txt", "/dest"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
+	}
+	if got.Results[0].Input.ToPath != "/dest/a.txt" || got.Results[1].Input.ToPath != "/dest/b.txt" {
+		t.Fatalf("results = %#v, want folder destinations", got.Results)
+	}
+}
+
+func TestCpJSONErrorUsesCommandStderr(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, fmt.Errorf("path/not_found/")
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return nil, fmt.Errorf("path/malformed_path/")
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, &stderr)
+
+	err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"})
+	if err == nil {
+		t.Fatal("expected cp error")
+	}
+	if stdout.String() != "" {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `copy "/src/file.txt" to "/dest/file.txt": path/malformed_path/`) {
+		t.Fatalf("stderr = %q, want copy API error", stderr.String())
+	}
+}
+
+func TestCpCommandSupportsStructuredOutput(t *testing.T) {
+	if !commandSupportsStructuredOutput(cpCmd) {
+		t.Fatal("cp should support structured output")
+	}
+}
+
+func newRelocationTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, string(output.FormatText), "")
+	if err := cmd.Flags().Set(outputFlag, string(output.FormatJSON)); err != nil {
+		panic(err)
+	}
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	if stderr != nil {
+		cmd.SetErr(stderr)
+	}
+	return cmd
+}
+
+func decodeRelocationOutput(t *testing.T, data []byte) relocationOutput {
+	t.Helper()
+	var got relocationOutput
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, string(data))
+	}
+	return got
 }
