@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -29,6 +31,55 @@ func (r *failingReadCloser) Read(p []byte) (int, error) {
 }
 
 func (r *failingReadCloser) Close() error { return nil }
+
+func testGetJSONCmd(stdout, stderr *bytes.Buffer) *cobra.Command {
+	cmd := testGetCmd()
+	cmd.Flags().String(outputFlag, "text", "")
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		panic(err)
+	}
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	if stderr != nil {
+		cmd.SetErr(stderr)
+	}
+	return cmd
+}
+
+func decodeGetOutput(t *testing.T, stdout *bytes.Buffer) getOutputData {
+	t.Helper()
+
+	var got getOutputData
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode get JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	return got
+}
+
+func getTestFileMetadata(path string, size uint64) *files.FileMetadata {
+	return &files.FileMetadata{
+		Metadata: files.Metadata{
+			Name:        strings.TrimPrefix(path, "/"),
+			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
+		},
+		Id:   "id:" + strings.TrimPrefix(path, "/"),
+		Rev:  "rev:" + strings.TrimPrefix(path, "/"),
+		Size: size,
+	}
+}
+
+func getTestFolderMetadata(path string) *files.FolderMetadata {
+	return &files.FolderMetadata{
+		Metadata: files.Metadata{
+			Name:        strings.TrimPrefix(path, "/"),
+			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
+		},
+		Id: "id:" + strings.TrimPrefix(path, "/"),
+	}
+}
 
 func TestGetArgValidation(t *testing.T) {
 	err := get(getCmd, []string{})
@@ -522,6 +573,268 @@ func TestGetFileCommandDownloadsAfterMetadata(t *testing.T) {
 	}
 	if string(got) != "data" {
 		t.Errorf("downloaded file = %q, want data", got)
+	}
+}
+
+func TestGetJSONFileOutputsDownloadedResult(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "file.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFileMetadata(arg.Path, 4), nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			if arg.Path != "/remote/file.txt" {
+				t.Fatalf("download path = %q, want /remote/file.txt", arg.Path)
+			}
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout, stderr bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, &stderr)
+	if err := get(cmd, []string{"/remote/file.txt", dst}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	got := decodeGetOutput(t, &stdout)
+	if got.Input.Source != "/remote/file.txt" || got.Input.Target != dst || got.Input.Recursive || got.Input.Stdout {
+		t.Fatalf("input = %+v", got.Input)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != getStatusDownloaded || result.Kind != getKindFile {
+		t.Fatalf("result status/kind = %s/%s", result.Status, result.Kind)
+	}
+	if result.Input.Source != "/remote/file.txt" || result.Input.Target != dst {
+		t.Fatalf("result input = %+v", result.Input)
+	}
+	if result.Result == nil || result.Result.Type != "file" || result.Result.PathDisplay != "/remote/file.txt" {
+		t.Fatalf("metadata = %+v", result.Result)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 4 {
+		t.Fatalf("size = %v, want 4", result.Result.Size)
+	}
+	if strings.Contains(stdout.String(), "Downloading ") {
+		t.Fatalf("stdout contains progress: %q", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "Downloading ") {
+		t.Fatalf("stderr = %q, want download progress", stderr.String())
+	}
+	if content, err := os.ReadFile(dst); err != nil || string(content) != "data" {
+		t.Fatalf("downloaded file = %q, %v; want data", string(content), err)
+	}
+}
+
+func TestGetJSONDefaultTargetUsesBasename(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	defer func() { _ = os.Chdir(origDir) }()
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFileMetadata(arg.Path, 4), nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, nil)
+	if err := get(cmd, []string{"/remote/file.txt"}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	got := decodeGetOutput(t, &stdout)
+	if got.Input.Target != "file.txt" {
+		t.Fatalf("target = %q, want file.txt", got.Input.Target)
+	}
+	if got.Results[0].Input.Target != "file.txt" {
+		t.Fatalf("result target = %q, want file.txt", got.Results[0].Input.Target)
+	}
+}
+
+func TestGetJSONExistingDirectoryTargetAppendsBasename(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFileMetadata(arg.Path, 4), nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, nil)
+	if err := get(cmd, []string{"/remote/file.txt", tmpDir}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	wantTarget := filepath.Join(tmpDir, "file.txt")
+	got := decodeGetOutput(t, &stdout)
+	if got.Input.Target != wantTarget {
+		t.Fatalf("target = %q, want %q", got.Input.Target, wantTarget)
+	}
+	if got.Results[0].Input.Target != wantTarget {
+		t.Fatalf("result target = %q, want %q", got.Results[0].Input.Target, wantTarget)
+	}
+}
+
+func TestGetJSONRejectsStdoutTarget(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, nil)
+
+	err := get(cmd, []string{"/remote/file.txt", "-"})
+	if err == nil {
+		t.Fatal("expected JSON stdout target error")
+	}
+	if !strings.Contains(err.Error(), "stdout target") {
+		t.Fatalf("error = %q, want stdout target", err.Error())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
+func TestGetTextStdoutTargetWritesOnlyFileBytes(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFileMetadata(arg.Path, 4), nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testGetCmd()
+	cmd.SetOut(&stdout)
+	if err := get(cmd, []string{"/remote/file.txt", "-"}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+	if stdout.String() != "data" {
+		t.Fatalf("stdout = %q, want data", stdout.String())
+	}
+}
+
+func TestGetJSONRecursiveOutputsDirectoryAndFileResults(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "out")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFolderMetadata(arg.Path), nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					getTestFolderMetadata("/remote"),
+					getTestFolderMetadata("/remote/empty"),
+					getTestFileMetadata("/remote/file.txt", 4),
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout, stderr bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, &stderr)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := get(cmd, []string{"/remote", dst}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	got := decodeGetOutput(t, &stdout)
+	if got.Input.Source != "/remote" || got.Input.Target != dst || !got.Input.Recursive || got.Input.Stdout {
+		t.Fatalf("input = %+v", got.Input)
+	}
+	want := map[string]string{
+		dst:                            getStatusCreated,
+		filepath.Join(dst, "empty"):    getStatusCreated,
+		filepath.Join(dst, "file.txt"): getStatusDownloaded,
+	}
+	if len(got.Results) != len(want) {
+		t.Fatalf("results len = %d, want %d: %+v", len(got.Results), len(want), got.Results)
+	}
+	for _, result := range got.Results {
+		wantStatus, ok := want[result.Input.Target]
+		if !ok {
+			t.Fatalf("unexpected target %q", result.Input.Target)
+		}
+		if result.Status != wantStatus {
+			t.Fatalf("status for %s = %s, want %s", result.Input.Target, result.Status, wantStatus)
+		}
+		if result.Result == nil {
+			t.Fatalf("result metadata for %s is nil", result.Input.Target)
+		}
+	}
+	if !strings.Contains(stderr.String(), "Downloading /remote/file.txt") {
+		t.Fatalf("stderr = %q, want recursive download status", stderr.String())
+	}
+}
+
+func TestGetJSONRecursiveErrorEmitsNoSuccessJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	dst := filepath.Join(tmpDir, "out")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFolderMetadata(arg.Path), nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					getTestFileMetadata("/remote/good.txt", 4),
+					getTestFileMetadata("/remote/bad.txt", 4),
+				},
+				HasMore: false,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			if strings.Contains(arg.Path, "bad.txt") {
+				return nil, nil, &files.DownloadAPIError{}
+			}
+			return getTestFileMetadata(arg.Path, 4), io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testGetJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	err := get(cmd, []string{"/remote", dst})
+	if err == nil {
+		t.Fatal("expected recursive error")
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty on recursive error", stdout.String())
+	}
+	if _, statErr := os.Stat(filepath.Join(dst, "good.txt")); statErr != nil {
+		t.Fatalf("good file was not downloaded before failure: %v", statErr)
 	}
 }
 
