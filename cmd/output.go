@@ -14,16 +14,6 @@ const (
 	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
 )
 
-type jsonErrorResponse struct {
-	OK    bool      `json:"ok"`
-	Error jsonError `json:"error"`
-}
-
-type jsonError struct {
-	Message string `json:"message"`
-	Code    string `json:"code"`
-}
-
 func commandOutput(cmd *cobra.Command) *output.Renderer {
 	if cmd == nil {
 		return output.New(nil, nil, output.FormatText)
@@ -132,13 +122,7 @@ func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
 	}
 
 	if forceJSON || commandOutputFormat(cmd) == output.FormatJSON {
-		renderErr := output.New(cmd.OutOrStdout(), cmd.ErrOrStderr(), output.FormatJSON).Render(nil, jsonErrorResponse{
-			OK: false,
-			Error: jsonError{
-				Message: err.Error(),
-				Code:    jsonErrorCode(err),
-			},
-		})
+		renderErr := output.New(cmd.OutOrStdout(), cmd.ErrOrStderr(), output.FormatJSON).Render(nil, newJSONErrorResponse(err))
 		if renderErr == nil {
 			return
 		}

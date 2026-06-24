@@ -156,7 +156,7 @@ $ dbxcli restore --output=json /Reports/old.pdf 015f...
 
 Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
-Command results are written to stdout. Status, progress, warnings, diagnostics, and verbose logs are written to stderr.
+Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. New operation-style JSON payloads should use the same `warnings` field.
 
 Successful JSON responses are command-specific. Commands that operate on one path usually return an `input` object and a `result` metadata object:
 
@@ -337,7 +337,8 @@ In JSON mode, command errors are written to stdout as JSON, including errors fro
   "error": {
     "message": "path exists and is not a folder: /old-file.txt",
     "code": "path_conflict"
-  }
+  },
+  "warnings": []
 }
 ```
 
@@ -506,7 +507,7 @@ Dropbox account, team, and folder policies can reject shared-link settings such 
 
 `share-link download` writes to the metadata filename when `target` is omitted. Use `--path` to download a single file inside a folder shared link. Use `-` as the target to write file bytes to stdout. Folder shared links require `--recursive` and cannot be written to stdout.
 
-New and changed commands should write command results to stdout. Status, progress, warnings, diagnostics, and verbose logs should go to stderr.
+New and changed commands should write command results to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs should go to stderr. Machine-actionable JSON warnings should use the `warnings` array.
 
 ### Team management
 
