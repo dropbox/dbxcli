@@ -72,7 +72,7 @@ func cp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cp: %d error(s)", len(cpErrors))
 	}
 
-	return commandOutput(cmd).Render(nil, relocationOutput{Results: results})
+	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(results))
 }
 
 // cpCmd represents the cp command

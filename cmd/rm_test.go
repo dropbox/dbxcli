@@ -66,6 +66,12 @@ func setRmOutputJSON(t *testing.T, cmd *cobra.Command) {
 	}
 }
 
+type removeOutput struct {
+	Input    map[string]any `json:"input"`
+	Results  []removeResult `json:"results"`
+	Warnings []jsonWarning  `json:"warnings"`
+}
+
 func decodeRemoveOutput(t *testing.T, stdout *bytes.Buffer) removeOutput {
 	t.Helper()
 
@@ -78,6 +84,18 @@ func decodeRemoveOutputString(t *testing.T, output string) removeOutput {
 	var got removeOutput
 	if err := json.Unmarshal([]byte(output), &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, output)
+	}
+	if got.Input == nil {
+		t.Fatalf("input = nil, want empty object")
+	}
+	if len(got.Input) != 0 {
+		t.Fatalf("input = %+v, want empty object", got.Input)
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }

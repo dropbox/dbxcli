@@ -1,5 +1,7 @@
 package cmd
 
+import "github.com/spf13/cobra"
+
 type jsonErrorResponse struct {
 	OK       bool          `json:"ok"`
 	Error    jsonError     `json:"error"`
@@ -46,6 +48,19 @@ func newJSONOperationOutput(input any, results []jsonOperationResult, warnings [
 		Input:    normalizeJSONInput(input),
 		Results:  normalizeJSONOperationResults(results),
 		Warnings: normalizeJSONWarnings(warnings),
+	}
+}
+
+func renderJSONOperationOutput(cmd *cobra.Command, input any, results []jsonOperationResult) error {
+	return commandOutput(cmd).Render(nil, newJSONOperationOutput(input, results, nil))
+}
+
+func newJSONOperationResult(status, kind string, input any, result any) jsonOperationResult {
+	return jsonOperationResult{
+		Status: status,
+		Kind:   kind,
+		Input:  input,
+		Result: result,
 	}
 }
 

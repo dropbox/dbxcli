@@ -48,10 +48,6 @@ type removeResult struct {
 	Result jsonMetadata `json:"result"`
 }
 
-type removeOutput struct {
-	Results []removeResult `json:"results"`
-}
-
 func rm(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("rm: missing operand")
@@ -79,7 +75,15 @@ func rm(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 		return renderRemoveResults(w, results)
-	}, removeOutput{Results: results})
+	}, newJSONOperationOutput(nil, removeOperationResults(results), nil))
+}
+
+func removeOperationResults(results []removeResult) []jsonOperationResult {
+	operationResults := make([]jsonOperationResult, 0, len(results))
+	for _, result := range results {
+		operationResults = append(operationResults, newJSONOperationResult("", "", result.Input, result.Result))
+	}
+	return operationResults
 }
 
 func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {

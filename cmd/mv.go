@@ -70,7 +70,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("mv: %d error(s)", len(mvErrors))
 	}
 
-	return commandOutput(cmd).Render(nil, relocationOutput{Results: results})
+	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(results))
 }
 
 // mvCmd represents the mv command

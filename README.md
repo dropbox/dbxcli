@@ -179,6 +179,7 @@ Commands that operate on multiple paths return a `results` array. For `cp` and `
 
 ```json
 {
+  "input": {},
   "results": [
     {
       "input": {
@@ -194,7 +195,8 @@ Commands that operate on multiple paths return a `results` array. For `cp` and `
         "size": 123
       }
     }
-  ]
+  ],
+  "warnings": []
 }
 ```
 
@@ -202,6 +204,7 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
 
 ```json
 {
+  "input": {},
   "results": [
     {
       "input": {
@@ -219,7 +222,8 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
         "size": 123
       }
     }
-  ]
+  ],
+  "warnings": []
 }
 ```
 
@@ -251,11 +255,12 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
         "size": 123
       }
     }
-  ]
+  ],
+  "warnings": []
 }
 ```
 
-`get` also returns a `results` array. File downloads use `downloaded`; recursive folder downloads may also include local directory results with `created` or `existing`.
+`get` also returns a top-level `input`, a `results` array, and `warnings: []`. File downloads use `downloaded`; recursive folder downloads may also include local directory results with `created` or `existing`.
 
 Commands that return entry lists, such as `ls`, `search`, and `revs`, return an `input` object and an `entries` array. `ls` input includes the listed path; `search` input includes the query and optional path scope; `revs` input includes the file path:
 

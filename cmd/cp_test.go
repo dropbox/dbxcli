@@ -311,11 +311,29 @@ func newRelocationTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	return cmd
 }
 
+type relocationOutput struct {
+	Input    map[string]any     `json:"input"`
+	Results  []relocationResult `json:"results"`
+	Warnings []jsonWarning      `json:"warnings"`
+}
+
 func decodeRelocationOutput(t *testing.T, data []byte) relocationOutput {
 	t.Helper()
 	var got relocationOutput
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, string(data))
+	}
+	if got.Input == nil {
+		t.Fatalf("input = nil, want empty object")
+	}
+	if len(got.Input) != 0 {
+		t.Fatalf("input = %+v, want empty object", got.Input)
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }

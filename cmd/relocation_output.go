@@ -12,10 +12,6 @@ type relocationResult struct {
 	Result jsonMetadata    `json:"result"`
 }
 
-type relocationOutput struct {
-	Results []relocationResult `json:"results"`
-}
-
 func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) relocationResult {
 	var metadata files.IsMetadata
 	if res != nil {
@@ -29,4 +25,12 @@ func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) 
 		},
 		Result: jsonMetadataFromDropbox(metadata),
 	}
+}
+
+func relocationOperationResults(results []relocationResult) []jsonOperationResult {
+	operationResults := make([]jsonOperationResult, 0, len(results))
+	for _, result := range results {
+		operationResults = append(operationResults, newJSONOperationResult("", "", result.Input, result.Result))
+	}
+	return operationResults
 }

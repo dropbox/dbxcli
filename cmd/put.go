@@ -236,11 +236,6 @@ type putResult struct {
 	Result *jsonMetadata  `json:"result,omitempty"`
 }
 
-type putOutputData struct {
-	Input   putCommandInput `json:"input"`
-	Results []putResult     `json:"results"`
-}
-
 type putDestinationAction int
 
 const (
@@ -265,10 +260,19 @@ func newPutResult(status, kind, source, target string, metadata files.IsMetadata
 }
 
 func renderPutResults(cmd *cobra.Command, input putCommandInput, results []putResult) error {
-	return commandOutput(cmd).Render(nil, putOutputData{
-		Input:   input,
-		Results: results,
-	})
+	return renderJSONOperationOutput(cmd, input, putOperationResults(results))
+}
+
+func putOperationResults(results []putResult) []jsonOperationResult {
+	operationResults := make([]jsonOperationResult, 0, len(results))
+	for _, result := range results {
+		var metadata any
+		if result.Result != nil {
+			metadata = result.Result
+		}
+		operationResults = append(operationResults, newJSONOperationResult(result.Status, result.Kind, result.Input, metadata))
+	}
+	return operationResults
 }
 
 func put(cmd *cobra.Command, args []string) (err error) {

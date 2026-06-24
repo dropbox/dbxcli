@@ -264,12 +264,24 @@ func testPutJSONCmd(stdout, stderr *bytes.Buffer) *cobra.Command {
 	return cmd
 }
 
+type putOutputData struct {
+	Input    putCommandInput `json:"input"`
+	Results  []putResult     `json:"results"`
+	Warnings []jsonWarning   `json:"warnings"`
+}
+
 func decodePutOutput(t *testing.T, stdout *bytes.Buffer) putOutputData {
 	t.Helper()
 
 	var got putOutputData
 	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
 		t.Fatalf("decode put JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }
