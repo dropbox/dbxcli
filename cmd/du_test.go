@@ -50,14 +50,24 @@ func TestDuJSONIndividualAllocation(t *testing.T) {
 	}
 
 	got := decodeDuOutput(t, stdout)
-	if got.Used != 1024 {
-		t.Fatalf("used = %d, want 1024", got.Used)
+	if len(got.Input) != 0 {
+		t.Fatalf("input = %#v, want empty object", got.Input)
 	}
-	if got.Allocation.Type != "individual" || got.Allocation.Allocated == nil || *got.Allocation.Allocated != 2048 {
-		t.Fatalf("allocation = %#v, want individual allocation", got.Allocation)
+	result := got.Results[0]
+	if result.Kind != duKindSpaceUsage {
+		t.Fatalf("kind = %q, want space_usage", result.Kind)
 	}
-	if got.Allocation.Used != nil {
-		t.Fatalf("allocation.used = %#v, want omitted for individual allocation", got.Allocation.Used)
+	if len(result.Input) != 0 {
+		t.Fatalf("result input = %#v, want empty object", result.Input)
+	}
+	if result.Result.Used != 1024 {
+		t.Fatalf("used = %d, want 1024", result.Result.Used)
+	}
+	if result.Result.Allocation.Type != "individual" || result.Result.Allocation.Allocated == nil || *result.Result.Allocation.Allocated != 2048 {
+		t.Fatalf("allocation = %#v, want individual allocation", result.Result.Allocation)
+	}
+	if result.Result.Allocation.Used != nil {
+		t.Fatalf("allocation.used = %#v, want omitted for individual allocation", result.Result.Allocation.Used)
 	}
 }
 
@@ -75,20 +85,24 @@ func TestDuJSONTeamAllocation(t *testing.T) {
 	}
 
 	got := decodeDuOutput(t, stdout)
-	if got.Used != 4096 {
-		t.Fatalf("used = %d, want 4096", got.Used)
+	result := got.Results[0]
+	if result.Kind != duKindSpaceUsage {
+		t.Fatalf("kind = %q, want space_usage", result.Kind)
 	}
-	if got.Allocation.Type != "team" {
-		t.Fatalf("allocation.type = %q, want team", got.Allocation.Type)
+	if result.Result.Used != 4096 {
+		t.Fatalf("used = %d, want 4096", result.Result.Used)
 	}
-	if got.Allocation.Allocated == nil || *got.Allocation.Allocated != 8192 {
-		t.Fatalf("allocation.allocated = %#v, want 8192", got.Allocation.Allocated)
+	if result.Result.Allocation.Type != "team" {
+		t.Fatalf("allocation.type = %q, want team", result.Result.Allocation.Type)
 	}
-	if got.Allocation.Used == nil || *got.Allocation.Used != 2048 {
-		t.Fatalf("allocation.used = %#v, want 2048", got.Allocation.Used)
+	if result.Result.Allocation.Allocated == nil || *result.Result.Allocation.Allocated != 8192 {
+		t.Fatalf("allocation.allocated = %#v, want 8192", result.Result.Allocation.Allocated)
 	}
-	if got.Allocation.UserWithinTeamSpaceLimitType != "alert_only" {
-		t.Fatalf("user_within_team_space_limit_type = %q, want alert_only", got.Allocation.UserWithinTeamSpaceLimitType)
+	if result.Result.Allocation.Used == nil || *result.Result.Allocation.Used != 2048 {
+		t.Fatalf("allocation.used = %#v, want 2048", result.Result.Allocation.Used)
+	}
+	if result.Result.Allocation.UserWithinTeamSpaceLimitType != "alert_only" {
+		t.Fatalf("user_within_team_space_limit_type = %q, want alert_only", result.Result.Allocation.UserWithinTeamSpaceLimitType)
 	}
 }
 
@@ -130,12 +144,33 @@ func setDuOutputJSON(t *testing.T, cmd *cobra.Command) {
 	}
 }
 
-func decodeDuOutput(t *testing.T, out *bytes.Buffer) duOutput {
+type duJSONOutput struct {
+	Input    map[string]any `json:"input"`
+	Results  []duJSONResult `json:"results"`
+	Warnings []jsonWarning  `json:"warnings"`
+}
+
+type duJSONResult struct {
+	Kind   string         `json:"kind"`
+	Input  map[string]any `json:"input"`
+	Result duOutput       `json:"result"`
+}
+
+func decodeDuOutput(t *testing.T, out *bytes.Buffer) duJSONOutput {
 	t.Helper()
 
-	var got duOutput
-	if err := json.NewDecoder(out).Decode(&got); err != nil {
+	var got duJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
 	}
 	return got
 }

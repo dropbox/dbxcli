@@ -23,6 +23,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type duInput struct{}
+
 type duOutput struct {
 	Used       uint64       `json:"used"`
 	Allocation duAllocation `json:"allocation"`
@@ -37,6 +39,8 @@ type duAllocation struct {
 	UserWithinTeamSpaceLimitType  string  `json:"user_within_team_space_limit_type,omitempty"`
 }
 
+const duKindSpaceUsage = "space_usage"
+
 func du(cmd *cobra.Command, args []string) (err error) {
 	dbx := usersNewFunc(config)
 	usage, err := dbx.GetSpaceUsage()
@@ -46,7 +50,7 @@ func du(cmd *cobra.Command, args []string) (err error) {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderUsage(w, usage)
-	}, newDuOutput(usage))
+	}, newDuOperationOutput(usage))
 }
 
 func renderUsage(out io.Writer, usage *users.SpaceUsage) error {
@@ -72,6 +76,13 @@ func newDuOutput(usage *users.SpaceUsage) duOutput {
 		Used:       usage.Used,
 		Allocation: newDuAllocation(usage.Allocation),
 	}
+}
+
+func newDuOperationOutput(usage *users.SpaceUsage) jsonOperationOutput {
+	input := duInput{}
+	return newJSONOperationOutput(input, []jsonOperationResult{
+		newJSONOperationResult("", duKindSpaceUsage, input, newDuOutput(usage)),
+	}, nil)
 }
 
 func newDuAllocation(allocation *users.SpaceAllocation) duAllocation {

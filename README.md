@@ -158,7 +158,7 @@ Structured success output is rolling out command by command. Currently migrated 
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. New operation-style JSON payloads should use the same `warnings` field.
 
-Successful JSON responses are command-specific. Operation commands return an `input` object, a `results` array, and a `warnings` array. For commands such as `mkdir`, each result reports what happened to the requested path:
+Successful JSON responses are command-specific. Operation-style commands return an `input` object, a `results` array, and a `warnings` array. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
 {
@@ -299,28 +299,45 @@ Commands that return entry lists, such as `ls`, `search`, and `revs`, return an 
 }
 ```
 
-Account and usage commands return command-specific objects:
+Account and usage commands use the operation-style wrapper with a single result:
 
 ```json
 {
   "input": {},
-  "account": {
-    "type": "full",
-    "account_id": "dbid:...",
-    "email": "user@example.com",
-    "email_verified": true,
-    "disabled": false
-  }
+  "results": [
+    {
+      "kind": "account",
+      "input": {},
+      "result": {
+        "type": "full",
+        "account_id": "dbid:...",
+        "email": "user@example.com",
+        "email_verified": true,
+        "disabled": false
+      }
+    }
+  ],
+  "warnings": []
 }
 ```
 
 ```json
 {
-  "used": 123,
-  "allocation": {
-    "type": "individual",
-    "allocated": 100000
-  }
+  "input": {},
+  "results": [
+    {
+      "kind": "space_usage",
+      "input": {},
+      "result": {
+        "used": 123,
+        "allocation": {
+          "type": "individual",
+          "allocated": 100000
+        }
+      }
+    }
+  ],
+  "warnings": []
 }
 ```
 

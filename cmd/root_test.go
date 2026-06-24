@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -119,6 +122,39 @@ func TestInitDbxRejectsUnsupportedStructuredOutputBeforeAuth(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "structured output is not supported") {
 		t.Fatalf("error = %q, want structured output error", err.Error())
+	}
+}
+
+func TestCompletionJSONUnsupportedOutputReturnsError(t *testing.T) {
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	root := &cobra.Command{
+		Use:               "dbxcli",
+		SilenceUsage:      true,
+		SilenceErrors:     true,
+		PersistentPreRunE: initDbx,
+	}
+	root.SetOut(&stdout)
+	root.SetErr(&stderr)
+	root.SetArgs([]string{"completion", "--output=json"})
+	root.PersistentFlags().BoolP("verbose", "v", false, "")
+	root.PersistentFlags().String(outputFlag, "text", "")
+	root.PersistentFlags().String("as-member", "", "")
+	root.PersistentFlags().String("domain", "", "")
+	root.AddCommand(newCompletionCmd())
+
+	err := root.Execute()
+	if !errors.Is(err, output.ErrStructuredOutputUnsupported) {
+		t.Fatalf("error = %v, want structured output unsupported", err)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want no text help output", got)
+	}
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
 	}
 }
 

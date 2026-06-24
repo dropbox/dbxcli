@@ -28,11 +28,6 @@ type accountInput struct {
 	AccountID string `json:"account_id,omitempty"`
 }
 
-type accountOutput struct {
-	Input   accountInput `json:"input"`
-	Account jsonAccount  `json:"account"`
-}
-
 type jsonAccount struct {
 	Type            string           `json:"type"`
 	AccountID       string           `json:"account_id"`
@@ -63,6 +58,8 @@ type jsonAccountTeam struct {
 	Name     string `json:"name"`
 	MemberID string `json:"member_id,omitempty"`
 }
+
+const accountKindAccount = "account"
 
 // renderFullAccount prints the account details returned by GetCurrentAccount.
 func renderFullAccount(out io.Writer, fa *users.FullAccount) error {
@@ -117,12 +114,10 @@ func account(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		input := accountInput{}
 		return out.Render(func(w io.Writer) error {
 			return renderFullAccount(w, res)
-		}, accountOutput{
-			Input:   accountInput{},
-			Account: jsonFullAccount(res),
-		})
+		}, newAccountOperationOutput(input, jsonFullAccount(res)))
 	}
 
 	// Otherwise look up an account with the provided ID
@@ -131,14 +126,18 @@ func account(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	input := accountInput{
+		AccountID: args[0],
+	}
 	return out.Render(func(w io.Writer) error {
 		return renderBasicAccount(w, res)
-	}, accountOutput{
-		Input: accountInput{
-			AccountID: args[0],
-		},
-		Account: jsonBasicAccount(res),
-	})
+	}, newAccountOperationOutput(input, jsonBasicAccount(res)))
+}
+
+func newAccountOperationOutput(input accountInput, account jsonAccount) jsonOperationOutput {
+	return newJSONOperationOutput(input, []jsonOperationResult{
+		newJSONOperationResult("", accountKindAccount, input, account),
+	}, nil)
 }
 
 func jsonFullAccount(fa *users.FullAccount) jsonAccount {
