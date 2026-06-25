@@ -68,7 +68,7 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 			return nil
 		}
 		return renderRestoreResult(w, result)
-	}, newJSONOperationOutput(result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
+	}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
 }
 
 func newRestoreResult(path, revision string, metadata *files.FileMetadata) restoreResult {

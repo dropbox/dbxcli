@@ -213,7 +213,7 @@ func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
 	}
 
 	if forceJSON || commandOutputFormat(cmd) == output.FormatJSON {
-		renderErr := output.New(cmd.OutOrStdout(), cmd.ErrOrStderr(), output.FormatJSON).Render(nil, newJSONErrorResponse(err))
+		renderErr := output.New(cmd.OutOrStdout(), cmd.ErrOrStderr(), output.FormatJSON).Render(nil, newJSONErrorResponse(cmd, err))
 		if renderErr == nil {
 			return
 		}

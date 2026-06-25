@@ -58,7 +58,10 @@ type jsonAccountTeam struct {
 	MemberID string `json:"member_id,omitempty"`
 }
 
-const accountKindAccount = "account"
+const (
+	accountJSONStatusFound = "found"
+	accountKindAccount     = "account"
+)
 
 // renderFullAccount prints the account details returned by GetCurrentAccount.
 func renderFullAccount(out io.Writer, fa *users.FullAccount) error {
@@ -116,7 +119,7 @@ func account(cmd *cobra.Command, args []string) error {
 		input := accountInput{}
 		return out.Render(func(w io.Writer) error {
 			return renderFullAccount(w, res)
-		}, newAccountOperationOutput(input, jsonFullAccount(res)))
+		}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonFullAccount(res))))
 	}
 
 	// Otherwise look up an account with the provided ID
@@ -130,12 +133,12 @@ func account(cmd *cobra.Command, args []string) error {
 	}
 	return out.Render(func(w io.Writer) error {
 		return renderBasicAccount(w, res)
-	}, newAccountOperationOutput(input, jsonBasicAccount(res)))
+	}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonBasicAccount(res))))
 }
 
 func newAccountOperationOutput(input accountInput, account jsonAccount) jsonOperationOutput {
 	return newJSONOperationOutput(input, []jsonOperationResult{
-		newJSONOperationResult("", accountKindAccount, input, account),
+		newJSONOperationResult(accountJSONStatusFound, accountKindAccount, input, account),
 	}, nil)
 }
 

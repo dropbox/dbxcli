@@ -1,11 +1,17 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"strings"
+
+	"github.com/spf13/cobra"
+)
 
 type jsonErrorResponse struct {
-	OK       bool          `json:"ok"`
-	Error    jsonError     `json:"error"`
-	Warnings []jsonWarning `json:"warnings"`
+	OK            bool          `json:"ok"`
+	SchemaVersion string        `json:"schema_version"`
+	Command       string        `json:"command"`
+	Error         jsonError     `json:"error"`
+	Warnings      []jsonWarning `json:"warnings"`
 }
 
 type jsonError struct {
@@ -25,21 +31,28 @@ const (
 )
 
 type jsonOperationOutput struct {
-	Input    any                   `json:"input"`
-	Results  []jsonOperationResult `json:"results"`
-	Warnings []jsonWarning         `json:"warnings"`
+	OK            bool                  `json:"ok"`
+	SchemaVersion string                `json:"schema_version"`
+	Command       string                `json:"command"`
+	Input         any                   `json:"input"`
+	Results       []jsonOperationResult `json:"results"`
+	Warnings      []jsonWarning         `json:"warnings"`
 }
 
 type jsonOperationResult struct {
-	Status string `json:"status,omitempty"`
-	Kind   string `json:"kind,omitempty"`
-	Input  any    `json:"input,omitempty"`
-	Result any    `json:"result,omitempty"`
+	Status string `json:"status"`
+	Kind   string `json:"kind"`
+	Input  any    `json:"input"`
+	Result any    `json:"result"`
 }
 
-func newJSONErrorResponse(err error) jsonErrorResponse {
+const jsonSchemaVersion = "1"
+
+func newJSONErrorResponse(cmd *cobra.Command, err error) jsonErrorResponse {
 	return jsonErrorResponse{
-		OK: false,
+		OK:            false,
+		SchemaVersion: jsonSchemaVersion,
+		Command:       jsonCommandPath(cmd),
 		Error: jsonError{
 			Message: err.Error(),
 			Code:    jsonErrorCode(err),
@@ -50,10 +63,23 @@ func newJSONErrorResponse(err error) jsonErrorResponse {
 
 func newJSONOperationOutput(input any, results []jsonOperationResult, warnings []jsonWarning) jsonOperationOutput {
 	return jsonOperationOutput{
-		Input:    normalizeJSONInput(input),
-		Results:  normalizeJSONOperationResults(results),
-		Warnings: normalizeJSONWarnings(warnings),
+		OK:            true,
+		SchemaVersion: jsonSchemaVersion,
+		Input:         normalizeJSONInput(input),
+		Results:       normalizeJSONOperationResults(results),
+		Warnings:      normalizeJSONWarnings(warnings),
 	}
+}
+
+func newJSONCommandOperationOutput(cmd *cobra.Command, input any, results []jsonOperationResult, warnings []jsonWarning) jsonOperationOutput {
+	return withJSONCommand(cmd, newJSONOperationOutput(input, results, warnings))
+}
+
+func withJSONCommand(cmd *cobra.Command, out jsonOperationOutput) jsonOperationOutput {
+	out.OK = true
+	out.SchemaVersion = jsonSchemaVersion
+	out.Command = jsonCommandPath(cmd)
+	return out
 }
 
 func renderJSONOperationOutput(cmd *cobra.Command, input any, results []jsonOperationResult) error {
@@ -61,16 +87,16 @@ func renderJSONOperationOutput(cmd *cobra.Command, input any, results []jsonOper
 }
 
 func renderJSONOperationOutputWithWarnings(cmd *cobra.Command, input any, results []jsonOperationResult, warnings []jsonWarning) error {
-	return commandOutput(cmd).Render(nil, newJSONOperationOutput(input, results, warnings))
+	return commandOutput(cmd).Render(nil, newJSONCommandOperationOutput(cmd, input, results, warnings))
 }
 
 func newJSONOperationResult(status, kind string, input any, result any) jsonOperationResult {
-	return jsonOperationResult{
+	return normalizeJSONOperationResult(jsonOperationResult{
 		Status: status,
 		Kind:   kind,
 		Input:  input,
 		Result: result,
-	}
+	})
 }
 
 func newJSONMetadataOperationResults(status string, entries []jsonMetadata) []jsonOperationResult {
@@ -82,17 +108,36 @@ func newJSONMetadataOperationResults(status string, entries []jsonMetadata) []js
 }
 
 func normalizeJSONInput(input any) any {
-	if input == nil {
-		return struct{}{}
-	}
-	return input
+	return normalizeJSONObject(input)
 }
 
 func normalizeJSONOperationResults(results []jsonOperationResult) []jsonOperationResult {
 	if results == nil {
 		return []jsonOperationResult{}
 	}
+	for i := range results {
+		results[i] = normalizeJSONOperationResult(results[i])
+	}
 	return results
+}
+
+func normalizeJSONOperationResult(result jsonOperationResult) jsonOperationResult {
+	if result.Status == "" {
+		result.Status = "unknown"
+	}
+	if result.Kind == "" {
+		result.Kind = "unknown"
+	}
+	result.Input = normalizeJSONObject(result.Input)
+	result.Result = normalizeJSONObject(result.Result)
+	return result
+}
+
+func normalizeJSONObject(value any) any {
+	if value == nil {
+		return struct{}{}
+	}
+	return value
 }
 
 func emptyJSONWarnings() []jsonWarning {
@@ -104,4 +149,21 @@ func normalizeJSONWarnings(warnings []jsonWarning) []jsonWarning {
 		return emptyJSONWarnings()
 	}
 	return warnings
+}
+
+func jsonCommandPath(cmd *cobra.Command) string {
+	if cmd == nil {
+		return ""
+	}
+	if cmd.Parent() == nil {
+		return cmd.Name()
+	}
+
+	var parts []string
+	for c := cmd; c != nil && c.Parent() != nil; c = c.Parent() {
+		if name := c.Name(); name != "" {
+			parts = append([]string{name}, parts...)
+		}
+	}
+	return strings.Join(parts, " ")
 }

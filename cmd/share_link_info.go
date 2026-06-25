@@ -73,7 +73,8 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinkInfo(w, link)
-	}, newJSONOperationOutput(
+	}, newJSONCommandOperationOutput(
+		cmd,
 		shareLinkInfoInput{
 			URL:      url,
 			Path:     opts.path,

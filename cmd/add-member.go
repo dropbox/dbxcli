@@ -46,7 +46,7 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	}
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderTeamMemberAdd(w, res)
-	}, teamMemberAddOperationOutput(input, res))
+	}, withJSONCommand(cmd, teamMemberAddOperationOutput(input, res)))
 }
 
 func renderTeamMemberAdd(out io.Writer, res *team.MembersAddLaunch) error {

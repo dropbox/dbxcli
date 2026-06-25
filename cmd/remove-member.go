@@ -40,7 +40,7 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 	input := teamMemberRemoveInput{Email: email}
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderTeamMemberRemove(w, res)
-	}, teamMemberRemoveOperationOutput(input, res))
+	}, withJSONCommand(cmd, teamMemberRemoveOperationOutput(input, res)))
 }
 
 func renderTeamMemberRemove(out io.Writer, res *async.LaunchEmptyResult) error {

@@ -81,8 +81,11 @@
       "path"
     ],
     "operation_output": [
+      "command",
       "input",
+      "ok",
       "results",
+      "schema_version",
       "warnings"
     ],
     "operation_result": [
@@ -291,7 +294,9 @@
       "input": "account_input",
       "result_input": "account_input",
       "result": "account",
-      "statuses": [],
+      "statuses": [
+        "found"
+      ],
       "kinds": [
         "account"
       ],
@@ -303,8 +308,15 @@
       "input": "empty",
       "result_input": "relocation_input",
       "result": "metadata",
-      "statuses": [],
-      "kinds": [],
+      "statuses": [
+        "copied"
+      ],
+      "kinds": [
+        "deleted",
+        "file",
+        "folder",
+        "unknown"
+      ],
       "warnings": []
     },
     "du": {
@@ -313,7 +325,9 @@
       "input": "empty",
       "result_input": "empty",
       "result": "du_output",
-      "statuses": [],
+      "statuses": [
+        "reported"
+      ],
       "kinds": [
         "space_usage"
       ],
@@ -340,7 +354,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "ls_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "metadata",
       "statuses": [
         "listed"
@@ -374,8 +388,15 @@
       "input": "empty",
       "result_input": "relocation_input",
       "result": "metadata",
-      "statuses": [],
-      "kinds": [],
+      "statuses": [
+        "moved"
+      ],
+      "kinds": [
+        "deleted",
+        "file",
+        "folder",
+        "unknown"
+      ],
       "warnings": []
     },
     "put": {
@@ -416,7 +437,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "revs_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "metadata",
       "statuses": [
         "revision"
@@ -433,15 +454,23 @@
       "input": "empty",
       "result_input": "remove_input",
       "result": "metadata",
-      "statuses": [],
-      "kinds": [],
+      "statuses": [
+        "deleted",
+        "permanently_deleted"
+      ],
+      "kinds": [
+        "deleted",
+        "file",
+        "folder",
+        "unknown"
+      ],
       "warnings": []
     },
     "search": {
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "search_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "metadata",
       "statuses": [
         "found"
@@ -458,7 +487,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "empty",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_folder",
       "statuses": [
         "listed"
@@ -472,7 +501,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_list_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_metadata",
       "statuses": [
         "listed"
@@ -490,7 +519,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_create_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_metadata",
       "statuses": [
         "created",
@@ -507,7 +536,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_download_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_download_result",
       "statuses": [
         "downloaded"
@@ -523,7 +552,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_info_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_metadata",
       "statuses": [
         "found"
@@ -539,7 +568,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_list_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_metadata",
       "statuses": [
         "listed"
@@ -555,7 +584,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_revoke_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_revoke_result",
       "statuses": [
         "revoked"
@@ -572,7 +601,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_update_input",
-      "result_input": null,
+      "result_input": "empty",
       "result": "share_link_metadata",
       "statuses": [
         "updated"
@@ -618,7 +647,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "empty",
-      "result_input": null,
+      "result_input": "empty",
       "result": "team_group",
       "statuses": [
         "listed"
@@ -632,7 +661,7 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "empty",
-      "result_input": null,
+      "result_input": "empty",
       "result": "team_member",
       "statuses": [
         "listed"
@@ -664,7 +693,9 @@
       "input": "empty",
       "result_input": "empty",
       "result": "version",
-      "statuses": [],
+      "statuses": [
+        "reported"
+      ],
       "kinds": [
         "version"
       ],

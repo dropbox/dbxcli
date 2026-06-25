@@ -278,7 +278,7 @@ func TestRenderCommandErrorTextUnknownCommandIncludesUsageHint(t *testing.T) {
 func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := &cobra.Command{Use: "rm"}
 	cmd.SetOut(&stdout)
 	cmd.SetErr(&stderr)
 	cmd.Flags().String(outputFlag, "json", "")
@@ -292,6 +292,12 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	got := decodeJSONErrorResponse(t, rendered)
 	if got.OK {
 		t.Fatalf("ok = true, want false")
+	}
+	if got.SchemaVersion != jsonSchemaVersion {
+		t.Fatalf("schema_version = %q, want %q", got.SchemaVersion, jsonSchemaVersion)
+	}
+	if got.Command != "rm" {
+		t.Fatalf("command = %q, want rm", got.Command)
 	}
 	if got.Error.Message != "failed" {
 		t.Fatalf("message = %q, want failed", got.Error.Message)
@@ -406,7 +412,9 @@ func TestNewJSONOperationOutputNormalizesResults(t *testing.T) {
 
 func TestRenderJSONOperationOutput(t *testing.T) {
 	var stdout bytes.Buffer
-	cmd := &cobra.Command{}
+	root := &cobra.Command{Use: "dbxcli"}
+	cmd := &cobra.Command{Use: "get"}
+	root.AddCommand(cmd)
 	cmd.SetOut(&stdout)
 	cmd.Flags().String(outputFlag, "json", "")
 
@@ -434,6 +442,9 @@ func TestRenderJSONOperationOutput(t *testing.T) {
 
 	rendered := stdout.String()
 	for _, want := range []string{
+		`"ok":true`,
+		`"schema_version":"1"`,
+		`"command":"get"`,
 		`"input":{"path":"/file.txt"}`,
 		`"results":[{"status":"downloaded","kind":"file"`,
 		`"warnings":[]`,
@@ -444,7 +455,7 @@ func TestRenderJSONOperationOutput(t *testing.T) {
 	}
 }
 
-func TestNewJSONOperationResultOmitsEmptyFields(t *testing.T) {
+func TestNewJSONOperationResultNormalizesEmptyFields(t *testing.T) {
 	got := newJSONOperationResult(
 		"",
 		"",
@@ -459,13 +470,15 @@ func TestNewJSONOperationResultOmitsEmptyFields(t *testing.T) {
 		t.Fatalf("marshal operation result: %v", err)
 	}
 	rendered := string(encoded)
-	for _, unwanted := range []string{`"status"`, `"kind"`, `"result"`} {
-		if strings.Contains(rendered, unwanted) {
-			t.Fatalf("encoded output = %s, did not expect %s", rendered, unwanted)
+	for _, want := range []string{
+		`"status":"unknown"`,
+		`"kind":"unknown"`,
+		`"input":{"path":"/file.txt"}`,
+		`"result":{}`,
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("encoded output = %s, want %s", rendered, want)
 		}
-	}
-	if !strings.Contains(rendered, `"input":{"path":"/file.txt"}`) {
-		t.Fatalf("encoded output = %s, want input", rendered)
 	}
 }
 
@@ -486,8 +499,11 @@ func TestNewJSONMetadataOperationResults(t *testing.T) {
 	if len(results) != 2 {
 		t.Fatalf("results = %d, want 2", len(results))
 	}
-	if results[0].Status != "listed" || results[0].Kind != "file" || results[0].Input != nil {
-		t.Fatalf("first result = %#v, want listed file with no per-result input", results[0])
+	if results[0].Status != "listed" || results[0].Kind != "file" {
+		t.Fatalf("first result = %#v, want listed file", results[0])
+	}
+	if _, ok := results[0].Input.(struct{}); !ok {
+		t.Fatalf("first result input = %#v, want empty object", results[0].Input)
 	}
 	first, ok := results[0].Result.(jsonMetadata)
 	if !ok {

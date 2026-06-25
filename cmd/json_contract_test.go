@@ -92,12 +92,14 @@ func TestStructuredOutputGoldenSchemaAudit(t *testing.T) {
 		}
 		assertGoldenCommandSchemaEqual(t, command, gotSchema, wantSchema)
 		assertGoldenCommandSchemaReferences(t, command, gotSchema, contract.Definitions)
+		assertGoldenCommandStatuses(t, command, gotSchema)
 	}
 	for command, schema := range contract.Commands {
 		if !structuredSet[command] {
 			t.Errorf("golden schema includes non-structured command %q", command)
 		}
 		assertGoldenCommandSchemaReferences(t, command, schema, contract.Definitions)
+		assertGoldenCommandStatuses(t, command, schema)
 	}
 	for command := range want {
 		if !structuredSet[command] {
@@ -138,6 +140,58 @@ func TestStructuredOutputGoldenSuccessOutputAudit(t *testing.T) {
 		if !structuredSet[command] {
 			t.Errorf("code-derived success output example includes non-structured command %q", command)
 		}
+	}
+}
+
+func TestPublicJSONSchemaFiles(t *testing.T) {
+	tests := []struct {
+		file       string
+		ok         bool
+		required   []string
+		properties []string
+	}{
+		{
+			file:       "../docs/json-schema/v1/success.schema.json",
+			ok:         true,
+			required:   []string{"ok", "schema_version", "command", "input", "results", "warnings"},
+			properties: []string{"ok", "schema_version", "command", "input", "results", "warnings"},
+		},
+		{
+			file:       "../docs/json-schema/v1/error.schema.json",
+			ok:         false,
+			required:   []string{"ok", "schema_version", "command", "error", "warnings"},
+			properties: []string{"ok", "schema_version", "command", "error", "warnings"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.file, func(t *testing.T) {
+			schema := loadPublicJSONSchema(t, tt.file)
+			if schema.Schema == "" {
+				t.Fatalf("%s has no $schema", tt.file)
+			}
+			if schema.ID == "" {
+				t.Fatalf("%s has no $id", tt.file)
+			}
+			if schema.Type != "object" {
+				t.Fatalf("%s type = %q, want object", tt.file, schema.Type)
+			}
+			if got, want := schema.Properties["ok"].Const, tt.ok; got != want {
+				t.Fatalf("%s ok const = %v, want %v", tt.file, got, want)
+			}
+			if got, want := schema.Properties["schema_version"].Const, jsonSchemaVersion; got != want {
+				t.Fatalf("%s schema_version const = %v, want %v", tt.file, got, want)
+			}
+			assertStringSliceEqual(t, tt.file+" required", schema.Required, tt.required)
+			assertStringSliceEqual(t, tt.file+" properties", mapKeys(schema.Properties), tt.properties)
+			if tt.ok {
+				assertStringSliceEqual(t, tt.file+" result required", schema.Defs["result"].Required, []string{"status", "kind", "input", "result"})
+			} else {
+				errorSchema := schema.Properties["error"]
+				codeSchema := errorSchema.Properties["code"]
+				assertStringSliceEqual(t, tt.file+" error code enum", codeSchema.Enum, expectedJSONErrorCodes())
+			}
+		})
 	}
 }
 
@@ -196,6 +250,21 @@ type jsonGoldenCommandSchema struct {
 	Statuses      []string `json:"statuses"`
 	Kinds         []string `json:"kinds"`
 	Warnings      []string `json:"warnings"`
+}
+
+type publicJSONSchema struct {
+	Schema     string                              `json:"$schema"`
+	ID         string                              `json:"$id"`
+	Type       string                              `json:"type"`
+	Required   []string                            `json:"required"`
+	Properties map[string]publicJSONSchemaProperty `json:"properties"`
+	Defs       map[string]publicJSONSchema         `json:"$defs"`
+}
+
+type publicJSONSchemaProperty struct {
+	Const      any                                 `json:"const"`
+	Enum       []string                            `json:"enum"`
+	Properties map[string]publicJSONSchemaProperty `json:"properties"`
 }
 
 func jsonSuccessFixtureCoverage() map[string]jsonSuccessFixture {
@@ -372,6 +441,41 @@ func loadJSONGoldenSuccessOutputs(t *testing.T) map[string]json.RawMessage {
 	return fixtures
 }
 
+func loadPublicJSONSchema(t *testing.T, file string) publicJSONSchema {
+	t.Helper()
+
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatalf("read public JSON schema %s: %v", file, err)
+	}
+
+	var schema publicJSONSchema
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("decode public JSON schema %s: %v", file, err)
+	}
+	return schema
+}
+
+func expectedJSONErrorCodes() []string {
+	return []string{
+		jsonErrorCodeAppKeyRequired,
+		jsonErrorCodeAuthExchangeFailed,
+		jsonErrorCodeAuthRefreshFailed,
+		jsonErrorCodeAuthRequired,
+		jsonErrorCodeCommandFailed,
+		jsonErrorCodeDropboxAPIError,
+		jsonErrorCodeInvalidArguments,
+		jsonErrorCodeNotFound,
+		jsonErrorCodePathConflict,
+		jsonErrorCodePermissionDenied,
+		jsonErrorCodeRateLimited,
+		jsonErrorCodeStructuredOutputUnsupported,
+		jsonErrorCodeUnknownCommand,
+		jsonErrorCodeUnknownFlag,
+		jsonErrorCodeUnsupportedOutputFormat,
+	}
+}
+
 func assertGoldenJSONEqual(t *testing.T, command string, fixture json.RawMessage, actual any) {
 	t.Helper()
 
@@ -404,15 +508,15 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 	sharedLink := sampleShareLinkJSONMetadata()
 	teamMember := sampleTeamMemberJSON()
 
-	return map[string]jsonOperationOutput{
+	examples := map[string]jsonOperationOutput{
 		"account": newJSONOperationOutput(accountInput{AccountID: "dbid:lookup"}, []jsonOperationResult{
-			newJSONOperationResult("", accountKindAccount, accountInput{AccountID: "dbid:lookup"}, sampleJSONAccount()),
+			newJSONOperationResult(accountJSONStatusFound, accountKindAccount, accountInput{AccountID: "dbid:lookup"}, sampleJSONAccount()),
 		}, nil),
 		"cp": newJSONOperationOutput(nil, []jsonOperationResult{
-			newJSONOperationResult("", "", relocationInput{FromPath: "/Reports/old.pdf", ToPath: "/Reports/copy.pdf"}, copyFile),
+			newJSONOperationResult(relocationJSONStatusCopied, copyFile.Type, relocationInput{FromPath: "/Reports/old.pdf", ToPath: "/Reports/copy.pdf"}, copyFile),
 		}, nil),
 		"du": newJSONOperationOutput(duInput{}, []jsonOperationResult{
-			newJSONOperationResult("", duKindSpaceUsage, duInput{}, duOutput{
+			newJSONOperationResult(duJSONStatusReported, duKindSpaceUsage, duInput{}, duOutput{
 				Used: 2048,
 				Allocation: duAllocation{
 					Type:                          "team",
@@ -434,7 +538,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 			newJSONOperationResult(mkdirStatusCreated, mkdirKindFolder, mkdirInput{Path: "/Reports/new", Parents: true}, sampleJSONFolderMetadata("/Reports/new")),
 		}, nil),
 		"mv": newJSONOperationOutput(nil, []jsonOperationResult{
-			newJSONOperationResult("", "", relocationInput{FromPath: "/Reports/copy.pdf", ToPath: "/Reports/moved.pdf"}, sampleJSONFileMetadata("/Reports/moved.pdf")),
+			newJSONOperationResult(relocationJSONStatusMoved, "file", relocationInput{FromPath: "/Reports/copy.pdf", ToPath: "/Reports/moved.pdf"}, sampleJSONFileMetadata("/Reports/moved.pdf")),
 		}, nil),
 		"put": newJSONOperationOutput(putCommandInput{Source: "README.md", Target: "/README.md", Recursive: true, IfExists: putIfExistsOverwrite, Stdin: false}, []jsonOperationResult{
 			newJSONOperationResult(putStatusUploaded, putKindFile, putResultInput{Source: "README.md", Target: "/README.md"}, sampleJSONFileMetadata("/README.md")),
@@ -446,7 +550,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 			newJSONOperationResult(revsJSONStatusRevision, file.Type, nil, file),
 		}, nil),
 		"rm": newJSONOperationOutput(nil, []jsonOperationResult{
-			newJSONOperationResult("", "", removeInput{Path: "/Reports/old.pdf", Permanent: false, Recursive: false, Force: false}, file),
+			newJSONOperationResult(removeJSONStatusDeleted, file.Type, removeInput{Path: "/Reports/old.pdf", Permanent: false, Recursive: false, Force: false}, file),
 		}, nil),
 		"search": newJSONOperationOutput(searchInput{Query: "report", Path: "/Reports", Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(searchJSONStatusFound, folder.Type, nil, folder),
@@ -499,9 +603,16 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 			newJSONOperationResult(teamJSONStatusRemoved, teamJSONKindTeamMember, teamMemberRemoveInput{Email: "ada@example.com"}, teamMemberMutationJSON{Type: teamJSONTypeMemberRemove, Tag: "complete", AsyncJobID: "async-job-id"}),
 		}, nil),
 		"version": newJSONOperationOutput(versionInput{}, []jsonOperationResult{
-			newJSONOperationResult("", versionKindVersion, versionInput{}, versionOutput{Version: "1.2.3", SDKVersion: "sdk-version", SpecVersion: "spec-version"}),
+			newJSONOperationResult(versionJSONStatusReported, versionKindVersion, versionInput{}, versionOutput{Version: "1.2.3", SDKVersion: "sdk-version", SpecVersion: "spec-version"}),
 		}, nil),
 	}
+	for command, example := range examples {
+		example.OK = true
+		example.SchemaVersion = jsonSchemaVersion
+		example.Command = command
+		examples[command] = example
+	}
+	return examples
 }
 
 func sampleJSONAccount() jsonAccount {
@@ -669,39 +780,39 @@ func jsonContractDefinitions() map[string][]string {
 
 func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 	return map[string]jsonGoldenCommandSchema{
-		"account":           operationSchema("account_input", schemaRef("account_input"), "account", nil, []string{accountKindAccount}, nil),
-		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", nil, nil, nil),
-		"du":                operationSchema("empty", schemaRef("empty"), "du_output", nil, []string{duKindSpaceUsage}, nil),
+		"account":           operationSchema("account_input", schemaRef("account_input"), "account", []string{accountJSONStatusFound}, []string{accountKindAccount}, nil),
+		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusCopied}, metadataKinds(), nil),
+		"du":                operationSchema("empty", schemaRef("empty"), "du_output", []string{duJSONStatusReported}, []string{duKindSpaceUsage}, nil),
 		"get":               operationSchema("get_input", schemaRef("get_result_input"), "metadata", []string{getStatusCreated, getStatusDownloaded, getStatusExisting}, []string{getKindFile, getKindFolder}, nil),
-		"ls":                operationSchema("ls_input", nil, "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
+		"ls":                operationSchema("ls_input", schemaRef("empty"), "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting}, []string{mkdirKindFolder}, nil),
-		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", nil, nil, nil),
+		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
-		"revs":              operationSchema("revs_input", nil, "metadata", []string{revsJSONStatusRevision}, []string{"file", "unknown"}, nil),
-		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", nil, nil, nil),
-		"search":            operationSchema("search_input", nil, "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),
-		"share list folder": operationSchema("empty", nil, "share_folder", []string{shareFolderJSONStatusListed}, []string{shareFolderJSONKindFolder}, nil),
-		"share list link":   operationSchema("share_link_list_input", nil, "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), []string{jsonWarningCodeDeprecatedCommand}),
-		"share-link create": operationSchema("share_link_create_input", nil, "share_link_metadata", []string{shareLinkJSONStatusCreated, shareLinkJSONStatusExisting}, shareLinkKinds(), nil),
+		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file", "unknown"}, nil),
+		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted}, metadataKinds(), nil),
+		"search":            operationSchema("search_input", schemaRef("empty"), "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),
+		"share list folder": operationSchema("empty", schemaRef("empty"), "share_folder", []string{shareFolderJSONStatusListed}, []string{shareFolderJSONKindFolder}, nil),
+		"share list link":   operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), []string{jsonWarningCodeDeprecatedCommand}),
+		"share-link create": operationSchema("share_link_create_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusCreated, shareLinkJSONStatusExisting}, shareLinkKinds(), nil),
 		"share-link download": operationSchema(
 			"share_link_download_input",
-			nil,
+			schemaRef("empty"),
 			"share_link_download_result",
 			[]string{shareLinkJSONStatusDownloaded},
 			shareLinkKinds(),
 			nil,
 		),
-		"share-link info":    operationSchema("share_link_info_input", nil, "share_link_metadata", []string{shareLinkJSONStatusFound}, shareLinkKinds(), nil),
-		"share-link list":    operationSchema("share_link_list_input", nil, "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), nil),
-		"share-link revoke":  operationSchema("share_link_revoke_input", nil, "share_link_revoke_result", []string{shareLinkJSONStatusRevoked}, append(shareLinkKinds(), shareLinkJSONKindSharedLink), nil),
-		"share-link update":  operationSchema("share_link_update_input", nil, "share_link_metadata", []string{shareLinkJSONStatusUpdated}, shareLinkKinds(), nil),
+		"share-link info":    operationSchema("share_link_info_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusFound}, shareLinkKinds(), nil),
+		"share-link list":    operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), nil),
+		"share-link revoke":  operationSchema("share_link_revoke_input", schemaRef("empty"), "share_link_revoke_result", []string{shareLinkJSONStatusRevoked}, append(shareLinkKinds(), shareLinkJSONKindSharedLink), nil),
+		"share-link update":  operationSchema("share_link_update_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusUpdated}, shareLinkKinds(), nil),
 		"team add-member":    operationSchema("team_member_add_input", schemaRef("team_member_add_input"), "team_member_mutation", []string{teamJSONStatusAdded, teamJSONStatusCompleted, teamJSONStatusStarted}, []string{teamJSONKindTeamMember}, nil),
 		"team info":          operationSchema("empty", schemaRef("empty"), "team_info", []string{teamJSONStatusFound}, []string{teamJSONKindTeam}, nil),
-		"team list-groups":   operationSchema("empty", nil, "team_group", []string{teamJSONStatusListed}, []string{teamJSONKindTeamGroup}, nil),
-		"team list-members":  operationSchema("empty", nil, "team_member", []string{teamJSONStatusListed}, []string{teamJSONKindTeamMember}, nil),
+		"team list-groups":   operationSchema("empty", schemaRef("empty"), "team_group", []string{teamJSONStatusListed}, []string{teamJSONKindTeamGroup}, nil),
+		"team list-members":  operationSchema("empty", schemaRef("empty"), "team_member", []string{teamJSONStatusListed}, []string{teamJSONKindTeamMember}, nil),
 		"team remove-member": operationSchema("team_member_remove_input", schemaRef("team_member_remove_input"), "team_member_mutation", []string{teamJSONStatusCompleted, teamJSONStatusRemoved, teamJSONStatusStarted}, []string{teamJSONKindTeamMember}, nil),
-		"version":            operationSchema("empty", schemaRef("empty"), "version", nil, []string{versionKindVersion}, nil),
+		"version":            operationSchema("empty", schemaRef("empty"), "version", []string{versionJSONStatusReported}, []string{versionKindVersion}, nil),
 	}
 }
 
@@ -772,6 +883,17 @@ func assertStringSliceMapEqual(t *testing.T, label string, got, want map[string]
 	t.Fatalf("%s = %s, want %s", label, gotJSON, wantJSON)
 }
 
+func assertStringSliceEqual(t *testing.T, label string, got, want []string) {
+	t.Helper()
+
+	got = sortedCopy(got)
+	want = sortedCopy(want)
+	if reflect.DeepEqual(got, want) {
+		return
+	}
+	t.Fatalf("%s = %v, want %v", label, got, want)
+}
+
 func assertGoldenCommandSchemaEqual(t *testing.T, command string, got, want jsonGoldenCommandSchema) {
 	t.Helper()
 
@@ -796,6 +918,19 @@ func assertGoldenCommandSchemaReferences(t *testing.T, command string, schema js
 	for _, ref := range refs {
 		if _, ok := definitions[ref]; !ok {
 			t.Errorf("golden schema for %q references unknown definition %q", command, ref)
+		}
+	}
+}
+
+func assertGoldenCommandStatuses(t *testing.T, command string, schema jsonGoldenCommandSchema) {
+	t.Helper()
+
+	if len(schema.Statuses) == 0 {
+		t.Errorf("golden schema for %q has no result statuses", command)
+	}
+	for _, status := range schema.Statuses {
+		if status == "unknown" {
+			t.Errorf("golden schema for %q must not allow unknown result status", command)
 		}
 	}
 }
@@ -834,6 +969,14 @@ func sortedCopy(values []string) []string {
 	return copied
 }
 
+func mapKeys[V any](values map[string]V) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
 func structuredOutputCommandPaths(root *cobra.Command) []string {
 	var paths []string
 	var walk func(*cobra.Command, []string)
@@ -863,13 +1006,13 @@ func TestJSONOperationOutputContractShape(t *testing.T) {
 	if err := json.Unmarshal(encoded, &raw); err != nil {
 		t.Fatalf("decode operation output: %v", err)
 	}
-	for _, key := range []string{"input", "results", "warnings"} {
+	for _, key := range []string{"ok", "schema_version", "command", "input", "results", "warnings"} {
 		if _, ok := raw[key]; !ok {
 			t.Fatalf("operation output = %s, missing %q", encoded, key)
 		}
 	}
-	if len(raw) != 3 {
-		t.Fatalf("operation output = %s, want only input/results/warnings", encoded)
+	if len(raw) != 6 {
+		t.Fatalf("operation output = %s, want only ok/schema_version/command/input/results/warnings", encoded)
 	}
 }
 
