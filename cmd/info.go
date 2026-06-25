@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
@@ -24,14 +24,20 @@ import (
 )
 
 func info(cmd *cobra.Command, args []string) (err error) {
-	dbx := team.New(config)
+	dbx := teamNewFunc(config)
 	res, err := dbx.GetInfo()
 	if err != nil {
 		return err
 	}
 
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderTeamInfo(w, res)
+	}, teamInfoOperationOutput(res))
+}
+
+func renderTeamInfo(out io.Writer, res *team.TeamGetInfoResult) error {
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	w.Init(out, 4, 8, 1, ' ', 0)
 	fmt.Fprintf(w, "Name:\t%s\n", res.Name)
 	fmt.Fprintf(w, "Team Id:\t%s\n", res.TeamId)
 	fmt.Fprintf(w, "Licensed Users:\t%d\n", res.NumLicensedUsers)
@@ -48,4 +54,5 @@ var infoCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(infoCmd)
+	enableStructuredOutput(infoCmd)
 }

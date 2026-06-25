@@ -15,30 +15,61 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team_common"
 	"github.com/spf13/cobra"
 )
 
 func listGroups(cmd *cobra.Command, args []string) (err error) {
-	dbx := team.New(config)
+	dbx := teamNewFunc(config)
 	arg := team.NewGroupsListArg()
-	res, err := dbx.GroupsList(arg)
+	groups, err := listTeamGroups(dbx, arg)
 	if err != nil {
 		return err
 	}
 
-	if len(res.Groups) == 0 {
-		return
+	commandVerboseStatus(cmd, "Listed %d team groups", len(groups))
+
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderTeamGroups(w, groups)
+	}, newJSONOperationOutput(teamInfoInput{}, teamGroupOperationResults(groups), nil))
+}
+
+func listTeamGroups(dbx teamClient, arg *team.GroupsListArg) ([]*team_common.GroupSummary, error) {
+	var groups []*team_common.GroupSummary
+	res, err := dbx.GroupsList(arg)
+	if err != nil {
+		return nil, err
+	}
+	groups = append(groups, res.Groups...)
+
+	for res.HasMore {
+		if res.Cursor == "" {
+			return nil, errors.New("team group list has more results but no cursor")
+		}
+		res, err = dbx.GroupsListContinue(team.NewGroupsListContinueArg(res.Cursor))
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, res.Groups...)
+	}
+	return groups, nil
+}
+
+func renderTeamGroups(out io.Writer, groups []*team_common.GroupSummary) error {
+	if len(groups) == 0 {
+		return nil
 	}
 
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	w.Init(out, 4, 8, 1, ' ', 0)
 	fmt.Fprintf(w, "Name\tId\t# Members\tExternal Id\n")
-	for _, group := range res.Groups {
+	for _, group := range groups {
 		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", group.GroupName, group.GroupId, group.MemberCount, group.GroupExternalId)
 	}
 	return w.Flush()
@@ -53,4 +84,5 @@ var listGroupsCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(listGroupsCmd)
+	enableStructuredOutput(listGroupsCmd)
 }
