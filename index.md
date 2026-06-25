@@ -191,6 +191,8 @@ JSON error responses use stable `error.code` values:
 | `unknown_flag`                  | Cobra could not resolve a flag.                                                   |
 | `command_failed`                | Fallback for failures without a more specific stable code.                        |
 
+JSON errors may also include an optional `error.details` object when dbxcli has reliable machine-readable context. Current detail keys include `path` for known path conflicts; `token_type`, `login_command`, and `env_var` for auth remediation; and `api_summary` for Dropbox API errors. Generic local failures omit `error.details`.
+
 Successful JSON responses for migrated commands return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. Public top-level schemas and the command contract catalog live under [docs/json-schema/v1](docs/json-schema/v1/). If a multi-target or recursive command fails after some side effects have already happened, dbxcli returns a JSON error envelope and does not include partial success results. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
