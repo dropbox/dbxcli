@@ -233,7 +233,11 @@ func renderLsOutput(cmd *cobra.Command, path string, arg *files.ListFolderArg, o
 	}
 
 	input := newLsInput(path, arg, onlyDeleted, opts)
-	results := newJSONMetadataOperationResults(lsJSONStatusListed, jsonMetadataListFromLsEntries(entries))
+	metadata, err := jsonMetadataListFromLsEntries(entries)
+	if err != nil {
+		return err
+	}
+	results := newJSONMetadataOperationResults(lsJSONStatusListed, metadata)
 	return renderJSONOperationOutput(cmd, input, results)
 }
 
@@ -255,21 +259,28 @@ func newLsInput(path string, arg *files.ListFolderArg, onlyDeleted bool, opts li
 	}
 }
 
-func jsonMetadataListFromLsEntries(entries []files.IsMetadata) []jsonMetadata {
+func jsonMetadataListFromLsEntries(entries []files.IsMetadata) ([]jsonMetadata, error) {
 	result := make([]jsonMetadata, 0, len(entries))
 	for _, entry := range entries {
-		result = append(result, jsonMetadataFromLsEntry(entry))
+		metadata, err := jsonMetadataFromLsEntry(entry)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, metadata)
 	}
-	return result
+	return result, nil
 }
 
-func jsonMetadataFromLsEntry(entry files.IsMetadata) jsonMetadata {
-	result := jsonMetadataFromDropbox(entry)
+func jsonMetadataFromLsEntry(entry files.IsMetadata) (jsonMetadata, error) {
+	result, err := jsonMetadataFromDropbox(entry)
+	if err != nil {
+		return jsonMetadata{}, err
+	}
 	if path, ok := undecoratedDeletedPath(result.PathDisplay); ok {
 		result.PathDisplay = path
 		result.Deleted = true
 	}
-	return result
+	return result, nil
 }
 
 func undecoratedDeletedPath(path string) (string, bool) {

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,7 @@ func cp(cmd *cobra.Command, args []string) error {
 	var cpErrors []error
 	var relocationArgs []*files.RelocationArg
 	var results []relocationResult
+	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
 	dbx := filesNewFunc(config)
 	destIsFolder := len(argsToCopy) > 1 || strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
@@ -61,7 +63,15 @@ func cp(cmd *cobra.Command, args []string) error {
 			cpErrors = append(cpErrors, copyError)
 			continue
 		}
-		results = append(results, newRelocationResult(arg, res))
+		if collectResults {
+			result, err := newRelocationResult(arg, res)
+			if err != nil {
+				copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
+				cpErrors = append(cpErrors, copyError)
+				continue
+			}
+			results = append(results, result)
+		}
 	}
 
 	if len(cpErrors) > 0 {
@@ -71,6 +81,9 @@ func cp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cp: %d error(s)", len(cpErrors))
 	}
 
+	if !collectResults {
+		return nil
+	}
 	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(relocationJSONStatusCopied, results))
 }
 

@@ -233,7 +233,10 @@ func TestRmForceStillDeletesNonEmptyFolder(t *testing.T) {
 }
 
 func TestRemoveResultInputKeepsForceAndRecursiveSeparate(t *testing.T) {
-	result := newRemoveResult("/folder", rmFolderMetadata("/folder"), removeOptions{force: true})
+	result, err := newRemoveResult("/folder", rmFolderMetadata("/folder"), removeOptions{force: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !result.Input.Force {
 		t.Fatal("Force = false, want true")
 	}
@@ -241,7 +244,10 @@ func TestRemoveResultInputKeepsForceAndRecursiveSeparate(t *testing.T) {
 		t.Fatal("Recursive = true for force-only delete, want false")
 	}
 
-	result = newRemoveResult("/folder", rmFolderMetadata("/folder"), removeOptions{recursive: true})
+	result, err = newRemoveResult("/folder", rmFolderMetadata("/folder"), removeOptions{recursive: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.Input.Force {
 		t.Fatal("Force = true for recursive-only delete, want false")
 	}

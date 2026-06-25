@@ -98,7 +98,11 @@ func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files
 	}
 
 	input := newSearchInput(query, scope, opts)
-	results := newJSONMetadataOperationResults(searchJSONStatusFound, jsonMetadataListFromDropbox(entries))
+	metadata, err := jsonMetadataListFromDropbox(entries)
+	if err != nil {
+		return err
+	}
+	results := newJSONMetadataOperationResults(searchJSONStatusFound, metadata)
 	return renderJSONOperationOutput(cmd, input, results)
 }
 

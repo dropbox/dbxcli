@@ -5,6 +5,8 @@ These schemas describe the stable top-level JSON envelopes emitted by
 
 - `success.schema.json` validates successful command responses.
 - `error.schema.json` validates command error responses.
+- `commands.json` documents command-specific input/result payload names,
+  result statuses, result kinds, and warning codes.
 
 Successful responses always include:
 
@@ -26,5 +28,6 @@ Error responses always include:
 - `error.code`: stable machine-readable error code
 - `warnings`: machine-actionable warnings, or `[]`
 
-Command-specific `input` and `result` payloads are documented in the README and
-locked by the golden contract fixtures under `cmd/testdata/json_contract/`.
+Command-specific `input` and `result` payload contracts are listed in
+`commands.json` and locked by the golden contract fixtures under
+`cmd/testdata/json_contract/`.

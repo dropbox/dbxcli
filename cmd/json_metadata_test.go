@@ -24,7 +24,10 @@ func TestJSONMetadataFromDropboxFile(t *testing.T) {
 		ServerModified: serverModified,
 	}
 
-	got := jsonMetadataFromDropbox(metadata)
+	got, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if got.Type != "file" {
 		t.Fatalf("Type = %q, want file", got.Type)
@@ -63,7 +66,10 @@ func TestJSONMetadataFromDropboxFolder(t *testing.T) {
 		Id: "id:folder",
 	}
 
-	got := jsonMetadataFromDropbox(metadata)
+	got, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if got.Type != "folder" {
 		t.Fatalf("Type = %q, want folder", got.Type)
@@ -84,12 +90,21 @@ func TestJSONMetadataFromDropboxDeleted(t *testing.T) {
 		},
 	}
 
-	got := jsonMetadataFromDropbox(metadata)
+	got, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if got.Type != "deleted" {
 		t.Fatalf("Type = %q, want deleted", got.Type)
 	}
 	if !got.Deleted {
 		t.Fatal("Deleted = false, want true")
+	}
+}
+
+func TestJSONMetadataFromDropboxRejectsUnknownMetadata(t *testing.T) {
+	if _, err := jsonMetadataFromDropbox(nil); err == nil {
+		t.Fatal("expected nil metadata to fail")
 	}
 }

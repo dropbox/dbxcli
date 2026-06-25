@@ -65,7 +65,11 @@ func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.Fil
 	}
 
 	input := newRevsInput(path, opts)
-	results := newJSONMetadataOperationResults(revsJSONStatusRevision, jsonMetadataListFromRevisions(entries))
+	metadata, err := jsonMetadataListFromRevisions(entries)
+	if err != nil {
+		return err
+	}
+	results := newJSONMetadataOperationResults(revsJSONStatusRevision, metadata)
 	return renderJSONOperationOutput(cmd, input, results)
 }
 
@@ -78,12 +82,16 @@ func newRevsInput(path string, opts listOptions) revsInput {
 	}
 }
 
-func jsonMetadataListFromRevisions(entries []*files.FileMetadata) []jsonMetadata {
+func jsonMetadataListFromRevisions(entries []*files.FileMetadata) ([]jsonMetadata, error) {
 	result := make([]jsonMetadata, 0, len(entries))
 	for _, entry := range entries {
-		result = append(result, jsonMetadataFromDropbox(entry))
+		metadata, err := jsonMetadataFromDropbox(entry)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, metadata)
 	}
-	return result
+	return result, nil
 }
 
 func renderRevisionResults(out io.Writer, entries []*files.FileMetadata, opts listOptions) error {

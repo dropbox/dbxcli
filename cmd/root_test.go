@@ -160,6 +160,60 @@ func TestCompletionJSONUnsupportedOutputReturnsError(t *testing.T) {
 	}
 }
 
+func TestHelpOutputRemainsTextWithJSONFlag(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "root help",
+			args: []string{"--help", "--output=json"},
+		},
+		{
+			name: "root no command",
+			args: []string{"--output=json"},
+		},
+		{
+			name: "command help",
+			args: []string{"version", "--help", "--output=json"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+			root := &cobra.Command{
+				Use:               "dbxcli",
+				SilenceUsage:      true,
+				SilenceErrors:     true,
+				PersistentPreRunE: initDbx,
+			}
+			root.SetOut(&stdout)
+			root.SetErr(&stderr)
+			root.SetArgs(tt.args)
+			root.PersistentFlags().BoolP("verbose", "v", false, "")
+			root.PersistentFlags().String(outputFlag, "text", "")
+			root.PersistentFlags().String("as-member", "", "")
+			root.PersistentFlags().String("domain", "", "")
+			root.AddCommand(NewVersionCommand("test-version"))
+
+			if err := root.Execute(); err != nil {
+				t.Fatalf("Execute returned error: %v", err)
+			}
+			if got := stdout.String(); !strings.Contains(got, "Usage:") {
+				t.Fatalf("stdout = %q, want text help", got)
+			}
+			if strings.Contains(stdout.String(), `"ok"`) {
+				t.Fatalf("stdout = %q, want text help without JSON envelope", stdout.String())
+			}
+			if got := stderr.String(); got != "" {
+				t.Fatalf("stderr = %q, want empty", got)
+			}
+		})
+	}
+}
+
 func TestInitDbxStillRequiresAuthForDropboxCommands(t *testing.T) {
 	t.Setenv(envAccessToken, "")
 	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))

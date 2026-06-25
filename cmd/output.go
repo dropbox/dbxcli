@@ -30,7 +30,6 @@ const (
 	jsonErrorCodeStructuredOutputUnsupported = "structured_output_unsupported"
 	jsonErrorCodeUnknownCommand              = "unknown_command"
 	jsonErrorCodeUnknownFlag                 = "unknown_flag"
-	jsonErrorCodeUnsupportedOutputFormat     = "unsupported_output_format"
 )
 
 type jsonCodedError interface {
@@ -101,10 +100,6 @@ func authRefreshFailedErrorf(format string, args ...any) error {
 	return newCodedError(jsonErrorCodeAuthRefreshFailed, fmt.Errorf(format, args...))
 }
 
-func unsupportedOutputFormatErrorf(format string, args ...any) error {
-	return newCodedError(jsonErrorCodeUnsupportedOutputFormat, fmt.Errorf(format, args...))
-}
-
 func commandOutput(cmd *cobra.Command) *output.Renderer {
 	if cmd == nil {
 		return output.New(nil, nil, output.FormatText)
@@ -152,7 +147,7 @@ func parseOutputFormat(value string) (output.Format, error) {
 	case output.FormatJSON:
 		return output.FormatJSON, nil
 	default:
-		return "", unsupportedOutputFormatErrorf("unsupported output format %q: use text or json", value)
+		return "", fmt.Errorf("unsupported output format %q: use text or json", value)
 	}
 }
 

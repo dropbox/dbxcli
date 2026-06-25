@@ -175,13 +175,21 @@ func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions)
 			}
 		}
 
-		results = append(results, newRemoveResult(target.path, metadata, opts))
+		result, err := newRemoveResult(target.path, metadata, opts)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
 	}
 
 	return results, nil
 }
 
-func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions) removeResult {
+func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions) (removeResult, error) {
+	result, err := removeMetadataFromDropbox(path, metadata)
+	if err != nil {
+		return removeResult{}, err
+	}
 	return removeResult{
 		Input: removeInput{
 			Path:      path,
@@ -189,14 +197,17 @@ func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions)
 			Recursive: opts.recursive,
 			Force:     opts.force,
 		},
-		Result: removeMetadataFromDropbox(path, metadata),
-	}
+		Result: result,
+	}, nil
 }
 
-func removeMetadataFromDropbox(path string, metadata files.IsMetadata) jsonMetadata {
-	result := jsonMetadataFromDropbox(metadata)
+func removeMetadataFromDropbox(path string, metadata files.IsMetadata) (jsonMetadata, error) {
+	result, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		return jsonMetadata{}, err
+	}
 	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
-	return result
+	return result, nil
 }
 
 func renderRemoveResults(w io.Writer, results []removeResult) error {
