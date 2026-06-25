@@ -37,7 +37,7 @@ func listGroups(cmd *cobra.Command, args []string) (err error) {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderTeamGroups(w, groups)
-	}, newJSONOperationOutput(teamInfoInput{}, teamGroupOperationResults(groups), nil))
+	}, newJSONCommandOperationOutput(cmd, teamInfoInput{}, teamGroupOperationResults(groups), nil))
 }
 
 func listTeamGroups(dbx teamClient, arg *team.GroupsListArg) ([]*team_common.GroupSummary, error) {

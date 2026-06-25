@@ -32,7 +32,7 @@ func info(cmd *cobra.Command, args []string) (err error) {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderTeamInfo(w, res)
-	}, teamInfoOperationOutput(res))
+	}, withJSONCommand(cmd, teamInfoOperationOutput(res)))
 }
 
 func renderTeamInfo(out io.Writer, res *team.TeamGetInfoResult) error {

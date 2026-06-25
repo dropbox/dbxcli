@@ -105,7 +105,8 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	return out.Render(func(w io.Writer) error {
 		_, err := fmt.Fprintln(w, url)
 		return err
-	}, newJSONOperationOutput(
+	}, newJSONCommandOperationOutput(
+		cmd,
 		newShareLinkCreateInput(path, opts),
 		[]jsonOperationResult{shareLinkJSONOperationResult(status, result)},
 		nil,

@@ -192,10 +192,13 @@ JSON error responses use stable `error.code` values:
 | `unknown_flag`                  | Cobra could not resolve a flag.                                                   |
 | `command_failed`                | Fallback for failures without a more specific stable code.                        |
 
-Successful JSON responses for migrated commands return an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. For commands such as `mkdir`, each result reports what happened to the requested path:
+Successful JSON responses for migrated commands return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. Public top-level schemas live under [docs/json-schema/v1](docs/json-schema/v1/). If a multi-target or recursive command fails after some side effects have already happened, dbxcli returns a JSON error envelope and does not include partial success results. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "mkdir",
   "input": {
     "path": "/new-folder",
     "parents": false
@@ -224,9 +227,14 @@ For `cp` and `mv`, each result input object uses `from_path` and `to_path`:
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "cp",
   "input": {},
   "results": [
     {
+      "status": "copied",
+      "kind": "file",
       "input": {
         "from_path": "/Reports/old.pdf",
         "to_path": "/Reports/copy.pdf"
@@ -249,9 +257,14 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "rm",
   "input": {},
   "results": [
     {
+      "status": "deleted",
+      "kind": "file",
       "input": {
         "path": "/old-file.txt",
         "permanent": false,
@@ -276,6 +289,9 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "put",
   "input": {
     "source": "README.md",
     "target": "/README.md",
@@ -311,6 +327,9 @@ Entry-list commands such as `ls`, `search`, and `revs` use the operation-style w
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "ls",
   "input": {
     "path": "/Reports",
     "recursive": false,
@@ -324,6 +343,7 @@ Entry-list commands such as `ls`, `search`, and `revs` use the operation-style w
     {
       "status": "listed",
       "kind": "file",
+      "input": {},
       "result": {
         "type": "file",
         "path_display": "/Reports/q1.pdf",
@@ -342,9 +362,13 @@ Version, account, and usage commands use the operation-style wrapper with a sing
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "version",
   "input": {},
   "results": [
     {
+      "status": "reported",
       "kind": "version",
       "input": {},
       "result": {
@@ -360,9 +384,13 @@ Version, account, and usage commands use the operation-style wrapper with a sing
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "account",
   "input": {},
   "results": [
     {
+      "status": "found",
       "kind": "account",
       "input": {},
       "result": {
@@ -380,9 +408,13 @@ Version, account, and usage commands use the operation-style wrapper with a sing
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "du",
   "input": {},
   "results": [
     {
+      "status": "reported",
       "kind": "space_usage",
       "input": {},
       "result": {
@@ -402,6 +434,9 @@ Shared-link commands use the same operation-style wrapper. `share-link create`, 
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "share-link create",
   "input": {
     "path": "/Reports/old.pdf"
   },
@@ -409,6 +444,7 @@ Shared-link commands use the same operation-style wrapper. `share-link create`, 
     {
       "status": "created",
       "kind": "file",
+      "input": {},
       "result": {
         "type": "file",
         "url": "https://www.dropbox.com/s/...",
@@ -429,11 +465,15 @@ The legacy `share list folder` command also supports operation-style JSON. It us
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "share list folder",
   "input": {},
   "results": [
     {
       "status": "listed",
       "kind": "shared_folder",
+      "input": {},
       "result": {
         "type": "shared_folder",
         "name": "Reports",
@@ -454,11 +494,15 @@ Team commands use the same operation-style wrapper. `team info` returns a single
 
 ```json
 {
+  "ok": true,
+  "schema_version": "1",
+  "command": "team list-members",
   "input": {},
   "results": [
     {
       "status": "listed",
       "kind": "team_member",
+      "input": {},
       "result": {
         "type": "team_member",
         "team_member_id": "dbmid:...",
@@ -480,6 +524,8 @@ In JSON mode, command errors are written to stdout as JSON, including errors fro
 ```json
 {
   "ok": false,
+  "schema_version": "1",
+  "command": "rm",
   "error": {
     "message": "path exists and is not a folder: /old-file.txt",
     "code": "path_conflict"

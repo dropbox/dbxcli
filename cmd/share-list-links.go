@@ -73,7 +73,8 @@ func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jso
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinks(w, links)
-	}, newJSONOperationOutput(
+	}, newJSONCommandOperationOutput(
+		cmd,
 		shareLinkListInput{
 			Path:       arg.Path,
 			DirectOnly: arg.DirectOnly,

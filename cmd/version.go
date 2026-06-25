@@ -30,7 +30,10 @@ type versionOutput struct {
 	SpecVersion string `json:"spec_version"`
 }
 
-const versionKindVersion = "version"
+const (
+	versionJSONStatusReported = "reported"
+	versionKindVersion        = "version"
+)
 
 var dropboxVersionFunc = dropbox.Version
 
@@ -52,7 +55,7 @@ func versionCommand(cmd *cobra.Command, version string) error {
 	info := newVersionOutput(version)
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderVersion(w, info)
-	}, newVersionOperationOutput(info))
+	}, withJSONCommand(cmd, newVersionOperationOutput(info)))
 }
 
 func renderVersion(out io.Writer, info versionOutput) error {
@@ -74,6 +77,6 @@ func newVersionOutput(version string) versionOutput {
 func newVersionOperationOutput(info versionOutput) jsonOperationOutput {
 	input := versionInput{}
 	return newJSONOperationOutput(input, []jsonOperationResult{
-		newJSONOperationResult("", versionKindVersion, input, info),
+		newJSONOperationResult(versionJSONStatusReported, versionKindVersion, input, info),
 	}, nil)
 }

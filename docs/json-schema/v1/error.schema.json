@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dropbox/dbxcli/docs/json-schema/v1/error.schema.json",
+  "title": "dbxcli JSON error response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "schema_version",
+    "command",
+    "error",
+    "warnings"
+  ],
+  "properties": {
+    "ok": {
+      "const": false
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "command": {
+      "type": "string",
+      "description": "The dbxcli command path when available, or dbxcli for root/pre-parse errors."
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message",
+        "code"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "path_conflict",
+            "auth_required",
+            "auth_refresh_failed",
+            "app_key_required",
+            "auth_exchange_failed",
+            "not_found",
+            "permission_denied",
+            "rate_limited",
+            "dropbox_api_error",
+            "structured_output_unsupported",
+            "unsupported_output_format",
+            "unknown_command",
+            "unknown_flag",
+            "command_failed"
+          ]
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    }
+  },
+  "$defs": {
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

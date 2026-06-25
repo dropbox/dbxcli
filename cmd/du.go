@@ -39,7 +39,10 @@ type duAllocation struct {
 	UserWithinTeamSpaceLimitType  string  `json:"user_within_team_space_limit_type,omitempty"`
 }
 
-const duKindSpaceUsage = "space_usage"
+const (
+	duJSONStatusReported = "reported"
+	duKindSpaceUsage     = "space_usage"
+)
 
 func du(cmd *cobra.Command, args []string) (err error) {
 	dbx := usersNewFunc(config)
@@ -50,7 +53,7 @@ func du(cmd *cobra.Command, args []string) (err error) {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderUsage(w, usage)
-	}, newDuOperationOutput(usage))
+	}, withJSONCommand(cmd, newDuOperationOutput(usage)))
 }
 
 func renderUsage(out io.Writer, usage *users.SpaceUsage) error {
@@ -81,7 +84,7 @@ func newDuOutput(usage *users.SpaceUsage) duOutput {
 func newDuOperationOutput(usage *users.SpaceUsage) jsonOperationOutput {
 	input := duInput{}
 	return newJSONOperationOutput(input, []jsonOperationResult{
-		newJSONOperationResult("", duKindSpaceUsage, input, newDuOutput(usage)),
+		newJSONOperationResult(duJSONStatusReported, duKindSpaceUsage, input, newDuOutput(usage)),
 	}, nil)
 }
 
