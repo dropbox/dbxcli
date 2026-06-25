@@ -47,12 +47,6 @@ type shareLinkCreateInput struct {
 	Password         bool   `json:"password,omitempty"`
 }
 
-type shareLinkCreateOutput struct {
-	Input    shareLinkCreateInput  `json:"input"`
-	Result   shareLinkJSONMetadata `json:"result"`
-	Existing bool                  `json:"existing"`
-}
-
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link create` requires a `path` argument")
@@ -103,14 +97,19 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		return errors.New("found unknown shared link type")
 	}
 
+	status := shareLinkJSONStatusCreated
+	if usedExisting {
+		status = shareLinkJSONStatusExisting
+	}
+
 	return out.Render(func(w io.Writer) error {
 		_, err := fmt.Fprintln(w, url)
 		return err
-	}, shareLinkCreateOutput{
-		Input:    newShareLinkCreateInput(path, opts),
-		Result:   result,
-		Existing: usedExisting,
-	})
+	}, newJSONOperationOutput(
+		newShareLinkCreateInput(path, opts),
+		[]jsonOperationResult{shareLinkJSONOperationResult(status, result)},
+		nil,
+	))
 }
 
 func newShareLinkCreateInput(path string, opts shareLinkCreateOptions) shareLinkCreateInput {

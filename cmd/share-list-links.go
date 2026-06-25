@@ -28,11 +28,6 @@ type shareLinkListInput struct {
 	DirectOnly bool   `json:"direct_only"`
 }
 
-type shareLinkListOutput struct {
-	Input   shareLinkListInput      `json:"input"`
-	Entries []shareLinkJSONMetadata `json:"entries"`
-}
-
 func shareListLinks(cmd *cobra.Command, args []string) (err error) {
 	return shareLinkList(cmd, args)
 }
@@ -71,13 +66,14 @@ func shareLinkList(cmd *cobra.Command, args []string) error {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinks(w, links)
-	}, shareLinkListOutput{
-		Input: shareLinkListInput{
+	}, newJSONOperationOutput(
+		shareLinkListInput{
 			Path:       arg.Path,
 			DirectOnly: arg.DirectOnly,
 		},
-		Entries: entries,
-	})
+		shareLinkJSONOperationResults(shareLinkJSONStatusListed, entries),
+		nil,
+	))
 }
 
 func listSharedLinks(dbx sharedLinkClient, arg *sharing.ListSharedLinksArg) ([]sharing.IsSharedLinkMetadata, error) {

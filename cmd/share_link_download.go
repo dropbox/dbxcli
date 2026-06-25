@@ -50,11 +50,6 @@ type shareLinkDownloadResult struct {
 	Link   shareLinkJSONMetadata `json:"link"`
 }
 
-type shareLinkDownloadOutput struct {
-	Input  shareLinkDownloadInput  `json:"input"`
-	Result shareLinkDownloadResult `json:"result"`
-}
-
 func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("`share-link download` requires a `url` and optional `target` argument")
@@ -531,18 +526,22 @@ func newShareLinkDownloadInput(url, target string, opts shareLinkDownloadOptions
 }
 
 func renderShareLinkDownloadOutput(cmd *cobra.Command, input shareLinkDownloadInput, target string, link sharing.IsSharedLinkMetadata) error {
-	result, ok := shareLinkJSONMetadataFromDropbox(link)
+	metadata, ok := shareLinkJSONMetadataFromDropbox(link)
 	if !ok {
 		return errors.New("found unknown shared link type")
 	}
 
-	return commandOutput(cmd).Render(nil, shareLinkDownloadOutput{
-		Input: input,
-		Result: shareLinkDownloadResult{
-			Target: target,
-			Link:   result,
+	result := shareLinkDownloadResult{
+		Target: target,
+		Link:   metadata,
+	}
+	return renderJSONOperationOutput(
+		cmd,
+		input,
+		[]jsonOperationResult{
+			newJSONOperationResult(shareLinkJSONStatusDownloaded, result.Link.Type, nil, result),
 		},
-	})
+	)
 }
 
 var shareLinkDownloadCmd = &cobra.Command{

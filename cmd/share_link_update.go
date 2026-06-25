@@ -45,11 +45,6 @@ type shareLinkUpdateInput struct {
 	RemovePassword   bool   `json:"remove_password,omitempty"`
 }
 
-type shareLinkUpdateOutput struct {
-	Input  shareLinkUpdateInput  `json:"input"`
-	Result shareLinkJSONMetadata `json:"result"`
-}
-
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link update` requires a `url` argument")
@@ -126,10 +121,11 @@ func renderShareLinkUpdateOutput(cmd *cobra.Command, dbx sharedLinkClient, url s
 		return errors.New("found unknown shared link type")
 	}
 
-	return commandOutput(cmd).Render(nil, shareLinkUpdateOutput{
-		Input:  newShareLinkUpdateInput(url, opts),
-		Result: result,
-	})
+	return renderJSONOperationOutput(
+		cmd,
+		newShareLinkUpdateInput(url, opts),
+		[]jsonOperationResult{shareLinkJSONOperationResult(shareLinkJSONStatusUpdated, result)},
+	)
 }
 
 func newShareLinkUpdateInput(url string, opts shareLinkUpdateOptions) shareLinkUpdateInput {
