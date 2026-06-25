@@ -155,12 +155,17 @@ $ dbxcli share-link update --output=json https://www.dropbox.com/s/example/old.p
 $ dbxcli share-link revoke --output=json https://www.dropbox.com/s/example/old.pdf
 $ dbxcli share-link download --output=json https://www.dropbox.com/s/example/old.pdf ./old.pdf
 $ dbxcli share list folder --output=json
+$ dbxcli team info --output=json
+$ dbxcli team list-members --output=json
+$ dbxcli team list-groups --output=json
+$ dbxcli team add-member --output=json user@example.com User Name
+$ dbxcli team remove-member --output=json user@example.com
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `team info`, `team list-members`, `team list-groups`, `team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
 
@@ -415,6 +420,29 @@ The legacy `share list folder` command also supports operation-style JSON. It us
         "access_type": "owner",
         "is_inside_team_folder": false,
         "is_team_folder": false
+      }
+    }
+  ],
+  "warnings": []
+}
+```
+
+Team commands use the same operation-style wrapper. `team info` returns a single `team` result, `team list-members` and `team list-groups` return `listed` results, and mutating member commands return the Dropbox launch status:
+
+```json
+{
+  "input": {},
+  "results": [
+    {
+      "status": "listed",
+      "kind": "team_member",
+      "result": {
+        "type": "team_member",
+        "team_member_id": "dbmid:...",
+        "email": "user@example.com",
+        "email_verified": true,
+        "status": "active",
+        "role": "member_only"
       }
     }
   ],

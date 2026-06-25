@@ -608,6 +608,13 @@ func TestJSONErrorCodeOptionalArgumentValidation(t *testing.T) {
 	}
 }
 
+func TestJSONErrorCodeRequiredArgumentValidation(t *testing.T) {
+	err := errors.New("`add-member` requires `email`, `first`, and `last` arguments")
+	if got, want := jsonErrorCode(err), "invalid_arguments"; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
+}
+
 func decodeJSONErrorResponse(t *testing.T, value string) jsonErrorResponse {
 	t.Helper()
 

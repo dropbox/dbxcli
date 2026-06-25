@@ -180,7 +180,7 @@ func jsonErrorCode(err error) string {
 		return "unknown_flag"
 	case strings.Contains(message, "path exists and is not a folder"):
 		return "path_conflict"
-	case strings.Contains(message, "requires a"):
+	case strings.Contains(message, "requires "):
 		return "invalid_arguments"
 	case strings.Contains(message, "accepts an optional"):
 		return "invalid_arguments"

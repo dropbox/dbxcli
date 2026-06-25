@@ -15,8 +15,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"text/tabwriter"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
@@ -24,22 +25,51 @@ import (
 )
 
 func listMembers(cmd *cobra.Command, args []string) (err error) {
-	dbx := team.New(config)
+	dbx := teamNewFunc(config)
 	arg := team.NewMembersListArg()
-	res, err := dbx.MembersList(arg)
+	members, err := listTeamMembers(dbx, arg)
 	if err != nil {
 		return err
 	}
 
-	if len(res.Members) == 0 {
-		return
+	commandVerboseStatus(cmd, "Listed %d team members", len(members))
+
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderTeamMembers(w, members)
+	}, newJSONOperationOutput(teamInfoInput{}, teamMemberOperationResults(members), nil))
+}
+
+func listTeamMembers(dbx teamClient, arg *team.MembersListArg) ([]*team.TeamMemberInfo, error) {
+	var members []*team.TeamMemberInfo
+	res, err := dbx.MembersList(arg)
+	if err != nil {
+		return nil, err
+	}
+	members = append(members, res.Members...)
+
+	for res.HasMore {
+		if res.Cursor == "" {
+			return nil, errors.New("team member list has more results but no cursor")
+		}
+		res, err = dbx.MembersListContinue(team.NewMembersListContinueArg(res.Cursor))
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, res.Members...)
+	}
+	return members, nil
+}
+
+func renderTeamMembers(out io.Writer, members []*team.TeamMemberInfo) error {
+	if len(members) == 0 {
+		return nil
 	}
 
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 4, 8, 1, ' ', 0)
+	w.Init(out, 4, 8, 1, ' ', 0)
 	fmtStr := "%s\t%s\t%s\t%s\t%s\n"
 	fmt.Fprintf(w, fmtStr, "Name", "Id", "Status", "Email", "Role")
-	for _, member := range res.Members {
+	for _, member := range members {
 		fmt.Fprintf(w, fmtStr,
 			member.Profile.Name.DisplayName,
 			member.Profile.TeamMemberId,
@@ -59,4 +89,5 @@ var listMembersCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(listMembersCmd)
+	enableStructuredOutput(listMembersCmd)
 }

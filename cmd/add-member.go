@@ -17,6 +17,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 3 {
 		return errors.New("`add-member` requires `email`, `first`, and `last` arguments")
 	}
-	dbx := team.New(config)
+	dbx := teamNewFunc(config)
 
 	email := args[0]
 	firstName := args[1]
@@ -39,10 +40,22 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if res.Tag == "complete" {
-		fmt.Printf("User successfully added to the team.\n")
+	input := teamMemberAddInput{
+		Email:     email,
+		FirstName: firstName,
+		LastName:  lastName,
 	}
-	return
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderTeamMemberAdd(w, res)
+	}, teamMemberAddOperationOutput(input, res))
+}
+
+func renderTeamMemberAdd(out io.Writer, res *team.MembersAddLaunch) error {
+	if res != nil && res.Tag == "complete" {
+		_, err := fmt.Fprintln(out, "User successfully added to the team.")
+		return err
+	}
+	return nil
 }
 
 // addMemberCmd represents the add-member command
@@ -54,4 +67,5 @@ var addMemberCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(addMemberCmd)
+	enableStructuredOutput(addMemberCmd)
 }

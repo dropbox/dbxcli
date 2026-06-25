@@ -17,7 +17,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/async"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +29,7 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 		return errors.New("`remove-member` requires an `email` argument")
 	}
 
-	dbx := team.New(config)
+	dbx := teamNewFunc(config)
 	email := args[0]
 	selector := &team.UserSelectorArg{Email: email}
 	selector.Tag = "email"
@@ -36,10 +38,18 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if res.Tag == "complete" {
-		fmt.Printf("User successfully removed from team.\n")
+	input := teamMemberRemoveInput{Email: email}
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderTeamMemberRemove(w, res)
+	}, teamMemberRemoveOperationOutput(input, res))
+}
+
+func renderTeamMemberRemove(out io.Writer, res *async.LaunchEmptyResult) error {
+	if res != nil && res.Tag == "complete" {
+		_, err := fmt.Fprintln(out, "User successfully removed from team.")
+		return err
 	}
-	return
+	return nil
 }
 
 // removeMemberCmd represents the remove-member command
@@ -51,4 +61,5 @@ var removeMemberCmd = &cobra.Command{
 
 func init() {
 	teamCmd.AddCommand(removeMemberCmd)
+	enableStructuredOutput(removeMemberCmd)
 }
