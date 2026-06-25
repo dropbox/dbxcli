@@ -170,7 +170,7 @@ Structured success output is rolling out command by command. Currently migrated 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
 Current warning codes include `deprecated_command` for deprecated command paths and `skipped_symlink` for symlinks skipped by recursive upload.
 
-Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Cobra help output and shell-completion protocol commands are also text-only.
+Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Cobra help output and shell-completion protocol commands are also text-only: `dbxcli --help --output=json`, `dbxcli --output=json` without a command, and command-specific help such as `dbxcli version --help --output=json` print text help.
 
 JSON error responses use stable `error.code` values:
 
@@ -187,12 +187,11 @@ JSON error responses use stable `error.code` values:
 | `rate_limited`                  | Dropbox rate limited the request.                                                 |
 | `dropbox_api_error`             | Dropbox returned an API error that does not map to a more specific code yet.      |
 | `structured_output_unsupported` | The command does not support `--output=json` yet.                                 |
-| `unsupported_output_format`     | `--output` was not `text` or `json`.                                              |
 | `unknown_command`               | Cobra could not resolve the command.                                              |
 | `unknown_flag`                  | Cobra could not resolve a flag.                                                   |
 | `command_failed`                | Fallback for failures without a more specific stable code.                        |
 
-Successful JSON responses for migrated commands return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. Public top-level schemas live under [docs/json-schema/v1](docs/json-schema/v1/). If a multi-target or recursive command fails after some side effects have already happened, dbxcli returns a JSON error envelope and does not include partial success results. For commands such as `mkdir`, each result reports what happened to the requested path:
+Successful JSON responses for migrated commands return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. Public top-level schemas and the command contract catalog live under [docs/json-schema/v1](docs/json-schema/v1/). If a multi-target or recursive command fails after some side effects have already happened, dbxcli returns a JSON error envelope and does not include partial success results. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
 {
