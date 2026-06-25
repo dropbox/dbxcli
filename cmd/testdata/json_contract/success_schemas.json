@@ -1,0 +1,674 @@
+{
+  "definitions": {
+    "account": [
+      "account_id",
+      "account_type",
+      "disabled",
+      "email",
+      "email_verified",
+      "is_paired",
+      "is_teammate",
+      "locale",
+      "name",
+      "profile_photo_url",
+      "referral_link",
+      "team",
+      "team_member_id",
+      "type"
+    ],
+    "account_input": [
+      "account_id"
+    ],
+    "account_name": [
+      "abbreviated_name",
+      "display_name",
+      "familiar_name",
+      "given_name",
+      "surname"
+    ],
+    "account_team": [
+      "id",
+      "member_id",
+      "name"
+    ],
+    "du_allocation": [
+      "allocated",
+      "type",
+      "used",
+      "user_within_team_space_allocated",
+      "user_within_team_space_limit_type",
+      "user_within_team_space_used_cached"
+    ],
+    "du_output": [
+      "allocation",
+      "used"
+    ],
+    "empty": [],
+    "get_input": [
+      "recursive",
+      "source",
+      "stdout",
+      "target"
+    ],
+    "get_result_input": [
+      "source",
+      "target"
+    ],
+    "ls_input": [
+      "include_deleted",
+      "long",
+      "only_deleted",
+      "path",
+      "recursive",
+      "reverse",
+      "sort",
+      "time",
+      "time_format"
+    ],
+    "metadata": [
+      "client_modified",
+      "deleted",
+      "id",
+      "path_display",
+      "path_lower",
+      "rev",
+      "server_modified",
+      "size",
+      "type"
+    ],
+    "mkdir_input": [
+      "parents",
+      "path"
+    ],
+    "operation_output": [
+      "input",
+      "results",
+      "warnings"
+    ],
+    "operation_result": [
+      "input",
+      "kind",
+      "result",
+      "status"
+    ],
+    "put_input": [
+      "if_exists",
+      "recursive",
+      "source",
+      "stdin",
+      "target"
+    ],
+    "put_result_input": [
+      "source",
+      "target"
+    ],
+    "relocation_input": [
+      "from_path",
+      "to_path"
+    ],
+    "remove_input": [
+      "force",
+      "path",
+      "permanent",
+      "recursive"
+    ],
+    "restore_input": [
+      "path",
+      "revision"
+    ],
+    "revs_input": [
+      "long",
+      "path",
+      "time",
+      "time_format"
+    ],
+    "search_input": [
+      "long",
+      "path",
+      "query",
+      "reverse",
+      "sort",
+      "time",
+      "time_format"
+    ],
+    "share_folder": [
+      "access_inheritance",
+      "access_type",
+      "is_inside_team_folder",
+      "is_team_folder",
+      "name",
+      "owner_display_names",
+      "parent_folder_name",
+      "parent_shared_folder_id",
+      "path_lower",
+      "preview_url",
+      "shared_folder_id",
+      "time_invited",
+      "type"
+    ],
+    "share_link_create_input": [
+      "access",
+      "allow_download",
+      "audience",
+      "disallow_download",
+      "expires",
+      "password",
+      "path",
+      "remove_expiration"
+    ],
+    "share_link_download_input": [
+      "password",
+      "path",
+      "recursive",
+      "target",
+      "url"
+    ],
+    "share_link_download_result": [
+      "link",
+      "target"
+    ],
+    "share_link_info_input": [
+      "password",
+      "path",
+      "url"
+    ],
+    "share_link_list_input": [
+      "direct_only",
+      "path"
+    ],
+    "share_link_metadata": [
+      "client_modified",
+      "expires",
+      "id",
+      "name",
+      "path_lower",
+      "permissions",
+      "rev",
+      "server_modified",
+      "size",
+      "type",
+      "url"
+    ],
+    "share_link_permissions": [
+      "access_level",
+      "allow_comments",
+      "allow_download",
+      "can_allow_download",
+      "can_disallow_download",
+      "can_remove_expiry",
+      "can_remove_password",
+      "can_revoke",
+      "can_set_expiry",
+      "can_set_password",
+      "can_use_extended_sharing_controls",
+      "effective_audience",
+      "require_password",
+      "requested_visibility",
+      "resolved_visibility"
+    ],
+    "share_link_revoke_input": [
+      "path",
+      "url"
+    ],
+    "share_link_revoke_result": [
+      "link",
+      "url"
+    ],
+    "share_link_update_input": [
+      "allow_download",
+      "audience",
+      "disallow_download",
+      "expires",
+      "password",
+      "remove_expiration",
+      "remove_password",
+      "url"
+    ],
+    "team_group": [
+      "group_external_id",
+      "group_id",
+      "group_management_type",
+      "group_name",
+      "member_count",
+      "type"
+    ],
+    "team_info": [
+      "name",
+      "num_licensed_users",
+      "num_provisioned_users",
+      "team_id",
+      "type"
+    ],
+    "team_member": [
+      "account_id",
+      "email",
+      "email_verified",
+      "external_id",
+      "groups",
+      "invited_on",
+      "is_directory_restricted",
+      "joined_on",
+      "member_folder_id",
+      "membership_type",
+      "name",
+      "persistent_id",
+      "profile_photo_url",
+      "role",
+      "status",
+      "suspended_on",
+      "team_member_id",
+      "type"
+    ],
+    "team_member_add_input": [
+      "email",
+      "first_name",
+      "last_name"
+    ],
+    "team_member_add_item": [
+      "email",
+      "member",
+      "tag"
+    ],
+    "team_member_mutation": [
+      "async_job_id",
+      "results",
+      "tag",
+      "type"
+    ],
+    "team_member_remove_input": [
+      "email"
+    ],
+    "version": [
+      "sdk_version",
+      "spec_version",
+      "version"
+    ]
+  },
+  "commands": {
+    "account": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "account_input",
+      "result_input": "account_input",
+      "result": "account",
+      "statuses": [],
+      "kinds": [
+        "account"
+      ],
+      "warnings": []
+    },
+    "cp": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "relocation_input",
+      "result": "metadata",
+      "statuses": [],
+      "kinds": [],
+      "warnings": []
+    },
+    "du": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "empty",
+      "result": "du_output",
+      "statuses": [],
+      "kinds": [
+        "space_usage"
+      ],
+      "warnings": []
+    },
+    "get": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "get_input",
+      "result_input": "get_result_input",
+      "result": "metadata",
+      "statuses": [
+        "created",
+        "downloaded",
+        "existing"
+      ],
+      "kinds": [
+        "file",
+        "folder"
+      ],
+      "warnings": []
+    },
+    "ls": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "ls_input",
+      "result_input": null,
+      "result": "metadata",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "deleted",
+        "file",
+        "folder",
+        "unknown"
+      ],
+      "warnings": []
+    },
+    "mkdir": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "mkdir_input",
+      "result_input": "mkdir_input",
+      "result": "metadata",
+      "statuses": [
+        "created",
+        "existing"
+      ],
+      "kinds": [
+        "folder"
+      ],
+      "warnings": []
+    },
+    "mv": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "relocation_input",
+      "result": "metadata",
+      "statuses": [],
+      "kinds": [],
+      "warnings": []
+    },
+    "put": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "put_input",
+      "result_input": "put_result_input",
+      "result": "metadata",
+      "statuses": [
+        "created",
+        "existing",
+        "skipped",
+        "uploaded"
+      ],
+      "kinds": [
+        "file",
+        "folder"
+      ],
+      "warnings": [
+        "skipped_symlink"
+      ]
+    },
+    "restore": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "restore_input",
+      "result_input": "restore_input",
+      "result": "metadata",
+      "statuses": [
+        "restored"
+      ],
+      "kinds": [
+        "file"
+      ],
+      "warnings": []
+    },
+    "revs": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "revs_input",
+      "result_input": null,
+      "result": "metadata",
+      "statuses": [
+        "revision"
+      ],
+      "kinds": [
+        "file",
+        "unknown"
+      ],
+      "warnings": []
+    },
+    "rm": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "remove_input",
+      "result": "metadata",
+      "statuses": [],
+      "kinds": [],
+      "warnings": []
+    },
+    "search": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "search_input",
+      "result_input": null,
+      "result": "metadata",
+      "statuses": [
+        "found"
+      ],
+      "kinds": [
+        "deleted",
+        "file",
+        "folder",
+        "unknown"
+      ],
+      "warnings": []
+    },
+    "share list folder": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": null,
+      "result": "share_folder",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "shared_folder"
+      ],
+      "warnings": []
+    },
+    "share list link": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_list_input",
+      "result_input": null,
+      "result": "share_link_metadata",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": [
+        "deprecated_command"
+      ]
+    },
+    "share-link create": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_create_input",
+      "result_input": null,
+      "result": "share_link_metadata",
+      "statuses": [
+        "created",
+        "existing"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": []
+    },
+    "share-link download": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_download_input",
+      "result_input": null,
+      "result": "share_link_download_result",
+      "statuses": [
+        "downloaded"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": []
+    },
+    "share-link info": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_info_input",
+      "result_input": null,
+      "result": "share_link_metadata",
+      "statuses": [
+        "found"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": []
+    },
+    "share-link list": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_list_input",
+      "result_input": null,
+      "result": "share_link_metadata",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": []
+    },
+    "share-link revoke": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_revoke_input",
+      "result_input": null,
+      "result": "share_link_revoke_result",
+      "statuses": [
+        "revoked"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link",
+        "shared_link"
+      ],
+      "warnings": []
+    },
+    "share-link update": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "share_link_update_input",
+      "result_input": null,
+      "result": "share_link_metadata",
+      "statuses": [
+        "updated"
+      ],
+      "kinds": [
+        "file",
+        "folder",
+        "link"
+      ],
+      "warnings": []
+    },
+    "team add-member": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "team_member_add_input",
+      "result_input": "team_member_add_input",
+      "result": "team_member_mutation",
+      "statuses": [
+        "added",
+        "completed",
+        "started"
+      ],
+      "kinds": [
+        "team_member"
+      ],
+      "warnings": []
+    },
+    "team info": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "empty",
+      "result": "team_info",
+      "statuses": [
+        "found"
+      ],
+      "kinds": [
+        "team"
+      ],
+      "warnings": []
+    },
+    "team list-groups": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": null,
+      "result": "team_group",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "team_group"
+      ],
+      "warnings": []
+    },
+    "team list-members": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": null,
+      "result": "team_member",
+      "statuses": [
+        "listed"
+      ],
+      "kinds": [
+        "team_member"
+      ],
+      "warnings": []
+    },
+    "team remove-member": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "team_member_remove_input",
+      "result_input": "team_member_remove_input",
+      "result": "team_member_mutation",
+      "statuses": [
+        "completed",
+        "removed",
+        "started"
+      ],
+      "kinds": [
+        "team_member"
+      ],
+      "warnings": []
+    },
+    "version": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "empty",
+      "result": "version",
+      "statuses": [],
+      "kinds": [
+        "version"
+      ],
+      "warnings": []
+    }
+  }
+}

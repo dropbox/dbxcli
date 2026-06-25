@@ -3,9 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -14,8 +17,16 @@ const (
 	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
 
 	jsonErrorCodeCommandFailed               = "command_failed"
+	jsonErrorCodeAppKeyRequired              = "app_key_required"
+	jsonErrorCodeAuthExchangeFailed          = "auth_exchange_failed"
+	jsonErrorCodeAuthRefreshFailed           = "auth_refresh_failed"
+	jsonErrorCodeAuthRequired                = "auth_required"
+	jsonErrorCodeDropboxAPIError             = "dropbox_api_error"
 	jsonErrorCodeInvalidArguments            = "invalid_arguments"
+	jsonErrorCodeNotFound                    = "not_found"
 	jsonErrorCodePathConflict                = "path_conflict"
+	jsonErrorCodePermissionDenied            = "permission_denied"
+	jsonErrorCodeRateLimited                 = "rate_limited"
 	jsonErrorCodeStructuredOutputUnsupported = "structured_output_unsupported"
 	jsonErrorCodeUnknownCommand              = "unknown_command"
 	jsonErrorCodeUnknownFlag                 = "unknown_flag"
@@ -64,6 +75,30 @@ func invalidArgumentsErrorf(format string, args ...any) error {
 
 func pathConflictErrorf(format string, args ...any) error {
 	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...))
+}
+
+func authRequiredErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthRequired, fmt.Errorf(format, args...))
+}
+
+func appKeyRequiredError(message string) error {
+	return newCodedError(jsonErrorCodeAppKeyRequired, errors.New(message))
+}
+
+func appKeyRequiredErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeAppKeyRequired, fmt.Errorf(format, args...))
+}
+
+func authExchangeFailedError(message string) error {
+	return newCodedError(jsonErrorCodeAuthExchangeFailed, errors.New(message))
+}
+
+func authExchangeFailedErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthExchangeFailed, fmt.Errorf(format, args...))
+}
+
+func authRefreshFailedErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthRefreshFailed, fmt.Errorf(format, args...))
 }
 
 func unsupportedOutputFormatErrorf(format string, args ...any) error {
@@ -230,6 +265,9 @@ func jsonErrorCode(err error) string {
 	if errors.Is(err, output.ErrStructuredOutputUnsupported) {
 		return jsonErrorCodeStructuredOutputUnsupported
 	}
+	if code := dropboxAPIJSONErrorCode(err); code != "" {
+		return code
+	}
 
 	message := err.Error()
 	switch {
@@ -239,5 +277,185 @@ func jsonErrorCode(err error) string {
 		return jsonErrorCodeUnknownFlag
 	default:
 		return jsonErrorCodeCommandFailed
+	}
+}
+
+func dropboxAPIJSONErrorCode(err error) string {
+	var rateLimitErr dropboxauth.RateLimitAPIError
+	var rateLimitErrPtr *dropboxauth.RateLimitAPIError
+	if errors.As(err, &rateLimitErr) || errors.As(err, &rateLimitErrPtr) {
+		return jsonErrorCodeRateLimited
+	}
+
+	var authErr dropboxauth.AuthAPIError
+	var authErrPtr *dropboxauth.AuthAPIError
+	if errors.As(err, &authErr) {
+		return dropboxAuthAPIErrorCode(authErr.AuthError)
+	}
+	if errors.As(err, &authErrPtr) {
+		if authErrPtr == nil {
+			return jsonErrorCodeDropboxAPIError
+		}
+		return dropboxAuthAPIErrorCode(authErrPtr.AuthError)
+	}
+
+	var accessErr dropboxauth.AccessAPIError
+	var accessErrPtr *dropboxauth.AccessAPIError
+	if errors.As(err, &accessErr) || errors.As(err, &accessErrPtr) {
+		return jsonErrorCodePermissionDenied
+	}
+
+	if summary, ok := dropboxAPIErrorSummary(err); ok {
+		return dropboxAPIMessageErrorCode(summary)
+	}
+	if summary, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
+		return dropboxAPIMessageErrorCode(summary)
+	}
+	return ""
+}
+
+func dropboxAuthAPIErrorCode(authErr *dropboxauth.AuthError) string {
+	if authErr == nil {
+		return jsonErrorCodeDropboxAPIError
+	}
+	switch authErr.Tag {
+	case dropboxauth.AuthErrorInvalidAccessToken, dropboxauth.AuthErrorExpiredAccessToken:
+		return jsonErrorCodeAuthRequired
+	case dropboxauth.AuthErrorInvalidSelectUser,
+		dropboxauth.AuthErrorInvalidSelectAdmin,
+		dropboxauth.AuthErrorUserSuspended,
+		dropboxauth.AuthErrorMissingScope,
+		dropboxauth.AuthErrorRouteAccessDenied:
+		return jsonErrorCodePermissionDenied
+	default:
+		return jsonErrorCodeDropboxAPIError
+	}
+}
+
+func dropboxAPIErrorSummary(err error) (string, bool) {
+	for err != nil {
+		if summary, ok := dropboxAPIErrorSummaryValue(err); ok {
+			return summary, true
+		}
+		err = errors.Unwrap(err)
+	}
+	return "", false
+}
+
+func dropboxAPIErrorSummaryValue(err error) (string, bool) {
+	if err == nil {
+		return "", false
+	}
+	value := reflect.ValueOf(err)
+	if !value.IsValid() {
+		return "", false
+	}
+	if value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return "", false
+		}
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Struct {
+		return "", false
+	}
+
+	typ := value.Type()
+	if typ == reflect.TypeOf(dropbox.APIError{}) {
+		return err.Error(), true
+	}
+	if !strings.HasPrefix(typ.PkgPath(), "github.com/dropbox/dropbox-sdk-go-unofficial/") {
+		return "", false
+	}
+
+	field := value.FieldByName("APIError")
+	if field.IsValid() && field.CanInterface() {
+		if apiErr, ok := field.Interface().(dropbox.APIError); ok {
+			return apiErr.Error(), true
+		}
+	}
+	if strings.HasSuffix(typ.Name(), "APIError") {
+		return err.Error(), true
+	}
+	return "", false
+}
+
+func dropboxAPISummaryFromMessage(message string) (string, bool) {
+	lower := strings.ToLower(message)
+	if strings.Contains(lower, "error in call to api function") {
+		return message, true
+	}
+
+	trimmed := strings.TrimSpace(message)
+	if isDropboxAPISummary(trimmed) {
+		return trimmed, true
+	}
+	if idx := strings.LastIndex(trimmed, ": "); idx >= 0 {
+		tail := strings.TrimSpace(trimmed[idx+2:])
+		if isDropboxAPISummary(tail) {
+			return tail, true
+		}
+	}
+	return "", false
+}
+
+func isDropboxAPISummary(message string) bool {
+	if message == "" || strings.ContainsAny(message, " \t\r\n\"") || !strings.Contains(message, "/") {
+		return false
+	}
+	segments := strings.Split(message, "/")
+	validSegments := 0
+	for _, segment := range segments {
+		if segment == "" || segment == "." || segment == ".." || strings.HasPrefix(segment, "...") {
+			continue
+		}
+		if !isDropboxAPISummarySegment(segment) {
+			return false
+		}
+		validSegments++
+	}
+	return validSegments >= 1
+}
+
+func isDropboxAPISummarySegment(segment string) bool {
+	for _, r := range segment {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '.' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func dropboxAPIMessageErrorCode(message string) string {
+	lower := strings.ToLower(message)
+	switch {
+	case strings.Contains(lower, "invalid_access_token") ||
+		strings.Contains(lower, "expired_access_token"):
+		return jsonErrorCodeAuthRequired
+	case strings.Contains(lower, "too_many_requests") ||
+		strings.Contains(lower, "rate_limit") ||
+		strings.Contains(lower, "rate_limited"):
+		return jsonErrorCodeRateLimited
+	case strings.Contains(lower, "path/conflict") ||
+		strings.Contains(lower, "to/conflict") ||
+		strings.Contains(lower, "from/conflict"):
+		return jsonErrorCodePathConflict
+	case strings.Contains(lower, "not_found") ||
+		strings.Contains(lower, "not found"):
+		return jsonErrorCodeNotFound
+	case strings.Contains(lower, "no_permission") ||
+		strings.Contains(lower, "access_denied") ||
+		strings.Contains(lower, "insufficient_permissions") ||
+		strings.Contains(lower, "missing_scope") ||
+		strings.Contains(lower, "route_access_denied") ||
+		strings.Contains(lower, "user_suspended") ||
+		strings.Contains(lower, "invalid_select_user") ||
+		strings.Contains(lower, "invalid_select_admin"):
+		return jsonErrorCodePermissionDenied
+	case strings.Contains(lower, "error in call to api function"):
+		return jsonErrorCodeDropboxAPIError
+	default:
+		return ""
 	}
 }

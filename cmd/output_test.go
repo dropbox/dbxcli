@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
 
@@ -620,6 +623,123 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 			err:  unsupportedOutputFormatErrorf("unsupported output format %q: use text or json", "yaml"),
 			want: jsonErrorCodeUnsupportedOutputFormat,
 		},
+		{
+			name: "auth required",
+			err:  authRequiredErrorf("no saved Dropbox credentials"),
+			want: jsonErrorCodeAuthRequired,
+		},
+		{
+			name: "app key required",
+			err:  appKeyRequiredError("Dropbox app key is required"),
+			want: jsonErrorCodeAppKeyRequired,
+		},
+		{
+			name: "auth exchange failed",
+			err:  authExchangeFailedError("authorization did not return an access token"),
+			want: jsonErrorCodeAuthExchangeFailed,
+		},
+		{
+			name: "auth refresh failed",
+			err:  authRefreshFailedErrorf("refresh saved Dropbox credentials: failed"),
+			want: jsonErrorCodeAuthRefreshFailed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := jsonErrorCode(tt.err); got != tt.want {
+				t.Fatalf("jsonErrorCode = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestJSONErrorCodeClassifiesDropboxAPIErrors(t *testing.T) {
+	expiredAuth := dropboxauth.AuthAPIError{AuthError: &dropboxauth.AuthError{}}
+	expiredAuth.AuthError.Tag = dropboxauth.AuthErrorExpiredAccessToken
+	missingScope := dropboxauth.AuthAPIError{AuthError: &dropboxauth.AuthError{}}
+	missingScope.AuthError.Tag = dropboxauth.AuthErrorMissingScope
+
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "rate limit api error",
+			err:  dropboxauth.RateLimitAPIError{},
+			want: jsonErrorCodeRateLimited,
+		},
+		{
+			name: "expired access token",
+			err:  expiredAuth,
+			want: jsonErrorCodeAuthRequired,
+		},
+		{
+			name: "missing scope",
+			err:  missingScope,
+			want: jsonErrorCodePermissionDenied,
+		},
+		{
+			name: "access api error",
+			err:  dropboxauth.AccessAPIError{},
+			want: jsonErrorCodePermissionDenied,
+		},
+		{
+			name: "typed files api error",
+			err:  files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}},
+			want: jsonErrorCodeNotFound,
+		},
+		{
+			name: "wrapped typed files api error",
+			err:  fmt.Errorf("get metadata: %w", files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}}),
+			want: jsonErrorCodeNotFound,
+		},
+		{
+			name: "typed path conflict api error",
+			err:  files.CreateFolderV2APIError{APIError: dropbox.APIError{ErrorSummary: "path/conflict/folder/"}},
+			want: jsonErrorCodePathConflict,
+		},
+		{
+			name: "relocation conflict summary",
+			err:  errors.New(`Error in call to API function "files/move_v2": to/conflict/file/.`),
+			want: jsonErrorCodePathConflict,
+		},
+		{
+			name: "not found summary",
+			err:  errors.New(`Error in call to API function "files/get_metadata": path/not_found/.`),
+			want: jsonErrorCodeNotFound,
+		},
+		{
+			name: "exact api summary",
+			err:  errors.New("path/not_found/"),
+			want: jsonErrorCodeNotFound,
+		},
+		{
+			name: "exact auth summary",
+			err:  errors.New("invalid_access_token/"),
+			want: jsonErrorCodeAuthRequired,
+		},
+		{
+			name: "wrapped api summary text",
+			err:  errors.New("get metadata for /missing: path/not_found/"),
+			want: jsonErrorCodeNotFound,
+		},
+		{
+			name: "permission summary",
+			err:  errors.New(`Error in call to API function "files/list_folder": path/no_permission/.`),
+			want: jsonErrorCodePermissionDenied,
+		},
+		{
+			name: "rate limit summary",
+			err:  errors.New(`Error in call to API function "files/upload": too_many_requests/...`),
+			want: jsonErrorCodeRateLimited,
+		},
+		{
+			name: "generic api function error",
+			err:  errors.New(`Error in call to API function "sharing/create_shared_link_with_settings": shared_link_already_exists/.`),
+			want: jsonErrorCodeDropboxAPIError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -636,6 +756,9 @@ func TestJSONErrorCodeDoesNotClassifyPlainValidationStrings(t *testing.T) {
 		errors.New("path exists and is not a folder: /file"),
 		errors.New("Dropbox API requires team admin permissions"),
 		errors.New("`account` accepts an optional `id` argument"),
+		errors.New("local cache not found"),
+		errors.New("config missing_scope marker"),
+		errors.New("local path/not_found/ marker"),
 	} {
 		if got := jsonErrorCode(err); got != jsonErrorCodeCommandFailed {
 			t.Fatalf("jsonErrorCode(%q) = %q, want %q", err.Error(), got, jsonErrorCodeCommandFailed)
