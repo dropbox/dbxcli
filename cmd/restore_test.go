@@ -100,7 +100,7 @@ func TestRestoreVerbosePrintsRevisionAndServerModifiedTime(t *testing.T) {
 func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	clientModified := time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC)
 	serverModified := time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC)
-	result := newRestoreResult("/Reports/old.pdf", "target-rev", &files.FileMetadata{
+	result, err := newRestoreResult("/Reports/old.pdf", "target-rev", &files.FileMetadata{
 		Metadata: files.Metadata{
 			PathDisplay: "/Reports/old.pdf",
 			PathLower:   "/reports/old.pdf",
@@ -111,6 +111,9 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 		ClientModified: clientModified,
 		ServerModified: serverModified,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if result.Input.Path != "/Reports/old.pdf" || result.Input.Revision != "target-rev" {
 		t.Fatalf("input = %#v, want path and target revision", result.Input)

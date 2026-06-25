@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	var mvErrors []error
 	var relocationArgs []*files.RelocationArg
 	var results []relocationResult
+	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
 	dbx := filesNewFunc(config)
 	destIsFolder := len(argsToMove) > 1 || strings.HasSuffix(destination, "/") || isRemoteFolder(dbx, destination)
@@ -60,7 +62,15 @@ func mv(cmd *cobra.Command, args []string) error {
 			mvErrors = append(mvErrors, moveError)
 			continue
 		}
-		results = append(results, newRelocationResult(arg, res))
+		if collectResults {
+			result, err := newRelocationResult(arg, res)
+			if err != nil {
+				moveError := fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err)
+				mvErrors = append(mvErrors, moveError)
+				continue
+			}
+			results = append(results, result)
+		}
 	}
 
 	if len(mvErrors) > 0 {
@@ -70,6 +80,9 @@ func mv(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("mv: %d error(s)", len(mvErrors))
 	}
 
+	if !collectResults {
+		return nil
+	}
 	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(relocationJSONStatusMoved, results))
 }
 

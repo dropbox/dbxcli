@@ -162,7 +162,7 @@ func getErrorOutput(opts getOptions) io.Writer {
 	return os.Stderr
 }
 
-func newGetResult(status, kind, source, target string, metadata files.IsMetadata) getResult {
+func newGetResult(status, kind, source, target string, metadata files.IsMetadata) (getResult, error) {
 	result := getResult{
 		Status: status,
 		Kind:   kind,
@@ -172,10 +172,13 @@ func newGetResult(status, kind, source, target string, metadata files.IsMetadata
 		},
 	}
 	if metadata != nil {
-		jsonResult := jsonMetadataFromDropbox(metadata)
+		jsonResult, err := jsonMetadataFromDropbox(metadata)
+		if err != nil {
+			return getResult{}, err
+		}
 		result.Result = &jsonResult
 	}
-	return result
+	return result, nil
 }
 
 func renderGetResults(cmd *cobra.Command, input getCommandInput, results []getResult) error {
@@ -352,7 +355,7 @@ func ensureLocalDirectoryResult(source, target string, metadata files.IsMetadata
 	if err := os.MkdirAll(target, 0755); err != nil {
 		return getResult{}, err
 	}
-	return newGetResult(status, getKindFolder, source, target, metadata), nil
+	return newGetResult(status, getKindFolder, source, target, metadata)
 }
 
 func relativeTo(base, full string) (string, error) {
@@ -376,7 +379,7 @@ func downloadFileWithResult(dbx files.Client, src string, dst string, opts getOp
 	if err != nil {
 		return getResult{}, err
 	}
-	return newGetResult(getStatusDownloaded, getKindFile, src, dst, metadata), nil
+	return newGetResult(getStatusDownloaded, getKindFile, src, dst, metadata)
 }
 
 func downloadFileWithMetadata(dbx files.Client, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {

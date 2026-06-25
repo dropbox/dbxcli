@@ -61,7 +61,10 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
-	result := newRestoreResult(path, rev, metadata)
+	result, err := newRestoreResult(path, rev, metadata)
+	if err != nil {
+		return err
+	}
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		if !verbose {
@@ -71,7 +74,11 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
 }
 
-func newRestoreResult(path, revision string, metadata *files.FileMetadata) restoreResult {
+func newRestoreResult(path, revision string, metadata *files.FileMetadata) (restoreResult, error) {
+	result, err := restoreMetadataFromDropbox(path, metadata)
+	if err != nil {
+		return restoreResult{}, err
+	}
 	return restoreResult{
 		Status: restoreStatusRestored,
 		Kind:   restoreKindFile,
@@ -79,25 +86,28 @@ func newRestoreResult(path, revision string, metadata *files.FileMetadata) resto
 			Path:     path,
 			Revision: revision,
 		},
-		Result: restoreMetadataFromDropbox(path, metadata),
-	}
+		Result: result,
+	}, nil
 }
 
 func restoreOperationResult(result restoreResult) jsonOperationResult {
 	return newJSONOperationResult(result.Status, result.Kind, result.Input, result.Result)
 }
 
-func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) jsonMetadata {
+func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) (jsonMetadata, error) {
 	if metadata == nil {
 		return jsonMetadata{
 			Type:        "file",
 			PathDisplay: path,
-		}
+		}, nil
 	}
 
-	result := jsonMetadataFromDropbox(metadata)
+	result, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		return jsonMetadata{}, err
+	}
 	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
-	return result
+	return result, nil
 }
 
 func renderRestoreResult(w io.Writer, result restoreResult) error {

@@ -130,11 +130,13 @@ func TestStructuredOutputGoldenSuccessOutputAudit(t *testing.T) {
 			continue
 		}
 		assertGoldenJSONEqual(t, command, fixture, example)
+		assertGoldenSuccessOutputStatuses(t, command, fixture)
 	}
 	for command := range fixtures {
 		if !structuredSet[command] {
 			t.Errorf("golden success output includes non-structured command %q", command)
 		}
+		assertGoldenSuccessOutputStatuses(t, command, fixtures[command])
 	}
 	for command := range examples {
 		if !structuredSet[command] {
@@ -193,6 +195,18 @@ func TestPublicJSONSchemaFiles(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPublicJSONCommandCatalogMatchesGoldenContract(t *testing.T) {
+	got := loadJSONContractFile(t, "../docs/json-schema/v1/commands.json", "public command catalog")
+	want := loadJSONGoldenContract(t)
+	if reflect.DeepEqual(got, want) {
+		return
+	}
+
+	gotJSON, _ := json.MarshalIndent(got, "", "  ")
+	wantJSON, _ := json.MarshalIndent(want, "", "  ")
+	t.Fatalf("public command catalog = %s, want %s", gotJSON, wantJSON)
 }
 
 func structuredOutputCommandPathsWithVersion() []string {
@@ -379,9 +393,15 @@ func jsonSuccessFixtureCoverage() map[string]jsonSuccessFixture {
 func loadJSONGoldenContract(t *testing.T) jsonGoldenContract {
 	t.Helper()
 
-	data, err := os.ReadFile("testdata/json_contract/success_schemas.json")
+	return loadJSONContractFile(t, "testdata/json_contract/success_schemas.json", "golden schema fixture")
+}
+
+func loadJSONContractFile(t *testing.T, file string, label string) jsonGoldenContract {
+	t.Helper()
+
+	data, err := os.ReadFile(file)
 	if err != nil {
-		t.Fatalf("read golden schema fixture: %v", err)
+		t.Fatalf("read %s %s: %v", label, file, err)
 	}
 
 	var raw struct {
@@ -389,13 +409,13 @@ func loadJSONGoldenContract(t *testing.T) jsonGoldenContract {
 		Commands    map[string]map[string]json.RawMessage `json:"commands"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
-		t.Fatalf("decode raw golden schema fixture: %v", err)
+		t.Fatalf("decode raw %s %s: %v", label, file, err)
 	}
 	if len(raw.Definitions) == 0 {
-		t.Fatalf("golden schema fixture has no definitions")
+		t.Fatalf("%s %s has no definitions", label, file)
 	}
 	if len(raw.Commands) == 0 {
-		t.Fatalf("golden schema fixture has no commands")
+		t.Fatalf("%s %s has no commands", label, file)
 	}
 
 	requiredCommandFields := []string{
@@ -411,14 +431,14 @@ func loadJSONGoldenContract(t *testing.T) jsonGoldenContract {
 	for command, fields := range raw.Commands {
 		for _, field := range requiredCommandFields {
 			if _, ok := fields[field]; !ok {
-				t.Errorf("golden schema for %q missing %q", command, field)
+				t.Errorf("%s for %q missing %q", label, command, field)
 			}
 		}
 	}
 
 	var contract jsonGoldenContract
 	if err := json.Unmarshal(data, &contract); err != nil {
-		t.Fatalf("decode golden schema fixture: %v", err)
+		t.Fatalf("decode %s %s: %v", label, file, err)
 	}
 	return normalizeGoldenContract(contract)
 }
@@ -472,7 +492,6 @@ func expectedJSONErrorCodes() []string {
 		jsonErrorCodeStructuredOutputUnsupported,
 		jsonErrorCodeUnknownCommand,
 		jsonErrorCodeUnknownFlag,
-		jsonErrorCodeUnsupportedOutputFormat,
 	}
 }
 
@@ -499,6 +518,29 @@ func assertGoldenJSONEqual(t *testing.T, command string, fixture json.RawMessage
 	gotJSON, _ := json.MarshalIndent(got, "", "  ")
 	wantJSON, _ := json.MarshalIndent(want, "", "  ")
 	t.Errorf("golden output for %q = %s, want %s", command, gotJSON, wantJSON)
+}
+
+func assertGoldenSuccessOutputStatuses(t *testing.T, command string, fixture json.RawMessage) {
+	t.Helper()
+
+	var output jsonOperationOutput
+	if err := json.Unmarshal(fixture, &output); err != nil {
+		t.Fatalf("decode golden output for %q: %v", command, err)
+	}
+	for i, result := range output.Results {
+		if result.Status == "" {
+			t.Errorf("golden output for %q result %d has empty status", command, i)
+		}
+		if result.Status == "unknown" {
+			t.Errorf("golden output for %q result %d must not use unknown status", command, i)
+		}
+		if result.Kind == "" {
+			t.Errorf("golden output for %q result %d has empty kind", command, i)
+		}
+		if result.Kind == "unknown" {
+			t.Errorf("golden output for %q result %d must not use unknown kind", command, i)
+		}
+	}
 }
 
 func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
@@ -789,7 +831,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
-		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file", "unknown"}, nil),
+		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),
 		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted}, metadataKinds(), nil),
 		"search":            operationSchema("search_input", schemaRef("empty"), "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),
 		"share list folder": operationSchema("empty", schemaRef("empty"), "share_folder", []string{shareFolderJSONStatusListed}, []string{shareFolderJSONKindFolder}, nil),
@@ -834,7 +876,7 @@ func schemaRef(name string) *string {
 }
 
 func metadataKinds() []string {
-	return []string{"deleted", "file", "folder", "unknown"}
+	return []string{"deleted", "file", "folder"}
 }
 
 func shareLinkKinds() []string {
@@ -931,6 +973,11 @@ func assertGoldenCommandStatuses(t *testing.T, command string, schema jsonGolden
 	for _, status := range schema.Statuses {
 		if status == "unknown" {
 			t.Errorf("golden schema for %q must not allow unknown result status", command)
+		}
+	}
+	for _, kind := range schema.Kinds {
+		if kind == "unknown" {
+			t.Errorf("golden schema for %q must not allow unknown result kind", command)
 		}
 	}
 }
