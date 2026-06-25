@@ -192,6 +192,9 @@ func TestPublicJSONSchemaFiles(t *testing.T) {
 				errorSchema := schema.Properties["error"]
 				codeSchema := errorSchema.Properties["code"]
 				assertStringSliceEqual(t, tt.file+" error code enum", codeSchema.Enum, expectedJSONErrorCodes())
+				if _, ok := errorSchema.Properties["details"]; !ok {
+					t.Fatalf("%s error schema missing details property", tt.file)
+				}
 			}
 		})
 	}

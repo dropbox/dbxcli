@@ -600,7 +600,7 @@ func checkPutDestination(dbx files.Client, dst string, ifExists string) (putDest
 		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, nil, pathConflictErrorf("destination %q is a folder", dst)
+		return putDestinationUpload, nil, pathConflictErrorWithPath(dst, "destination %q is a folder", dst)
 	}
 	return actionForExistingDestination(dst, ifExists, meta)
 }
@@ -610,7 +610,7 @@ func actionForExistingDestination(dst string, ifExists string, metadata files.Is
 	case putIfExistsSkip:
 		return putDestinationSkip, metadata, nil
 	case putIfExistsFail:
-		return putDestinationUpload, nil, pathConflictErrorf("destination %q already exists", dst)
+		return putDestinationUpload, nil, pathConflictErrorWithPath(dst, "destination %q already exists", dst)
 	default:
 		return putDestinationUpload, nil, nil
 	}
@@ -869,7 +869,7 @@ func putDirectoryConflictError(dst string, err error) error {
 	case ok && conflictTag == files.WriteConflictErrorFolder:
 		return nil
 	case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
-		return pathConflictErrorf("path exists and is not a folder: %s", dst)
+		return pathConflictErrorWithPath(dst, "path exists and is not a folder: %s", dst)
 	case ok:
 		return err
 	case isConflictError(err):

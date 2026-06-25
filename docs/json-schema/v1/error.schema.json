@@ -51,6 +51,11 @@
             "unknown_flag",
             "command_failed"
           ]
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional machine-readable context for stable error handling. Present only when dbxcli has reliable structured details.",
+          "additionalProperties": true
         }
       }
     },

@@ -37,9 +37,15 @@ type jsonCodedError interface {
 	JSONErrorCode() string
 }
 
+type jsonDetailedError interface {
+	error
+	JSONErrorDetails() map[string]any
+}
+
 type codedError struct {
-	code string
-	err  error
+	code    string
+	err     error
+	details map[string]any
 }
 
 func (e codedError) Error() string {
@@ -54,13 +60,18 @@ func (e codedError) JSONErrorCode() string {
 	return e.code
 }
 
-func newCodedError(code string, err error) error {
+func (e codedError) JSONErrorDetails() map[string]any {
+	return cloneJSONErrorDetails(e.details)
+}
+
+func newCodedError(code string, err error, details ...map[string]any) error {
 	if err == nil {
 		return nil
 	}
 	return codedError{
-		code: code,
-		err:  err,
+		code:    code,
+		err:     err,
+		details: mergeJSONErrorDetails(details...),
 	}
 }
 
@@ -72,32 +83,50 @@ func invalidArgumentsErrorf(format string, args ...any) error {
 	return newCodedError(jsonErrorCodeInvalidArguments, fmt.Errorf(format, args...))
 }
 
-func pathConflictErrorf(format string, args ...any) error {
-	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...))
+func pathConflictErrorWithPath(path string, format string, args ...any) error {
+	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...), map[string]any{
+		"path": path,
+	})
 }
 
 func authRequiredErrorf(format string, args ...any) error {
 	return newCodedError(jsonErrorCodeAuthRequired, fmt.Errorf(format, args...))
 }
 
+func authRequiredErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthRequired, fmt.Errorf(format, args...), details)
+}
+
 func appKeyRequiredError(message string) error {
 	return newCodedError(jsonErrorCodeAppKeyRequired, errors.New(message))
 }
 
-func appKeyRequiredErrorf(format string, args ...any) error {
-	return newCodedError(jsonErrorCodeAppKeyRequired, fmt.Errorf(format, args...))
+func appKeyRequiredErrorWithDetails(message string, details map[string]any) error {
+	return newCodedError(jsonErrorCodeAppKeyRequired, errors.New(message), details)
+}
+
+func appKeyRequiredErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeAppKeyRequired, fmt.Errorf(format, args...), details)
 }
 
 func authExchangeFailedError(message string) error {
 	return newCodedError(jsonErrorCodeAuthExchangeFailed, errors.New(message))
 }
 
-func authExchangeFailedErrorf(format string, args ...any) error {
-	return newCodedError(jsonErrorCodeAuthExchangeFailed, fmt.Errorf(format, args...))
+func authExchangeFailedErrorWithDetails(message string, details map[string]any) error {
+	return newCodedError(jsonErrorCodeAuthExchangeFailed, errors.New(message), details)
+}
+
+func authExchangeFailedErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthExchangeFailed, fmt.Errorf(format, args...), details)
 }
 
 func authRefreshFailedErrorf(format string, args ...any) error {
 	return newCodedError(jsonErrorCodeAuthRefreshFailed, fmt.Errorf(format, args...))
+}
+
+func authRefreshFailedErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeAuthRefreshFailed, fmt.Errorf(format, args...), details)
 }
 
 func commandOutput(cmd *cobra.Command) *output.Renderer {
@@ -273,6 +302,54 @@ func jsonErrorCode(err error) string {
 	default:
 		return jsonErrorCodeCommandFailed
 	}
+}
+
+func jsonErrorDetails(err error) map[string]any {
+	details := make(map[string]any)
+
+	var detailed jsonDetailedError
+	if errors.As(err, &detailed) {
+		for key, value := range detailed.JSONErrorDetails() {
+			details[key] = value
+		}
+	}
+
+	if summary, ok := dropboxAPIErrorSummary(err); ok {
+		details["api_summary"] = summary
+	} else if summary, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
+		details["api_summary"] = summary
+	}
+
+	if len(details) == 0 {
+		return nil
+	}
+	return details
+}
+
+func cloneJSONErrorDetails(details map[string]any) map[string]any {
+	if len(details) == 0 {
+		return nil
+	}
+	cloned := make(map[string]any, len(details))
+	for key, value := range details {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func mergeJSONErrorDetails(details ...map[string]any) map[string]any {
+	merged := make(map[string]any)
+	for _, detail := range details {
+		for key, value := range detail {
+			if value != nil {
+				merged[key] = value
+			}
+		}
+	}
+	if len(merged) == 0 {
+		return nil
+	}
+	return merged
 }
 
 func dropboxAPIJSONErrorCode(err error) string {
