@@ -138,6 +138,7 @@ Text output is the default. JSON output is available through the global `--outpu
 
 ```sh
 $ dbxcli <command> --output=json
+$ dbxcli version --output=json
 $ dbxcli account --output=json
 $ dbxcli du --output=json
 $ dbxcli ls --output=json /
@@ -153,12 +154,13 @@ $ dbxcli share-link info --output=json https://www.dropbox.com/s/example/old.pdf
 $ dbxcli share-link update --output=json https://www.dropbox.com/s/example/old.pdf --expires 2026-07-01T00:00:00Z
 $ dbxcli share-link revoke --output=json https://www.dropbox.com/s/example/old.pdf
 $ dbxcli share-link download --output=json https://www.dropbox.com/s/example/old.pdf ./old.pdf
+$ dbxcli share list folder --output=json
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
 
@@ -308,7 +310,25 @@ Entry-list commands such as `ls`, `search`, and `revs` use the operation-style w
 }
 ```
 
-Account and usage commands use the operation-style wrapper with a single result:
+Version, account, and usage commands use the operation-style wrapper with a single result:
+
+```json
+{
+  "input": {},
+  "results": [
+    {
+      "kind": "version",
+      "input": {},
+      "result": {
+        "version": "3.4.0",
+        "sdk_version": "6.0.5",
+        "spec_version": "c36ba27"
+      }
+    }
+  ],
+  "warnings": []
+}
+```
 
 ```json
 {
@@ -376,6 +396,31 @@ Shared-link commands use the same operation-style wrapper. `share-link create`, 
 ```
 
 `share-link revoke` uses `revoked` results whose `result` contains the revoked URL and, when available, the shared-link metadata. `share-link download` uses `downloaded` results whose `result` contains the local `target` and `link` metadata.
+
+The legacy `share list folder` command also supports operation-style JSON. It uses `listed` results with `shared_folder` metadata:
+
+```json
+{
+  "input": {},
+  "results": [
+    {
+      "status": "listed",
+      "kind": "shared_folder",
+      "result": {
+        "type": "shared_folder",
+        "name": "Reports",
+        "path_lower": "/reports",
+        "shared_folder_id": "1234567890",
+        "preview_url": "https://www.dropbox.com/scl/fo/...",
+        "access_type": "owner",
+        "is_inside_team_folder": false,
+        "is_team_folder": false
+      }
+    }
+  ],
+  "warnings": []
+}
+```
 
 `get --output=json <source> -` and `share-link download --output=json <url> -` are not supported because stdout is reserved for downloaded file bytes when the target is `-`.
 
