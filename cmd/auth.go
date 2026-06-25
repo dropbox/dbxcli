@@ -17,7 +17,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -239,7 +238,10 @@ func getAccessToken(tokType string, domain string, force bool) (string, string, 
 	if !force && credential.shouldRefresh(time.Now()) {
 		credential, err = refreshStoredCredential(tokType, domain, credential)
 		if err != nil {
-			return "", "", fmt.Errorf("refresh saved Dropbox credentials: %w; run %q again", err, loginCommand(tokType))
+			if jsonErrorCode(err) == jsonErrorCodeAppKeyRequired {
+				return "", "", appKeyRequiredErrorf("refresh saved Dropbox credentials: %w; run %q again", err, loginCommand(tokType))
+			}
+			return "", "", authRefreshFailedErrorf("refresh saved Dropbox credentials: %w; run %q again", err, loginCommand(tokType))
 		}
 		tokens[tokType] = credential
 		if err = writeTokens(filePath, tokenMap); err != nil {
@@ -262,7 +264,7 @@ func loginCommand(tokType string) string {
 }
 
 func missingAccessTokenError(tokType string) error {
-	return fmt.Errorf("no saved Dropbox credentials; run %q first or set %s", loginCommand(tokType), envAccessToken)
+	return authRequiredErrorf("no saved Dropbox credentials; run %q first or set %s", loginCommand(tokType), envAccessToken)
 }
 
 func appCredentialsName(tokType string) string {
@@ -287,7 +289,7 @@ func ensureOAuthAppCredentials(tokType string) error {
 	}
 	creds.Key = strings.TrimSpace(creds.Key)
 	if creds.Key == "" {
-		return errors.New("Dropbox app key is required")
+		return appKeyRequiredError("Dropbox app key is required")
 	}
 
 	setOAuthCredentials(tokType, creds.Key)
@@ -325,13 +327,13 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 	}
 	token, err := exchangeAuthorizationCode(context.Background(), conf, code, verifier)
 	if err != nil {
-		return storedCredential{}, err
+		return storedCredential{}, authExchangeFailedErrorf("exchange authorization code: %w", err)
 	}
 	if token == nil || token.AccessToken == "" {
-		return storedCredential{}, errors.New("authorization did not return an access token")
+		return storedCredential{}, authExchangeFailedError("authorization did not return an access token")
 	}
 	if token.RefreshToken == "" {
-		return storedCredential{}, errors.New("authorization did not return a refresh token")
+		return storedCredential{}, authExchangeFailedError("authorization did not return a refresh token")
 	}
 	return storedCredentialFromOAuthToken(token, conf.ClientID), nil
 }
@@ -342,7 +344,7 @@ func refreshStoredCredential(tokType string, domain string, credential storedCre
 		appKey = oauthCredentials(tokType)
 	}
 	if strings.TrimSpace(appKey) == "" {
-		return storedCredential{}, errors.New("saved credentials cannot be refreshed without a Dropbox app key")
+		return storedCredential{}, appKeyRequiredError("saved credentials cannot be refreshed without a Dropbox app key")
 	}
 
 	token, err := refreshOAuthToken(context.Background(), oauthConfigWithAppKey(appKey, domain), credential.oauthToken())
@@ -350,7 +352,7 @@ func refreshStoredCredential(tokType string, domain string, credential storedCre
 		return storedCredential{}, err
 	}
 	if token == nil || token.AccessToken == "" {
-		return storedCredential{}, errors.New("token refresh did not return an access token")
+		return storedCredential{}, authRefreshFailedErrorf("token refresh did not return an access token")
 	}
 
 	refreshed := storedCredentialFromOAuthToken(token, appKey)

@@ -371,6 +371,9 @@ func TestGetAccessTokenRefreshFailureLeavesAuthFileUnchanged(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected refresh failure")
 	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeAuthRefreshFailed; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
 	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
 	}
@@ -381,6 +384,43 @@ func TestGetAccessTokenRefreshFailureLeavesAuthFileUnchanged(t *testing.T) {
 	}
 	if string(after) != string(before) {
 		t.Fatalf("expected auth file to remain unchanged\nbefore: %s\nafter:  %s", before, after)
+	}
+}
+
+func TestGetAccessTokenRefreshWithoutAppKeyReturnsAppKeyRequired(t *testing.T) {
+	expired := time.Now().Add(-time.Hour).UTC()
+	authFile := filepath.Join(t.TempDir(), "auth.json")
+	tokens := TokenMap{
+		"": {
+			tokenPersonal: {
+				AccessToken:  "old-access",
+				RefreshToken: "old-refresh",
+				TokenType:    "Bearer",
+				Expiry:       &expired,
+			},
+		},
+	}
+	if err := writeTokens(authFile, tokens); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(envAuthFile, authFile)
+
+	restoreOAuthCredentials(t)
+	setOAuthCredentials(tokenPersonal, "")
+	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
+		t.Fatal("refresh should not run without an app key")
+		return nil, nil
+	}
+
+	_, _, err := getAccessToken(tokenPersonal, "", false)
+	if err == nil {
+		t.Fatal("expected missing app key error")
+	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeAppKeyRequired; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
+	if !strings.Contains(err.Error(), "dbxcli login") {
+		t.Fatalf("expected login hint, got %q", err)
 	}
 }
 
@@ -414,6 +454,9 @@ func TestGetAccessTokenMissingTokenWithDefaultPersonalCredentialsReturnsLoginErr
 	_, _, err := getAccessToken(tokenPersonal, "", false)
 	if err == nil {
 		t.Fatal("expected missing credentials error")
+	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeAuthRequired; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
@@ -453,6 +496,9 @@ func TestGetAccessTokenMissingTokenWithConfiguredAppKeyReturnsLoginError(t *test
 	_, _, err := getAccessToken(tokenPersonal, "", false)
 	if err == nil {
 		t.Fatal("expected missing credentials error")
+	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeAuthRequired; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 	if !strings.Contains(err.Error(), "dbxcli login") {
 		t.Fatalf("expected login hint, got %q", err)
@@ -495,6 +541,8 @@ func TestRequestAccessTokenRejectsEmptyToken(t *testing.T) {
 
 	if _, err := requestAccessToken(tokenPersonal, ""); err == nil {
 		t.Fatal("expected empty access token to return an error")
+	} else if got, want := jsonErrorCode(err), jsonErrorCodeAuthExchangeFailed; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 }
 
@@ -517,6 +565,8 @@ func TestRequestAccessTokenRejectsMissingRefreshToken(t *testing.T) {
 
 	if _, err := requestAccessToken(tokenPersonal, ""); err == nil {
 		t.Fatal("expected missing refresh token to return an error")
+	} else if got, want := jsonErrorCode(err), jsonErrorCodeAuthExchangeFailed; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 }
 
@@ -742,5 +792,7 @@ func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 
 	if _, err := requestAccessToken(tokenTeamManage, ""); err == nil {
 		t.Fatal("expected empty app credentials to fail")
+	} else if got, want := jsonErrorCode(err), jsonErrorCodeAppKeyRequired; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 }
