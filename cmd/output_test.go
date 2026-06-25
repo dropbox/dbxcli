@@ -305,11 +305,79 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	if got.Error.Code != "command_failed" {
 		t.Fatalf("code = %q, want command_failed", got.Error.Code)
 	}
+	if got.Error.Details != nil {
+		t.Fatalf("details = %+v, want nil", got.Error.Details)
+	}
 	if len(got.Warnings) != 0 {
 		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	if !strings.Contains(rendered, `"warnings":[]`) {
 		t.Fatalf("output = %q, want warnings array", rendered)
+	}
+	if strings.Contains(rendered, `"details"`) {
+		t.Fatalf("output = %q, want details omitted for generic error", rendered)
+	}
+}
+
+func TestRenderCommandErrorIncludesCodedDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "mkdir"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	renderCommandError(cmd, pathConflictErrorWithPath("/file", "path exists and is not a folder: %s", "/file"))
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Code != jsonErrorCodePathConflict {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodePathConflict)
+	}
+	if got.Error.Details["path"] != "/file" {
+		t.Fatalf("details = %+v, want path", got.Error.Details)
+	}
+}
+
+func TestRenderCommandErrorIncludesDropboxAPISummaryDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "ls"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	err := fmt.Errorf("get metadata: %w", files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}})
+	renderCommandError(cmd, err)
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Code != jsonErrorCodeNotFound {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeNotFound)
+	}
+	if got.Error.Details["api_summary"] != "path/not_found/" {
+		t.Fatalf("details = %+v, want api_summary", got.Error.Details)
+	}
+}
+
+func TestJSONErrorDetailsIncludesAuthRemediation(t *testing.T) {
+	got := newJSONErrorResponse(&cobra.Command{Use: "account"}, missingAccessTokenError(tokenPersonal))
+
+	if got.Error.Code != jsonErrorCodeAuthRequired {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeAuthRequired)
+	}
+	for key, want := range map[string]any{
+		"token_type":    tokenPersonal,
+		"login_command": "dbxcli login",
+		"env_var":       envAccessToken,
+	} {
+		if got.Error.Details[key] != want {
+			t.Fatalf("details = %+v, want %s=%v", got.Error.Details, key, want)
+		}
 	}
 }
 
@@ -621,7 +689,7 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 	}{
 		{
 			name: "path conflict",
-			err:  pathConflictErrorf("path exists and is not a folder: /file"),
+			err:  pathConflictErrorWithPath("/file", "path exists and is not a folder: /file"),
 			want: jsonErrorCodePathConflict,
 		},
 		{

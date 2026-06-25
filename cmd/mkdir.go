@@ -76,7 +76,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 			}
 			status = mkdirStatusExisting
 		case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
-			return pathConflictErrorf("path exists and is not a folder: %s", dst)
+			return pathConflictErrorWithPath(dst, "path exists and is not a folder: %s", dst)
 		case ok:
 			return err
 		case isConflictError(err):
@@ -112,7 +112,7 @@ func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata
 	}
 	folder, ok := metadata.(*files.FolderMetadata)
 	if !ok || folder == nil {
-		return nil, pathConflictErrorf("path exists and is not a folder: %s", dst)
+		return nil, pathConflictErrorWithPath(dst, "path exists and is not a folder: %s", dst)
 	}
 	return folder, nil
 }

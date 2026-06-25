@@ -15,8 +15,9 @@ type jsonErrorResponse struct {
 }
 
 type jsonError struct {
-	Message string `json:"message"`
-	Code    string `json:"code"`
+	Message string         `json:"message"`
+	Code    string         `json:"code"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
 type jsonWarning struct {
@@ -56,6 +57,7 @@ func newJSONErrorResponse(cmd *cobra.Command, err error) jsonErrorResponse {
 		Error: jsonError{
 			Message: err.Error(),
 			Code:    jsonErrorCode(err),
+			Details: jsonErrorDetails(err),
 		},
 		Warnings: emptyJSONWarnings(),
 	}

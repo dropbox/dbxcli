@@ -26,6 +26,9 @@ Error responses always include:
 - `command`: command path when available, or `dbxcli` for root/pre-parse errors
 - `error.message`: human-readable error text
 - `error.code`: stable machine-readable error code
+- `error.details`: optional machine-readable context, included only when
+  dbxcli has reliable structured details such as `path`, `token_type`,
+  `login_command`, `env_var`, or Dropbox `api_summary`
 - `warnings`: machine-actionable warnings, or `[]`
 
 Command-specific `input` and `result` payload contracts are listed in

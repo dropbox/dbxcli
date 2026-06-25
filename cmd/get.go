@@ -345,7 +345,7 @@ func ensureLocalDirectoryResult(source, target string, metadata files.IsMetadata
 	status := getStatusCreated
 	if info, err := os.Stat(target); err == nil {
 		if !info.IsDir() {
-			return getResult{}, pathConflictErrorf("path exists and is not a folder: %s", target)
+			return getResult{}, pathConflictErrorWithPath(target, "path exists and is not a folder: %s", target)
 		}
 		status = getStatusExisting
 	} else if !os.IsNotExist(err) {
