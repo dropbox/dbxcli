@@ -50,7 +50,14 @@ func TestAccountCurrentJSONOutputsAccount(t *testing.T) {
 	if got.Input.AccountID != "" {
 		t.Fatalf("input.account_id = %q, want empty for current account", got.Input.AccountID)
 	}
-	account := got.Account
+	result := got.Results[0]
+	if result.Kind != accountKindAccount {
+		t.Fatalf("kind = %q, want account", result.Kind)
+	}
+	if result.Input.AccountID != "" {
+		t.Fatalf("result input.account_id = %q, want empty for current account", result.Input.AccountID)
+	}
+	account := result.Result
 	if account.Type != "full" || account.AccountID != "dbid:current" || account.Email != "test@example.com" {
 		t.Fatalf("account = %#v, want current full account", account)
 	}
@@ -90,7 +97,14 @@ func TestAccountLookupJSONUsesAccountID(t *testing.T) {
 	if got.Input.AccountID != "dbid:lookup" {
 		t.Fatalf("input.account_id = %q, want dbid:lookup", got.Input.AccountID)
 	}
-	account := got.Account
+	result := got.Results[0]
+	if result.Kind != accountKindAccount {
+		t.Fatalf("kind = %q, want account", result.Kind)
+	}
+	if result.Input.AccountID != "dbid:lookup" {
+		t.Fatalf("result input.account_id = %q, want dbid:lookup", result.Input.AccountID)
+	}
+	account := result.Result
 	if account.Type != "basic" || account.AccountID != "dbid:lookup" || account.Email != "lookup@example.com" {
 		t.Fatalf("account = %#v, want lookup basic account", account)
 	}
@@ -137,12 +151,33 @@ func setAccountOutputJSON(t *testing.T, cmd *cobra.Command) {
 	}
 }
 
-func decodeAccountOutput(t *testing.T, out *bytes.Buffer) accountOutput {
+type accountJSONOutput struct {
+	Input    accountInput        `json:"input"`
+	Results  []accountJSONResult `json:"results"`
+	Warnings []jsonWarning       `json:"warnings"`
+}
+
+type accountJSONResult struct {
+	Kind   string       `json:"kind"`
+	Input  accountInput `json:"input"`
+	Result jsonAccount  `json:"result"`
+}
+
+func decodeAccountOutput(t *testing.T, out *bytes.Buffer) accountJSONOutput {
 	t.Helper()
 
-	var got accountOutput
-	if err := json.NewDecoder(out).Decode(&got); err != nil {
+	var got accountJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
 	}
 	return got
 }
