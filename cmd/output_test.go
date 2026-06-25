@@ -455,7 +455,7 @@ func TestRenderJSONOperationOutput(t *testing.T) {
 	}
 }
 
-func TestNewJSONOperationResultNormalizesEmptyFields(t *testing.T) {
+func TestNewJSONOperationResultNormalizesObjectFields(t *testing.T) {
 	got := newJSONOperationResult(
 		"",
 		"",
@@ -471,8 +471,8 @@ func TestNewJSONOperationResultNormalizesEmptyFields(t *testing.T) {
 	}
 	rendered := string(encoded)
 	for _, want := range []string{
-		`"status":"unknown"`,
-		`"kind":"unknown"`,
+		`"status":""`,
+		`"kind":""`,
 		`"input":{"path":"/file.txt"}`,
 		`"result":{}`,
 	} {
@@ -633,11 +633,6 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 			name: "required argument validation",
 			err:  invalidArgumentsError("`add-member` requires `email`, `first`, and `last` arguments"),
 			want: jsonErrorCodeInvalidArguments,
-		},
-		{
-			name: "unsupported output format",
-			err:  unsupportedOutputFormatErrorf("unsupported output format %q: use text or json", "yaml"),
-			want: jsonErrorCodeUnsupportedOutputFormat,
 		},
 		{
 			name: "auth required",

@@ -17,10 +17,14 @@ type relocationResult struct {
 	Result jsonMetadata    `json:"result"`
 }
 
-func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) relocationResult {
+func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) (relocationResult, error) {
 	var metadata files.IsMetadata
 	if res != nil {
 		metadata = res.Metadata
+	}
+	result, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		return relocationResult{}, err
 	}
 
 	return relocationResult{
@@ -28,8 +32,8 @@ func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) 
 			FromPath: arg.FromPath,
 			ToPath:   arg.ToPath,
 		},
-		Result: jsonMetadataFromDropbox(metadata),
-	}
+		Result: result,
+	}, nil
 }
 
 func relocationOperationResults(status string, results []relocationResult) []jsonOperationResult {

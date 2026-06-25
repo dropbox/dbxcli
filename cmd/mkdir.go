@@ -98,7 +98,10 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 		metadata = created.Metadata
 	}
 
-	result := newMkdirResult(status, dst, parents, metadata)
+	result, err := newMkdirResult(status, dst, parents, metadata)
+	if err != nil {
+		return err
+	}
 	return renderJSONOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)})
 }
 
@@ -114,8 +117,11 @@ func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata
 	return folder, nil
 }
 
-func newMkdirResult(status, path string, parents bool, metadata *files.FolderMetadata) mkdirResult {
-	result := jsonMetadataFromDropbox(metadata)
+func newMkdirResult(status, path string, parents bool, metadata *files.FolderMetadata) (mkdirResult, error) {
+	result, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		return mkdirResult{}, err
+	}
 	result.PathDisplay = metadataDisplayPath(path, result.PathDisplay)
 
 	return mkdirResult{
@@ -126,7 +132,7 @@ func newMkdirResult(status, path string, parents bool, metadata *files.FolderMet
 			Parents: parents,
 		},
 		Result: result,
-	}
+	}, nil
 }
 
 func mkdirOperationResult(result mkdirResult) jsonOperationResult {

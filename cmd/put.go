@@ -243,7 +243,7 @@ const (
 	putDestinationSkip
 )
 
-func newPutResult(status, kind, source, target string, metadata files.IsMetadata) putResult {
+func newPutResult(status, kind, source, target string, metadata files.IsMetadata) (putResult, error) {
 	result := putResult{
 		Status: status,
 		Kind:   kind,
@@ -253,10 +253,13 @@ func newPutResult(status, kind, source, target string, metadata files.IsMetadata
 		},
 	}
 	if metadata != nil {
-		jsonResult := jsonMetadataFromDropbox(metadata)
+		jsonResult, err := jsonMetadataFromDropbox(metadata)
+		if err != nil {
+			return putResult{}, err
+		}
 		result.Result = &jsonResult
 	}
-	return result
+	return result, nil
 }
 
 func renderPutResults(cmd *cobra.Command, input putCommandInput, results []putResult) error {
@@ -376,7 +379,10 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 	}
 	if action == putDestinationSkip {
 		reportPutSkipped(opts, dstPath)
-		result := newPutResult(putStatusSkipped, putKindFile, "-", dstPath, existingMetadata)
+		result, err := newPutResult(putStatusSkipped, putKindFile, "-", dstPath, existingMetadata)
+		if err != nil {
+			return err
+		}
 		return renderPutResults(cmd, putCommandInput{
 			Source:    "-",
 			Target:    dstPath,
@@ -502,7 +508,7 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	}
 	if action == putDestinationSkip {
 		reportPutSkipped(opts, dst)
-		return newPutResult(putStatusSkipped, putKindFile, src, dst, existingMetadata), nil
+		return newPutResult(putStatusSkipped, putKindFile, src, dst, existingMetadata)
 	}
 
 	contents, err := os.Open(src)
@@ -528,24 +534,24 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 		metadata, err := uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size(), putErrorOutput(opts)), commitInfo, contentsInfo.Size(), opts.workers, opts.chunkSize, opts.debug)
 		if err != nil && ifExists == putIfExistsSkip && isUploadDestinationFileConflict(err) {
 			reportPutSkipped(opts, dst)
-			return newPutResult(putStatusSkipped, putKindFile, src, dst, nil), nil
+			return newPutResult(putStatusSkipped, putKindFile, src, dst, nil)
 		}
 		if err != nil {
 			return putResult{}, err
 		}
-		return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata), nil
+		return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata)
 	}
 
 	uploadArg := &files.UploadArg{CommitInfo: *commitInfo}
 	metadata, err := uploadSingleShot(dbx, contents, uploadArg, contentsInfo.Size(), putErrorOutput(opts))
 	if err != nil && ifExists == putIfExistsSkip && isUploadDestinationFileConflict(err) {
 		reportPutSkipped(opts, dst)
-		return newPutResult(putStatusSkipped, putKindFile, src, dst, nil), nil
+		return newPutResult(putStatusSkipped, putKindFile, src, dst, nil)
 	}
 	if err != nil {
 		return putResult{}, err
 	}
-	return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata), nil
+	return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata)
 }
 
 func writeModeForIfExists(ifExists string) string {
@@ -849,12 +855,12 @@ func putDirectoryWithResult(dbx files.Client, src, dst string) (putResult, error
 		if metaErr != nil {
 			return putResult{}, metaErr
 		}
-		return newPutResult(putStatusExisting, putKindFolder, src, dst, metadata), nil
+		return newPutResult(putStatusExisting, putKindFolder, src, dst, metadata)
 	}
 	if created == nil {
-		return newPutResult(putStatusCreated, putKindFolder, src, dst, nil), nil
+		return newPutResult(putStatusCreated, putKindFolder, src, dst, nil)
 	}
-	return newPutResult(putStatusCreated, putKindFolder, src, dst, created.Metadata), nil
+	return newPutResult(putStatusCreated, putKindFolder, src, dst, created.Metadata)
 }
 
 func putDirectoryConflictError(dst string, err error) error {

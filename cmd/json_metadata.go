@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -18,11 +19,11 @@ type jsonMetadata struct {
 	Deleted        bool    `json:"deleted,omitempty"`
 }
 
-func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
+func jsonMetadataFromDropbox(metadata files.IsMetadata) (jsonMetadata, error) {
 	switch m := metadata.(type) {
 	case *files.FileMetadata:
 		if m == nil {
-			return jsonMetadata{Type: "unknown"}
+			return jsonMetadata{}, fmt.Errorf("unexpected nil Dropbox file metadata")
 		}
 		size := m.Size
 		return jsonMetadata{
@@ -34,38 +35,42 @@ func jsonMetadataFromDropbox(metadata files.IsMetadata) jsonMetadata {
 			Size:           &size,
 			ServerModified: jsonTime(m.ServerModified),
 			ClientModified: jsonTime(m.ClientModified),
-		}
+		}, nil
 	case *files.FolderMetadata:
 		if m == nil {
-			return jsonMetadata{Type: "unknown"}
+			return jsonMetadata{}, fmt.Errorf("unexpected nil Dropbox folder metadata")
 		}
 		return jsonMetadata{
 			Type:        "folder",
 			PathDisplay: m.PathDisplay,
 			PathLower:   m.PathLower,
 			ID:          m.Id,
-		}
+		}, nil
 	case *files.DeletedMetadata:
 		if m == nil {
-			return jsonMetadata{Type: "unknown"}
+			return jsonMetadata{}, fmt.Errorf("unexpected nil Dropbox deleted metadata")
 		}
 		return jsonMetadata{
 			Type:        "deleted",
 			PathDisplay: m.PathDisplay,
 			PathLower:   m.PathLower,
 			Deleted:     true,
-		}
+		}, nil
 	default:
-		return jsonMetadata{Type: "unknown"}
+		return jsonMetadata{}, fmt.Errorf("unexpected Dropbox metadata type %T", metadata)
 	}
 }
 
-func jsonMetadataListFromDropbox(entries []files.IsMetadata) []jsonMetadata {
+func jsonMetadataListFromDropbox(entries []files.IsMetadata) ([]jsonMetadata, error) {
 	result := make([]jsonMetadata, 0, len(entries))
 	for _, entry := range entries {
-		result = append(result, jsonMetadataFromDropbox(entry))
+		metadata, err := jsonMetadataFromDropbox(entry)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, metadata)
 	}
-	return result
+	return result, nil
 }
 
 func jsonTime(t time.Time) *string {

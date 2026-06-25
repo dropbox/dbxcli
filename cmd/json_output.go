@@ -122,12 +122,6 @@ func normalizeJSONOperationResults(results []jsonOperationResult) []jsonOperatio
 }
 
 func normalizeJSONOperationResult(result jsonOperationResult) jsonOperationResult {
-	if result.Status == "" {
-		result.Status = "unknown"
-	}
-	if result.Kind == "" {
-		result.Kind = "unknown"
-	}
 	result.Input = normalizeJSONObject(result.Input)
 	result.Result = normalizeJSONObject(result.Result)
 	return result
