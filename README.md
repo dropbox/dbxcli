@@ -149,6 +149,10 @@ $ dbxcli put --output=json README.md /README.md
 $ dbxcli get --output=json /Reports/old.pdf ./old.pdf
 $ dbxcli share-link create --output=json /Reports/old.pdf
 $ dbxcli share-link list --output=json /Reports/old.pdf
+$ dbxcli share-link info --output=json https://www.dropbox.com/s/example/old.pdf
+$ dbxcli share-link update --output=json https://www.dropbox.com/s/example/old.pdf --expires 2026-07-01T00:00:00Z
+$ dbxcli share-link revoke --output=json https://www.dropbox.com/s/example/old.pdf
+$ dbxcli share-link download --output=json https://www.dropbox.com/s/example/old.pdf ./old.pdf
 $ dbxcli mkdir --output=json /new-folder
 $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
@@ -156,9 +160,9 @@ $ dbxcli restore --output=json /Reports/old.pdf 015f...
 
 Structured success output is rolling out command by command. Currently migrated commands are `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
-Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. New operation-style JSON payloads should use the same `warnings` field.
+Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
 
-Successful JSON responses are command-specific. Operation-style commands return an `input` object, a `results` array, and a `warnings` array. For commands such as `mkdir`, each result reports what happened to the requested path:
+Successful JSON responses for migrated commands return an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. For commands such as `mkdir`, each result reports what happened to the requested path:
 
 ```json
 {
@@ -346,24 +350,32 @@ Account and usage commands use the operation-style wrapper with a single result:
 }
 ```
 
-Shared-link commands return command-specific objects built around shared-link metadata:
+Shared-link commands use the same operation-style wrapper. `share-link create`, `list`, `info`, and `update` put shared-link metadata directly under `result`; status values include `created`, `existing`, `listed`, `found`, and `updated`:
 
 ```json
 {
   "input": {
     "path": "/Reports/old.pdf"
   },
-  "result": {
-    "type": "file",
-    "url": "https://www.dropbox.com/s/...",
-    "name": "old.pdf",
-    "path_lower": "/reports/old.pdf",
-    "rev": "...",
-    "size": 123
-  },
-  "existing": false
+  "results": [
+    {
+      "status": "created",
+      "kind": "file",
+      "result": {
+        "type": "file",
+        "url": "https://www.dropbox.com/s/...",
+        "name": "old.pdf",
+        "path_lower": "/reports/old.pdf",
+        "rev": "...",
+        "size": 123
+      }
+    }
+  ],
+  "warnings": []
 }
 ```
+
+`share-link revoke` uses `revoked` results whose `result` contains the revoked URL and, when available, the shared-link metadata. `share-link download` uses `downloaded` results whose `result` contains the local `target` and `link` metadata.
 
 `get --output=json <source> -` and `share-link download --output=json <url> -` are not supported because stdout is reserved for downloaded file bytes when the target is `-`.
 

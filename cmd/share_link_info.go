@@ -37,11 +37,6 @@ type shareLinkInfoInput struct {
 	Password bool   `json:"password,omitempty"`
 }
 
-type shareLinkInfoOutput struct {
-	Input  shareLinkInfoInput    `json:"input"`
-	Result shareLinkJSONMetadata `json:"result"`
-}
-
 func shareLinkInfo(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("`share-link info` requires a `url` argument")
@@ -78,14 +73,15 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
 		return renderSharedLinkInfo(w, link)
-	}, shareLinkInfoOutput{
-		Input: shareLinkInfoInput{
+	}, newJSONOperationOutput(
+		shareLinkInfoInput{
 			URL:      url,
 			Path:     opts.path,
 			Password: opts.password.set,
 		},
-		Result: result,
-	})
+		[]jsonOperationResult{shareLinkJSONOperationResult(shareLinkJSONStatusFound, result)},
+		nil,
+	))
 }
 
 func parseShareLinkInfoOptions(cmd *cobra.Command) (shareLinkInfoOptions, error) {

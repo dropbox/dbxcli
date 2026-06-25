@@ -38,6 +38,18 @@ type shareLinkJSONPermissions struct {
 	CanUseExtendedSharingControls bool   `json:"can_use_extended_sharing_controls,omitempty"`
 }
 
+const (
+	shareLinkJSONStatusCreated    = "created"
+	shareLinkJSONStatusDownloaded = "downloaded"
+	shareLinkJSONStatusExisting   = "existing"
+	shareLinkJSONStatusFound      = "found"
+	shareLinkJSONStatusListed     = "listed"
+	shareLinkJSONStatusRevoked    = "revoked"
+	shareLinkJSONStatusUpdated    = "updated"
+
+	shareLinkJSONKindSharedLink = "shared_link"
+)
+
 func shareLinkJSONMetadataFromDropbox(link sharing.IsSharedLinkMetadata) (shareLinkJSONMetadata, bool) {
 	base, linkType, ok := sharedLinkBaseMetadata(link)
 	if !ok {
@@ -63,6 +75,18 @@ func shareLinkJSONMetadataFromDropbox(link sharing.IsSharedLinkMetadata) (shareL
 	}
 
 	return result, true
+}
+
+func shareLinkJSONOperationResult(status string, metadata shareLinkJSONMetadata) jsonOperationResult {
+	return newJSONOperationResult(status, metadata.Type, nil, metadata)
+}
+
+func shareLinkJSONOperationResults(status string, entries []shareLinkJSONMetadata) []jsonOperationResult {
+	results := make([]jsonOperationResult, 0, len(entries))
+	for _, entry := range entries {
+		results = append(results, shareLinkJSONOperationResult(status, entry))
+	}
+	return results
 }
 
 func shareLinkJSONMetadataListFromDropbox(links []sharing.IsSharedLinkMetadata) ([]shareLinkJSONMetadata, bool) {

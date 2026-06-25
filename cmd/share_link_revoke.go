@@ -36,11 +36,6 @@ type shareLinkRevokeResult struct {
 	Link *shareLinkJSONMetadata `json:"link,omitempty"`
 }
 
-type shareLinkRevokeOutput struct {
-	Input   shareLinkRevokeInput    `json:"input"`
-	Revoked []shareLinkRevokeResult `json:"revoked"`
-}
-
 func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 	opts, err := parseShareLinkRevokeOptions(cmd, args)
 	if err != nil {
@@ -52,12 +47,7 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		return commandOutput(cmd).Render(nil, shareLinkRevokeOutput{
-			Input: shareLinkRevokeInput{
-				Path: opts.path,
-			},
-			Revoked: revoked,
-		})
+		return renderJSONOperationOutput(cmd, shareLinkRevokeInput{Path: opts.path}, shareLinkRevokeOperationResults(revoked))
 	}
 
 	if len(args) != 1 {
@@ -76,12 +66,23 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 	}
 
 	commandVerboseStatus(cmd, "Revoked shared link %s", url)
-	return commandOutput(cmd).Render(nil, shareLinkRevokeOutput{
-		Input: shareLinkRevokeInput{
-			URL: url,
-		},
-		Revoked: []shareLinkRevokeResult{{URL: url}},
-	})
+	return renderJSONOperationOutput(
+		cmd,
+		shareLinkRevokeInput{URL: url},
+		shareLinkRevokeOperationResults([]shareLinkRevokeResult{{URL: url}}),
+	)
+}
+
+func shareLinkRevokeOperationResults(revoked []shareLinkRevokeResult) []jsonOperationResult {
+	results := make([]jsonOperationResult, 0, len(revoked))
+	for _, result := range revoked {
+		kind := shareLinkJSONKindSharedLink
+		if result.Link != nil {
+			kind = result.Link.Type
+		}
+		results = append(results, newJSONOperationResult(shareLinkJSONStatusRevoked, kind, nil, result))
+	}
+	return results
 }
 
 func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRevokeOptions, error) {

@@ -14,6 +14,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type shareLinkOperationOutputForTest[I, R any] struct {
+	Input    I                                    `json:"input"`
+	Results  []shareLinkOperationResultForTest[R] `json:"results"`
+	Warnings []jsonWarning                        `json:"warnings"`
+}
+
+type shareLinkOperationResultForTest[R any] struct {
+	Status string `json:"status"`
+	Kind   string `json:"kind"`
+	Result R      `json:"result"`
+}
+
 func TestShareLinkCreateJSONOutputsLinkMetadata(t *testing.T) {
 	expires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	stubSharedLinkClient(t, &mockSharedLinkClient{
@@ -35,26 +47,60 @@ func TestShareLinkCreateJSONOutputsLinkMetadata(t *testing.T) {
 		t.Fatalf("shareLinkCreate error: %v", err)
 	}
 
-	var got shareLinkCreateOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkCreateInput, shareLinkJSONMetadata](t, stdout.Bytes())
 	if got.Input.Path != "/docs/report.txt" {
 		t.Fatalf("input.path = %q, want /docs/report.txt", got.Input.Path)
 	}
-	if got.Existing {
-		t.Fatal("existing = true, want false")
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
 	}
-	if got.Result.Type != "file" || got.Result.URL != "https://example.com/report" || got.Result.PathLower != "/docs/report.txt" {
-		t.Fatalf("result = %#v, want file shared link metadata", got.Result)
+	result := got.Results[0]
+	if result.Status != shareLinkJSONStatusCreated || result.Kind != "file" {
+		t.Fatalf("operation result = %#v, want created file", result)
 	}
-	if got.Result.Size == nil || *got.Result.Size != 42 {
-		t.Fatalf("result.size = %#v, want 42", got.Result.Size)
+	if result.Result.Type != "file" || result.Result.URL != "https://example.com/report" || result.Result.PathLower != "/docs/report.txt" {
+		t.Fatalf("result = %#v, want file shared link metadata", result.Result)
 	}
-	if got.Result.Expires == nil || *got.Result.Expires != "2026-07-01T00:00:00Z" {
-		t.Fatalf("result.expires = %#v, want RFC3339 expiration", got.Result.Expires)
+	if result.Result.Size == nil || *result.Result.Size != 42 {
+		t.Fatalf("result.size = %#v, want 42", result.Result.Size)
 	}
+	if result.Result.Expires == nil || *result.Result.Expires != "2026-07-01T00:00:00Z" {
+		t.Fatalf("result.expires = %#v, want RFC3339 expiration", result.Result.Expires)
+	}
+	assertNoTopLevelJSONField(t, stdout.Bytes(), "existing")
 }
 
-func TestShareLinkListJSONOutputsEntriesAndInput(t *testing.T) {
+func TestShareLinkCreateJSONReportsExistingAsStatus(t *testing.T) {
+	existing := sharedLinkFolder("/docs", "https://example.com/docs")
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			return nil, alreadyExistsError(existing)
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+	setShareLinkOutputJSON(t, cmd)
+
+	if err := shareLinkCreate(cmd, []string{"/docs"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	got := decodeShareLinkOperationOutput[shareLinkCreateInput, shareLinkJSONMetadata](t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != shareLinkJSONStatusExisting || got.Results[0].Kind != "folder" {
+		t.Fatalf("result = %#v, want existing folder", got.Results[0])
+	}
+	if got.Results[0].Result.URL != "https://example.com/docs" {
+		t.Fatalf("result.url = %q, want existing URL", got.Results[0].Result.URL)
+	}
+	assertNoTopLevelJSONField(t, stdout.Bytes(), "existing")
+}
+
+func TestShareLinkListJSONOutputsResultsAndInput(t *testing.T) {
 	stubSharedLinkClient(t, &mockSharedLinkClient{
 		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
 			if arg.Path != "/docs/report.txt" || !arg.DirectOnly {
@@ -75,13 +121,15 @@ func TestShareLinkListJSONOutputsEntriesAndInput(t *testing.T) {
 		t.Fatalf("shareLinkList error: %v", err)
 	}
 
-	var got shareLinkListOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkListInput, shareLinkJSONMetadata](t, stdout.Bytes())
 	if got.Input.Path != "/docs/report.txt" || !got.Input.DirectOnly {
 		t.Fatalf("input = %#v, want direct path input", got.Input)
 	}
-	if len(got.Entries) != 1 || got.Entries[0].URL != "https://example.com/report" {
-		t.Fatalf("entries = %#v, want report shared link", got.Entries)
+	if len(got.Results) != 1 || got.Results[0].Status != shareLinkJSONStatusListed || got.Results[0].Kind != "file" || got.Results[0].Result.URL != "https://example.com/report" {
+		t.Fatalf("results = %#v, want listed report shared link", got.Results)
+	}
+	if strings.Contains(stdout.String(), `"entries"`) {
+		t.Fatalf("JSON output = %s, want operation results and no entries key", stdout.String())
 	}
 }
 
@@ -108,19 +156,22 @@ func TestShareLinkInfoJSONOutputsPermissions(t *testing.T) {
 		t.Fatalf("shareLinkInfo error: %v", err)
 	}
 
-	var got shareLinkInfoOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkInfoInput, shareLinkJSONMetadata](t, stdout.Bytes())
 	if got.Input.URL != "https://example.com/report" {
 		t.Fatalf("input.url = %q, want https://example.com/report", got.Input.URL)
 	}
-	if got.Result.Permissions == nil {
+	if len(got.Results) != 1 || got.Results[0].Status != shareLinkJSONStatusFound || got.Results[0].Kind != "file" {
+		t.Fatalf("results = %#v, want found file", got.Results)
+	}
+	result := got.Results[0].Result
+	if result.Permissions == nil {
 		t.Fatal("result.permissions = nil, want permissions")
 	}
-	if got.Result.Permissions.ResolvedVisibility != "public" || got.Result.Permissions.AccessLevel != "viewer" {
-		t.Fatalf("permissions = %#v, want visibility and access level", got.Result.Permissions)
+	if result.Permissions.ResolvedVisibility != "public" || result.Permissions.AccessLevel != "viewer" {
+		t.Fatalf("permissions = %#v, want visibility and access level", result.Permissions)
 	}
-	if !got.Result.Permissions.AllowDownload || !got.Result.Permissions.RequirePassword {
-		t.Fatalf("permissions = %#v, want allow_download and require_password", got.Result.Permissions)
+	if !result.Permissions.AllowDownload || !result.Permissions.RequirePassword {
+		t.Fatalf("permissions = %#v, want allow_download and require_password", result.Permissions)
 	}
 }
 
@@ -142,13 +193,15 @@ func TestShareLinkUpdateJSONOutputsUpdatedMetadata(t *testing.T) {
 		t.Fatalf("shareLinkUpdate error: %v", err)
 	}
 
-	var got shareLinkUpdateOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkUpdateInput, shareLinkJSONMetadata](t, stdout.Bytes())
 	if got.Input.URL != "https://example.com/report" || !got.Input.AllowDownload {
 		t.Fatalf("input = %#v, want update input", got.Input)
 	}
-	if got.Result.URL != "https://example.com/report" {
-		t.Fatalf("result.url = %q, want updated URL", got.Result.URL)
+	if len(got.Results) != 1 || got.Results[0].Status != shareLinkJSONStatusUpdated || got.Results[0].Kind != "file" {
+		t.Fatalf("results = %#v, want updated file", got.Results)
+	}
+	if got.Results[0].Result.URL != "https://example.com/report" {
+		t.Fatalf("result.url = %q, want updated URL", got.Results[0].Result.URL)
 	}
 }
 
@@ -167,13 +220,12 @@ func TestShareLinkRevokeJSONOutputsRevokedURL(t *testing.T) {
 		t.Fatalf("shareLinkRevoke error: %v", err)
 	}
 
-	var got shareLinkRevokeOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkRevokeInput, shareLinkRevokeResult](t, stdout.Bytes())
 	if got.Input.URL != "https://example.com/report" {
 		t.Fatalf("input.url = %q, want revoked URL", got.Input.URL)
 	}
-	if len(got.Revoked) != 1 || got.Revoked[0].URL != "https://example.com/report" {
-		t.Fatalf("revoked = %#v, want revoked URL", got.Revoked)
+	if len(got.Results) != 1 || got.Results[0].Status != shareLinkJSONStatusRevoked || got.Results[0].Kind != shareLinkJSONKindSharedLink || got.Results[0].Result.URL != "https://example.com/report" {
+		t.Fatalf("results = %#v, want revoked URL", got.Results)
 	}
 }
 
@@ -200,13 +252,15 @@ func TestShareLinkDownloadJSONOutputsTargetAndMetadata(t *testing.T) {
 	}
 	assertFileContent(t, target, "content")
 
-	var got shareLinkDownloadOutput
-	decodeJSONOutput(t, stdout.Bytes(), &got)
+	got := decodeShareLinkOperationOutput[shareLinkDownloadInput, shareLinkDownloadResult](t, stdout.Bytes())
 	if got.Input.URL != "https://example.com/report" || got.Input.Target != target {
 		t.Fatalf("input = %#v, want download input", got.Input)
 	}
-	if got.Result.Target != target || got.Result.Link.URL != "https://example.com/report" {
-		t.Fatalf("result = %#v, want target and link metadata", got.Result)
+	if len(got.Results) != 1 || got.Results[0].Status != shareLinkJSONStatusDownloaded || got.Results[0].Kind != "file" {
+		t.Fatalf("results = %#v, want downloaded file", got.Results)
+	}
+	if got.Results[0].Result.Target != target || got.Results[0].Result.Link.URL != "https://example.com/report" {
+		t.Fatalf("result = %#v, want target and link metadata", got.Results[0].Result)
 	}
 }
 
@@ -265,5 +319,27 @@ func decodeJSONOutput(t *testing.T, data []byte, out any) {
 	t.Helper()
 	if err := json.Unmarshal(data, out); err != nil {
 		t.Fatalf("decode JSON output: %v\noutput: %s", err, string(data))
+	}
+}
+
+func decodeShareLinkOperationOutput[I, R any](t *testing.T, data []byte) shareLinkOperationOutputForTest[I, R] {
+	t.Helper()
+	var got shareLinkOperationOutputForTest[I, R]
+	decodeJSONOutput(t, data, &got)
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	return got
+}
+
+func assertNoTopLevelJSONField(t *testing.T, data []byte, field string) {
+	t.Helper()
+	var raw map[string]any
+	decodeJSONOutput(t, data, &raw)
+	if _, ok := raw[field]; ok {
+		t.Fatalf("JSON output = %s, want no top-level %q field", string(data), field)
 	}
 }
