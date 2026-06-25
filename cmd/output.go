@@ -12,7 +12,63 @@ import (
 const (
 	outputFlag                          = "output"
 	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
+
+	jsonErrorCodeCommandFailed               = "command_failed"
+	jsonErrorCodeInvalidArguments            = "invalid_arguments"
+	jsonErrorCodePathConflict                = "path_conflict"
+	jsonErrorCodeStructuredOutputUnsupported = "structured_output_unsupported"
+	jsonErrorCodeUnknownCommand              = "unknown_command"
+	jsonErrorCodeUnknownFlag                 = "unknown_flag"
+	jsonErrorCodeUnsupportedOutputFormat     = "unsupported_output_format"
 )
+
+type jsonCodedError interface {
+	error
+	JSONErrorCode() string
+}
+
+type codedError struct {
+	code string
+	err  error
+}
+
+func (e codedError) Error() string {
+	return e.err.Error()
+}
+
+func (e codedError) Unwrap() error {
+	return e.err
+}
+
+func (e codedError) JSONErrorCode() string {
+	return e.code
+}
+
+func newCodedError(code string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return codedError{
+		code: code,
+		err:  err,
+	}
+}
+
+func invalidArgumentsError(message string) error {
+	return newCodedError(jsonErrorCodeInvalidArguments, errors.New(message))
+}
+
+func invalidArgumentsErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeInvalidArguments, fmt.Errorf(format, args...))
+}
+
+func pathConflictErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...))
+}
+
+func unsupportedOutputFormatErrorf(format string, args ...any) error {
+	return newCodedError(jsonErrorCodeUnsupportedOutputFormat, fmt.Errorf(format, args...))
+}
 
 func commandOutput(cmd *cobra.Command) *output.Renderer {
 	if cmd == nil {
@@ -61,7 +117,7 @@ func parseOutputFormat(value string) (output.Format, error) {
 	case output.FormatJSON:
 		return output.FormatJSON, nil
 	default:
-		return "", fmt.Errorf("unsupported output format %q: use text or json", value)
+		return "", unsupportedOutputFormatErrorf("unsupported output format %q: use text or json", value)
 	}
 }
 
@@ -130,7 +186,7 @@ func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
 	}
 
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Error: %v\n", err)
-	if jsonErrorCode(err) == "unknown_command" {
+	if jsonErrorCode(err) == jsonErrorCodeUnknownCommand {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s --help' for usage.\n", cmd.CommandPath())
 	}
 }
@@ -164,27 +220,24 @@ func outputJSONRequested(args []string) bool {
 }
 
 // jsonErrorCode derives stable script-facing codes from existing CLI errors.
-// If a matched error message changes, update this mapping with it.
+// Prefer coded errors for dbxcli-owned validation failures. String matching is
+// kept only for Cobra-generated unknown command/flag errors and legacy fallback.
 func jsonErrorCode(err error) string {
+	var coded jsonCodedError
+	if errors.As(err, &coded) {
+		return coded.JSONErrorCode()
+	}
 	if errors.Is(err, output.ErrStructuredOutputUnsupported) {
-		return "structured_output_unsupported"
+		return jsonErrorCodeStructuredOutputUnsupported
 	}
 
 	message := err.Error()
 	switch {
-	case strings.Contains(message, "unsupported output format"):
-		return "unsupported_output_format"
 	case strings.Contains(message, "unknown command"):
-		return "unknown_command"
+		return jsonErrorCodeUnknownCommand
 	case strings.Contains(message, "unknown flag"):
-		return "unknown_flag"
-	case strings.Contains(message, "path exists and is not a folder"):
-		return "path_conflict"
-	case strings.Contains(message, "requires "):
-		return "invalid_arguments"
-	case strings.Contains(message, "accepts an optional"):
-		return "invalid_arguments"
+		return jsonErrorCodeUnknownFlag
 	default:
-		return "command_failed"
+		return jsonErrorCodeCommandFailed
 	}
 }

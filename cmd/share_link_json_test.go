@@ -133,6 +133,72 @@ func TestShareLinkListJSONOutputsResultsAndInput(t *testing.T) {
 	}
 }
 
+func TestDeprecatedShareListLinkJSONIncludesWarning(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/report.txt", "https://example.com/report"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+	setShareLinkOutputJSON(t, cmd)
+
+	if err := shareListLinks(cmd, []string{"/docs/report.txt"}); err != nil {
+		t.Fatalf("shareListLinks error: %v", err)
+	}
+
+	got := decodeShareLinkOperationOutputWithWarnings[shareLinkListInput, shareLinkJSONMetadata](t, stdout.Bytes())
+	if len(got.Warnings) != 1 {
+		t.Fatalf("warnings = %+v, want one deprecation warning", got.Warnings)
+	}
+	warning := got.Warnings[0]
+	if warning.Code != jsonWarningCodeDeprecatedCommand {
+		t.Fatalf("warning code = %q, want %q", warning.Code, jsonWarningCodeDeprecatedCommand)
+	}
+	if !strings.Contains(warning.Message, "share-link list") {
+		t.Fatalf("warning message = %q, want share-link list", warning.Message)
+	}
+	if len(got.Results) != 1 || got.Results[0].Result.URL != "https://example.com/report" {
+		t.Fatalf("results = %#v, want listed shared link", got.Results)
+	}
+}
+
+func TestDeprecatedShareListLinkJSONKeepsDeprecationTextOffStdout(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/report.txt", "https://example.com/report"),
+			}, false), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	setShareLinkOutputJSON(t, cmd)
+
+	if err := shareListLinksCmd.RunE(cmd, []string{"/docs/report.txt"}); err != nil {
+		t.Fatalf("share list link error: %v", err)
+	}
+
+	if strings.Contains(stdout.String(), `Command "link" is deprecated`) {
+		t.Fatalf("stdout = %q, want JSON only", stdout.String())
+	}
+	got := decodeShareLinkOperationOutputWithWarnings[shareLinkListInput, shareLinkJSONMetadata](t, stdout.Bytes())
+	if len(got.Warnings) != 1 || got.Warnings[0].Code != jsonWarningCodeDeprecatedCommand {
+		t.Fatalf("warnings = %+v, want deprecation warning", got.Warnings)
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, RunE should not print Cobra deprecation text directly", stderr.String())
+	}
+}
+
 func TestShareLinkInfoJSONOutputsPermissions(t *testing.T) {
 	permissions := sharing.NewLinkPermissions(true, nil, true, true, true, true, true, false, false)
 	permissions.ResolvedVisibility = &sharing.ResolvedVisibility{Tagged: dropbox.Tagged{Tag: sharing.ResolvedVisibilityPublic}}
@@ -324,13 +390,19 @@ func decodeJSONOutput(t *testing.T, data []byte, out any) {
 
 func decodeShareLinkOperationOutput[I, R any](t *testing.T, data []byte) shareLinkOperationOutputForTest[I, R] {
 	t.Helper()
+	got := decodeShareLinkOperationOutputWithWarnings[I, R](t, data)
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	return got
+}
+
+func decodeShareLinkOperationOutputWithWarnings[I, R any](t *testing.T, data []byte) shareLinkOperationOutputForTest[I, R] {
+	t.Helper()
 	var got shareLinkOperationOutputForTest[I, R]
 	decodeJSONOutput(t, data, &got)
 	if got.Warnings == nil {
 		t.Fatalf("warnings = nil, want empty array")
-	}
-	if len(got.Warnings) != 0 {
-		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }

@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/dropbox/dbxcli/internal/output"
@@ -47,12 +46,12 @@ type shareLinkUpdateInput struct {
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return errors.New("`share-link update` requires a `url` argument")
+		return invalidArgumentsError("`share-link update` requires a `url` argument")
 	}
 
 	url := args[0]
 	if url == "" {
-		return errors.New("`share-link update` requires a non-empty URL")
+		return invalidArgumentsError("`share-link update` requires a non-empty URL")
 	}
 
 	opts, err := parseShareLinkUpdateOptions(cmd)
@@ -171,16 +170,16 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	}
 
 	if expiresChanged && removeExpiration {
-		return shareLinkUpdateOptions{}, errors.New("`--expires` and `--remove-expiration` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsError("`--expires` and `--remove-expiration` cannot be used together")
 	}
 	if allowDownload && disallowDownload {
-		return shareLinkUpdateOptions{}, errors.New("`--allow-download` and `--disallow-download` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsError("`--allow-download` and `--disallow-download` cannot be used together")
 	}
 	if password.set && removePassword {
-		return shareLinkUpdateOptions{}, errors.New("password-setting flags and `--remove-password` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsError("password-setting flags and `--remove-password` cannot be used together")
 	}
 	if !expiresChanged && !removeExpiration && !allowDownload && !disallowDownload && !audienceChanged && !password.set && !removePassword {
-		return shareLinkUpdateOptions{}, errors.New("at least one shared link setting flag is required")
+		return shareLinkUpdateOptions{}, invalidArgumentsError("at least one shared link setting flag is required")
 	}
 
 	var expires *time.Time
@@ -191,7 +190,7 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		}
 		parsed, err := time.Parse(time.RFC3339, value)
 		if err != nil {
-			return shareLinkUpdateOptions{}, fmt.Errorf("invalid --expires %q: use RFC3339 timestamp", value)
+			return shareLinkUpdateOptions{}, invalidArgumentsErrorf("invalid --expires %q: use RFC3339 timestamp", value)
 		}
 		expires = &parsed
 	}

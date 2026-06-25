@@ -65,7 +65,7 @@ type getResult struct {
 
 func get(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`get` requires `src` and/or `dst` arguments")
+		return invalidArgumentsError("`get` requires `src` and/or `dst` arguments")
 	}
 
 	src, err := validatePath(args[0])
@@ -83,7 +83,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if dst == "-" {
 		if commandOutputFormat(cmd) == output.FormatJSON {
-			return errors.New("`get --output=json` cannot be used with stdout target `-`")
+			return invalidArgumentsError("`get --output=json` cannot be used with stdout target `-`")
 		}
 		return getStdout(cmd, src, recursive)
 	}
@@ -113,7 +113,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if _, ok := meta.(*files.FolderMetadata); ok {
 		if !recursive {
-			return fmt.Errorf("%s is a folder (use --recursive to download folders)", src)
+			return invalidArgumentsErrorf("%s is a folder (use --recursive to download folders)", src)
 		}
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
 			dst = filepath.Join(dst, path.Base(src))
@@ -196,7 +196,7 @@ func getOperationResults(results []getResult) []jsonOperationResult {
 
 func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	if recursive {
-		return errors.New("`get -` cannot be used with --recursive")
+		return invalidArgumentsError("`get -` cannot be used with --recursive")
 	}
 
 	dbx := filesNewFunc(config)
@@ -204,7 +204,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
 	if err == nil {
 		if _, ok := meta.(*files.FolderMetadata); ok {
-			return fmt.Errorf("%s is a folder; cannot download folder to stdout", src)
+			return invalidArgumentsErrorf("%s is a folder; cannot download folder to stdout", src)
 		}
 	}
 
@@ -213,7 +213,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 
 func getWithClient(dbx files.Client, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`get` requires `src` and/or `dst` arguments")
+		return invalidArgumentsError("`get` requires `src` and/or `dst` arguments")
 	}
 
 	src, err := validatePath(args[0])
@@ -342,7 +342,7 @@ func ensureLocalDirectoryResult(source, target string, metadata files.IsMetadata
 	status := getStatusCreated
 	if info, err := os.Stat(target); err == nil {
 		if !info.IsDir() {
-			return getResult{}, fmt.Errorf("path exists and is not a folder: %s", target)
+			return getResult{}, pathConflictErrorf("path exists and is not a folder: %s", target)
 		}
 		status = getStatusExisting
 	} else if !os.IsNotExist(err) {

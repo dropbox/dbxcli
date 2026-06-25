@@ -273,15 +273,22 @@ type putOutputData struct {
 func decodePutOutput(t *testing.T, stdout *bytes.Buffer) putOutputData {
 	t.Helper()
 
+	got := decodePutOutputWithWarnings(t, stdout)
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	return got
+}
+
+func decodePutOutputWithWarnings(t *testing.T, stdout *bytes.Buffer) putOutputData {
+	t.Helper()
+
 	var got putOutputData
 	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
 		t.Fatalf("decode put JSON output: %v\noutput: %s", err, stdout.String())
 	}
 	if got.Warnings == nil {
 		t.Fatalf("warnings = nil, want empty array")
-	}
-	if len(got.Warnings) != 0 {
-		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
 }
@@ -941,6 +948,63 @@ func TestPutJSONRecursiveOutputsDirectoryAndFileResults(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "Processing ") || !strings.Contains(stderr.String(), "Creating directory ") {
 		t.Fatalf("stderr = %q, want recursive status", stderr.String())
+	}
+	if !json.Valid(stdout.Bytes()) {
+		t.Fatalf("stdout is not valid JSON: %s", stdout.String())
+	}
+}
+
+func TestPutJSONRecursiveWarnsForSkippedSymlink(t *testing.T) {
+	dir := t.TempDir()
+	realPath := filepath.Join(dir, "real.txt")
+	linkPath := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(realPath, []byte("real"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(realPath, linkPath); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			if arg.Path != "/remote/real.txt" {
+				t.Fatalf("upload path = %q, want /remote/real.txt", arg.Path)
+			}
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return putFileMetadata(arg.Path, 4), nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return files.NewCreateFolderResult(putFolderMetadata(arg.Path)), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := put(cmd, []string{dir, "/remote"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutputWithWarnings(t, &stdout)
+	if len(got.Warnings) != 1 {
+		t.Fatalf("warnings = %+v, want one skipped symlink warning", got.Warnings)
+	}
+	warning := got.Warnings[0]
+	if warning.Code != jsonWarningCodeSkippedSymlink || warning.Path != linkPath {
+		t.Fatalf("warning = %+v, want skipped symlink at %s", warning, linkPath)
+	}
+	if !strings.Contains(warning.Message, "skipped symlink") {
+		t.Fatalf("warning message = %q, want skipped symlink", warning.Message)
+	}
+	for _, result := range got.Results {
+		if result.Input.Source == linkPath || result.Input.Target == "/remote/link.txt" {
+			t.Fatalf("symlink should not be uploaded: %+v", result)
+		}
 	}
 	if !json.Valid(stdout.Bytes()) {
 		t.Fatalf("stdout is not valid JSON: %s", stdout.String())

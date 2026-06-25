@@ -509,6 +509,9 @@ func TestGetFolderWithoutRecursiveFlag(t *testing.T) {
 	if !strings.Contains(err.Error(), "--recursive") {
 		t.Errorf("error = %q, want mention of --recursive", err.Error())
 	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
 }
 
 func TestGetRecursiveCommandGetsMetadataThenListsFolder(t *testing.T) {
@@ -718,8 +721,31 @@ func TestGetJSONRejectsStdoutTarget(t *testing.T) {
 	if !strings.Contains(err.Error(), "stdout target") {
 		t.Fatalf("error = %q, want stdout target", err.Error())
 	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
 	if stdout.Len() != 0 {
 		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
+func TestGetStdoutFolderErrorHasInvalidArgumentsCode(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return getTestFolderMetadata(arg.Path), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := getStdout(&cobra.Command{}, "/remote-folder", false)
+	if err == nil {
+		t.Fatal("expected folder stdout error")
+	}
+	if !strings.Contains(err.Error(), "cannot download folder to stdout") {
+		t.Fatalf("error = %q, want stdout folder error", err.Error())
+	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 }
 

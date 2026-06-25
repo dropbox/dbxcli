@@ -33,7 +33,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		destination = args[1]
 		argsToMove = append(argsToMove, args[0])
 	} else {
-		return fmt.Errorf("mv command requires a source and a destination")
+		return invalidArgumentsError("mv command requires a source and a destination")
 	}
 
 	var mvErrors []error

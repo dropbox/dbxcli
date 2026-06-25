@@ -166,6 +166,9 @@ func TestRmNonEmptyFolderRequiresRecursiveOrForce(t *testing.T) {
 	if !strings.Contains(err.Error(), "--recursive") || !strings.Contains(err.Error(), "--force") {
 		t.Fatalf("error = %q, want recursive and force guidance", err.Error())
 	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
 	if deleteCalled {
 		t.Fatal("delete called after validation failure")
 	}

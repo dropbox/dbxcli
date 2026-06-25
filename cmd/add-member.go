@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -25,7 +24,7 @@ import (
 
 func addMember(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 3 {
-		return errors.New("`add-member` requires `email`, `first`, and `last` arguments")
+		return invalidArgumentsError("`add-member` requires `email`, `first`, and `last` arguments")
 	}
 	dbx := teamNewFunc(config)
 

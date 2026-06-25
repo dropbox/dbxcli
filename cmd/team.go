@@ -14,11 +14,7 @@
 
 package cmd
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 // teamCmd represents the team command
 var teamCmd = &cobra.Command{
@@ -29,7 +25,7 @@ var teamCmd = &cobra.Command{
 			return err
 		}
 		if member, _ := cmd.Flags().GetString("as-member"); member != "" {
-			return fmt.Errorf("Flag `as-member` is invalid for team sub-commands")
+			return invalidArgumentsError("Flag `as-member` is invalid for team sub-commands")
 		}
 		return initDbx(cmd, args)
 	},

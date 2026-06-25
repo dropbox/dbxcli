@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -43,7 +42,7 @@ type restoreResult struct {
 
 func restore(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 2 {
-		return errors.New("`restore` requires `target-path` and `revision` arguments")
+		return invalidArgumentsError("`restore` requires `target-path` and `revision` arguments")
 	}
 
 	path, err := validatePath(args[0])

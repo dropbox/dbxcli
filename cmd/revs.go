@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -36,7 +35,7 @@ const revsJSONStatusRevision = "revision"
 
 func revs(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
-		return errors.New("`revs` requires a `file` argument")
+		return invalidArgumentsError("`revs` requires a `file` argument")
 	}
 
 	path, err := validatePath(args[0])
