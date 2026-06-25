@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -96,7 +95,7 @@ func TestRevsUsesListRevisionsAndCommandOutput(t *testing.T) {
 	}
 }
 
-func TestRevsJSONOutputsInputAndEntries(t *testing.T) {
+func TestRevsJSONOutputsInputAndResults(t *testing.T) {
 	cmd, stdout := testRevsCmd()
 	setRevsOutputJSON(t, cmd)
 	setRevsFlag(t, cmd, "long", "true")
@@ -134,15 +133,21 @@ func TestRevsJSONOutputsInputAndEntries(t *testing.T) {
 	if got.Input.Path != "/report.pdf" || !got.Input.Long || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
 		t.Fatalf("input = %#v, want path/long/time/time_format", got.Input)
 	}
-	if len(got.Entries) != 1 {
-		t.Fatalf("entries = %d, want 1", len(got.Entries))
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
 	}
-	entry := got.Entries[0]
+	if got.Results[0].Status != revsJSONStatusRevision || got.Results[0].Kind != "file" {
+		t.Fatalf("result = %#v, want revision file", got.Results[0])
+	}
+	entry := got.Results[0].Result
 	if entry.Type != "file" || entry.PathDisplay != "/report.pdf" || entry.Rev != "rev-a" || entry.Size == nil || *entry.Size != 42 {
 		t.Fatalf("entry = %#v, want file revision metadata", entry)
 	}
 	if entry.ClientModified == nil || *entry.ClientModified != "2026-06-22T10:00:00Z" {
 		t.Fatalf("client_modified = %#v, want RFC3339 timestamp", entry.ClientModified)
+	}
+	if strings.Contains(stdout.String(), `"entries"`) {
+		t.Fatalf("JSON output = %s, want operation results and no entries key", stdout.String())
 	}
 }
 
@@ -193,12 +198,8 @@ func setRevsFlag(t *testing.T, cmd *cobra.Command, name, value string) {
 	}
 }
 
-func decodeRevsOutput(t *testing.T, out *bytes.Buffer) revsOutput {
+func decodeRevsOutput(t *testing.T, out *bytes.Buffer) metadataOperationOutputForTest[revsInput] {
 	t.Helper()
 
-	var got revsOutput
-	if err := json.NewDecoder(out).Decode(&got); err != nil {
-		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
-	}
-	return got
+	return decodeMetadataOperationOutput[revsInput](t, out)
 }

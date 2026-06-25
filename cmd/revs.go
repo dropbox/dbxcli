@@ -32,10 +32,7 @@ type revsInput struct {
 	TimeFormat string `json:"time_format,omitempty"`
 }
 
-type revsOutput struct {
-	Input   revsInput      `json:"input"`
-	Entries []jsonMetadata `json:"entries"`
-}
+const revsJSONStatusRevision = "revision"
 
 func revs(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
@@ -68,10 +65,9 @@ func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.Fil
 		})
 	}
 
-	return out.Render(nil, revsOutput{
-		Input:   newRevsInput(path, opts),
-		Entries: jsonMetadataListFromRevisions(entries),
-	})
+	input := newRevsInput(path, opts)
+	results := newJSONMetadataOperationResults(revsJSONStatusRevision, jsonMetadataListFromRevisions(entries))
+	return renderJSONOperationOutput(cmd, input, results)
 }
 
 func newRevsInput(path string, opts listOptions) revsInput {

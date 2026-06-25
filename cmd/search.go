@@ -36,10 +36,7 @@ type searchInput struct {
 	TimeFormat string `json:"time_format,omitempty"`
 }
 
-type searchOutput struct {
-	Input   searchInput    `json:"input"`
-	Entries []jsonMetadata `json:"entries"`
-}
+const searchJSONStatusFound = "found"
 
 func search(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 {
@@ -101,10 +98,9 @@ func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files
 		})
 	}
 
-	return out.Render(nil, searchOutput{
-		Input:   newSearchInput(query, scope, opts),
-		Entries: jsonMetadataListFromDropbox(entries),
-	})
+	input := newSearchInput(query, scope, opts)
+	results := newJSONMetadataOperationResults(searchJSONStatusFound, jsonMetadataListFromDropbox(entries))
+	return renderJSONOperationOutput(cmd, input, results)
 }
 
 func newSearchInput(query, scope string, opts listOptions) searchInput {

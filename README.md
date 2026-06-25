@@ -273,7 +273,7 @@ For commands such as `rm`, `input` uses command-specific path and flag fields:
 
 `get` also returns a top-level `input`, a `results` array, and `warnings: []`. File downloads use `downloaded`; recursive folder downloads may also include local directory results with `created` or `existing`.
 
-Commands that return entry lists, such as `ls`, `search`, and `revs`, return an `input` object and an `entries` array. `ls` input includes the listed path; `search` input includes the query and optional path scope; `revs` input includes the file path:
+Entry-list commands such as `ls`, `search`, and `revs` use the operation-style wrapper. `ls` input includes the listed path; `search` input includes the query and optional path scope; `revs` input includes the file path. Results use `listed`, `found`, or `revision` status values and put Dropbox metadata under `result`:
 
 ```json
 {
@@ -286,16 +286,21 @@ Commands that return entry lists, such as `ls`, `search`, and `revs`, return an 
     "reverse": false,
     "time": "server"
   },
-  "entries": [
+  "results": [
     {
-      "type": "file",
-      "path_display": "/Reports/q1.pdf",
-      "path_lower": "/reports/q1.pdf",
-      "id": "id:...",
-      "rev": "...",
-      "size": 123
+      "status": "listed",
+      "kind": "file",
+      "result": {
+        "type": "file",
+        "path_display": "/Reports/q1.pdf",
+        "path_lower": "/reports/q1.pdf",
+        "id": "id:...",
+        "rev": "...",
+        "size": 123
+      }
     }
-  ]
+  ],
+  "warnings": []
 }
 ```
 
