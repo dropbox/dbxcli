@@ -159,6 +159,7 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 
 	if accessToken := os.Getenv(envAccessToken); accessToken != "" {
 		config = makeDropboxConfig(accessToken, verbose, asMember, domain)
+		config = withRootNamespace(config, tokenType(cmd))
 		return nil
 	}
 
@@ -169,30 +170,43 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	config = makeDropboxConfig(accessToken, verbose, asMember, domain)
-
-	// Auto-detect the root namespace so that team folders are accessible.
-	// Team manage tokens are for administrative operations and don't need
-	// a path root; skip auto-detection for those.
-	if tokType != tokenTeamManage {
-		usersClient := users.New(config)
-		account, accountErr := usersClient.GetCurrentAccount()
-		if accountErr != nil {
-			config.LogInfo("Warning: could not auto-detect root namespace (%v); team folders may not be accessible", accountErr)
-		} else {
-			var rootNamespaceID string
-			switch ri := account.RootInfo.(type) {
-			case *common.TeamRootInfo:
-				rootNamespaceID = ri.RootNamespaceId
-			case *common.UserRootInfo:
-				rootNamespaceID = ri.RootNamespaceId
-			}
-			if rootNamespaceID != "" {
-				config = config.WithRoot(rootNamespaceID)
-			}
-		}
-	}
+	config = withRootNamespace(config, tokType)
 
 	return
+}
+
+func withRootNamespace(cfg dropbox.Config, tokType string) dropbox.Config {
+	// Team manage tokens are for administrative operations and don't need a path root.
+	if tokType == tokenTeamManage {
+		return cfg
+	}
+
+	account, err := usersNewFunc(cfg).GetCurrentAccount()
+	if err != nil {
+		cfg.LogInfo("Warning: could not auto-detect root namespace (%v); team folders may not be accessible", err)
+		return cfg
+	}
+
+	rootNamespaceID := rootNamespaceID(account)
+	if rootNamespaceID == "" {
+		return cfg
+	}
+	return cfg.WithRoot(rootNamespaceID)
+}
+
+func rootNamespaceID(account *users.FullAccount) string {
+	if account == nil {
+		return ""
+	}
+
+	switch ri := account.RootInfo.(type) {
+	case *common.TeamRootInfo:
+		return ri.RootNamespaceId
+	case *common.UserRootInfo:
+		return ri.RootNamespaceId
+	default:
+		return ""
+	}
 }
 
 // RootCmd represents the base command when called without any subcommands

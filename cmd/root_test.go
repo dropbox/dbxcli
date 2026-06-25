@@ -12,6 +12,8 @@ import (
 
 	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 )
@@ -171,6 +173,11 @@ func TestInitDbxStillRequiresAuthForDropboxCommands(t *testing.T) {
 func TestInitDbxUsesAccessTokenEnv(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testRootFullAccount(common.NewUserRootInfo("root-ns", "home-ns")), nil
+		},
+	})
 
 	t.Setenv(envAccessToken, "env-token")
 	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
@@ -202,11 +209,19 @@ func TestInitDbxUsesAccessTokenEnv(t *testing.T) {
 	if config.LogLevel != dropbox.LogInfo {
 		t.Fatalf("expected verbose log level, got %v", config.LogLevel)
 	}
+	if config.PathRoot != `{".tag": "root", "root": "root-ns"}` {
+		t.Fatalf("expected path root from env token account, got %q", config.PathRoot)
+	}
 }
 
 func TestInitDbxAccessTokenEnvTakesPrecedenceOverAuthFile(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testRootFullAccount(common.NewUserRootInfo("env-root", "env-home")), nil
+		},
+	})
 
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	if err := os.WriteFile(authFile, []byte(`{"":{"personal":"file-token"}}`), 0600); err != nil {
@@ -224,12 +239,20 @@ func TestInitDbxAccessTokenEnvTakesPrecedenceOverAuthFile(t *testing.T) {
 	if config.Token != "env-token" {
 		t.Fatalf("expected %s to take precedence, got %q", envAccessToken, config.Token)
 	}
+	if config.PathRoot != `{".tag": "root", "root": "env-root"}` {
+		t.Fatalf("expected path root from env token account, got %q", config.PathRoot)
+	}
 }
 
 func TestInitDbxAccessTokenEnvBypassesRefresh(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()
 	restoreOAuthCredentials(t)
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testRootFullAccount(common.NewUserRootInfo("env-root", "env-home")), nil
+		},
+	})
 
 	expired := time.Now().Add(-time.Hour)
 	authFile := filepath.Join(t.TempDir(), "auth.json")
@@ -262,11 +285,19 @@ func TestInitDbxAccessTokenEnvBypassesRefresh(t *testing.T) {
 	if config.Token != "env-token" {
 		t.Fatalf("expected %s to take precedence, got %q", envAccessToken, config.Token)
 	}
+	if config.PathRoot != `{".tag": "root", "root": "env-root"}` {
+		t.Fatalf("expected path root from env token account, got %q", config.PathRoot)
+	}
 }
 
 func TestInitDbxUsesAuthFileEnv(t *testing.T) {
 	origConfig := config
 	defer func() { config = origConfig }()
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testRootFullAccount(common.NewTeamRootInfo("team-root", "home-ns", "/Member")), nil
+		},
+	})
 
 	authFile := filepath.Join(t.TempDir(), "custom-auth.json")
 	if err := os.WriteFile(authFile, []byte(`{"api.example.com":{"personal":"file-token"}}`), 0600); err != nil {
@@ -291,6 +322,95 @@ func TestInitDbxUsesAuthFileEnv(t *testing.T) {
 	if config.Domain != "api.example.com" {
 		t.Fatalf("expected domain from flag, got %q", config.Domain)
 	}
+	if config.PathRoot != `{".tag": "root", "root": "team-root"}` {
+		t.Fatalf("expected path root from saved token account, got %q", config.PathRoot)
+	}
+}
+
+func TestWithRootNamespaceSkipsTeamManage(t *testing.T) {
+	cfg := makeDropboxConfig("team-token", false, "", "")
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			t.Fatal("team manage token should not fetch current account")
+			return nil, nil
+		},
+	})
+
+	got := withRootNamespace(cfg, tokenTeamManage)
+
+	if got.PathRoot != "" {
+		t.Fatalf("path root = %q, want empty", got.PathRoot)
+	}
+}
+
+func TestWithRootNamespaceKeepsConfigOnAccountError(t *testing.T) {
+	cfg := makeDropboxConfig("token", false, "dbmid:member", "api.example.com")
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return nil, errors.New("account unavailable")
+		},
+	})
+
+	got := withRootNamespace(cfg, tokenPersonal)
+
+	if got.Token != cfg.Token || got.AsMemberID != cfg.AsMemberID || got.Domain != cfg.Domain {
+		t.Fatalf("config = %#v, want original token/as-member/domain", got)
+	}
+	if got.PathRoot != "" {
+		t.Fatalf("path root = %q, want empty on account error", got.PathRoot)
+	}
+}
+
+func TestRootNamespaceID(t *testing.T) {
+	tests := []struct {
+		name    string
+		account *users.FullAccount
+		want    string
+	}{
+		{
+			name:    "team root",
+			account: testRootFullAccount(common.NewTeamRootInfo("team-root", "home-ns", "/Member")),
+			want:    "team-root",
+		},
+		{
+			name:    "user root",
+			account: testRootFullAccount(common.NewUserRootInfo("user-root", "home-ns")),
+			want:    "user-root",
+		},
+		{
+			name:    "nil account",
+			account: nil,
+			want:    "",
+		},
+		{
+			name:    "nil root info",
+			account: testRootFullAccount(nil),
+			want:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := rootNamespaceID(tt.account); got != tt.want {
+				t.Fatalf("root namespace ID = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func testRootFullAccount(rootInfo common.IsRootInfo) *users.FullAccount {
+	return users.NewFullAccount(
+		"dbid:root",
+		users.NewName("Test", "User", "Test", "Test User", "TU"),
+		"test@example.com",
+		true,
+		false,
+		"en",
+		"",
+		false,
+		nil,
+		rootInfo,
+	)
 }
 
 func unsetEnvForTest(t *testing.T, key string) {
