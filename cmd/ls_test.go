@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -179,7 +178,7 @@ func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
 	}
 }
 
-func TestLsJSONListsEntriesAndInput(t *testing.T) {
+func TestLsJSONListsResultsAndInput(t *testing.T) {
 	cmd, stdout := testLsCmd(t)
 	setLsOutputJSON(t, cmd)
 	setLsFlag(t, cmd, "recurse", "true")
@@ -244,14 +243,18 @@ func TestLsJSONListsEntriesAndInput(t *testing.T) {
 	if got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
 		t.Fatalf("input options = %+v, want sort/name reverse/client/rfc3339", got.Input)
 	}
-	if len(got.Entries) != 2 {
-		t.Fatalf("entries = %d, want 2", len(got.Entries))
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
 	}
-	if got.Entries[0].Type != "folder" || got.Entries[0].PathDisplay != "/Folder" {
-		t.Fatalf("first entry = %#v, want sorted folder", got.Entries[0])
+	if got.Results[0].Status != lsJSONStatusListed || got.Results[0].Kind != "folder" || got.Results[0].Result.PathDisplay != "/Folder" {
+		t.Fatalf("first result = %#v, want sorted listed folder", got.Results[0])
 	}
-	if got.Entries[1].Type != "file" || got.Entries[1].Rev != "rev-file" || got.Entries[1].Size == nil || *got.Entries[1].Size != 42 {
-		t.Fatalf("second entry = %#v, want file metadata", got.Entries[1])
+	second := got.Results[1].Result
+	if got.Results[1].Status != lsJSONStatusListed || got.Results[1].Kind != "file" || second.Type != "file" || second.Rev != "rev-file" || second.Size == nil || *second.Size != 42 {
+		t.Fatalf("second result = %#v, want listed file metadata", got.Results[1])
+	}
+	if strings.Contains(stdout.String(), `"entries"`) {
+		t.Fatalf("JSON output = %s, want operation results and no entries key", stdout.String())
 	}
 }
 
@@ -290,8 +293,8 @@ func TestLsJSONFilePathUsesMetadata(t *testing.T) {
 	if got.Input.Path != "/file.txt" {
 		t.Fatalf("input path = %q, want /file.txt", got.Input.Path)
 	}
-	if len(got.Entries) != 1 || got.Entries[0].Type != "file" {
-		t.Fatalf("entries = %#v, want one file", got.Entries)
+	if len(got.Results) != 1 || got.Results[0].Status != lsJSONStatusListed || got.Results[0].Kind != "file" || got.Results[0].Result.Type != "file" {
+		t.Fatalf("results = %#v, want one listed file", got.Results)
 	}
 }
 
@@ -336,10 +339,13 @@ func TestLsJSONDeletedEntryIsStructured(t *testing.T) {
 		t.Fatalf("ls error: %v", err)
 	}
 	got := decodeLsOutput(t, stdout)
-	if len(got.Entries) != 1 {
-		t.Fatalf("entries = %d, want 1", len(got.Entries))
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
 	}
-	entry := got.Entries[0]
+	if got.Results[0].Status != lsJSONStatusListed || got.Results[0].Kind != "file" {
+		t.Fatalf("result = %#v, want listed file", got.Results[0])
+	}
+	entry := got.Results[0].Result
 	if entry.PathDisplay != "/removed.txt" {
 		t.Fatalf("path_display = %q, want undecorated path", entry.PathDisplay)
 	}
@@ -481,12 +487,8 @@ func setLsFlag(t *testing.T, cmd *cobra.Command, name, value string) {
 	}
 }
 
-func decodeLsOutput(t *testing.T, out *bytes.Buffer) lsOutput {
+func decodeLsOutput(t *testing.T, out *bytes.Buffer) metadataOperationOutputForTest[lsInput] {
 	t.Helper()
 
-	var got lsOutput
-	if err := json.NewDecoder(out).Decode(&got); err != nil {
-		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
-	}
-	return got
+	return decodeMetadataOperationOutput[lsInput](t, out)
 }

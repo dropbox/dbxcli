@@ -13,6 +13,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type metadataOperationOutputForTest[I any] struct {
+	Input    I                                `json:"input"`
+	Results  []metadataOperationResultForTest `json:"results"`
+	Warnings []jsonWarning                    `json:"warnings"`
+}
+
+type metadataOperationResultForTest struct {
+	Status string       `json:"status"`
+	Kind   string       `json:"kind"`
+	Result jsonMetadata `json:"result"`
+}
+
+func decodeMetadataOperationOutput[I any](t *testing.T, out *bytes.Buffer) metadataOperationOutputForTest[I] {
+	t.Helper()
+
+	var got metadataOperationOutputForTest[I]
+	if err := json.NewDecoder(bytes.NewReader(out.Bytes())).Decode(&got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
+	}
+	if got.Warnings == nil {
+		t.Fatalf("warnings = nil, want empty array")
+	}
+	if len(got.Warnings) != 0 {
+		t.Fatalf("warnings = %+v, want empty", got.Warnings)
+	}
+	return got
+}
+
 func TestCommandOutputUsesCobraWriters(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -435,6 +463,38 @@ func TestNewJSONOperationResultOmitsEmptyFields(t *testing.T) {
 	}
 	if !strings.Contains(rendered, `"input":{"path":"/file.txt"}`) {
 		t.Fatalf("encoded output = %s, want input", rendered)
+	}
+}
+
+func TestNewJSONMetadataOperationResults(t *testing.T) {
+	size := uint64(42)
+	results := newJSONMetadataOperationResults("listed", []jsonMetadata{
+		{
+			Type:        "file",
+			PathDisplay: "/file.txt",
+			Size:        &size,
+		},
+		{
+			Type:        "folder",
+			PathDisplay: "/folder",
+		},
+	})
+
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want 2", len(results))
+	}
+	if results[0].Status != "listed" || results[0].Kind != "file" || results[0].Input != nil {
+		t.Fatalf("first result = %#v, want listed file with no per-result input", results[0])
+	}
+	first, ok := results[0].Result.(jsonMetadata)
+	if !ok {
+		t.Fatalf("first result metadata type = %T, want jsonMetadata", results[0].Result)
+	}
+	if first.PathDisplay != "/file.txt" || first.Size == nil || *first.Size != 42 {
+		t.Fatalf("first metadata = %#v, want file metadata", first)
+	}
+	if results[1].Status != "listed" || results[1].Kind != "folder" {
+		t.Fatalf("second result = %#v, want listed folder", results[1])
 	}
 }
 

@@ -64,6 +64,14 @@ func newJSONOperationResult(status, kind string, input any, result any) jsonOper
 	}
 }
 
+func newJSONMetadataOperationResults(status string, entries []jsonMetadata) []jsonOperationResult {
+	results := make([]jsonOperationResult, 0, len(entries))
+	for _, entry := range entries {
+		results = append(results, newJSONOperationResult(status, entry.Type, nil, entry))
+	}
+	return results
+}
+
 func normalizeJSONInput(input any) any {
 	if input == nil {
 		return struct{}{}

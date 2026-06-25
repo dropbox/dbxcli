@@ -41,10 +41,7 @@ type lsInput struct {
 	TimeFormat     string `json:"time_format,omitempty"`
 }
 
-type lsOutput struct {
-	Input   lsInput        `json:"input"`
-	Entries []jsonMetadata `json:"entries"`
-}
+const lsJSONStatusListed = "listed"
 
 // Sends a get_metadata request for a given path and returns the response
 func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
@@ -235,10 +232,9 @@ func renderLsOutput(cmd *cobra.Command, path string, arg *files.ListFolderArg, o
 		})
 	}
 
-	return out.Render(nil, lsOutput{
-		Input:   newLsInput(path, arg, onlyDeleted, opts),
-		Entries: jsonMetadataListFromLsEntries(entries),
-	})
+	input := newLsInput(path, arg, onlyDeleted, opts)
+	results := newJSONMetadataOperationResults(lsJSONStatusListed, jsonMetadataListFromLsEntries(entries))
+	return renderJSONOperationOutput(cmd, input, results)
 }
 
 func newLsInput(path string, arg *files.ListFolderArg, onlyDeleted bool, opts listOptions) lsInput {

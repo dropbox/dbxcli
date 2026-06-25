@@ -128,7 +128,7 @@ func TestSearchUsesSearchV2AndCommandOutput(t *testing.T) {
 	}
 }
 
-func TestSearchJSONOutputsInputAndEntries(t *testing.T) {
+func TestSearchJSONOutputsInputAndResults(t *testing.T) {
 	cmd, stdout := testSearchCmd()
 	setSearchOutputJSON(t, cmd)
 	setSearchFlag(t, cmd, "long", "true")
@@ -183,14 +183,19 @@ func TestSearchJSONOutputsInputAndEntries(t *testing.T) {
 	if !got.Input.Long || got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
 		t.Fatalf("input options = %#v, want long/sort/reverse/time/time-format", got.Input)
 	}
-	if len(got.Entries) != 2 {
-		t.Fatalf("entries = %d, want 2", len(got.Entries))
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
 	}
-	if got.Entries[0].Type != "file" || got.Entries[0].Rev != "rev-file" || got.Entries[0].Size == nil || *got.Entries[0].Size != 42 {
-		t.Fatalf("first entry = %#v, want file metadata", got.Entries[0])
+	first := got.Results[0].Result
+	if got.Results[0].Status != searchJSONStatusFound || got.Results[0].Kind != "file" || first.Type != "file" || first.Rev != "rev-file" || first.Size == nil || *first.Size != 42 {
+		t.Fatalf("first result = %#v, want found file metadata", got.Results[0])
 	}
-	if got.Entries[1].Type != "folder" || got.Entries[1].ID != "id:folder" {
-		t.Fatalf("second entry = %#v, want folder metadata", got.Entries[1])
+	second := got.Results[1].Result
+	if got.Results[1].Status != searchJSONStatusFound || got.Results[1].Kind != "folder" || second.Type != "folder" || second.ID != "id:folder" {
+		t.Fatalf("second result = %#v, want found folder metadata", got.Results[1])
+	}
+	if strings.Contains(stdout.String(), `"entries"`) {
+		t.Fatalf("JSON output = %s, want operation results and no entries key", stdout.String())
 	}
 }
 
@@ -279,14 +284,10 @@ func setSearchFlag(t *testing.T, cmd *cobra.Command, name, value string) {
 	}
 }
 
-func decodeSearchOutput(t *testing.T, out *bytes.Buffer) searchOutput {
+func decodeSearchOutput(t *testing.T, out *bytes.Buffer) metadataOperationOutputForTest[searchInput] {
 	t.Helper()
 
-	var got searchOutput
-	if err := json.NewDecoder(out).Decode(&got); err != nil {
-		t.Fatalf("decode JSON output: %v\noutput: %s", err, out.String())
-	}
-	return got
+	return decodeMetadataOperationOutput[searchInput](t, out)
 }
 
 func searchMatch(metadata files.IsMetadata) *files.SearchMatchV2 {
