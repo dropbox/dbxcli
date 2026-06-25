@@ -168,6 +168,7 @@ $ dbxcli restore --output=json /Reports/old.pdf 015f...
 Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `team info`, `team list-members`, `team list-groups`, `team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
+Current warning codes include `deprecated_command` for deprecated command paths and `skipped_symlink` for symlinks skipped by recursive upload.
 
 Successful JSON responses for migrated commands return an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. For commands such as `mkdir`, each result reports what happened to the requested path:
 
