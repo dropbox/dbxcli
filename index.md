@@ -165,10 +165,32 @@ $ dbxcli rm --output=json /old-file.txt
 $ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `team info`, `team list-members`, `team list-groups`, `team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `share list link`, `team info`, `team list-members`, `team list-groups`, `team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
 
 Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
 Current warning codes include `deprecated_command` for deprecated command paths and `skipped_symlink` for symlinks skipped by recursive upload.
+
+Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Cobra help output and shell-completion protocol commands are also text-only.
+
+JSON error responses use stable `error.code` values:
+
+| Code                            | Meaning                                                                           |
+|---------------------------------|-----------------------------------------------------------------------------------|
+| `invalid_arguments`             | The command arguments or flags are invalid.                                       |
+| `path_conflict`                 | A local or Dropbox path conflicts with the requested operation.                   |
+| `auth_required`                 | No usable saved credentials were found, or Dropbox rejected the saved token.      |
+| `auth_refresh_failed`           | Saved refreshable credentials could not be refreshed.                             |
+| `app_key_required`              | Login or token refresh needs a Dropbox app key.                                   |
+| `auth_exchange_failed`          | The OAuth authorization-code exchange failed or returned unusable tokens.         |
+| `not_found`                     | Dropbox reported that the requested object was not found.                         |
+| `permission_denied`             | Dropbox denied access because of permissions, scope, member selection, or state.  |
+| `rate_limited`                  | Dropbox rate limited the request.                                                 |
+| `dropbox_api_error`             | Dropbox returned an API error that does not map to a more specific code yet.      |
+| `structured_output_unsupported` | The command does not support `--output=json` yet.                                 |
+| `unsupported_output_format`     | `--output` was not `text` or `json`.                                              |
+| `unknown_command`               | Cobra could not resolve the command.                                              |
+| `unknown_flag`                  | Cobra could not resolve a flag.                                                   |
+| `command_failed`                | Fallback for failures without a more specific stable code.                        |
 
 Successful JSON responses for migrated commands return an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. For commands such as `mkdir`, each result reports what happened to the requested path:
 
@@ -466,7 +488,7 @@ In JSON mode, command errors are written to stdout as JSON, including errors fro
 }
 ```
 
-Error `code` values are stable identifiers intended for scripts. Current codes are `structured_output_unsupported`, `unsupported_output_format`, `unknown_command`, `unknown_flag`, `path_conflict`, `invalid_arguments`, and `command_failed`.
+Error `code` values are stable identifiers intended for scripts. The current stable codes are listed in the table above.
 
 ### Authentication
 
