@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -102,7 +101,7 @@ func renderBasicAccount(out io.Writer, ba *users.BasicAccount) error {
 
 func account(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
-		return errors.New("`account` accepts an optional `id` argument")
+		return invalidArgumentsError("`account` accepts an optional `id` argument")
 	}
 
 	dbx := usersNewFunc(config)

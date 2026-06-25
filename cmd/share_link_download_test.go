@@ -419,6 +419,9 @@ func TestShareLinkDownloadFolderRequiresRecursive(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "--recursive") {
 		t.Fatalf("error = %v, want recursive error", err)
 	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
 	if called {
 		t.Fatal("GetSharedLinkFile should not be called")
 	}
@@ -439,6 +442,9 @@ func TestShareLinkDownloadFolderRejectsStdoutTarget(t *testing.T) {
 	err := shareLinkDownload(cmd, []string{"https://example.com/folder", "-"})
 	if err == nil || !strings.Contains(err.Error(), "stdout") {
 		t.Fatalf("error = %v, want stdout folder error", err)
+	}
+	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
 	}
 }
 

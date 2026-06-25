@@ -29,12 +29,19 @@ type shareLinkListInput struct {
 }
 
 func shareListLinks(cmd *cobra.Command, args []string) (err error) {
-	return shareLinkList(cmd, args)
+	return shareLinkListWithWarnings(cmd, args, []jsonWarning{{
+		Code:    jsonWarningCodeDeprecatedCommand,
+		Message: "use `dbxcli share-link list` instead",
+	}})
 }
 
 func shareLinkList(cmd *cobra.Command, args []string) error {
+	return shareLinkListWithWarnings(cmd, args, nil)
+}
+
+func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jsonWarning) error {
 	if len(args) > 1 {
-		return errors.New("`share-link list` accepts at most one `path` argument")
+		return invalidArgumentsError("`share-link list` accepts at most one `path` argument")
 	}
 
 	arg := sharing.NewListSharedLinksArg()
@@ -72,7 +79,7 @@ func shareLinkList(cmd *cobra.Command, args []string) error {
 			DirectOnly: arg.DirectOnly,
 		},
 		shareLinkJSONOperationResults(shareLinkJSONStatusListed, entries),
-		nil,
+		warnings,
 	))
 }
 

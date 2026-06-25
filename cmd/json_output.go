@@ -19,6 +19,11 @@ type jsonWarning struct {
 	Path    string `json:"path,omitempty"`
 }
 
+const (
+	jsonWarningCodeDeprecatedCommand = "deprecated_command"
+	jsonWarningCodeSkippedSymlink    = "skipped_symlink"
+)
+
 type jsonOperationOutput struct {
 	Input    any                   `json:"input"`
 	Results  []jsonOperationResult `json:"results"`
@@ -52,7 +57,11 @@ func newJSONOperationOutput(input any, results []jsonOperationResult, warnings [
 }
 
 func renderJSONOperationOutput(cmd *cobra.Command, input any, results []jsonOperationResult) error {
-	return commandOutput(cmd).Render(nil, newJSONOperationOutput(input, results, nil))
+	return renderJSONOperationOutputWithWarnings(cmd, input, results, nil)
+}
+
+func renderJSONOperationOutputWithWarnings(cmd *cobra.Command, input any, results []jsonOperationResult, warnings []jsonWarning) error {
+	return commandOutput(cmd).Render(nil, newJSONOperationOutput(input, results, warnings))
 }
 
 func newJSONOperationResult(status, kind string, input any, result any) jsonOperationResult {

@@ -260,7 +260,11 @@ func newPutResult(status, kind, source, target string, metadata files.IsMetadata
 }
 
 func renderPutResults(cmd *cobra.Command, input putCommandInput, results []putResult) error {
-	return renderJSONOperationOutput(cmd, input, putOperationResults(results))
+	return renderPutResultsWithWarnings(cmd, input, results, nil)
+}
+
+func renderPutResultsWithWarnings(cmd *cobra.Command, input putCommandInput, results []putResult, warnings []jsonWarning) error {
+	return renderJSONOperationOutputWithWarnings(cmd, input, putOperationResults(results), warnings)
 }
 
 func putOperationResults(results []putResult) []jsonOperationResult {
@@ -277,7 +281,7 @@ func putOperationResults(results []putResult) []jsonOperationResult {
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`put` requires `src` and/or `dst` arguments")
+		return invalidArgumentsError("`put` requires `src` and/or `dst` arguments")
 	}
 
 	opts, err := parsePutOptions(cmd)
@@ -299,7 +303,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if srcInfo.IsDir() && !recursive {
-		return fmt.Errorf("%s is a directory (use --recursive to upload directories)", src)
+		return invalidArgumentsErrorf("%s is a directory (use --recursive to upload directories)", src)
 	}
 
 	// Default `dst` to the base segment of the source path; use the second argument if provided.
@@ -321,17 +325,17 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		if commandOutputFormat(cmd) == output.FormatText {
 			return putRecursive(src, dst, opts)
 		}
-		results, err := putRecursiveWithResults(src, dst, opts)
+		results, warnings, err := putRecursiveWithResults(src, dst, opts)
 		if err != nil {
 			return err
 		}
-		return renderPutResults(cmd, putCommandInput{
+		return renderPutResultsWithWarnings(cmd, putCommandInput{
 			Source:    src,
 			Target:    dst,
 			Recursive: true,
 			IfExists:  opts.ifExists,
 			Stdin:     false,
-		}, results)
+		}, results, warnings)
 	}
 
 	result, err := putFileWithResult(src, dst, opts)
@@ -349,15 +353,15 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool) error {
 	if len(args) < 2 {
-		return errors.New("`put -` requires an explicit target path")
+		return invalidArgumentsError("`put -` requires an explicit target path")
 	}
 	if recursive {
-		return errors.New("`put -` cannot be used with --recursive")
+		return invalidArgumentsError("`put -` cannot be used with --recursive")
 	}
 
 	dst := args[1]
 	if strings.HasSuffix(dst, "/") {
-		return fmt.Errorf("cannot upload stdin to directory target %q; provide a full Dropbox file path", dst)
+		return invalidArgumentsErrorf("cannot upload stdin to directory target %q; provide a full Dropbox file path", dst)
 	}
 
 	dstPath, err := validatePath(dst)
@@ -436,7 +440,7 @@ func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
 		return putOptions{}, err
 	}
 	if chunkSize%(1<<22) != 0 {
-		return putOptions{}, errors.New("`put` requires chunk size to be multiple of 4MiB")
+		return putOptions{}, invalidArgumentsError("`put` requires chunk size to be multiple of 4MiB")
 	}
 	workers, err := cmd.Flags().GetInt("workers")
 	if err != nil {
@@ -476,7 +480,7 @@ func normalizePutIfExists(ifExists string) (string, error) {
 	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsFail:
 		return ifExists, nil
 	default:
-		return "", fmt.Errorf("invalid --if-exists %q (use overwrite, skip, or fail)", ifExists)
+		return "", invalidArgumentsErrorf("invalid --if-exists %q (use overwrite, skip, or fail)", ifExists)
 	}
 }
 
@@ -568,7 +572,7 @@ func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (pu
 		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, nil, fmt.Errorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dst)
+		return putDestinationUpload, nil, invalidArgumentsErrorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dst)
 	}
 	return actionForExistingDestination(dst, ifExists, meta)
 }
@@ -590,7 +594,7 @@ func checkPutDestination(dbx files.Client, dst string, ifExists string) (putDest
 		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, nil, fmt.Errorf("destination %q is a folder", dst)
+		return putDestinationUpload, nil, pathConflictErrorf("destination %q is a folder", dst)
 	}
 	return actionForExistingDestination(dst, ifExists, meta)
 }
@@ -600,7 +604,7 @@ func actionForExistingDestination(dst string, ifExists string, metadata files.Is
 	case putIfExistsSkip:
 		return putDestinationSkip, metadata, nil
 	case putIfExistsFail:
-		return putDestinationUpload, nil, fmt.Errorf("destination %q already exists", dst)
+		return putDestinationUpload, nil, pathConflictErrorf("destination %q already exists", dst)
 	default:
 		return putDestinationUpload, nil, nil
 	}
@@ -702,17 +706,18 @@ func putErrorOutput(opts putOptions) io.Writer {
 }
 
 func putRecursive(src, dst string, opts putOptions) error {
-	_, err := putRecursiveInternal(src, dst, opts, false)
+	_, _, err := putRecursiveInternal(src, dst, opts, false)
 	return err
 }
 
-func putRecursiveWithResults(src, dst string, opts putOptions) ([]putResult, error) {
+func putRecursiveWithResults(src, dst string, opts putOptions) ([]putResult, []jsonWarning, error) {
 	return putRecursiveInternal(src, dst, opts, true)
 }
 
-func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool) ([]putResult, error) {
+func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool) ([]putResult, []jsonWarning, error) {
 	src = filepath.Clean(src)
 	var results []putResult
+	var warnings []jsonWarning
 	var uploadErrors []error
 	dirsWithFiles := make(map[string]bool)
 
@@ -724,6 +729,13 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 			return nil
 		}
 		if !d.Type().IsRegular() {
+			if collectResults && d.Type()&os.ModeSymlink != 0 {
+				warnings = append(warnings, jsonWarning{
+					Code:    jsonWarningCodeSkippedSymlink,
+					Message: "skipped symlink during recursive upload",
+					Path:    filePath,
+				})
+			}
 			return nil
 		}
 
@@ -753,7 +765,7 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	dbx := filesNewFunc(config)
@@ -809,13 +821,13 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(uploadErrors) > 0 {
-		return nil, fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
+		return nil, nil, fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
 	}
-	return results, nil
+	return results, warnings, nil
 }
 
 func putDirectory(dbx files.Client, dst string) error {
@@ -851,7 +863,7 @@ func putDirectoryConflictError(dst string, err error) error {
 	case ok && conflictTag == files.WriteConflictErrorFolder:
 		return nil
 	case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
-		return fmt.Errorf("path exists and is not a folder: %s", dst)
+		return pathConflictErrorf("path exists and is not a folder: %s", dst)
 	case ok:
 		return err
 	case isConflictError(err):

@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -44,7 +43,7 @@ type mkdirResult struct {
 
 func mkdir(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
-		return errors.New("`mkdir` requires a `directory` argument")
+		return invalidArgumentsError("`mkdir` requires a `directory` argument")
 	}
 
 	dst, err := validatePath(args[0])
@@ -77,7 +76,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 			}
 			status = mkdirStatusExisting
 		case ok && (conflictTag == files.WriteConflictErrorFile || conflictTag == files.WriteConflictErrorFileAncestor):
-			return fmt.Errorf("path exists and is not a folder: %s", dst)
+			return pathConflictErrorf("path exists and is not a folder: %s", dst)
 		case ok:
 			return err
 		case isConflictError(err):
@@ -110,7 +109,7 @@ func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata
 	}
 	folder, ok := metadata.(*files.FolderMetadata)
 	if !ok || folder == nil {
-		return nil, fmt.Errorf("path exists and is not a folder: %s", dst)
+		return nil, pathConflictErrorf("path exists and is not a folder: %s", dst)
 	}
 	return folder, nil
 }

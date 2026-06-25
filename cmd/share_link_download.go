@@ -52,19 +52,19 @@ type shareLinkDownloadResult struct {
 
 func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args) > 2 {
-		return errors.New("`share-link download` requires a `url` and optional `target` argument")
+		return invalidArgumentsError("`share-link download` requires a `url` and optional `target` argument")
 	}
 
 	url := args[0]
 	if url == "" {
-		return errors.New("`share-link download` requires a non-empty URL")
+		return invalidArgumentsError("`share-link download` requires a non-empty URL")
 	}
 
 	target := ""
 	if len(args) == 2 {
 		target = args[1]
 		if target == "" {
-			return errors.New("`share-link download` requires a non-empty target")
+			return invalidArgumentsError("`share-link download` requires a non-empty target")
 		}
 	}
 
@@ -77,7 +77,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 		arg.LinkPassword = opts.password.password
 	}
 	if target == "-" && commandOutputFormat(cmd) == output.FormatJSON {
-		return errors.New("`share-link download -` cannot be used with --output=json")
+		return invalidArgumentsError("`share-link download -` cannot be used with --output=json")
 	}
 
 	dbx := newSharedLinkClient(config)
@@ -93,10 +93,10 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 
 	if folder, ok := link.(*sharing.FolderLinkMetadata); ok {
 		if !opts.recursive {
-			return errors.New("shared link is a folder (use --recursive to download folders)")
+			return invalidArgumentsError("shared link is a folder (use --recursive to download folders)")
 		}
 		if target == "-" {
-			return errors.New("cannot download shared-link folder to stdout")
+			return invalidArgumentsError("cannot download shared-link folder to stdout")
 		}
 
 		dst, err := sharedLinkFolderDownloadTarget(target, folder)
@@ -112,7 +112,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 
 	if target == "-" {
 		if opts.recursive {
-			return errors.New("`share-link download -` cannot be used with --recursive")
+			return invalidArgumentsError("`share-link download -` cannot be used with --recursive")
 		}
 		if err := downloadSharedLinkToStdout(dbx, arg, cmd.OutOrStdout()); err != nil {
 			return err
@@ -150,20 +150,20 @@ func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions
 			return opts, err
 		}
 		if pathArg == "" {
-			return opts, errors.New("`--path` requires a non-empty path")
+			return opts, invalidArgumentsError("`--path` requires a non-empty path")
 		}
 		path, err := validatePath(pathArg)
 		if err != nil {
 			return opts, err
 		}
 		if path == "" {
-			return opts, errors.New("cannot download shared-link root with `--path`")
+			return opts, invalidArgumentsError("cannot download shared-link root with `--path`")
 		}
 		opts.path = path
 	}
 
 	if opts.path != "" && opts.recursive {
-		return opts, errors.New("`--path` cannot be used with --recursive")
+		return opts, invalidArgumentsError("`--path` cannot be used with --recursive")
 	}
 
 	return opts, nil

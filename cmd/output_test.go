@@ -594,24 +594,52 @@ func TestOutputJSONRequested(t *testing.T) {
 	}
 }
 
-func TestJSONErrorCodePathConflict(t *testing.T) {
-	err := errors.New("path exists and is not a folder: /file")
-	if got, want := jsonErrorCode(err), "path_conflict"; got != want {
-		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "path conflict",
+			err:  pathConflictErrorf("path exists and is not a folder: /file"),
+			want: jsonErrorCodePathConflict,
+		},
+		{
+			name: "optional argument validation",
+			err:  invalidArgumentsError("`account` accepts an optional `id` argument"),
+			want: jsonErrorCodeInvalidArguments,
+		},
+		{
+			name: "required argument validation",
+			err:  invalidArgumentsError("`add-member` requires `email`, `first`, and `last` arguments"),
+			want: jsonErrorCodeInvalidArguments,
+		},
+		{
+			name: "unsupported output format",
+			err:  unsupportedOutputFormatErrorf("unsupported output format %q: use text or json", "yaml"),
+			want: jsonErrorCodeUnsupportedOutputFormat,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := jsonErrorCode(tt.err); got != tt.want {
+				t.Fatalf("jsonErrorCode = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestJSONErrorCodeOptionalArgumentValidation(t *testing.T) {
-	err := errors.New("`account` accepts an optional `id` argument")
-	if got, want := jsonErrorCode(err), "invalid_arguments"; got != want {
-		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
-	}
-}
-
-func TestJSONErrorCodeRequiredArgumentValidation(t *testing.T) {
-	err := errors.New("`add-member` requires `email`, `first`, and `last` arguments")
-	if got, want := jsonErrorCode(err), "invalid_arguments"; got != want {
-		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+func TestJSONErrorCodeDoesNotClassifyPlainValidationStrings(t *testing.T) {
+	for _, err := range []error{
+		errors.New("path exists and is not a folder: /file"),
+		errors.New("Dropbox API requires team admin permissions"),
+		errors.New("`account` accepts an optional `id` argument"),
+	} {
+		if got := jsonErrorCode(err); got != jsonErrorCodeCommandFailed {
+			t.Fatalf("jsonErrorCode(%q) = %q, want %q", err.Error(), got, jsonErrorCodeCommandFailed)
+		}
 	}
 }
 

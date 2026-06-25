@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -66,7 +65,7 @@ func sharedLinkPasswordFromFlags(cmd *cobra.Command) (sharedLinkPasswordOptions,
 		return sharedLinkPasswordOptions{}, nil
 	}
 	if sourceCount > 1 {
-		return sharedLinkPasswordOptions{}, errors.New("use only one of `--password`, `--password-prompt`, or `--password-file`")
+		return sharedLinkPasswordOptions{}, invalidArgumentsError("use only one of `--password`, `--password-prompt`, or `--password-file`")
 	}
 
 	var password string
@@ -82,7 +81,7 @@ func sharedLinkPasswordFromFlags(cmd *cobra.Command) (sharedLinkPasswordOptions,
 		return sharedLinkPasswordOptions{}, err
 	}
 	if password == "" {
-		return sharedLinkPasswordOptions{}, errors.New("shared link password cannot be empty")
+		return sharedLinkPasswordOptions{}, invalidArgumentsError("shared link password cannot be empty")
 	}
 
 	return sharedLinkPasswordOptions{

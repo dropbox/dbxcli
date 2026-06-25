@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -40,14 +39,14 @@ const searchJSONStatusFound = "found"
 
 func search(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 {
-		return errors.New("`search` requires a `query` argument")
+		return invalidArgumentsError("`search` requires a `query` argument")
 	}
 
 	var scope string
 	if len(args) == 2 {
 		scope = args[1]
 		if !strings.HasPrefix(scope, "/") {
-			return errors.New("`search` `path-scope` must begin with \"/\"")
+			return invalidArgumentsError("`search` `path-scope` must begin with \"/\"")
 		}
 	}
 
