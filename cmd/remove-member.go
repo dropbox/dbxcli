@@ -25,7 +25,7 @@ import (
 
 func removeMember(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
-		return invalidArgumentsError("`remove-member` requires an `email` argument")
+		return invalidArgumentsErrorWithDetails("`remove-member` requires an `email` argument", argumentErrorDetails("email"))
 	}
 
 	dbx := teamNewFunc(config)

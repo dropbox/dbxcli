@@ -54,7 +54,7 @@ const (
 
 func rm(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
-		return invalidArgumentsError("rm: missing operand")
+		return invalidArgumentsErrorWithDetails("rm: missing operand", argumentErrorDetails("path"))
 	}
 
 	opts, err := parseRemoveOptions(cmd)
@@ -145,7 +145,7 @@ func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) 
 				return nil, err
 			}
 			if len(res.Entries) != 0 {
-				return nil, invalidArgumentsErrorf("rm: cannot remove ‘%s’: Directory not empty, use `--force`/`-f` or `--recursive`/`-r` to proceed", path)
+				return nil, invalidArgumentsErrorfWithDetails("rm: cannot remove ‘%s’: Directory not empty, use `--force`/`-f` or `--recursive`/`-r` to proceed", pathErrorDetails(path), path)
 			}
 		}
 		targets = append(targets, removeTarget{path: path, metadata: pathMetaData})

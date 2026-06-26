@@ -35,7 +35,7 @@ const revsJSONStatusRevision = "revision"
 
 func revs(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
-		return invalidArgumentsError("`revs` requires a `file` argument")
+		return invalidArgumentsErrorWithDetails("`revs` requires a `file` argument", argumentErrorDetails("file"))
 	}
 
 	path, err := validatePath(args[0])

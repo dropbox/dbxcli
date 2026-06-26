@@ -104,7 +104,7 @@ func renderBasicAccount(out io.Writer, ba *users.BasicAccount) error {
 
 func account(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
-		return invalidArgumentsError("`account` accepts an optional `id` argument")
+		return invalidArgumentsErrorWithDetails("`account` accepts an optional `id` argument", argumentErrorDetails("id"))
 	}
 
 	dbx := usersNewFunc(config)

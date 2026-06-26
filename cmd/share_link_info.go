@@ -39,12 +39,12 @@ type shareLinkInfoInput struct {
 
 func shareLinkInfo(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return invalidArgumentsError("`share-link info` requires a `url` argument")
+		return invalidArgumentsErrorWithDetails("`share-link info` requires a `url` argument", argumentErrorDetails("url"))
 	}
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsError("`share-link info` requires a non-empty URL")
+		return invalidArgumentsErrorWithDetails("`share-link info` requires a non-empty URL", argumentErrorDetails("url"))
 	}
 
 	opts, err := parseShareLinkInfoOptions(cmd)
@@ -94,7 +94,7 @@ func parseShareLinkInfoOptions(cmd *cobra.Command) (shareLinkInfoOptions, error)
 			return opts, err
 		}
 		if path == "" {
-			return opts, invalidArgumentsError("`--path` requires a non-empty path")
+			return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 		}
 		opts.path = path
 	}

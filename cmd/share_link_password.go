@@ -65,7 +65,7 @@ func sharedLinkPasswordFromFlags(cmd *cobra.Command) (sharedLinkPasswordOptions,
 		return sharedLinkPasswordOptions{}, nil
 	}
 	if sourceCount > 1 {
-		return sharedLinkPasswordOptions{}, invalidArgumentsError("use only one of `--password`, `--password-prompt`, or `--password-file`")
+		return sharedLinkPasswordOptions{}, invalidArgumentsErrorWithDetails("use only one of `--password`, `--password-prompt`, or `--password-file`", flagsErrorDetails("password", "password-prompt", "password-file"))
 	}
 
 	var password string
@@ -81,7 +81,7 @@ func sharedLinkPasswordFromFlags(cmd *cobra.Command) (sharedLinkPasswordOptions,
 		return sharedLinkPasswordOptions{}, err
 	}
 	if password == "" {
-		return sharedLinkPasswordOptions{}, invalidArgumentsError("shared link password cannot be empty")
+		return sharedLinkPasswordOptions{}, invalidArgumentsErrorWithDetails("shared link password cannot be empty", flagsErrorDetails("password", "password-prompt", "password-file"))
 	}
 
 	return sharedLinkPasswordOptions{

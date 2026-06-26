@@ -41,7 +41,7 @@ func shareLinkList(cmd *cobra.Command, args []string) error {
 
 func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jsonWarning) error {
 	if len(args) > 1 {
-		return invalidArgumentsError("`share-link list` accepts at most one `path` argument")
+		return invalidArgumentsErrorWithDetails("`share-link list` accepts at most one `path` argument", argumentErrorDetails("path"))
 	}
 
 	arg := sharing.NewListSharedLinksArg()

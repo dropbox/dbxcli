@@ -42,7 +42,7 @@ type restoreResult struct {
 
 func restore(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 2 {
-		return invalidArgumentsError("`restore` requires `target-path` and `revision` arguments")
+		return invalidArgumentsErrorWithDetails("`restore` requires `target-path` and `revision` arguments", argumentsErrorDetails("target-path", "revision"))
 	}
 
 	path, err := validatePath(args[0])
