@@ -2,18 +2,29 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.4.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.0...HEAD)
+
+## [v3.5.0](https://github.com/dropbox/dbxcli/tree/v3.5.0) (2026-06-26)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.4.0...v3.5.0)
 
 **Added:**
 
-- Structured JSON output across core file, metadata, share-link, team, account, usage, version, mkdir, rm, and restore commands.
-- JSON success and error envelopes with schema v1 docs, command catalog, warning objects, stable error codes, and structured error details.
-- Root namespace auto-detection so team folders are accessible without manual namespace selection.
+- Structured `--output=json` support across core file, share, account, team, usage, and version commands.
+- Stable JSON success/error envelopes with schema v1, warning objects, stable error codes, and structured error details.
+- JSON help manifests via `--help --output=json` for machine-readable command discovery.
+- Root namespace auto-detection for team-folder access.
+- Generated command reference docs with CI drift detection.
+- `put` chunk-size validation: 4-128 MiB, multiple of 4 MiB.
 
 **Changed:**
 
-- Normalized JSON result shapes to use `input`, `results`, and `warnings`.
-- Refreshed README feature, installation, quickstart, sharing, piping, auth, and JSON documentation.
+- Normalized JSON result shapes around `input`, `results`, and `warnings`.
+- Refreshed README and moved detailed JSON schema docs to `docs/json-schema/v1/`.
+- Improved `put --chunksize` and `--workers` help text.
+
+**Infrastructure:**
+
+- Added JSON contract tests with golden schema/output fixtures.
 
 ## [v3.4.0](https://github.com/dropbox/dbxcli/tree/v3.4.0) (2026-06-22)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.3.3...v3.4.0)
