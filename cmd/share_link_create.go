@@ -49,7 +49,7 @@ type shareLinkCreateInput struct {
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return invalidArgumentsError("`share-link create` requires a `path` argument")
+		return invalidArgumentsErrorWithDetails("`share-link create` requires a `path` argument", argumentErrorDetails("path"))
 	}
 
 	path, err := validatePath(args[0])
@@ -57,7 +57,7 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if path == "" {
-		return invalidArgumentsError("cannot create a shared link for Dropbox root")
+		return invalidArgumentsErrorWithDetails("cannot create a shared link for Dropbox root", pathErrorDetails("/"))
 	}
 
 	opts, err := parseShareLinkCreateOptions(cmd)
@@ -204,10 +204,10 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 	opts.password = password
 
 	if opts.expires != nil && opts.removeExpiration {
-		return opts, invalidArgumentsError("`--expires` and `--remove-expiration` cannot be used together")
+		return opts, invalidArgumentsErrorWithDetails("`--expires` and `--remove-expiration` cannot be used together", flagsErrorDetails("expires", "remove-expiration"))
 	}
 	if opts.allowDownload && opts.disallowDownload {
-		return opts, invalidArgumentsError("`--allow-download` and `--disallow-download` cannot be used together")
+		return opts, invalidArgumentsErrorWithDetails("`--allow-download` and `--disallow-download` cannot be used together", flagsErrorDetails("allow-download", "disallow-download"))
 	}
 
 	return opts, nil
@@ -215,7 +215,7 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 
 func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsSharedLinkMetadata, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
 	if opts.access != nil {
-		return nil, invalidArgumentsError("cannot apply `--access` because the shared link already exists")
+		return nil, invalidArgumentsErrorWithDetails("cannot apply `--access` because the shared link already exists", flagErrorDetails("access"))
 	}
 	if opts.expires == nil && !opts.removeExpiration && !opts.allowDownload && !opts.disallowDownload && opts.audience == nil && !opts.password.set {
 		return link, nil
@@ -410,7 +410,7 @@ func shareLinkExpiresFlag(cmd *cobra.Command) (*time.Time, error) {
 	}
 	parsed, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		return nil, invalidArgumentsErrorf("invalid --expires %q: use RFC3339 timestamp", value)
+		return nil, invalidArgumentsErrorfWithDetails("invalid --expires %q: use RFC3339 timestamp", flagValueErrorDetails("expires", value), value)
 	}
 	return &parsed, nil
 }
@@ -428,7 +428,7 @@ func shareLinkAccessFlag(cmd *cobra.Command) (*sharing.RequestedLinkAccessLevel,
 	case sharing.RequestedLinkAccessLevelMax:
 		return requestedLinkAccessLevel(sharing.RequestedLinkAccessLevelMax), nil
 	default:
-		return nil, invalidArgumentsErrorf("invalid --access %q: use viewer, editor, or max", value)
+		return nil, invalidArgumentsErrorfWithDetails("invalid --access %q: use viewer, editor, or max", flagValueErrorDetails("access", value), value)
 	}
 }
 
@@ -451,7 +451,7 @@ func shareLinkAudienceFlag(cmd *cobra.Command) (*sharing.LinkAudience, error) {
 	case "no-one":
 		return linkAudience(sharing.LinkAudienceNoOne), nil
 	default:
-		return nil, invalidArgumentsErrorf("invalid --audience %q: use public, team, members, or no-one", value)
+		return nil, invalidArgumentsErrorfWithDetails("invalid --audience %q: use public, team, members, or no-one", flagValueErrorDetails("audience", value), value)
 	}
 }
 

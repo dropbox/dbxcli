@@ -75,18 +75,16 @@ func newCodedError(code string, err error, details ...map[string]any) error {
 	}
 }
 
-func invalidArgumentsError(message string) error {
-	return newCodedError(jsonErrorCodeInvalidArguments, errors.New(message))
+func invalidArgumentsErrorWithDetails(message string, details map[string]any) error {
+	return newCodedError(jsonErrorCodeInvalidArguments, errors.New(message), details)
 }
 
-func invalidArgumentsErrorf(format string, args ...any) error {
-	return newCodedError(jsonErrorCodeInvalidArguments, fmt.Errorf(format, args...))
+func invalidArgumentsErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeInvalidArguments, fmt.Errorf(format, args...), details)
 }
 
 func pathConflictErrorWithPath(path string, format string, args ...any) error {
-	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...), map[string]any{
-		"path": path,
-	})
+	return newCodedError(jsonErrorCodePathConflict, fmt.Errorf(format, args...), pathErrorDetails(path))
 }
 
 func authRequiredErrorf(format string, args ...any) error {
@@ -127,6 +125,33 @@ func authRefreshFailedErrorf(format string, args ...any) error {
 
 func authRefreshFailedErrorfWithDetails(format string, details map[string]any, args ...any) error {
 	return newCodedError(jsonErrorCodeAuthRefreshFailed, fmt.Errorf(format, args...), details)
+}
+
+func argumentErrorDetails(argument string) map[string]any {
+	return map[string]any{"argument": argument}
+}
+
+func argumentsErrorDetails(arguments ...string) map[string]any {
+	return map[string]any{"arguments": arguments}
+}
+
+func flagErrorDetails(flag string) map[string]any {
+	return map[string]any{"flag": flag}
+}
+
+func flagsErrorDetails(flags ...string) map[string]any {
+	return map[string]any{"flags": flags}
+}
+
+func flagValueErrorDetails(flag, value string) map[string]any {
+	return map[string]any{
+		"flag":  flag,
+		"value": value,
+	}
+}
+
+func pathErrorDetails(path string) map[string]any {
+	return map[string]any{"path": path}
 }
 
 func commandOutput(cmd *cobra.Command) *output.Renderer {
@@ -319,6 +344,9 @@ func jsonErrorDetails(err error) map[string]any {
 	} else if summary, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
 		details["api_summary"] = summary
 	}
+	if endpoint, ok := dropboxAPIEndpointFromMessage(err.Error()); ok {
+		details["api_endpoint"] = endpoint
+	}
 
 	if len(details) == 0 {
 		return nil
@@ -469,6 +497,24 @@ func dropboxAPISummaryFromMessage(message string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func dropboxAPIEndpointFromMessage(message string) (string, bool) {
+	const prefix = `Error in call to API function "`
+	idx := strings.Index(message, prefix)
+	if idx < 0 {
+		return "", false
+	}
+	start := idx + len(prefix)
+	end := strings.Index(message[start:], `"`)
+	if end < 0 {
+		return "", false
+	}
+	end += start
+	if start == end {
+		return "", false
+	}
+	return message[start:end], true
 }
 
 func isDropboxAPISummary(message string) bool {

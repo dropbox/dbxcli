@@ -54,7 +54,7 @@
         },
         "details": {
           "type": "object",
-          "description": "Optional machine-readable context for stable error handling. Present only when dbxcli has reliable structured details.",
+          "description": "Optional machine-readable context for stable error handling. Common keys include argument, arguments, flag, flags, value, path, token_type, login_command, env_var, api_summary, and api_endpoint. Present only when dbxcli has reliable structured details.",
           "additionalProperties": true
         }
       }

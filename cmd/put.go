@@ -284,7 +284,7 @@ func putOperationResults(results []putResult) []jsonOperationResult {
 
 func put(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return invalidArgumentsError("`put` requires `src` and/or `dst` arguments")
+		return invalidArgumentsErrorWithDetails("`put` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
 	}
 
 	opts, err := parsePutOptions(cmd)
@@ -306,7 +306,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if srcInfo.IsDir() && !recursive {
-		return invalidArgumentsErrorf("%s is a directory (use --recursive to upload directories)", src)
+		return invalidArgumentsErrorfWithDetails("%s is a directory (use --recursive to upload directories)", pathErrorDetails(src), src)
 	}
 
 	// Default `dst` to the base segment of the source path; use the second argument if provided.
@@ -356,15 +356,15 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool) error {
 	if len(args) < 2 {
-		return invalidArgumentsError("`put -` requires an explicit target path")
+		return invalidArgumentsErrorWithDetails("`put -` requires an explicit target path", argumentErrorDetails("dst"))
 	}
 	if recursive {
-		return invalidArgumentsError("`put -` cannot be used with --recursive")
+		return invalidArgumentsErrorWithDetails("`put -` cannot be used with --recursive", flagErrorDetails("recursive"))
 	}
 
 	dst := args[1]
 	if strings.HasSuffix(dst, "/") {
-		return invalidArgumentsErrorf("cannot upload stdin to directory target %q; provide a full Dropbox file path", dst)
+		return invalidArgumentsErrorfWithDetails("cannot upload stdin to directory target %q; provide a full Dropbox file path", pathErrorDetails(dst), dst)
 	}
 
 	dstPath, err := validatePath(dst)
@@ -446,7 +446,7 @@ func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
 		return putOptions{}, err
 	}
 	if chunkSize%(1<<22) != 0 {
-		return putOptions{}, invalidArgumentsError("`put` requires chunk size to be multiple of 4MiB")
+		return putOptions{}, invalidArgumentsErrorWithDetails("`put` requires chunk size to be multiple of 4MiB", flagErrorDetails("chunksize"))
 	}
 	workers, err := cmd.Flags().GetInt("workers")
 	if err != nil {
@@ -486,7 +486,7 @@ func normalizePutIfExists(ifExists string) (string, error) {
 	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsFail:
 		return ifExists, nil
 	default:
-		return "", invalidArgumentsErrorf("invalid --if-exists %q (use overwrite, skip, or fail)", ifExists)
+		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, or fail)", flagValueErrorDetails("if-exists", ifExists), ifExists)
 	}
 }
 
@@ -578,7 +578,7 @@ func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (pu
 		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, nil, invalidArgumentsErrorf("cannot upload stdin to folder %q; provide a full Dropbox file path", dst)
+		return putDestinationUpload, nil, invalidArgumentsErrorfWithDetails("cannot upload stdin to folder %q; provide a full Dropbox file path", pathErrorDetails(dst), dst)
 	}
 	return actionForExistingDestination(dst, ifExists, meta)
 }

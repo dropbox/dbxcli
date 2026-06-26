@@ -43,7 +43,7 @@ type mkdirResult struct {
 
 func mkdir(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 1 {
-		return invalidArgumentsError("`mkdir` requires a `directory` argument")
+		return invalidArgumentsErrorWithDetails("`mkdir` requires a `directory` argument", argumentErrorDetails("directory"))
 	}
 
 	dst, err := validatePath(args[0])

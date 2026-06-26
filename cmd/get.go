@@ -65,7 +65,7 @@ type getResult struct {
 
 func get(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return invalidArgumentsError("`get` requires `src` and/or `dst` arguments")
+		return invalidArgumentsErrorWithDetails("`get` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
 	}
 
 	src, err := validatePath(args[0])
@@ -83,7 +83,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if dst == "-" {
 		if commandOutputFormat(cmd) == output.FormatJSON {
-			return invalidArgumentsError("`get --output=json` cannot be used with stdout target `-`")
+			return invalidArgumentsErrorWithDetails("`get --output=json` cannot be used with stdout target `-`", mergeJSONErrorDetails(argumentErrorDetails("dst"), flagErrorDetails("output")))
 		}
 		return getStdout(cmd, src, recursive)
 	}
@@ -113,7 +113,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if _, ok := meta.(*files.FolderMetadata); ok {
 		if !recursive {
-			return invalidArgumentsErrorf("%s is a folder (use --recursive to download folders)", src)
+			return invalidArgumentsErrorfWithDetails("%s is a folder (use --recursive to download folders)", pathErrorDetails(src), src)
 		}
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
 			dst = filepath.Join(dst, path.Base(src))
@@ -199,7 +199,7 @@ func getOperationResults(results []getResult) []jsonOperationResult {
 
 func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	if recursive {
-		return invalidArgumentsError("`get -` cannot be used with --recursive")
+		return invalidArgumentsErrorWithDetails("`get -` cannot be used with --recursive", flagErrorDetails("recursive"))
 	}
 
 	dbx := filesNewFunc(config)
@@ -207,7 +207,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
 	if err == nil {
 		if _, ok := meta.(*files.FolderMetadata); ok {
-			return invalidArgumentsErrorf("%s is a folder; cannot download folder to stdout", src)
+			return invalidArgumentsErrorfWithDetails("%s is a folder; cannot download folder to stdout", pathErrorDetails(src), src)
 		}
 	}
 
@@ -216,7 +216,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 
 func getWithClient(dbx files.Client, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
-		return invalidArgumentsError("`get` requires `src` and/or `dst` arguments")
+		return invalidArgumentsErrorWithDetails("`get` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
 	}
 
 	src, err := validatePath(args[0])

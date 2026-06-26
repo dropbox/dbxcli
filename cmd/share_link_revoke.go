@@ -51,12 +51,12 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) != 1 {
-		return invalidArgumentsError("`share-link revoke` requires a `url` argument")
+		return invalidArgumentsErrorWithDetails("`share-link revoke` requires a `url` argument", argumentErrorDetails("url"))
 	}
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsError("`share-link revoke` requires a non-empty URL")
+		return invalidArgumentsErrorWithDetails("`share-link revoke` requires a non-empty URL", argumentErrorDetails("url"))
 	}
 
 	dbx := newSharedLinkClient(config)
@@ -92,7 +92,7 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 		return opts, nil
 	}
 	if len(args) != 0 {
-		return opts, invalidArgumentsError("`--path` cannot be used with a shared link URL")
+		return opts, invalidArgumentsErrorWithDetails("`--path` cannot be used with a shared link URL", mergeJSONErrorDetails(flagErrorDetails("path"), argumentErrorDetails("url")))
 	}
 
 	pathArg, err := localStringFlag(cmd, "path")
@@ -100,7 +100,7 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 		return opts, err
 	}
 	if pathArg == "" {
-		return opts, invalidArgumentsError("`--path` requires a non-empty path")
+		return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 	}
 
 	path, err := validatePath(pathArg)
@@ -108,7 +108,7 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 		return opts, err
 	}
 	if path == "" {
-		return opts, invalidArgumentsError("cannot revoke shared links for Dropbox root")
+		return opts, invalidArgumentsErrorWithDetails("cannot revoke shared links for Dropbox root", pathErrorDetails("/"))
 	}
 
 	opts.path = path

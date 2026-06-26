@@ -25,7 +25,7 @@ var teamCmd = &cobra.Command{
 			return err
 		}
 		if member, _ := cmd.Flags().GetString("as-member"); member != "" {
-			return invalidArgumentsError("Flag `as-member` is invalid for team sub-commands")
+			return invalidArgumentsErrorWithDetails("Flag `as-member` is invalid for team sub-commands", flagErrorDetails("as-member"))
 		}
 		return initDbx(cmd, args)
 	},

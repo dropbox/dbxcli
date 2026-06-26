@@ -46,12 +46,12 @@ type shareLinkUpdateInput struct {
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return invalidArgumentsError("`share-link update` requires a `url` argument")
+		return invalidArgumentsErrorWithDetails("`share-link update` requires a `url` argument", argumentErrorDetails("url"))
 	}
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsError("`share-link update` requires a non-empty URL")
+		return invalidArgumentsErrorWithDetails("`share-link update` requires a non-empty URL", argumentErrorDetails("url"))
 	}
 
 	opts, err := parseShareLinkUpdateOptions(cmd)
@@ -170,16 +170,16 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	}
 
 	if expiresChanged && removeExpiration {
-		return shareLinkUpdateOptions{}, invalidArgumentsError("`--expires` and `--remove-expiration` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsErrorWithDetails("`--expires` and `--remove-expiration` cannot be used together", flagsErrorDetails("expires", "remove-expiration"))
 	}
 	if allowDownload && disallowDownload {
-		return shareLinkUpdateOptions{}, invalidArgumentsError("`--allow-download` and `--disallow-download` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsErrorWithDetails("`--allow-download` and `--disallow-download` cannot be used together", flagsErrorDetails("allow-download", "disallow-download"))
 	}
 	if password.set && removePassword {
-		return shareLinkUpdateOptions{}, invalidArgumentsError("password-setting flags and `--remove-password` cannot be used together")
+		return shareLinkUpdateOptions{}, invalidArgumentsErrorWithDetails("password-setting flags and `--remove-password` cannot be used together", flagsErrorDetails("password", "password-prompt", "password-file", "remove-password"))
 	}
 	if !expiresChanged && !removeExpiration && !allowDownload && !disallowDownload && !audienceChanged && !password.set && !removePassword {
-		return shareLinkUpdateOptions{}, invalidArgumentsError("at least one shared link setting flag is required")
+		return shareLinkUpdateOptions{}, invalidArgumentsErrorWithDetails("at least one shared link setting flag is required", flagsErrorDetails("expires", "remove-expiration", "allow-download", "disallow-download", "audience", "password", "password-prompt", "password-file", "remove-password"))
 	}
 
 	var expires *time.Time
@@ -190,7 +190,7 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		}
 		parsed, err := time.Parse(time.RFC3339, value)
 		if err != nil {
-			return shareLinkUpdateOptions{}, invalidArgumentsErrorf("invalid --expires %q: use RFC3339 timestamp", value)
+			return shareLinkUpdateOptions{}, invalidArgumentsErrorfWithDetails("invalid --expires %q: use RFC3339 timestamp", flagValueErrorDetails("expires", value), value)
 		}
 		expires = &parsed
 	}

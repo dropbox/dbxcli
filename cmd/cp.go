@@ -34,7 +34,7 @@ func cp(cmd *cobra.Command, args []string) error {
 		destination = args[1]
 		argsToCopy = append(argsToCopy, args[0])
 	} else {
-		return invalidArgumentsError("cp requires a source and a destination")
+		return invalidArgumentsErrorWithDetails("cp requires a source and a destination", argumentsErrorDetails("source", "destination"))
 	}
 
 	var cpErrors []error

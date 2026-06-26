@@ -341,6 +341,28 @@ func TestRenderCommandErrorIncludesCodedDetails(t *testing.T) {
 	}
 }
 
+func TestRenderCommandErrorIncludesArgumentAndFlagDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "put"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	renderCommandError(cmd, invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, or fail)", flagValueErrorDetails("if-exists", "replace"), "replace"))
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Code != jsonErrorCodeInvalidArguments {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeInvalidArguments)
+	}
+	if got.Error.Details["flag"] != "if-exists" || got.Error.Details["value"] != "replace" {
+		t.Fatalf("details = %+v, want flag/value", got.Error.Details)
+	}
+}
+
 func TestRenderCommandErrorIncludesDropboxAPISummaryDetails(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -360,6 +382,32 @@ func TestRenderCommandErrorIncludesDropboxAPISummaryDetails(t *testing.T) {
 		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeNotFound)
 	}
 	if got.Error.Details["api_summary"] != "path/not_found/" {
+		t.Fatalf("details = %+v, want api_summary", got.Error.Details)
+	}
+}
+
+func TestRenderCommandErrorIncludesDropboxAPIEndpointDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "ls"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	err := errors.New(`Error in call to API function "files/list_folder": path/not_found/.`)
+	renderCommandError(cmd, err)
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Code != jsonErrorCodeNotFound {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeNotFound)
+	}
+	if got.Error.Details["api_endpoint"] != "files/list_folder" {
+		t.Fatalf("details = %+v, want api_endpoint", got.Error.Details)
+	}
+	if got.Error.Details["api_summary"] != `Error in call to API function "files/list_folder": path/not_found/.` {
 		t.Fatalf("details = %+v, want api_summary", got.Error.Details)
 	}
 }
@@ -694,12 +742,12 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 		},
 		{
 			name: "optional argument validation",
-			err:  invalidArgumentsError("`account` accepts an optional `id` argument"),
+			err:  invalidArgumentsErrorWithDetails("`account` accepts an optional `id` argument", argumentErrorDetails("id")),
 			want: jsonErrorCodeInvalidArguments,
 		},
 		{
 			name: "required argument validation",
-			err:  invalidArgumentsError("`add-member` requires `email`, `first`, and `last` arguments"),
+			err:  invalidArgumentsErrorWithDetails("`add-member` requires `email`, `first`, and `last` arguments", argumentsErrorDetails("email", "first", "last")),
 			want: jsonErrorCodeInvalidArguments,
 		},
 		{
