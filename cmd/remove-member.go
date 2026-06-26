@@ -61,4 +61,5 @@ var removeMemberCmd = &cobra.Command{
 func init() {
 	teamCmd.AddCommand(removeMemberCmd)
 	enableStructuredOutput(removeMemberCmd)
+	setCommandDestructiveLevel(removeMemberCmd, destructiveLevelAdmin)
 }

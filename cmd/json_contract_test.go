@@ -32,24 +32,24 @@ func TestStructuredOutputCommandAudit(t *testing.T) {
 }
 
 func TestStructuredOutputSuccessFixtureAudit(t *testing.T) {
-	structuredCommands := structuredOutputCommandPathsWithVersion()
-	structuredSet := make(map[string]bool, len(structuredCommands))
-	for _, command := range structuredCommands {
-		structuredSet[command] = true
+	contractCommands := jsonContractCommandPathsWithVersion()
+	contractSet := make(map[string]bool, len(contractCommands))
+	for _, command := range contractCommands {
+		contractSet[command] = true
 	}
 
 	fixtures := jsonSuccessFixtureCoverage()
-	for _, command := range structuredCommands {
+	for _, command := range contractCommands {
 		if fixtures[command].file == "" {
-			t.Errorf("structured command %q has no success JSON fixture coverage entry", command)
+			t.Errorf("JSON contract command %q has no success JSON fixture coverage entry", command)
 		}
 	}
 	for command, fixture := range fixtures {
 		if fixture.file == "" {
 			t.Errorf("fixture coverage for %q has empty file", command)
 		}
-		if !structuredSet[command] {
-			t.Errorf("fixture coverage includes non-structured command %q", command)
+		if !contractSet[command] {
+			t.Errorf("fixture coverage includes non-contract command %q", command)
 		}
 		if len(fixture.tests) == 0 {
 			t.Errorf("fixture coverage for %q has no test functions", command)
@@ -72,22 +72,22 @@ func TestStructuredOutputGoldenSchemaAudit(t *testing.T) {
 
 	assertStringSliceMapEqual(t, "schema definitions", contract.Definitions, jsonContractDefinitions())
 
-	structuredCommands := structuredOutputCommandPathsWithVersion()
-	structuredSet := make(map[string]bool, len(structuredCommands))
-	for _, command := range structuredCommands {
-		structuredSet[command] = true
+	contractCommands := jsonContractCommandPathsWithVersion()
+	contractSet := make(map[string]bool, len(contractCommands))
+	for _, command := range contractCommands {
+		contractSet[command] = true
 	}
 
 	want := jsonCommandSchemas()
-	for _, command := range structuredCommands {
+	for _, command := range contractCommands {
 		gotSchema, ok := contract.Commands[command]
 		if !ok {
-			t.Errorf("structured command %q has no golden schema", command)
+			t.Errorf("JSON contract command %q has no golden schema", command)
 			continue
 		}
 		wantSchema, ok := want[command]
 		if !ok {
-			t.Errorf("structured command %q has no code-derived schema", command)
+			t.Errorf("JSON contract command %q has no code-derived schema", command)
 			continue
 		}
 		assertGoldenCommandSchemaEqual(t, command, gotSchema, wantSchema)
@@ -95,15 +95,15 @@ func TestStructuredOutputGoldenSchemaAudit(t *testing.T) {
 		assertGoldenCommandStatuses(t, command, gotSchema)
 	}
 	for command, schema := range contract.Commands {
-		if !structuredSet[command] {
-			t.Errorf("golden schema includes non-structured command %q", command)
+		if !contractSet[command] {
+			t.Errorf("golden schema includes non-contract command %q", command)
 		}
 		assertGoldenCommandSchemaReferences(t, command, schema, contract.Definitions)
 		assertGoldenCommandStatuses(t, command, schema)
 	}
 	for command := range want {
-		if !structuredSet[command] {
-			t.Errorf("code-derived schema includes non-structured command %q", command)
+		if !contractSet[command] {
+			t.Errorf("code-derived schema includes non-contract command %q", command)
 		}
 	}
 }
@@ -112,35 +112,35 @@ func TestStructuredOutputGoldenSuccessOutputAudit(t *testing.T) {
 	fixtures := loadJSONGoldenSuccessOutputs(t)
 	examples := jsonGoldenSuccessOutputExamples()
 
-	structuredCommands := structuredOutputCommandPathsWithVersion()
-	structuredSet := make(map[string]bool, len(structuredCommands))
-	for _, command := range structuredCommands {
-		structuredSet[command] = true
+	contractCommands := jsonContractCommandPathsWithVersion()
+	contractSet := make(map[string]bool, len(contractCommands))
+	for _, command := range contractCommands {
+		contractSet[command] = true
 	}
 
-	for _, command := range structuredCommands {
+	for _, command := range contractCommands {
 		fixture, ok := fixtures[command]
 		if !ok {
-			t.Errorf("structured command %q has no golden success output", command)
+			t.Errorf("JSON contract command %q has no golden success output", command)
 			continue
 		}
 		example, ok := examples[command]
 		if !ok {
-			t.Errorf("structured command %q has no code-derived success output example", command)
+			t.Errorf("JSON contract command %q has no code-derived success output example", command)
 			continue
 		}
 		assertGoldenJSONEqual(t, command, fixture, example)
 		assertGoldenSuccessOutputStatuses(t, command, fixture)
 	}
 	for command := range fixtures {
-		if !structuredSet[command] {
-			t.Errorf("golden success output includes non-structured command %q", command)
+		if !contractSet[command] {
+			t.Errorf("golden success output includes non-contract command %q", command)
 		}
 		assertGoldenSuccessOutputStatuses(t, command, fixtures[command])
 	}
 	for command := range examples {
-		if !structuredSet[command] {
-			t.Errorf("code-derived success output example includes non-structured command %q", command)
+		if !contractSet[command] {
+			t.Errorf("code-derived success output example includes non-contract command %q", command)
 		}
 	}
 }
@@ -215,6 +215,11 @@ func TestPublicJSONCommandCatalogMatchesGoldenContract(t *testing.T) {
 func structuredOutputCommandPathsWithVersion() []string {
 	paths := structuredOutputCommandPaths(RootCmd)
 	return append(paths, NewVersionCommand("test").Name())
+}
+
+func jsonContractCommandPathsWithVersion() []string {
+	paths := structuredOutputCommandPathsWithVersion()
+	return append(paths, "help")
 }
 
 func expectedStructuredOutputCommands() []string {
@@ -301,6 +306,10 @@ func jsonSuccessFixtureCoverage() map[string]jsonSuccessFixture {
 		"get": {
 			file:  "get_test.go",
 			tests: []string{"TestGetJSONFileOutputsDownloadedResult", "TestGetJSONRecursiveOutputsDirectoryAndFileResults"},
+		},
+		"help": {
+			file:  "help_json_test.go",
+			tests: []string{"TestJSONHelpSupportedForms", "TestJSONHelpManifestFields"},
 		},
 		"ls": {
 			file:  "ls_test.go",
@@ -576,6 +585,25 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"get": newJSONOperationOutput(getCommandInput{Source: "/Reports/old.pdf", Target: "old.pdf", Recursive: false, Stdout: false}, []jsonOperationResult{
 			newJSONOperationResult(getStatusDownloaded, getKindFile, getResultInput{Source: "/Reports/old.pdf", Target: "old.pdf"}, file),
 		}, nil),
+		"help": newJSONOperationOutput(jsonHelpInput{Help: true, Path: "ls"}, []jsonOperationResult{
+			newJSONOperationResult(jsonHelpStatusDescribed, jsonHelpKindCommand, nil, jsonCommandManifest{
+				Path:     "ls",
+				Use:      "dbxcli ls [flags] [<path>]",
+				Short:    "List files and folders",
+				Aliases:  []string{},
+				Runnable: true,
+				Flags: []jsonCommandFlag{{
+					Name:      "output",
+					Type:      "string",
+					Default:   "text",
+					Usage:     "Output format: text, json",
+					Inherited: true,
+				}},
+				SupportsStructuredOutput: true,
+				AuthModes:                []string{"personal", "team-access"},
+				DestructiveLevel:         destructiveLevelNone,
+			}),
+		}, nil),
 		"ls": newJSONOperationOutput(lsInput{Path: "/Reports", Recursive: false, IncludeDeleted: true, OnlyDeleted: false, Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(lsJSONStatusListed, file.Type, nil, file),
 		}, nil),
@@ -787,8 +815,11 @@ func jsonContractDefinitions() map[string][]string {
 		"du_allocation":              jsonFieldNames[duAllocation](),
 		"du_output":                  jsonFieldNames[duOutput](),
 		"empty":                      {},
+		"command_flag":               jsonFieldNames[jsonCommandFlag](),
+		"command_manifest":           jsonFieldNames[jsonCommandManifest](),
 		"get_input":                  jsonFieldNames[getCommandInput](),
 		"get_result_input":           jsonFieldNames[getResultInput](),
+		"help_input":                 jsonFieldNames[jsonHelpInput](),
 		"ls_input":                   jsonFieldNames[lsInput](),
 		"metadata":                   jsonFieldNames[jsonMetadata](),
 		"mkdir_input":                jsonFieldNames[mkdirInput](),
@@ -829,6 +860,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusCopied}, metadataKinds(), nil),
 		"du":                operationSchema("empty", schemaRef("empty"), "du_output", []string{duJSONStatusReported}, []string{duKindSpaceUsage}, nil),
 		"get":               operationSchema("get_input", schemaRef("get_result_input"), "metadata", []string{getStatusCreated, getStatusDownloaded, getStatusExisting}, []string{getKindFile, getKindFolder}, nil),
+		"help":              operationSchema("help_input", schemaRef("empty"), "command_manifest", []string{jsonHelpStatusDescribed}, []string{jsonHelpKindCommand}, nil),
 		"ls":                operationSchema("ls_input", schemaRef("empty"), "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting}, []string{mkdirKindFolder}, nil),
 		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved}, metadataKinds(), nil),

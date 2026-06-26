@@ -42,11 +42,13 @@ human-facing warnings, diagnostics, and verbose logs are written to stderr.
 In JSON mode, error responses are written to stdout and the process exits with
 a non-zero status.
 
-Commands that intentionally do not support JSON output yet include `login`,
-`logout`, and `completion`. Cobra help output and shell-completion protocol
-commands are also text-only: `dbxcli --help --output=json`, `dbxcli --output=json`
-without a command, and command-specific help such as
-`dbxcli version --help --output=json` print text help.
+Commands that intentionally do not support structured command-result JSON yet
+include `login`, `logout`, and `completion`. Their help output is still
+available as a JSON command manifest with `--help --output=json`; for example,
+`dbxcli --help --output=json`, `dbxcli version --help --output=json`, and
+`dbxcli --output=json help version`. `dbxcli --output=json` without `--help`
+continues to print text help, and shell-completion protocol commands remain
+text-only.
 
 Current JSON-enabled command paths include `version`, `account`, `du`, `ls`,
 `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`,

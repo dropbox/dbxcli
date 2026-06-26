@@ -31,6 +31,24 @@
       "member_id",
       "name"
     ],
+    "command_flag": [
+      "default",
+      "inherited",
+      "name",
+      "type",
+      "usage"
+    ],
+    "command_manifest": [
+      "aliases",
+      "auth_modes",
+      "destructive_level",
+      "flags",
+      "path",
+      "runnable",
+      "short",
+      "supports_structured_output",
+      "use"
+    ],
     "du_allocation": [
       "allocated",
       "type",
@@ -53,6 +71,10 @@
     "get_result_input": [
       "source",
       "target"
+    ],
+    "help_input": [
+      "help",
+      "path"
     ],
     "ls_input": [
       "include_deleted",
@@ -346,6 +368,20 @@
       "kinds": [
         "file",
         "folder"
+      ],
+      "warnings": []
+    },
+    "help": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "help_input",
+      "result_input": "empty",
+      "result": "command_manifest",
+      "statuses": [
+        "described"
+      ],
+      "kinds": [
+        "command"
       ],
       "warnings": []
     },
