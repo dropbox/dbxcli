@@ -2,11 +2,176 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.8...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.4.0...HEAD)
+
+**Added:**
+
+- Structured JSON output across core file, metadata, share-link, team, account, usage, version, mkdir, rm, and restore commands.
+- JSON success and error envelopes with schema v1 docs, command catalog, warning objects, stable error codes, and structured error details.
+- Root namespace auto-detection so team folders are accessible without manual namespace selection.
+
+**Changed:**
+
+- Normalized JSON result shapes to use `input`, `results`, and `warnings`.
+- Refreshed README feature, installation, quickstart, sharing, piping, auth, and JSON documentation.
+
+## [v3.4.0](https://github.com/dropbox/dbxcli/tree/v3.4.0) (2026-06-22)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.3.3...v3.4.0)
+
+**Added:**
+
+- Added the `share-link` command family for creating, listing, inspecting, updating, revoking, and downloading shared links.
+- Added shared-link settings support for access, audience, expiration, password, allow-download, and disallow-download options.
+- Added `--path` support for shared-link info/download/revoke workflows.
+- Added recursive shared-link folder downloads.
+- Added Unix pipe support with `put -` for stdin uploads and `get ... -` for stdout downloads.
+- Added `put --if-exists overwrite|skip|fail` for explicit upload conflict behavior.
+
+**Changed:**
+
+- Migrated `search` to Dropbox SearchV2 with pagination support.
+- Improved `revs` and `restore` help and time formatting.
+- Updated README installation instructions for Homebrew and release archives.
+
+## [v3.3.3](https://github.com/dropbox/dbxcli/tree/v3.3.3) (2026-06-17)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.3.2...v3.3.3)
+
+**Changed:**
+
+- Local commands such as help, version, and completion no longer require saved Dropbox credentials.
+
+## [v3.3.2](https://github.com/dropbox/dbxcli/tree/v3.3.2) (2026-06-17)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.3.1...v3.3.2)
+
+**Added:**
+
+- Added GitHub Actions CI, release, and Pages workflows.
+- Added versioned release archives, SHA256SUMS, release packaging, and multi-OS CI validation.
+- Added bundled Dropbox team app keys.
+
+**Fixed:**
+
+- Fixed `ls` error handling.
+
+## [v3.3.1](https://github.com/dropbox/dbxcli/tree/v3.3.1) (2026-06-15)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.3.0...v3.3.1)
+
+**Added:**
+
+- Added `dbxcli login` with OAuth authorization-code flow.
+- Added PKCE authentication with offline refresh tokens and automatic access-token refresh.
+- Added `DBXCLI_ACCESS_TOKEN` for short-lived direct token use.
+- Added `DBXCLI_AUTH_FILE` for selecting an alternate credentials file.
+- Added `rm --recursive`/`-r` and `rm --permanent`.
 
 **Changed:**
 
 - Saved OAuth credentials now use a refresh-token aware `auth.json` object format. Existing legacy token-string entries are still read, but any credential write rewrites the file in the new format.
+- `rm --force` remains supported as an alias for recursive non-empty folder deletion.
+- `rm --verbose` reports deleted paths.
+
+## [v3.3.0](https://github.com/dropbox/dbxcli/tree/v3.3.0) (2026-06-12)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.2.1...v3.3.0)
+
+**Added:**
+
+- Added recursive folder downloads with `get -r`.
+- Added recursive directory uploads with `put -r`.
+- Added `mkdir -p`.
+- Added `--sort`, `--reverse`, `--time`, and `--time-format` flags for `ls` and `search`.
+
+**Changed:**
+
+- Unified `cp` and `mv` destination handling for multiple sources, trailing slashes, and existing remote folders.
+- Improved `cp` and `mv` error messages to show quoted paths and Dropbox API error text.
+- Fixed local path handling to use platform-native filesystem paths where appropriate.
+
+## [v3.2.1](https://github.com/dropbox/dbxcli/tree/v3.2.1) (2026-06-09)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.2.0...v3.2.1)
+
+**Fixed:**
+
+- Commands now return a non-zero exit code on errors.
+- `mv` and `cp` now propagate errors correctly.
+- Search output now prints one result per line and aligns long output with tabwriter columns.
+
+## [v3.2.0](https://github.com/dropbox/dbxcli/tree/v3.2.0) (2026-06-08)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.1.0...v3.2.0)
+
+**Added:**
+
+- Added retry with exponential backoff for transient upload and download failures.
+- Added atomic downloads through temp-file writes followed by rename.
+- Added idempotent chunked upload recovery for accepted chunks.
+
+**Fixed:**
+
+- Retry download failures from `unexpected EOF`.
+- Retry upload failures caused by transient server, rate-limit, network, and `too_many_write_operations` errors.
+- Preserve symlinks on download.
+
+## [v3.1.0](https://github.com/dropbox/dbxcli/tree/v3.1.0) (2026-06-08)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.0.0...v3.1.0)
+
+**Changed:**
+
+- Upgraded Go from 1.11 to 1.25.
+- Updated dependencies, including Cobra, Dropbox SDK, OAuth2, and pflag.
+- Replaced deprecated Go packages with standard-library equivalents.
+
+**Fixed:**
+
+- Fixed `ls /` root listing with the newer Dropbox SDK.
+- Fixed `put` upload argument construction for Dropbox SDK v6.0.5.
+- Added unit coverage for `ls` path validation and formatting helpers.
+
+## [v3.0.0](https://github.com/dropbox/dbxcli/tree/v3.0.0) (2019-01-30)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.1.2...v3.0.0)
+
+**Changed:**
+
+- Updated dependencies and the underlying Dropbox SDK.
+- Bumped the major version because of SDK-level changes.
+
+## [v2.1.2](https://github.com/dropbox/dbxcli/tree/v2.1.2) (2018-12-05)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.1.1...v2.1.2)
+
+**Implemented enhancements:**
+
+- Provide credentials through environment variables [\#104](https://github.com/dropbox/dbxcli/issues/104)
+
+**Fixed:**
+
+- Fixed moving files between subfolders [\#105](https://github.com/dropbox/dbxcli/pull/105)
+
+**Closed issues:**
+
+- Move error when moving between subfolders [\#102](https://github.com/dropbox/dbxcli/issues/102)
+- Using a SOCKS proxy? [\#97](https://github.com/dropbox/dbxcli/issues/97)
+- dbxcli doesn't detect when OAuth2 token no longer works [\#94](https://github.com/dropbox/dbxcli/issues/94)
+- Can't get the authorization code [\#92](https://github.com/dropbox/dbxcli/issues/92)
+- Specify auth token as an argument [\#63](https://github.com/dropbox/dbxcli/issues/63)
+
+## [v2.1.1](https://github.com/dropbox/dbxcli/tree/v2.1.1) (2018-01-03)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.1.0...v2.1.1)
+
+**Fixed:**
+
+- Fixed a segfault in `dbxcli account`.
+
+## [v2.1.0](https://github.com/dropbox/dbxcli/tree/v2.1.0) (2017-12-13)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.9...v2.1.0)
+
+**Fixed:**
+
+- Intake fix for a Dropbox SDK issue: https://github.com/dropbox/dropbox-sdk-go-unofficial/issues/38
+
+## [v2.0.9](https://github.com/dropbox/dbxcli/tree/v2.0.9) (2017-12-01)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v2.0.8...v2.0.9)
+
+**Added:**
+
+- Added OpenBSD binaries.
 
 **Closed issues:**
 
