@@ -1,23 +1,36 @@
-# `dbxcli`: A command line tool for Dropbox users and team admins [UNOFFICIAL]
+# `dbxcli`: A command line tool for Dropbox users and team admins
 
 [![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
 
-:warning: WARNING: This project is **NOT official**. What does this mean?
+## Support posture
 
-  * There is no formal Dropbox support for this project
-  * Bugs may or may not get fixed
-  * Not all SDK features may be implemented and implemented features may be buggy or incorrect
+`dbxcli` is maintained in the Dropbox GitHub organization by Dropbox engineers, but it is not a formally supported Dropbox product. Use GitHub issues and pull requests for bugs and contributions; Dropbox Support does not provide support for this CLI. The CLI implements a practical subset of Dropbox API features, not the full API surface.
 
 ## Features
 
-  * Supports basic file operations like ls, cp, mkdir, mv, rm (via the Files API)
-  * Supports search with sorting and flexible time formatting
-  * Supports file revisions and file restore
-  * Chunked uploads for large files, paginated listing for large directories
-  * Recursive directory uploads (`put -r`) and downloads (`get -r`)
-  * Retry with exponential backoff for uploads and downloads
-  * Supports a growing set of Team operations
+  * File operations: `ls`, `cp`, `mkdir`, `mv`, `rm`, `put`, and `get`
+  * Recursive upload and download with `put -r` and `get -r`
+  * Pipe-friendly transfers: upload from stdin with `put -` and download to stdout with `get ... -`
+  * Upload conflict control with `put --if-exists overwrite|skip|fail`
+  * Shared-link management with `share-link create`, `list`, `info`, `update`, `revoke`, and `download`
+  * Structured JSON output with stable success and error envelopes for migrated commands
+  * Search, file revisions, restore, flexible sorting, and time formatting
+  * Chunked uploads for large files and paginated listing for large directories
+  * OAuth login with refreshable saved credentials, `DBXCLI_ACCESS_TOKEN`, and `DBXCLI_AUTH_FILE`
+  * Team administration commands and member-scoped access with `--as-member`
+
+## Quickstart
+
+```sh
+dbxcli login
+dbxcli ls /
+dbxcli put local.txt /remote.txt
+dbxcli get /remote.txt ./remote.txt
+dbxcli share-link create /remote.txt
+```
+
+See the [GitHub Releases](https://github.com/dropbox/dbxcli/releases) page for version-by-version changes.
 
 ## Installation
 
@@ -94,7 +107,7 @@ $ dbxcli login --app-key=your-app-key
 
 ## Usage
 
-`dbxcli` is largely self documenting. Run `dbxcli -h` for a list of supported commands:
+`dbxcli` is largely self-documenting. Run `dbxcli -h` for a list of supported commands:
 
 ```sh
 $ dbxcli --help
@@ -107,25 +120,28 @@ Usage:
 Available Commands:
   account     Display account information
   completion  Generate the autocompletion script for the specified shell
-  cp          Copy a file or folder to a different location
+  cp          Copy a file or folder to a different location in the user's Dropbox. If the source path is a folder all its contents will be copied.
   du          Display usage information
   get         Download a file or folder
+  help        Help about any command
   login       Log in and save Dropbox credentials
   logout      Log out of the current session
   ls          List files and folders
   mkdir       Create a new directory
   mv          Move files
   put         Upload files or directories
-  restore     Restore files
+  restore     Restore a file revision
   revs        List file revisions
-  rm          Remove files
+  rm          Remove files or folders
   search      Search
   share       Sharing commands
+  share-link  Shared link commands
   team        Team management commands
   version     Print version information
 
 Flags:
       --as-member string   Member ID to perform action as
+  -h, --help               help for dbxcli
       --output string      Output format: text, json (default "text")
   -v, --verbose            Enable verbose logging
 
@@ -134,197 +150,15 @@ Use "dbxcli [command] --help" for more information about a command.
 
 ### Output formats
 
-Text output is the default. JSON output is available through the global `--output` flag as commands are migrated:
+Text output is the default. JSON output is available through the global `--output` flag for migrated commands:
 
 ```sh
-$ dbxcli <command> --output=json
-$ dbxcli version --output=json
-$ dbxcli account --output=json
-$ dbxcli du --output=json
 $ dbxcli ls --output=json /
-$ dbxcli search --output=json report /Reports
-$ dbxcli revs --output=json /Reports/old.pdf
-$ dbxcli cp --output=json /Reports/old.pdf /Reports/copy.pdf
-$ dbxcli mv --output=json /Reports/copy.pdf /Reports/archive/copy.pdf
-$ dbxcli put --output=json README.md /README.md
-$ dbxcli get --output=json /Reports/old.pdf ./old.pdf
-$ dbxcli share-link create --output=json /Reports/old.pdf
-$ dbxcli share-link list --output=json /Reports/old.pdf
-$ dbxcli share-link info --output=json https://www.dropbox.com/s/example/old.pdf
-$ dbxcli share-link update --output=json https://www.dropbox.com/s/example/old.pdf --expires 2026-07-01T00:00:00Z
-$ dbxcli share-link revoke --output=json https://www.dropbox.com/s/example/old.pdf
-$ dbxcli share-link download --output=json https://www.dropbox.com/s/example/old.pdf ./old.pdf
-$ dbxcli share list folder --output=json
-$ dbxcli team info --output=json
-$ dbxcli team list-members --output=json
-$ dbxcli team list-groups --output=json
-$ dbxcli team add-member --output=json user@example.com User Name
-$ dbxcli team remove-member --output=json user@example.com
-$ dbxcli mkdir --output=json /new-folder
-$ dbxcli rm --output=json /old-file.txt
-$ dbxcli restore --output=json /Reports/old.pdf 015f...
 ```
 
-Structured success output is rolling out command by command. Currently migrated commands are `version`, `account`, `du`, `ls`, `search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`, `share-link list`, `share-link info`, `share-link update`, `share-link revoke`, `share-link download`, `share list folder`, `share list link`, `team info`, `team list-members`, `team list-groups`, `team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`. Commands that have not been migrated return a JSON error whose `error.message` is `structured output is not supported for this command yet` when used with `--output=json`.
+Command results are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr.
 
-Command results and JSON errors are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr. JSON errors include a `warnings` array for machine-actionable warnings; it is `[]` when no warnings are present. Successful JSON payloads use the same `warnings` field.
-Current warning codes include `deprecated_command` for deprecated command paths and `skipped_symlink` for symlinks skipped by recursive upload.
-
-Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Cobra help output and shell-completion protocol commands are also text-only: `dbxcli --help --output=json`, `dbxcli --output=json` without a command, and command-specific help such as `dbxcli version --help --output=json` print text help.
-
-JSON error responses use stable `error.code` values:
-
-| Code                            | Meaning                                                                           |
-|---------------------------------|-----------------------------------------------------------------------------------|
-| `invalid_arguments`             | The command arguments or flags are invalid.                                       |
-| `path_conflict`                 | A local or Dropbox path conflicts with the requested operation.                   |
-| `auth_required`                 | No usable saved credentials were found, or Dropbox rejected the saved token.      |
-| `auth_refresh_failed`           | Saved refreshable credentials could not be refreshed.                             |
-| `app_key_required`              | Login or token refresh needs a Dropbox app key.                                   |
-| `auth_exchange_failed`          | The OAuth authorization-code exchange failed or returned unusable tokens.         |
-| `not_found`                     | Dropbox reported that the requested object was not found.                         |
-| `permission_denied`             | Dropbox denied access because of permissions, scope, member selection, or state.  |
-| `rate_limited`                  | Dropbox rate limited the request.                                                 |
-| `dropbox_api_error`             | Dropbox returned an API error that does not map to a more specific code yet.      |
-| `structured_output_unsupported` | The command does not support `--output=json` yet.                                 |
-| `unknown_command`               | Cobra could not resolve the command.                                              |
-| `unknown_flag`                  | Cobra could not resolve a flag.                                                   |
-| `command_failed`                | Fallback for failures without a more specific stable code.                        |
-
-JSON errors may also include an optional `error.details` object when dbxcli has reliable machine-readable context. Current detail keys include `argument`, `arguments`, `flag`, `flags`, and `value` for dbxcli-owned validation errors; `path` for known path conflicts; `token_type`, `login_command`, and `env_var` for auth remediation; and `api_summary` and `api_endpoint` for Dropbox API errors. Generic local failures omit `error.details`.
-
-Successful JSON responses for migrated commands return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Result payloads are command-specific. Public top-level schemas and the command contract catalog live under [docs/json-schema/v1](docs/json-schema/v1/). If a multi-target or recursive command fails after some side effects have already happened, dbxcli returns a JSON error envelope and does not include partial success results. For commands such as `mkdir`, each result reports what happened to the requested path:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "mkdir",
-  "input": {
-    "path": "/new-folder",
-    "parents": false
-  },
-  "results": [
-    {
-      "status": "created",
-      "kind": "folder",
-      "input": {
-        "path": "/new-folder",
-        "parents": false
-      },
-      "result": {
-        "type": "folder",
-        "path_display": "/new-folder",
-        "path_lower": "/new-folder",
-        "id": "id:..."
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-For `cp` and `mv`, each result input object uses `from_path` and `to_path`:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "cp",
-  "input": {},
-  "results": [
-    {
-      "status": "copied",
-      "kind": "file",
-      "input": {
-        "from_path": "/Reports/old.pdf",
-        "to_path": "/Reports/copy.pdf"
-      },
-      "result": {
-        "type": "file",
-        "path_display": "/Reports/copy.pdf",
-        "path_lower": "/reports/copy.pdf",
-        "id": "id:...",
-        "rev": "...",
-        "size": 123
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-For commands such as `rm`, `input` uses command-specific path and flag fields:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "rm",
-  "input": {},
-  "results": [
-    {
-      "status": "deleted",
-      "kind": "file",
-      "input": {
-        "path": "/old-file.txt",
-        "permanent": false,
-        "recursive": false,
-        "force": false
-      },
-      "result": {
-        "type": "file",
-        "path_display": "/old-file.txt",
-        "path_lower": "/old-file.txt",
-        "id": "id:...",
-        "rev": "...",
-        "size": 123
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-`put` always returns a `results` array, including single-file and stdin uploads. The top-level `input` describes the command request; each result reports whether a file was `uploaded`, `skipped`, or a directory was `created` or already `existing`:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "put",
-  "input": {
-    "source": "README.md",
-    "target": "/README.md",
-    "recursive": false,
-    "if_exists": "overwrite",
-    "stdin": false
-  },
-  "results": [
-    {
-      "status": "uploaded",
-      "kind": "file",
-      "input": {
-        "source": "README.md",
-        "target": "/README.md"
-      },
-      "result": {
-        "type": "file",
-        "path_display": "/README.md",
-        "path_lower": "/readme.md",
-        "id": "id:...",
-        "rev": "...",
-        "size": 123
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-`get` also returns a top-level `input`, a `results` array, and `warnings: []`. File downloads use `downloaded`; recursive folder downloads may also include local directory results with `created` or `existing`.
-
-Entry-list commands such as `ls`, `search`, and `revs` use the operation-style wrapper. `ls` input includes the listed path; `search` input includes the query and optional path scope; `revs` input includes the file path. Results use `listed`, `found`, or `revision` status values and put Dropbox metadata under `result`:
+Successful JSON responses return `ok: true`, `schema_version: "1"`, `command`, an `input` object, a `results` array, and a `warnings` array. Each result includes `status`, `kind`, `input`, and `result`. Machine-actionable JSON warnings use the `warnings` array.
 
 ```json
 {
@@ -359,168 +193,7 @@ Entry-list commands such as `ls`, `search`, and `revs` use the operation-style w
 }
 ```
 
-Version, account, and usage commands use the operation-style wrapper with a single result:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "version",
-  "input": {},
-  "results": [
-    {
-      "status": "reported",
-      "kind": "version",
-      "input": {},
-      "result": {
-        "version": "3.4.0",
-        "sdk_version": "6.0.5",
-        "spec_version": "c36ba27"
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "account",
-  "input": {},
-  "results": [
-    {
-      "status": "found",
-      "kind": "account",
-      "input": {},
-      "result": {
-        "type": "full",
-        "account_id": "dbid:...",
-        "email": "user@example.com",
-        "email_verified": true,
-        "disabled": false
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "du",
-  "input": {},
-  "results": [
-    {
-      "status": "reported",
-      "kind": "space_usage",
-      "input": {},
-      "result": {
-        "used": 123,
-        "allocation": {
-          "type": "individual",
-          "allocated": 100000
-        }
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-Shared-link commands use the same operation-style wrapper. `share-link create`, `list`, `info`, and `update` put shared-link metadata directly under `result`; status values include `created`, `existing`, `listed`, `found`, and `updated`:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "share-link create",
-  "input": {
-    "path": "/Reports/old.pdf"
-  },
-  "results": [
-    {
-      "status": "created",
-      "kind": "file",
-      "input": {},
-      "result": {
-        "type": "file",
-        "url": "https://www.dropbox.com/s/...",
-        "name": "old.pdf",
-        "path_lower": "/reports/old.pdf",
-        "rev": "...",
-        "size": 123
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-`share-link revoke` uses `revoked` results whose `result` contains the revoked URL and, when available, the shared-link metadata. `share-link download` uses `downloaded` results whose `result` contains the local `target` and `link` metadata.
-
-The legacy `share list folder` command also supports operation-style JSON. It uses `listed` results with `shared_folder` metadata:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "share list folder",
-  "input": {},
-  "results": [
-    {
-      "status": "listed",
-      "kind": "shared_folder",
-      "input": {},
-      "result": {
-        "type": "shared_folder",
-        "name": "Reports",
-        "path_lower": "/reports",
-        "shared_folder_id": "1234567890",
-        "preview_url": "https://www.dropbox.com/scl/fo/...",
-        "access_type": "owner",
-        "is_inside_team_folder": false,
-        "is_team_folder": false
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-Team commands use the same operation-style wrapper. `team info` returns a single `team` result, `team list-members` and `team list-groups` return `listed` results, and mutating member commands return the Dropbox launch status:
-
-```json
-{
-  "ok": true,
-  "schema_version": "1",
-  "command": "team list-members",
-  "input": {},
-  "results": [
-    {
-      "status": "listed",
-      "kind": "team_member",
-      "input": {},
-      "result": {
-        "type": "team_member",
-        "team_member_id": "dbmid:...",
-        "email": "user@example.com",
-        "email_verified": true,
-        "status": "active",
-        "role": "member_only"
-      }
-    }
-  ],
-  "warnings": []
-}
-```
-
-`get --output=json <source> -` and `share-link download --output=json <url> -` are not supported because stdout is reserved for downloaded file bytes when the target is `-`.
-
-In JSON mode, command errors are written to stdout as JSON, including errors from commands that do not yet support structured success output. The process still exits with a non-zero status. Detailed diagnostics may also be written to stderr:
+In JSON mode, error responses are written to stdout and the process exits with a non-zero status. JSON errors return `ok: false`, a stable `error.code`, a human-readable `error.message`, optional `error.details`, and `warnings`:
 
 ```json
 {
@@ -535,7 +208,7 @@ In JSON mode, command errors are written to stdout as JSON, including errors fro
 }
 ```
 
-Error `code` values are stable identifiers intended for scripts. The current stable codes are listed in the table above.
+The full JSON command catalog, stable error codes, and schemas live in [docs/json-schema/v1](docs/json-schema/v1/). Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Help output and shell-completion protocol commands are text-only.
 
 ### Authentication
 
@@ -700,8 +373,6 @@ Dropbox account, team, and folder policies can reject shared-link settings such 
 
 `share-link download` writes to the metadata filename when `target` is omitted. Use `--path` to download a single file inside a folder shared link. Use `-` as the target to write file bytes to stdout. Folder shared links require `--recursive` and cannot be written to stdout.
 
-New and changed commands should write command results to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs should go to stderr. Machine-actionable JSON warnings should use the `warnings` array.
-
 ### Team management
 
 ```sh
@@ -759,7 +430,7 @@ $ dbxcli get /file.txt - > local-copy.txt          # download to stdout, redirec
 
 Stdin uploads are spooled to a temp file before uploading, so disk space up to the full input size is required. Stdout downloads are byte-clean: all progress and diagnostic output goes to stderr.
 
-A bare `-` means stream only when it is the local operand. Dropbox paths named `-` are valid, for example `dbxcli put - /-` and `dbxcli get /- -`. To upload a local file literally named `-`, use `./-`.
+A bare `-` means stdin/stdout only when it appears as the local operand. Dropbox paths named `-` are valid, for example `dbxcli put - /-` and `dbxcli get /- -`. To upload a local file literally named `-`, use `./-`.
 
 ### Removing files and folders
 
@@ -778,11 +449,11 @@ $ dbxcli mkdir -p /projects/2026/reports # no error if directory already exists
 
 ## Contributing
 
- * Step 1: If you're submitting a non-trivial change, please fill out the [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/) first.
- * Step 2: send a [pull request](https://help.github.com/articles/using-pull-requests/)
- * Step 3: Profit!
+ * If you're submitting a non-trivial change, please fill out the [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/) first.
+ * Open a [pull request](https://help.github.com/articles/using-pull-requests/) with a clear description of the change.
+ * Include tests or manual validation details when relevant.
  
 ## Useful Resources
 
-* [Go SDK documentation](https://godoc.org/github.com/dropbox/dropbox-sdk-go-unofficial)
+* [Go SDK documentation](https://pkg.go.dev/github.com/dropbox/dropbox-sdk-go-unofficial)
 * [API documentation](https://www.dropbox.com/developers/documentation/http/documentation)
