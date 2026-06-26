@@ -145,6 +145,9 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 }
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
+	if commandIsJSONHelp(cmd) {
+		return nil
+	}
 	if err := validateOutputFormat(cmd); err != nil {
 		return err
 	}
@@ -224,6 +227,12 @@ manage your team and more. It is easy, scriptable and works on all platforms!`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	jsonErrorOutput := outputJSONRequested(os.Args[1:])
+	restoreDeprecatedCommands := func() {}
+	if rawArgsRequestJSONHelp(os.Args[1:]) {
+		restoreDeprecatedCommands = temporarilyClearDeprecatedCommands(RootCmd)
+	}
+	defer restoreDeprecatedCommands()
+
 	cmd, err := RootCmd.ExecuteC()
 	if err != nil {
 		renderCommandErrorWithJSON(cmd, err, jsonErrorOutput)
@@ -246,4 +255,5 @@ func init() {
 	_ = RootCmd.PersistentFlags().MarkHidden("domain")
 
 	loadOAuthCredentialsFromEnv()
+	installJSONHelp(RootCmd)
 }

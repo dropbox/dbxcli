@@ -246,6 +246,7 @@ var rmCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(rmCmd)
 	enableStructuredOutput(rmCmd)
+	setCommandDestructiveLevel(rmCmd, destructiveLevelDelete)
 	rmCmd.Flags().BoolP("force", "f", false, "Allow removing non-empty folders; same as --recursive")
 	rmCmd.Flags().BoolP("recursive", "r", false, "Recursively remove folders")
 	rmCmd.Flags().Bool("permanent", false, "Permanently delete instead of moving to Dropbox trash")

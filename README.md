@@ -152,10 +152,11 @@ The complete generated command reference is available in [docs/commands/dbxcli.m
 
 ### Output formats
 
-Text output is the default. JSON output is available through the global `--output` flag for migrated commands:
+Text output is the default. JSON output is available through the global `--output` flag for migrated commands and for help manifests:
 
 ```sh
 $ dbxcli ls --output=json /
+$ dbxcli ls --help --output=json
 ```
 
 Command results are written to stdout. Status, progress, human-facing warnings, diagnostics, and verbose logs are written to stderr.
@@ -210,7 +211,7 @@ In JSON mode, error responses are written to stdout and the process exits with a
 }
 ```
 
-The full JSON command catalog, stable error codes, and schemas live in [docs/json-schema/v1](https://github.com/dropbox/dbxcli/tree/master/docs/json-schema/v1). Commands that intentionally do not support JSON output yet include `login`, `logout`, and `completion`. Help output and shell-completion protocol commands are text-only.
+The full JSON command catalog, stable error codes, and schemas live in [docs/json-schema/v1](https://github.com/dropbox/dbxcli/tree/master/docs/json-schema/v1). Commands that intentionally do not support structured command-result JSON yet include `login`, `logout`, and `completion`, but their help is available as JSON with `--help --output=json`. Shell-completion protocol commands remain text-only.
 
 ### Authentication
 
