@@ -39,6 +39,18 @@ jobs:
           VERSION: ci
       - run: ./packaging/package-release.sh ci
 
+  docs:
+    name: Generated docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - run: go run ./tools/gen-docs
+      - run: git diff --exit-code docs/commands
+      - run: test -z "$(git status --porcelain -- docs/commands)"
+
   chocolatey:
     name: Chocolatey package
     runs-on: windows-latest

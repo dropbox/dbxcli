@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dropbox/dbxcli/docs/json-schema/v1/success.schema.json",
+  "$id": "https://raw.githubusercontent.com/dropbox/dbxcli/master/docs/json-schema/v1/success.schema.json",
   "title": "dbxcli JSON success response",
   "type": "object",
   "additionalProperties": false,
