@@ -406,11 +406,20 @@ The `--verbose` option will turn on verbose logging and is useful for debugging.
 ```sh
 $ dbxcli put file.txt /destination/file.txt        # upload a single file
 $ dbxcli put -r ./project /backup/project          # recursively upload a directory
-$ dbxcli put -r -w 8 ./large-folder /backup/large  # use 8 workers per large file
+$ dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
 $ dbxcli put --if-exists skip file.txt /dest.txt   # skip if the file already exists
 ```
 
 By default, `put` overwrites existing destination files. Use `--if-exists overwrite|skip|fail` to choose whether existing files are overwritten, skipped, or treated as an error.
+
+For files larger than 32MiB, `put` uses Dropbox upload sessions. By default, it
+uses 4 workers and 16MiB chunks. Each chunk is one upload-session request; chunk
+size must be a multiple of 4MiB and no more than 128MiB. On unstable networks,
+fewer workers and larger chunks may be more reliable:
+
+```sh
+$ dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
+```
 
 ### Downloading files and directories
 

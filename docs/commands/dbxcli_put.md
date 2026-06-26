@@ -12,6 +12,9 @@ Upload files or directories to Dropbox.
   - Use - as source to read from stdin (target is required).
     Stdin is spooled to a temp file before upload and may use disk
     space up to the full input size.
+  - Files larger than 32MiB use Dropbox upload sessions. Each chunk is one
+    upload-session request; chunk size must be a multiple of 4MiB and no more
+    than 128MiB.
 
 
 ```
@@ -23,6 +26,7 @@ dbxcli put [flags] <source> [<target>]
 ```
   dbxcli put file.txt /destination/file.txt
   dbxcli put -r ./project /backup/project
+  dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
   printf 'hello' | dbxcli put - /hello.txt
   tar cz ./src | dbxcli put - /backups/src.tgz
 ```
@@ -30,12 +34,12 @@ dbxcli put [flags] <source> [<target>]
 ### Options
 
 ```
-  -c, --chunksize int      Chunk size to use (should be multiple of 4MiB) (default 16777216)
+  -c, --chunksize int      Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB (default 16777216)
   -d, --debug              Print debug timing
   -h, --help               help for put
       --if-exists string   What to do when the destination file exists: overwrite, skip, or fail (default "overwrite")
   -r, --recursive          Recursively upload directories
-  -w, --workers int        Number of concurrent upload workers to use (default 4)
+  -w, --workers int        Number of concurrent upload workers for chunked large-file uploads (default 4)
 ```
 
 ### Options inherited from parent commands
