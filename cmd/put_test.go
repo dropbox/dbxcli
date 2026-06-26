@@ -667,16 +667,37 @@ func TestPutRecursive_SkipsSymlinks(t *testing.T) {
 }
 
 func TestPutChunkSizeValidation(t *testing.T) {
-	tmpFile := filepath.Join(t.TempDir(), "test.txt")
-	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name      string
+		chunkSize string
+		want      string
+	}{
+		{
+			name:      "below 4MiB",
+			chunkSize: "100",
+			want:      "`put` requires chunk size to be at least 4MiB",
+		},
+		{
+			name:      "not multiple of 4MiB",
+			chunkSize: "6291456",
+			want:      "`put` requires chunk size to be a multiple of 4MiB",
+		},
+		{
+			name:      "above Dropbox request limit",
+			chunkSize: "268435456",
+			want:      "`put` requires chunk size to be no more than 128MiB",
+		},
 	}
 
-	cmd := testPutCmd()
-	_ = cmd.Flags().Set("chunksize", "100")
-	err := put(cmd, []string{tmpFile, "/test.txt"})
-	if err == nil || err.Error() != "`put` requires chunk size to be multiple of 4MiB" {
-		t.Errorf("expected chunk size validation error, got %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := testPutCmd()
+			_ = cmd.Flags().Set("chunksize", tt.chunkSize)
+			_, err := parsePutOptions(cmd)
+			if err == nil || err.Error() != tt.want {
+				t.Errorf("expected chunk size validation error %q, got %v", tt.want, err)
+			}
+		})
 	}
 }
 

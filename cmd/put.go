@@ -38,6 +38,11 @@ import (
 const singleShotUploadSizeCutoff int64 = 32 * (1 << 20)
 
 const (
+	putChunkSizeUnit int64 = 1 << 22
+	// Dropbox upload-session requests should stay below 150 MB. Use a
+	// conservative 128 MiB max that is also a multiple of 4 MiB.
+	putMaxChunkSize int64 = 128 * (1 << 20)
+
 	putIfExistsOverwrite = "overwrite"
 	putIfExistsSkip      = "skip"
 	putIfExistsFail      = "fail"
@@ -445,8 +450,14 @@ func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
 	if err != nil {
 		return putOptions{}, err
 	}
-	if chunkSize%(1<<22) != 0 {
-		return putOptions{}, invalidArgumentsErrorWithDetails("`put` requires chunk size to be multiple of 4MiB", flagErrorDetails("chunksize"))
+	if chunkSize < putChunkSizeUnit {
+		return putOptions{}, invalidArgumentsErrorWithDetails("`put` requires chunk size to be at least 4MiB", flagErrorDetails("chunksize"))
+	}
+	if chunkSize%putChunkSizeUnit != 0 {
+		return putOptions{}, invalidArgumentsErrorWithDetails("`put` requires chunk size to be a multiple of 4MiB", flagErrorDetails("chunksize"))
+	}
+	if chunkSize > putMaxChunkSize {
+		return putOptions{}, invalidArgumentsErrorWithDetails("`put` requires chunk size to be no more than 128MiB", flagErrorDetails("chunksize"))
 	}
 	workers, err := cmd.Flags().GetInt("workers")
 	if err != nil {
@@ -889,9 +900,13 @@ var putCmd = &cobra.Command{
   - Use - as source to read from stdin (target is required).
     Stdin is spooled to a temp file before upload and may use disk
     space up to the full input size.
+  - Files larger than 32MiB use Dropbox upload sessions. Each chunk is one
+    upload-session request; chunk size must be a multiple of 4MiB and no more
+    than 128MiB.
 `,
 	Example: `  dbxcli put file.txt /destination/file.txt
   dbxcli put -r ./project /backup/project
+  dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
   printf 'hello' | dbxcli put - /hello.txt
   tar cz ./src | dbxcli put - /backups/src.tgz`,
 	RunE: put,
@@ -901,8 +916,8 @@ func init() {
 	RootCmd.AddCommand(putCmd)
 	enableStructuredOutput(putCmd)
 	putCmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
-	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
-	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
+	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers for chunked large-file uploads")
+	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB")
 	putCmd.Flags().BoolP("debug", "d", false, "Print debug timing")
 	putCmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, or fail")
 }
