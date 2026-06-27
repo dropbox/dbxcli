@@ -211,7 +211,7 @@ In JSON mode, error responses are written to stdout and the process exits with a
 }
 ```
 
-The full JSON command catalog, stable error codes, and schemas live in [docs/json-schema/v1](https://github.com/dropbox/dbxcli/tree/master/docs/json-schema/v1). Commands that intentionally do not support structured command-result JSON yet include `login`, `logout`, and `completion`, but their help is available as JSON with `--help --output=json`. Shell-completion protocol commands remain text-only.
+The full JSON command catalog, stable error codes, and schemas live in [docs/json-schema/v1](https://github.com/dropbox/dbxcli/tree/master/docs/json-schema/v1). Commands that intentionally do not support structured command-result JSON yet include `login` and `completion`, but their help is available as JSON with `--help --output=json`. Shell-completion protocol commands remain text-only.
 
 ### Authentication
 
@@ -222,8 +222,8 @@ Run `dbxcli login` to authorize dbxcli and save credentials:
 $ dbxcli login
 ```
 
-Commands require saved credentials. If no saved credentials are available, run
-`dbxcli login` first or provide a token with `DBXCLI_ACCESS_TOKEN`.
+Dropbox API commands require authentication. Run `dbxcli login` to save
+credentials, or provide a short-lived token with `DBXCLI_ACCESS_TOKEN`.
 
 Personal and team logins use bundled Dropbox app keys by default. You can pass
 a custom app key as an option:
@@ -243,6 +243,11 @@ $ DROPBOX_MANAGE_APP_KEY=your-app-key dbxcli login team-manage
 Saved login credentials include a Dropbox refresh token and are refreshed
 automatically when the access token expires. If saved credentials are revoked or
 need to be replaced, run `dbxcli login` again.
+
+Run `dbxcli logout` to revoke saved Dropbox access tokens and remove local saved
+credentials. If `DBXCLI_ACCESS_TOKEN` is set, unset it before running logout;
+environment-provided tokens are not saved locally and cannot be removed by
+dbxcli.
 
 Set `DBXCLI_AUTH_FILE` to use a different credentials file:
 
