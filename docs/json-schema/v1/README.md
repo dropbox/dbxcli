@@ -43,7 +43,7 @@ In JSON mode, error responses are written to stdout and the process exits with
 a non-zero status.
 
 Commands that intentionally do not support structured command-result JSON yet
-include `login`, `logout`, and `completion`. Their help output is still
+include `login` and `completion`. Their help output is still
 available as a JSON command manifest with `--help --output=json`; for example,
 `dbxcli --help --output=json`, `dbxcli version --help --output=json`, and
 `dbxcli --output=json help version`. `dbxcli --output=json` without `--help`
@@ -55,12 +55,15 @@ Current JSON-enabled command paths include `version`, `account`, `du`, `ls`,
 `share-link list`, `share-link info`, `share-link update`,
 `share-link revoke`, `share-link download`, `share list folder`,
 `share list link`, `team info`, `team list-members`, `team list-groups`,
-`team add-member`, `team remove-member`, `mkdir`, `rm`, and `restore`.
+`team add-member`, `team remove-member`, `mkdir`, `rm`, `restore`, and
+`logout`.
 
 Warnings are objects with a stable `code` and human-readable `message`; they
 may include optional command-specific details. Current warning codes include
 `deprecated_command` for deprecated command paths and `skipped_symlink` for
-symlinks skipped by recursive upload.
+symlinks skipped by recursive upload. `logout` may return
+`token_revoke_failed` when saved credentials were removed locally but one or
+more Dropbox tokens could not be revoked remotely.
 
 Stable error codes:
 
@@ -76,6 +79,7 @@ Stable error codes:
 | `permission_denied`             | Dropbox denied access because of permissions, scope, member selection, or state.  |
 | `rate_limited`                  | Dropbox rate limited the request.                                                 |
 | `dropbox_api_error`             | Dropbox returned an API error that does not map to a more specific code yet.      |
+| `env_token_still_active`        | `DBXCLI_ACCESS_TOKEN` is set and must be unset before logout can complete.        |
 | `structured_output_unsupported` | The command does not support `--output=json` yet.                                 |
 | `unknown_command`               | Cobra could not resolve the command.                                              |
 | `unknown_flag`                  | Cobra could not resolve a flag.                                                   |

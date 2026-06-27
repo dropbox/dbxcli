@@ -228,6 +228,7 @@ func expectedStructuredOutputCommands() []string {
 		"cp",
 		"du",
 		"get",
+		"logout",
 		"ls",
 		"mkdir",
 		"mv",
@@ -314,6 +315,10 @@ func jsonSuccessFixtureCoverage() map[string]jsonSuccessFixture {
 		"ls": {
 			file:  "ls_test.go",
 			tests: []string{"TestLsJSONListsResultsAndInput", "TestLsJSONDeletedEntryIsStructured"},
+		},
+		"logout": {
+			file:  "logout_test.go",
+			tests: []string{"TestLogoutJSONReturnsLoggedOut", "TestLogoutJSONReturnsAlreadyLoggedOut", "TestLogoutJSONWarnsOnRemoteRevokeFailureAfterRemovingCredentials"},
 		},
 		"mkdir": {
 			file:  "mkdir_test.go",
@@ -496,6 +501,7 @@ func expectedJSONErrorCodes() []string {
 		jsonErrorCodeAuthRequired,
 		jsonErrorCodeCommandFailed,
 		jsonErrorCodeDropboxAPIError,
+		jsonErrorCodeEnvTokenStillActive,
 		jsonErrorCodeInvalidArguments,
 		jsonErrorCodeNotFound,
 		jsonErrorCodePathConflict,
@@ -606,6 +612,9 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		}, nil),
 		"ls": newJSONOperationOutput(lsInput{Path: "/Reports", Recursive: false, IncludeDeleted: true, OnlyDeleted: false, Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(lsJSONStatusListed, file.Type, nil, file),
+		}, nil),
+		"logout": newJSONOperationOutput(nil, []jsonOperationResult{
+			newJSONOperationResult(logoutStatusLoggedOut, logoutKindAuth, nil, logoutResult{RemovedSavedCredentials: true, RemoteTokenRevoked: true}),
 		}, nil),
 		"mkdir": newJSONOperationOutput(mkdirInput{Path: "/Reports/new", Parents: true}, []jsonOperationResult{
 			newJSONOperationResult(mkdirStatusCreated, mkdirKindFolder, mkdirInput{Path: "/Reports/new", Parents: true}, sampleJSONFolderMetadata("/Reports/new")),
@@ -821,6 +830,7 @@ func jsonContractDefinitions() map[string][]string {
 		"get_result_input":           jsonFieldNames[getResultInput](),
 		"help_input":                 jsonFieldNames[jsonHelpInput](),
 		"ls_input":                   jsonFieldNames[lsInput](),
+		"logout_result":              jsonFieldNames[logoutResult](),
 		"metadata":                   jsonFieldNames[jsonMetadata](),
 		"mkdir_input":                jsonFieldNames[mkdirInput](),
 		"operation_output":           jsonFieldNames[jsonOperationOutput](),
@@ -862,6 +872,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"get":               operationSchema("get_input", schemaRef("get_result_input"), "metadata", []string{getStatusCreated, getStatusDownloaded, getStatusExisting}, []string{getKindFile, getKindFolder}, nil),
 		"help":              operationSchema("help_input", schemaRef("empty"), "command_manifest", []string{jsonHelpStatusDescribed}, []string{jsonHelpKindCommand}, nil),
 		"ls":                operationSchema("ls_input", schemaRef("empty"), "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
+		"logout":            operationSchema("empty", schemaRef("empty"), "logout_result", []string{logoutStatusAlreadyLoggedOut, logoutStatusLoggedOut}, []string{logoutKindAuth}, []string{jsonWarningCodeTokenRevokeFailed}),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting}, []string{mkdirKindFolder}, nil),
 		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
@@ -1099,7 +1110,7 @@ func TestJSONOperationOutputContractShape(t *testing.T) {
 }
 
 func TestUnsupportedCommandsReturnJSONErrorEnvelope(t *testing.T) {
-	for _, name := range []string{"login", "logout", "completion"} {
+	for _, name := range []string{"login", "completion"} {
 		t.Run(name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			cmd := &cobra.Command{Use: name}

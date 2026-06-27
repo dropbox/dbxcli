@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.0...HEAD)
 
+**Added:**
+
+- Added structured `logout --output=json` output with saved-credential removal, token-revoke status, and already-logged-out reporting.
+
 ## [v3.5.0](https://github.com/dropbox/dbxcli/tree/v3.5.0) (2026-06-26)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.4.0...v3.5.0)
 

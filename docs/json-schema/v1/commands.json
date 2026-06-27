@@ -76,6 +76,10 @@
       "help",
       "path"
     ],
+    "logout_result": [
+      "remote_token_revoked",
+      "removed_saved_credentials"
+    ],
     "ls_input": [
       "include_deleted",
       "long",
@@ -400,6 +404,23 @@
         "folder"
       ],
       "warnings": []
+    },
+    "logout": {
+      "top_level": "operation_output",
+      "result_wrapper": "operation_result",
+      "input": "empty",
+      "result_input": "empty",
+      "result": "logout_result",
+      "statuses": [
+        "already_logged_out",
+        "logged_out"
+      ],
+      "kinds": [
+        "auth"
+      ],
+      "warnings": [
+        "token_revoke_failed"
+      ]
     },
     "mkdir": {
       "top_level": "operation_output",

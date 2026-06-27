@@ -29,6 +29,7 @@ type jsonWarning struct {
 const (
 	jsonWarningCodeDeprecatedCommand = "deprecated_command"
 	jsonWarningCodeSkippedSymlink    = "skipped_symlink"
+	jsonWarningCodeTokenRevokeFailed = "token_revoke_failed"
 )
 
 type jsonOperationOutput struct {
