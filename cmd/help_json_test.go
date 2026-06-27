@@ -41,14 +41,14 @@ func TestJSONHelpSupportedForms(t *testing.T) {
 			args:        []string{"--help", "--output=json"},
 			wantCommand: "dbxcli",
 			wantPath:    "",
-			wantResults: []string{"dbxcli", "completion", "completion bash", "completion fish", "completion powershell", "completion zsh", "help", "login", "ls", "rm", "team", "team add-member", "team info"},
+			wantResults: []string{"dbxcli", "completion", "completion bash", "completion fish", "completion powershell", "completion zsh", "help", "login", "logout", "ls", "rm", "team", "team add-member", "team info"},
 		},
 		{
 			name:        "root help output before",
 			args:        []string{"--output=json", "--help"},
 			wantCommand: "dbxcli",
 			wantPath:    "",
-			wantResults: []string{"dbxcli", "completion", "completion bash", "completion fish", "completion powershell", "completion zsh", "help", "login", "ls", "rm", "team", "team add-member", "team info"},
+			wantResults: []string{"dbxcli", "completion", "completion bash", "completion fish", "completion powershell", "completion zsh", "help", "login", "logout", "ls", "rm", "team", "team add-member", "team info"},
 		},
 		{
 			name:        "command help output after",
@@ -219,6 +219,14 @@ func TestJSONHelpManifestFields(t *testing.T) {
 	}
 	if len(login.AuthModes) != 0 {
 		t.Fatalf("login auth_modes = %v, want empty", login.AuthModes)
+	}
+
+	logout := jsonHelpManifestByPath(t, got, "logout")
+	if !logout.SupportsStructuredOutput {
+		t.Fatal("logout supports_structured_output = false, want true")
+	}
+	if len(logout.AuthModes) != 0 {
+		t.Fatalf("logout auth_modes = %v, want empty", logout.AuthModes)
 	}
 
 	rm := jsonHelpManifestByPath(t, got, "rm")
@@ -502,6 +510,7 @@ func TestJSONHelpPreservesHelpCommandCompletions(t *testing.T) {
 	}
 	want := []cobra.Completion{
 		cobra.CompletionWithDesc("login", "Log in and save Dropbox credentials"),
+		cobra.CompletionWithDesc("logout", "Log out of the current session"),
 		cobra.CompletionWithDesc("ls", "List files and folders"),
 	}
 	if !reflect.DeepEqual(completions, want) {
@@ -577,6 +586,13 @@ func newJSONHelpTestRoot(t *testing.T) *cobra.Command {
 		RunE:  func(cmd *cobra.Command, args []string) error { return nil },
 	}
 
+	logout := &cobra.Command{
+		Use:   "logout",
+		Short: "Log out of the current session",
+		RunE:  func(cmd *cobra.Command, args []string) error { return nil },
+	}
+	enableStructuredOutput(logout)
+
 	rm := &cobra.Command{
 		Use:   "rm [flags] <file>",
 		Short: "Remove files or folders",
@@ -611,7 +627,7 @@ func newJSONHelpTestRoot(t *testing.T) *cobra.Command {
 		RunE:   func(cmd *cobra.Command, args []string) error { return nil },
 	}
 
-	root.AddCommand(ls, login, rm, team, hidden)
+	root.AddCommand(ls, login, logout, rm, team, hidden)
 	installJSONHelp(root)
 	return root
 }

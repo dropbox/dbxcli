@@ -22,6 +22,7 @@ const (
 	jsonErrorCodeAuthRefreshFailed           = "auth_refresh_failed"
 	jsonErrorCodeAuthRequired                = "auth_required"
 	jsonErrorCodeDropboxAPIError             = "dropbox_api_error"
+	jsonErrorCodeEnvTokenStillActive         = "env_token_still_active"
 	jsonErrorCodeInvalidArguments            = "invalid_arguments"
 	jsonErrorCodeNotFound                    = "not_found"
 	jsonErrorCodePathConflict                = "path_conflict"

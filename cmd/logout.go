@@ -15,12 +15,26 @@
 package cmd
 
 import (
+	"errors"
 	"os"
+	"sort"
 
+	"github.com/dropbox/dbxcli/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/spf13/cobra"
 )
+
+const (
+	logoutStatusLoggedOut        = "logged_out"
+	logoutStatusAlreadyLoggedOut = "already_logged_out"
+	logoutKindAuth               = "auth"
+)
+
+type logoutResult struct {
+	RemovedSavedCredentials bool `json:"removed_saved_credentials"`
+	RemoteTokenRevoked      bool `json:"remote_token_revoked"`
+}
 
 var revokeAccessToken = func(domain string, token string) error {
 	cfg := dropbox.Config{
@@ -39,7 +53,9 @@ var revokeAccessToken = func(domain string, token string) error {
 
 // Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
-	out := commandOutput(cmd)
+	if os.Getenv(envAccessToken) != "" {
+		return newCodedError(jsonErrorCodeEnvTokenStillActive, errors.New("DBXCLI_ACCESS_TOKEN is set; unset it before running logout."))
+	}
 
 	filePath, err := authFilePath()
 	if err != nil {
@@ -48,27 +64,82 @@ func logout(cmd *cobra.Command, args []string) error {
 
 	tokMap, err := readTokens(filePath)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return renderLogoutResult(cmd, logoutStatusAlreadyLoggedOut, false, false, nil)
+		}
 		return err
 	}
 
-	for domain, tokens := range tokMap {
-		for _, token := range tokens {
+	tokenCount := 0
+	revokeFailed := false
+	for _, domain := range sortedTokenDomains(tokMap) {
+		tokens := tokMap[domain]
+		for _, tokenType := range sortedTokenTypes(tokens) {
+			token := tokens[tokenType]
 			if token.AccessToken == "" {
 				continue
 			}
+			tokenCount++
 			if err = revokeAccessToken(domain, token.AccessToken); err != nil {
-				out.Warn("could not revoke token (may be expired): %v", err)
+				revokeFailed = true
+				if commandOutputFormat(cmd) == output.FormatText {
+					commandOutput(cmd).Warn("could not revoke token (may be expired): %v", err)
+				}
 			}
 		}
 	}
 
-	return os.Remove(filePath)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+
+	warnings := []jsonWarning(nil)
+	if revokeFailed {
+		warnings = append(warnings, jsonWarning{
+			Code:    jsonWarningCodeTokenRevokeFailed,
+			Message: "Saved credentials were removed locally, but one or more Dropbox tokens could not be revoked remotely.",
+		})
+	}
+	return renderLogoutResult(cmd, logoutStatusLoggedOut, true, tokenCount > 0 && !revokeFailed, warnings)
+}
+
+func renderLogoutResult(cmd *cobra.Command, status string, removedSavedCredentials bool, remoteTokenRevoked bool, warnings []jsonWarning) error {
+	return renderJSONOperationOutputWithWarnings(cmd, nil, []jsonOperationResult{
+		newJSONOperationResult(status, logoutKindAuth, nil, logoutResult{
+			RemovedSavedCredentials: removedSavedCredentials,
+			RemoteTokenRevoked:      remoteTokenRevoked,
+		}),
+	}, warnings)
+}
+
+func sortedTokenDomains(tokMap TokenMap) []string {
+	domains := make([]string, 0, len(tokMap))
+	for domain := range tokMap {
+		domains = append(domains, domain)
+	}
+	sort.Strings(domains)
+	return domains
+}
+
+func sortedTokenTypes(tokens map[string]storedCredential) []string {
+	tokenTypes := make([]string, 0, len(tokens))
+	for tokenType := range tokens {
+		tokenTypes = append(tokenTypes, tokenType)
+	}
+	sort.Strings(tokenTypes)
+	return tokenTypes
 }
 
 // logoutCmd represents the logout command
 var logoutCmd = &cobra.Command{
 	Use:   "logout [flags]",
 	Short: "Log out of the current session",
+	Long: `Log out of the current session.
+
+Logout revokes saved Dropbox access tokens by default and removes local saved
+credentials. If DBXCLI_ACCESS_TOKEN is set, unset it before running logout;
+environment-provided tokens are not saved locally and cannot be removed by
+dbxcli.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return validateOutputFormat(cmd)
 	},
@@ -77,4 +148,5 @@ var logoutCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(logoutCmd)
+	enableStructuredOutput(logoutCmd)
 }

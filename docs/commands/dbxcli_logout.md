@@ -4,6 +4,15 @@
 
 Log out of the current session
 
+### Synopsis
+
+Log out of the current session.
+
+Logout revokes saved Dropbox access tokens by default and removes local saved
+credentials. If DBXCLI_ACCESS_TOKEN is set, unset it before running logout;
+environment-provided tokens are not saved locally and cannot be removed by
+dbxcli.
+
 ```
 dbxcli logout [flags]
 ```
