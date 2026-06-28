@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -183,12 +184,7 @@ func TestRawCreateSharedLinkErrorParserReturnsValueError(t *testing.T) {
 		Content:    `{ "error_summary": "shared_link_already_exists/", "error": { ".tag": "shared_link_already_exists" } }`,
 	})
 
-	if _, ok := err.(sharing.CreateSharedLinkWithSettingsAPIError); !ok {
-		t.Fatalf("error type = %T, want value CreateSharedLinkWithSettingsAPIError", err)
-	}
-	if _, ok := err.(*sharing.CreateSharedLinkWithSettingsAPIError); ok {
-		t.Fatalf("error type = %T, want non-pointer CreateSharedLinkWithSettingsAPIError", err)
-	}
+	requireExactErrorType(t, err, sharing.CreateSharedLinkWithSettingsAPIError{})
 }
 
 func TestRawModifySharedLinkErrorParserReturnsValueError(t *testing.T) {
@@ -197,10 +193,12 @@ func TestRawModifySharedLinkErrorParserReturnsValueError(t *testing.T) {
 		Content:    `{ "error_summary": "settings_error/", "error": { ".tag": "settings_error" } }`,
 	})
 
-	if _, ok := err.(sharing.ModifySharedLinkSettingsAPIError); !ok {
-		t.Fatalf("error type = %T, want value ModifySharedLinkSettingsAPIError", err)
-	}
-	if _, ok := err.(*sharing.ModifySharedLinkSettingsAPIError); ok {
-		t.Fatalf("error type = %T, want non-pointer ModifySharedLinkSettingsAPIError", err)
+	requireExactErrorType(t, err, sharing.ModifySharedLinkSettingsAPIError{})
+}
+
+func requireExactErrorType(t *testing.T, err error, want any) {
+	t.Helper()
+	if got, want := reflect.TypeOf(err), reflect.TypeOf(want); got != want {
+		t.Fatalf("error type = %v, want exact type %v", got, want)
 	}
 }

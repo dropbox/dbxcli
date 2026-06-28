@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -619,7 +620,7 @@ func TestShareLinkUpdateReturnsAPIErrors(t *testing.T) {
 	}
 
 	err := shareLinkUpdate(cmd, []string{"https://example.com/link"})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want original API error", err)
 	}
 }

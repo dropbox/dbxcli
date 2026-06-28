@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -777,7 +778,7 @@ func TestShareLinkDownloadReturnsAPIErrors(t *testing.T) {
 	})
 
 	err := shareLinkDownload(newShareLinkDownloadTestCommand(nil, nil), []string{"https://example.com/link", "-"})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want original API error", err)
 	}
 }
