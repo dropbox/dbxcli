@@ -44,6 +44,7 @@ dbxcli get [flags] <source> [<target>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 * Stdin/stdout behavior: Use `-` as the local target to write downloaded file bytes to stdout; diagnostics go to stderr.
 
 

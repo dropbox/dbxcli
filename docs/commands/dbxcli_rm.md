@@ -29,6 +29,7 @@ dbxcli rm [flags] <file>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 * Destructive behavior: `delete`
 
 

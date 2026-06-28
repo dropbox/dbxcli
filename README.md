@@ -1,7 +1,7 @@
 # `dbxcli`: Dropbox from the command line
 
 [![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli/v3)](https://goreportcard.com/report/github.com/dropbox/dbxcli/v3)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli/v3?cache=v3)](https://goreportcard.com/report/github.com/dropbox/dbxcli/v3)
 
 `dbxcli` is a scriptable Dropbox CLI for files, shared links, teams, and
 automation workflows. It is built for humans at the terminal, scripts, CI jobs,
@@ -33,6 +33,9 @@ dbxcli ls --output=json /
 dbxcli --help --output=json
 dbxcli put --help --output=json
 ```
+
+Stable JSON error codes and process exit codes are documented in
+[Automation and JSON output](https://github.com/dropbox/dbxcli/blob/master/docs/automation.md).
 
 ## Common workflows
 
@@ -66,11 +69,19 @@ Create a shared link:
 dbxcli share-link create /Reports/report.pdf
 ```
 
-Use JSON output:
+In text mode, `share-link create` prints only the shared-link URL to stdout:
 
 ```sh
-dbxcli ls --output=json /
+url="$(dbxcli share-link create /Reports/report.pdf)"
 ```
+
+## Troubleshooting
+
+### Why can uploading to `/remote.txt` fail on team accounts?
+
+Some team accounts may not have a writable Dropbox root namespace. Run
+`dbxcli ls /` first, then upload under a writable folder, such as your personal
+folder or a team folder.
 
 ## Features
 
@@ -174,8 +185,8 @@ dbxcli put --help --output=json
 * [JSON schema v1](https://github.com/dropbox/dbxcli/blob/master/docs/json-schema/v1/README.md)
 * [Release history](https://github.com/dropbox/dbxcli/blob/master/CHANGELOG.md)
 
-Generated Cobra command docs live under `docs/commands/` and are kept close to
-the actual CLI by `go run ./tools/gen-docs`.
+Generated Cobra command docs live under `docs/commands/`, and CI verifies they
+stay in sync with the CLI.
 
 ## Contributing
 

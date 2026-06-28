@@ -34,6 +34,7 @@ dbxcli search [flags] <query> [path-scope]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 
 
 ### SEE ALSO

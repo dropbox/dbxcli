@@ -26,6 +26,7 @@ dbxcli team remove-member [flags] <email>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `team-manage`
 * Destructive behavior: `admin`
 
 

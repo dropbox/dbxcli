@@ -338,6 +338,11 @@ func setCommandDestructiveLevel(cmd *cobra.Command, level string) {
 	setCommandAnnotationList(cmd, commandDestructiveLevelAnnotation, []string{level})
 }
 
+// CommandManifestAuthModes returns the auth modes published in JSON help.
+func CommandManifestAuthModes(cmd *cobra.Command) []string {
+	return commandManifestAuthModes(cmd)
+}
+
 func setCommandAnnotationList(cmd *cobra.Command, key string, values []string) {
 	if cmd.Annotations == nil {
 		cmd.Annotations = make(map[string]string)

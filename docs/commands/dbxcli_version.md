@@ -26,6 +26,7 @@ dbxcli version [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

@@ -26,6 +26,7 @@ dbxcli team list-members [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `team-manage`
 
 
 ### SEE ALSO

@@ -34,6 +34,7 @@ dbxcli login [personal|team-access|team-manage] [flags]
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

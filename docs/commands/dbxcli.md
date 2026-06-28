@@ -22,6 +22,7 @@ manage your team and more. It is easy, scriptable and works on all platforms!
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

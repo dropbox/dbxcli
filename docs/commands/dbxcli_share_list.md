@@ -22,6 +22,7 @@ List shared things
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

@@ -50,6 +50,7 @@ dbxcli share-link download <url> [target] [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 * Stdin/stdout behavior: Use `-` as the target for file shared links to write bytes to stdout; folder shared links require `--recursive` and cannot be written to stdout.
 
 
