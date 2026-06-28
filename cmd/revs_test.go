@@ -180,6 +180,41 @@ func TestRevsJSONErrorWritesNoOutput(t *testing.T) {
 	}
 }
 
+func TestRevsRejectsInvalidListOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "time", flag: "time", value: "created"},
+		{name: "time-format", flag: "time-format", value: "unix"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, stdout := testRevsCmd()
+			setRevsFlag(t, cmd, tt.flag, tt.value)
+			stubFilesClient(t, &mockFilesClient{
+				listRevisionsFn: func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
+					t.Fatalf("ListRevisions called for invalid --%s", tt.flag)
+					return nil, nil
+				},
+			})
+
+			err := revs(cmd, []string{"/report.pdf"})
+			if err == nil {
+				t.Fatalf("expected invalid --%s error", tt.flag)
+			}
+			if !strings.Contains(err.Error(), tt.flag) || !strings.Contains(err.Error(), tt.value) {
+				t.Fatalf("error = %v, want flag and value", err)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty output on validation error", got)
+			}
+		})
+	}
+}
+
 func TestRevsCommandSupportsStructuredOutput(t *testing.T) {
 	if !commandSupportsStructuredOutput(revsCmd) {
 		t.Fatal("revs command should support structured output")

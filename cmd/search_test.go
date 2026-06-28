@@ -43,6 +43,42 @@ func TestSearchOrderByValidation(t *testing.T) {
 	}
 }
 
+func TestSearchRejectsInvalidListOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "sort", flag: "sort", value: "date"},
+		{name: "time", flag: "time", value: "created"},
+		{name: "time-format", flag: "time-format", value: "unix"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, stdout := testSearchCmd()
+			setSearchFlag(t, cmd, tt.flag, tt.value)
+			stubFilesClient(t, &mockFilesClient{
+				searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+					t.Fatalf("SearchV2 called for invalid --%s", tt.flag)
+					return nil, nil
+				},
+			})
+
+			err := search(cmd, []string{"query"})
+			if err == nil {
+				t.Fatalf("expected invalid --%s error", tt.flag)
+			}
+			if !strings.Contains(err.Error(), tt.flag) || !strings.Contains(err.Error(), tt.value) {
+				t.Fatalf("error = %v, want flag and value", err)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty output on validation error", got)
+			}
+		})
+	}
+}
+
 func TestRenderSearchResultsSeparatesMatchesWithNewlines(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FileMetadata{

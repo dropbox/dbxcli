@@ -181,7 +181,7 @@ func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
 func TestLsJSONListsResultsAndInput(t *testing.T) {
 	cmd, stdout := testLsCmd(t)
 	setLsOutputJSON(t, cmd)
-	setLsFlag(t, cmd, "recurse", "true")
+	setLsFlag(t, cmd, "recursive", "true")
 	setLsFlag(t, cmd, "include-deleted", "true")
 	setLsFlag(t, cmd, "limit", "50")
 	setLsFlag(t, cmd, "long", "true")
@@ -315,6 +315,35 @@ func TestLsLimitStopsPaginationAndTruncatesOutput(t *testing.T) {
 	}
 }
 
+func TestLsRecurseAliasSetsRecursiveListFolderArg(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsOutputJSON(t, cmd)
+	setLsFlag(t, cmd, "recurse", "true")
+
+	var listArg *files.ListFolderArg
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			listArg = arg
+			return &files.ListFolderResult{HasMore: false}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := ls(cmd, nil); err != nil {
+		t.Fatalf("ls error: %v", err)
+	}
+	if listArg == nil {
+		t.Fatal("ListFolder was not called")
+	}
+	if !listArg.Recursive {
+		t.Fatal("ListFolder recursive = false, want true from --recurse alias")
+	}
+	got := decodeLsOutput(t, stdout)
+	if !got.Input.Recursive {
+		t.Fatal("input recursive = false, want true from --recurse alias")
+	}
+}
+
 func TestLsLimitRejectsUint32Overflow(t *testing.T) {
 	cmd, stdout := testLsCmd(t)
 	setLsFlag(t, cmd, "limit", "4294967296")
@@ -324,6 +353,42 @@ func TestLsLimitRejectsUint32Overflow(t *testing.T) {
 	}
 	if got := stdout.String(); got != "" {
 		t.Fatalf("stdout = %q, want empty output on validation error", got)
+	}
+}
+
+func TestLsRejectsInvalidListOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "sort", flag: "sort", value: "date"},
+		{name: "time", flag: "time", value: "created"},
+		{name: "time-format", flag: "time-format", value: "unix"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, stdout := testLsCmd(t)
+			setLsFlag(t, cmd, tt.flag, tt.value)
+			stubFilesClient(t, &mockFilesClient{
+				listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+					t.Fatalf("ListFolder called for invalid --%s", tt.flag)
+					return nil, nil
+				},
+			})
+
+			err := ls(cmd, nil)
+			if err == nil {
+				t.Fatalf("expected invalid --%s error", tt.flag)
+			}
+			if !strings.Contains(err.Error(), tt.flag) || !strings.Contains(err.Error(), tt.value) {
+				t.Fatalf("error = %v, want flag and value", err)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty output on validation error", got)
+			}
+		})
 	}
 }
 
@@ -533,6 +598,7 @@ func testLsCmd(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	cmd := &cobra.Command{Use: "ls"}
 	cmd.SetOut(&stdout)
 	cmd.Flags().BoolP("long", "l", false, "")
+	cmd.Flags().Bool("recursive", false, "")
 	cmd.Flags().BoolP("recurse", "R", false, "")
 	cmd.Flags().BoolP("include-deleted", "d", false, "")
 	cmd.Flags().BoolP("only-deleted", "D", false, "")

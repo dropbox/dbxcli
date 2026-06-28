@@ -25,7 +25,8 @@ dbxcli ls [flags] [<path>]
       --limit uint           Maximum number of entries to return
   -l, --long                 Long listing
   -D, --only-deleted         Only show deleted files
-  -R, --recurse              Recursively list all subfolders
+  -R, --recurse              Alias for --recursive
+      --recursive            Recursively list all subfolders
   -r, --reverse              Reverse sort order
       --sort string          Sort by: name, size, time, type
       --time string          Time field: server, client (default "server")
