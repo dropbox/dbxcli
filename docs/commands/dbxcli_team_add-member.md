@@ -26,6 +26,7 @@ dbxcli team add-member [flags] <email> <first-name> <last-name>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `team-manage`
 * Destructive behavior: `admin`
 
 

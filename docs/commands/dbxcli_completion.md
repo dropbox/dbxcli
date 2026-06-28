@@ -32,6 +32,7 @@ dbxcli completion [bash|zsh|fish|powershell] [flags]
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

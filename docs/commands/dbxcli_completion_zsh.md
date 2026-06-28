@@ -53,6 +53,7 @@ dbxcli completion zsh [flags]
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO

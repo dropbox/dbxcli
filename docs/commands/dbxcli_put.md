@@ -54,6 +54,7 @@ dbxcli put [flags] <source> [<target>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 * Stdin/stdout behavior: Use `-` as the local source to upload from stdin; stdin is spooled to a temporary file before upload.
 
 

@@ -43,6 +43,7 @@ dbxcli ls [flags] [<path>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Auth modes: `personal`, `team-access`
 
 
 ### SEE ALSO

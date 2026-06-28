@@ -144,6 +144,7 @@ func commandMetadataSection(command *cobra.Command) []byte {
 	buf.WriteString("### Command metadata\n\n")
 	buf.WriteString(fmt.Sprintf("* Structured JSON output: %s\n", yesNo(commandSupportsStructuredOutput(command))))
 	buf.WriteString("* JSON help manifest: yes\n")
+	buf.WriteString("* Auth modes: " + markdownValueList(cmd.CommandManifestAuthModes(command)) + "\n")
 
 	if aliases := sortedAliases(command); len(aliases) > 0 {
 		buf.WriteString("* Aliases: ")
@@ -217,4 +218,15 @@ func yesNo(value bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+func markdownValueList(values []string) string {
+	if len(values) == 0 {
+		return "none"
+	}
+	quoted := make([]string, 0, len(values))
+	for _, value := range values {
+		quoted = append(quoted, "`"+value+"`")
+	}
+	return strings.Join(quoted, ", ")
 }

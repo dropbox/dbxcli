@@ -26,6 +26,7 @@ Create, list, inspect, download, update, and revoke Dropbox shared links.
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Auth modes: none
 
 
 ### SEE ALSO
