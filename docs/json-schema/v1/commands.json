@@ -152,7 +152,10 @@
       "time_format"
     ],
     "search_input": [
+      "content",
+      "limit",
       "long",
+      "order_by",
       "path",
       "query",
       "reverse",

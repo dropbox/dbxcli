@@ -21,6 +21,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +29,9 @@ import (
 type searchInput struct {
 	Query      string `json:"query"`
 	Path       string `json:"path,omitempty"`
+	Content    bool   `json:"content"`
+	Limit      uint64 `json:"limit,omitempty"`
+	OrderBy    string `json:"order_by,omitempty"`
 	Long       bool   `json:"long"`
 	Sort       string `json:"sort,omitempty"`
 	Reverse    bool   `json:"reverse"`
@@ -37,9 +41,19 @@ type searchInput struct {
 
 const searchJSONStatusFound = "found"
 
+type searchCommandOptions struct {
+	list    listOptions
+	content bool
+	limit   uint64
+	orderBy string
+}
+
 func search(cmd *cobra.Command, args []string) (err error) {
 	if len(args) == 0 {
 		return invalidArgumentsErrorWithDetails("`search` requires a `query` argument", argumentErrorDetails("query"))
+	}
+	if len(args) > 2 {
+		return invalidArgumentsErrorWithDetails("`search` accepts at most one optional `path-scope` argument", argumentErrorDetails("path-scope"))
 	}
 
 	var scope string
@@ -50,12 +64,11 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	arg := files.NewSearchV2Arg(args[0])
-	if scope != "" {
-		opts := files.NewSearchOptions()
-		opts.Path = scope
-		arg.Options = opts
+	opts, err := parseSearchOptions(cmd)
+	if err != nil {
+		return err
 	}
+	arg := newSearchV2Arg(args[0], scope, opts)
 
 	dbx := filesNewFunc(config)
 	res, err := dbx.SearchV2(arg)
@@ -64,36 +77,92 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	var entries []files.IsMetadata
-	for _, m := range res.Matches {
-		if m.Metadata != nil && m.Metadata.Metadata != nil {
-			entries = append(entries, m.Metadata.Metadata)
-		}
-	}
+	entries = appendSearchMatches(entries, res.Matches, opts.limit)
 
-	for res.HasMore {
+	for res.HasMore && !searchLimitReached(entries, opts.limit) {
 		contArg := files.NewSearchV2ContinueArg(res.Cursor)
 		res, err = dbx.SearchContinueV2(contArg)
 		if err != nil {
 			return err
 		}
-		for _, m := range res.Matches {
-			if m.Metadata != nil && m.Metadata.Metadata != nil {
-				entries = append(entries, m.Metadata.Metadata)
-			}
-		}
+		entries = appendSearchMatches(entries, res.Matches, opts.limit)
 	}
 
-	opts := parseLsOptions(cmd)
-	sortEntries(entries, opts)
+	sortEntries(entries, opts.list)
 
 	return renderSearchOutput(cmd, args[0], scope, entries, opts)
 }
 
-func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files.IsMetadata, opts listOptions) error {
+func parseSearchOptions(cmd *cobra.Command) (searchCommandOptions, error) {
+	content, _ := cmd.Flags().GetBool("content")
+	limit, _ := cmd.Flags().GetUint64("limit")
+	orderBy, _ := cmd.Flags().GetString("order-by")
+	if !validSearchOrderBy(orderBy) {
+		return searchCommandOptions{}, invalidArgumentsErrorWithDetails("`search --order-by` must be one of: relevance, modified", flagErrorDetails("order-by"))
+	}
+
+	return searchCommandOptions{
+		list:    parseLsOptions(cmd),
+		content: content,
+		limit:   limit,
+		orderBy: orderBy,
+	}, nil
+}
+
+func newSearchV2Arg(query, scope string, opts searchCommandOptions) *files.SearchV2Arg {
+	arg := files.NewSearchV2Arg(query)
+	searchOpts := files.NewSearchOptions()
+	searchOpts.Path = scope
+	searchOpts.FilenameOnly = !opts.content
+	if opts.limit > 0 && opts.limit < searchOpts.MaxResults {
+		searchOpts.MaxResults = opts.limit
+	}
+	if opts.orderBy != "" {
+		searchOpts.OrderBy = searchOrderBy(opts.orderBy)
+	}
+	arg.Options = searchOpts
+	return arg
+}
+
+func validSearchOrderBy(orderBy string) bool {
+	switch orderBy {
+	case "", "relevance", "modified":
+		return true
+	default:
+		return false
+	}
+}
+
+func searchOrderBy(orderBy string) *files.SearchOrderBy {
+	switch orderBy {
+	case "modified":
+		return &files.SearchOrderBy{Tagged: dropbox.Tagged{Tag: files.SearchOrderByLastModifiedTime}}
+	default:
+		return &files.SearchOrderBy{Tagged: dropbox.Tagged{Tag: files.SearchOrderByRelevance}}
+	}
+}
+
+func appendSearchMatches(entries []files.IsMetadata, matches []*files.SearchMatchV2, limit uint64) []files.IsMetadata {
+	for _, m := range matches {
+		if searchLimitReached(entries, limit) {
+			break
+		}
+		if m.Metadata != nil && m.Metadata.Metadata != nil {
+			entries = append(entries, m.Metadata.Metadata)
+		}
+	}
+	return entries
+}
+
+func searchLimitReached(entries []files.IsMetadata, limit uint64) bool {
+	return limit > 0 && uint64(len(entries)) >= limit
+}
+
+func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files.IsMetadata, opts searchCommandOptions) error {
 	out := commandOutput(cmd)
 	if commandOutputFormat(cmd) != output.FormatJSON {
 		return out.RenderText(func(w io.Writer) error {
-			return renderSearchResults(w, entries, opts)
+			return renderSearchResults(w, entries, opts.list)
 		})
 	}
 
@@ -106,15 +175,18 @@ func renderSearchOutput(cmd *cobra.Command, query, scope string, entries []files
 	return renderJSONOperationOutput(cmd, input, results)
 }
 
-func newSearchInput(query, scope string, opts listOptions) searchInput {
+func newSearchInput(query, scope string, opts searchCommandOptions) searchInput {
 	return searchInput{
 		Query:      query,
 		Path:       scope,
-		Long:       opts.long,
-		Sort:       opts.sortBy,
-		Reverse:    opts.reverse,
-		Time:       opts.timeField,
-		TimeFormat: opts.timeFormat,
+		Content:    opts.content,
+		Limit:      opts.limit,
+		OrderBy:    opts.orderBy,
+		Long:       opts.list.long,
+		Sort:       opts.list.sortBy,
+		Reverse:    opts.list.reverse,
+		Time:       opts.list.timeField,
+		TimeFormat: opts.list.timeFormat,
 	}
 }
 
@@ -149,6 +221,9 @@ var searchCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(searchCmd)
+	searchCmd.Flags().BoolP("content", "c", false, "Search file contents in addition to filenames")
+	searchCmd.Flags().Uint64("limit", 0, "Maximum number of matches to return")
+	searchCmd.Flags().String("order-by", "", "Server-side search ordering: relevance, modified")
 	searchCmd.Flags().BoolP("long", "l", false, "Long listing")
 	searchCmd.Flags().String("sort", "", "Sort by: name, size, time, type")
 	searchCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")

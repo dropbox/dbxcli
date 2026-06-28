@@ -11,8 +11,11 @@ dbxcli search [flags] <query> [path-scope]
 ### Options
 
 ```
+  -c, --content              Search file contents in addition to filenames
   -h, --help                 help for search
+      --limit uint           Maximum number of matches to return
   -l, --long                 Long listing
+      --order-by string      Server-side search ordering: relevance, modified
   -r, --reverse              Reverse sort order
       --sort string          Sort by: name, size, time, type
       --time string          Time field: server, client (default "server")

@@ -26,6 +26,23 @@ func TestSearchPathScopeValidation(t *testing.T) {
 	}
 }
 
+func TestSearchRejectsExtraArgs(t *testing.T) {
+	err := search(searchCmd, []string{"query", "/docs", "extra"})
+	if err == nil || !strings.Contains(err.Error(), "path-scope") {
+		t.Fatalf("error = %v, want extra path-scope error", err)
+	}
+}
+
+func TestSearchOrderByValidation(t *testing.T) {
+	cmd, _ := testSearchCmd()
+	setSearchFlag(t, cmd, "order-by", "name")
+
+	err := search(cmd, []string{"query"})
+	if err == nil || !strings.Contains(err.Error(), "order-by") {
+		t.Fatalf("error = %v, want order-by validation error", err)
+	}
+}
+
 func TestRenderSearchResultsSeparatesMatchesWithNewlines(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FileMetadata{
@@ -116,6 +133,9 @@ func TestSearchUsesSearchV2AndCommandOutput(t *testing.T) {
 	if firstArg.Options == nil || firstArg.Options.Path != "/docs" {
 		t.Fatalf("options path = %#v, want /docs", firstArg.Options)
 	}
+	if !firstArg.Options.FilenameOnly {
+		t.Fatal("filename_only = false, want true by default")
+	}
 	if continueCursor != "cursor-1" {
 		t.Errorf("continue cursor = %q, want cursor-1", continueCursor)
 	}
@@ -136,6 +156,9 @@ func TestSearchJSONOutputsInputAndResults(t *testing.T) {
 	setSearchFlag(t, cmd, "reverse", "true")
 	setSearchFlag(t, cmd, "time", "client")
 	setSearchFlag(t, cmd, "time-format", "rfc3339")
+	setSearchFlag(t, cmd, "content", "true")
+	setSearchFlag(t, cmd, "limit", "2")
+	setSearchFlag(t, cmd, "order-by", "modified")
 	var firstArg *files.SearchV2Arg
 
 	mock := &mockFilesClient{
@@ -175,13 +198,22 @@ func TestSearchJSONOutputsInputAndResults(t *testing.T) {
 	if firstArg.Options == nil || firstArg.Options.Path != "/docs" {
 		t.Fatalf("options path = %#v, want /docs", firstArg.Options)
 	}
+	if firstArg.Options.FilenameOnly {
+		t.Fatal("filename_only = true, want false with --content")
+	}
+	if firstArg.Options.MaxResults != 2 {
+		t.Fatalf("max_results = %d, want 2", firstArg.Options.MaxResults)
+	}
+	if firstArg.Options.OrderBy == nil || firstArg.Options.OrderBy.Tag != files.SearchOrderByLastModifiedTime {
+		t.Fatalf("order_by = %#v, want last_modified_time", firstArg.Options.OrderBy)
+	}
 
 	got := decodeSearchOutput(t, stdout)
 	if got.Input.Query != "report" || got.Input.Path != "/docs" {
 		t.Fatalf("input = %#v, want query report path /docs", got.Input)
 	}
-	if !got.Input.Long || got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
-		t.Fatalf("input options = %#v, want long/sort/reverse/time/time-format", got.Input)
+	if !got.Input.Content || got.Input.Limit != 2 || got.Input.OrderBy != "modified" || !got.Input.Long || got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
+		t.Fatalf("input options = %#v, want content/limit/order-by/long/sort/reverse/time/time-format", got.Input)
 	}
 	if len(got.Results) != 2 {
 		t.Fatalf("results = %d, want 2", len(got.Results))
@@ -205,8 +237,14 @@ func TestSearchJSONOmitsPathWithoutScope(t *testing.T) {
 
 	mock := &mockFilesClient{
 		searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
-			if arg.Options != nil && arg.Options.Path != "" {
+			if arg.Options == nil {
+				t.Fatal("options = nil, want search options")
+			}
+			if arg.Options.Path != "" {
 				t.Fatalf("options path = %q, want empty", arg.Options.Path)
+			}
+			if !arg.Options.FilenameOnly {
+				t.Fatal("filename_only = false, want true by default")
 			}
 			return files.NewSearchV2Result(nil, false), nil
 		},
@@ -231,6 +269,50 @@ func TestSearchJSONOmitsPathWithoutScope(t *testing.T) {
 	}
 	if _, ok := input["path"]; ok {
 		t.Fatalf("input path key is present in %s, want omitted", string(output))
+	}
+}
+
+func TestSearchLimitCapsResultsAndStopsPagination(t *testing.T) {
+	cmd, stdout := testSearchCmd()
+	setSearchFlag(t, cmd, "limit", "1")
+	var firstArg *files.SearchV2Arg
+
+	mock := &mockFilesClient{
+		searchV2Fn: func(arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+			firstArg = arg
+			res := files.NewSearchV2Result([]*files.SearchMatchV2{
+				searchMatch(&files.FileMetadata{
+					Metadata: files.Metadata{PathDisplay: "/docs/first.txt"},
+				}),
+				searchMatch(&files.FileMetadata{
+					Metadata: files.Metadata{PathDisplay: "/docs/second.txt"},
+				}),
+			}, true)
+			res.Cursor = "cursor-1"
+			return res, nil
+		},
+		searchContinueV2Fn: func(arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error) {
+			t.Fatalf("SearchContinueV2 was called with cursor %q, want stop after limit", arg.Cursor)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := search(cmd, []string{"needle", "/docs"}); err != nil {
+		t.Fatalf("search error: %v", err)
+	}
+	if firstArg == nil || firstArg.Options == nil {
+		t.Fatal("SearchV2 options were not set")
+	}
+	if firstArg.Options.MaxResults != 1 {
+		t.Fatalf("max_results = %d, want 1", firstArg.Options.MaxResults)
+	}
+	got := stdout.String()
+	if !strings.Contains(got, "/docs/first.txt") {
+		t.Fatalf("stdout = %q, want first result", got)
+	}
+	if strings.Contains(got, "/docs/second.txt") {
+		t.Fatalf("stdout = %q, want second result capped by --limit", got)
 	}
 }
 
@@ -263,6 +345,9 @@ func testSearchCmd() (*cobra.Command, *bytes.Buffer) {
 	var stdout bytes.Buffer
 	cmd := &cobra.Command{Use: "search"}
 	cmd.SetOut(&stdout)
+	cmd.Flags().BoolP("content", "c", false, "")
+	cmd.Flags().Uint64("limit", 0, "")
+	cmd.Flags().String("order-by", "", "")
 	cmd.Flags().BoolP("long", "l", false, "")
 	cmd.Flags().String("sort", "", "")
 	cmd.Flags().BoolP("reverse", "r", false, "")
