@@ -152,14 +152,14 @@ func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions
 		if pathArg == "" {
 			return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 		}
-		path, err := validatePath(pathArg)
+		dropboxPath, err := validatePath(pathArg)
 		if err != nil {
 			return opts, err
 		}
-		if path == "" {
+		if dropboxPath == "" {
 			return opts, invalidArgumentsErrorWithDetails("cannot download shared-link root with `--path`", pathErrorDetails("/"))
 		}
-		opts.path = path
+		opts.path = dropboxPath
 	}
 
 	if opts.path != "" && opts.recursive {

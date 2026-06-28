@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -108,7 +109,7 @@ func executeSharingRawRequest(cfg dropbox.Config, req dropbox.Request, parseErro
 func parseCreateSharedLinkWithSettingsError(err error) error {
 	var appErr sharing.CreateSharedLinkWithSettingsAPIError
 	parsed := auth.ParseError(err, &appErr)
-	if parsed == &appErr {
+	if samePointer(parsed, &appErr) {
 		return appErr
 	}
 	return parsed
@@ -117,10 +118,25 @@ func parseCreateSharedLinkWithSettingsError(err error) error {
 func parseModifySharedLinkSettingsError(err error) error {
 	var appErr sharing.ModifySharedLinkSettingsAPIError
 	parsed := auth.ParseError(err, &appErr)
-	if parsed == &appErr {
+	if samePointer(parsed, &appErr) {
 		return appErr
 	}
 	return parsed
+}
+
+func samePointer(value, target any) bool {
+	valueRef := reflect.ValueOf(value)
+	targetRef := reflect.ValueOf(target)
+	if !valueRef.IsValid() || !targetRef.IsValid() {
+		return false
+	}
+	if valueRef.Kind() != reflect.Ptr || targetRef.Kind() != reflect.Ptr {
+		return false
+	}
+	if valueRef.Type() != targetRef.Type() {
+		return false
+	}
+	return valueRef.Pointer() == targetRef.Pointer()
 }
 
 func parseSharedLinkMetadata(resp []byte) (sharing.IsSharedLinkMetadata, error) {

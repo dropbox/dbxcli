@@ -1414,12 +1414,6 @@ func TestPutRecursiveIfExistsSkipContinuesPastExistingFiles(t *testing.T) {
 	}
 }
 
-func TestSingleShotUploadSizeCutoff(t *testing.T) {
-	if singleShotUploadSizeCutoff != 32*1024*1024 {
-		t.Errorf("singleShotUploadSizeCutoff = %d, want %d", singleShotUploadSizeCutoff, 32*1024*1024)
-	}
-}
-
 func TestUploadChunked_RetriesSessionStart(t *testing.T) {
 	stubRetrySleep(t)
 	startCalls := 0

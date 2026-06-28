@@ -541,11 +541,11 @@ func assertGoldenJSONEqual(t *testing.T, command string, fixture json.RawMessage
 func assertGoldenSuccessOutputStatuses(t *testing.T, command string, fixture json.RawMessage) {
 	t.Helper()
 
-	var output jsonOperationOutput
-	if err := json.Unmarshal(fixture, &output); err != nil {
+	var got jsonOperationOutput
+	if err := json.Unmarshal(fixture, &got); err != nil {
 		t.Fatalf("decode golden output for %q: %v", command, err)
 	}
-	for i, result := range output.Results {
+	for i, result := range got.Results {
 		if result.Status == "" {
 			t.Errorf("golden output for %q result %d has empty status", command, i)
 		}

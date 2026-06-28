@@ -103,15 +103,15 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 		return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 	}
 
-	path, err := validatePath(pathArg)
+	dropboxPath, err := validatePath(pathArg)
 	if err != nil {
 		return opts, err
 	}
-	if path == "" {
+	if dropboxPath == "" {
 		return opts, invalidArgumentsErrorWithDetails("cannot revoke shared links for Dropbox root", pathErrorDetails("/"))
 	}
 
-	opts.path = path
+	opts.path = dropboxPath
 	return opts, nil
 }
 

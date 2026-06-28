@@ -470,15 +470,24 @@ func dropboxAPIErrorSummaryValue(err error) (string, bool) {
 	}
 
 	field := value.FieldByName("APIError")
-	if field.IsValid() && field.CanInterface() {
-		if apiErr, ok := field.Interface().(dropbox.APIError); ok {
-			return apiErr.Error(), true
-		}
+	if summary, ok := dropboxAPIErrorFieldSummary(field); ok {
+		return summary, true
 	}
 	if strings.HasSuffix(typ.Name(), "APIError") {
 		return err.Error(), true
 	}
 	return "", false
+}
+
+func dropboxAPIErrorFieldSummary(field reflect.Value) (string, bool) {
+	if !field.IsValid() || field.Type() != reflect.TypeOf(dropbox.APIError{}) {
+		return "", false
+	}
+	summary := field.FieldByName("ErrorSummary")
+	if !summary.IsValid() || summary.Kind() != reflect.String {
+		return "", false
+	}
+	return summary.String(), true
 }
 
 func dropboxAPISummaryFromMessage(message string) (string, bool) {

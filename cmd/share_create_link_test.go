@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -753,7 +754,7 @@ func TestSharedLinkCreateReturnsNonAlreadyExistsError(t *testing.T) {
 	stubSharedLinkClient(t, mock)
 
 	err := shareLinkCreate(&cobra.Command{}, []string{"/docs"})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want original error", err)
 	}
 }

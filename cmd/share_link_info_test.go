@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -213,7 +214,7 @@ func TestShareLinkInfoReturnsAPIError(t *testing.T) {
 	})
 
 	err := shareLinkInfo(&cobra.Command{}, []string{"https://www.dropbox.com/s/abc123"})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want API error", err)
 	}
 }

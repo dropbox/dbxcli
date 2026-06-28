@@ -119,7 +119,7 @@ func TestShareLinkRevokeReturnsAPIError(t *testing.T) {
 	})
 
 	err := shareLinkRevoke(&cobra.Command{}, []string{"https://www.dropbox.com/s/abc123"})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want API error", err)
 	}
 }
@@ -319,7 +319,7 @@ func TestShareLinkRevokePathReturnsListError(t *testing.T) {
 	}
 
 	err := shareLinkRevoke(cmd, nil)
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want list error", err)
 	}
 }
@@ -343,6 +343,9 @@ func TestShareLinkRevokePathReturnsRevokeError(t *testing.T) {
 	}
 
 	err := shareLinkRevoke(cmd, nil)
+	if err == nil {
+		t.Fatal("expected wrapped revoke error")
+	}
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want wrapped revoke error", err)
 	}
