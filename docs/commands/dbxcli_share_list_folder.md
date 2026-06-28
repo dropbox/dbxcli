@@ -22,6 +22,12 @@ dbxcli share list folder [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli share list](dbxcli_share_list.md)	 - List shared things

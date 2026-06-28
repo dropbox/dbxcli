@@ -25,6 +25,13 @@ dbxcli rm [flags] <file>
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+* Destructive behavior: `delete`
+
+
 ### SEE ALSO
 
 * [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins

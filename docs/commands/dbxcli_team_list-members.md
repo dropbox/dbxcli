@@ -22,6 +22,12 @@ dbxcli team list-members [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli team](dbxcli_team.md)	 - Team management commands

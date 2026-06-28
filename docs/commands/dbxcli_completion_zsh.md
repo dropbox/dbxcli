@@ -49,6 +49,12 @@ dbxcli completion zsh [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: no
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli completion](dbxcli_completion.md)	 - Generate the autocompletion script for the specified shell

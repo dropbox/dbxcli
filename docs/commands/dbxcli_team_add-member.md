@@ -22,6 +22,13 @@ dbxcli team add-member [flags] <email> <first-name> <last-name>
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+* Destructive behavior: `admin`
+
+
 ### SEE ALSO
 
 * [dbxcli team](dbxcli_team.md)	 - Team management commands

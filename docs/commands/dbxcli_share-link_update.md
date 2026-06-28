@@ -46,6 +46,12 @@ dbxcli share-link update <url> [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli share-link](dbxcli_share-link.md)	 - Shared link commands

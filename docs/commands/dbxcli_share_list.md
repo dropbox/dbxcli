@@ -18,6 +18,12 @@ List shared things
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: no
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli share](dbxcli_share.md)	 - Sharing commands
