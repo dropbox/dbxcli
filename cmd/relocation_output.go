@@ -3,8 +3,9 @@ package cmd
 import "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
 const (
-	relocationJSONStatusCopied = "copied"
-	relocationJSONStatusMoved  = "moved"
+	relocationJSONStatusCopied  = "copied"
+	relocationJSONStatusMoved   = "moved"
+	relocationJSONStatusSkipped = "skipped"
 )
 
 type relocationInput struct {
@@ -22,10 +23,15 @@ func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) 
 	if res != nil {
 		metadata = res.Metadata
 	}
+	return newRelocationResultFromMetadata(arg, metadata)
+}
+
+func newRelocationResultFromMetadata(arg *files.RelocationArg, metadata files.IsMetadata) (relocationResult, error) {
 	result, err := jsonMetadataFromDropbox(metadata)
 	if err != nil {
 		return relocationResult{}, err
 	}
+	result.PathDisplay = metadataDisplayPath(arg.ToPath, result.PathDisplay)
 
 	return relocationResult{
 		Input: relocationInput{
@@ -36,10 +42,6 @@ func newRelocationResult(arg *files.RelocationArg, res *files.RelocationResult) 
 	}, nil
 }
 
-func relocationOperationResults(status string, results []relocationResult) []jsonOperationResult {
-	operationResults := make([]jsonOperationResult, 0, len(results))
-	for _, result := range results {
-		operationResults = append(operationResults, newJSONOperationResult(status, result.Result.Type, result.Input, result.Result))
-	}
-	return operationResults
+func relocationOperationResult(status string, result relocationResult) jsonOperationResult {
+	return newJSONOperationResult(status, result.Result.Type, result.Input, result.Result)
 }
