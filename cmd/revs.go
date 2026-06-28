@@ -26,6 +26,7 @@ import (
 
 type revsInput struct {
 	Path       string `json:"path"`
+	Limit      uint64 `json:"limit,omitempty"`
 	Long       bool   `json:"long"`
 	Time       string `json:"time,omitempty"`
 	TimeFormat string `json:"time_format,omitempty"`
@@ -44,6 +45,10 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	arg := files.NewListRevisionsArg(path)
+	limit, _ := cmd.Flags().GetUint64("limit")
+	if limit > 0 {
+		arg.Limit = limit
+	}
 
 	dbx := filesNewFunc(config)
 	res, err := dbx.ListRevisions(arg)
@@ -53,10 +58,10 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 
 	opts := parseLsOptions(cmd)
 
-	return renderRevisionsOutput(cmd, path, res.Entries, opts)
+	return renderRevisionsOutput(cmd, path, limit, res.Entries, opts)
 }
 
-func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.FileMetadata, opts listOptions) error {
+func renderRevisionsOutput(cmd *cobra.Command, path string, limit uint64, entries []*files.FileMetadata, opts listOptions) error {
 	out := commandOutput(cmd)
 	if commandOutputFormat(cmd) != output.FormatJSON {
 		return out.RenderText(func(w io.Writer) error {
@@ -64,7 +69,7 @@ func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.Fil
 		})
 	}
 
-	input := newRevsInput(path, opts)
+	input := newRevsInput(path, limit, opts)
 	metadata, err := jsonMetadataListFromRevisions(entries)
 	if err != nil {
 		return err
@@ -73,9 +78,10 @@ func renderRevisionsOutput(cmd *cobra.Command, path string, entries []*files.Fil
 	return renderJSONOperationOutput(cmd, input, results)
 }
 
-func newRevsInput(path string, opts listOptions) revsInput {
+func newRevsInput(path string, limit uint64, opts listOptions) revsInput {
 	return revsInput{
 		Path:       path,
+		Limit:      limit,
 		Long:       opts.long,
 		Time:       opts.timeField,
 		TimeFormat: opts.timeFormat,
@@ -125,6 +131,7 @@ func init() {
 	RootCmd.AddCommand(revsCmd)
 
 	revsCmd.Flags().BoolP("long", "l", false, "Long listing")
+	revsCmd.Flags().Uint64("limit", 0, "Maximum number of revisions to return")
 	revsCmd.Flags().String("time", "server", "Time field: server, client")
 	revsCmd.Flags().String("time-format", "", "Time format: short (2006-01-02 15:04), rfc3339")
 	enableStructuredOutput(revsCmd)

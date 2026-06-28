@@ -28,12 +28,14 @@ import (
 )
 
 const deletedItemFormatString = "<<%s>>"
+const maxListFolderLimit = uint64(^uint32(0))
 
 type lsInput struct {
 	Path           string `json:"path"`
 	Recursive      bool   `json:"recursive"`
 	IncludeDeleted bool   `json:"include_deleted"`
 	OnlyDeleted    bool   `json:"only_deleted"`
+	Limit          uint64 `json:"limit,omitempty"`
 	Long           bool   `json:"long"`
 	Sort           string `json:"sort,omitempty"`
 	Reverse        bool   `json:"reverse"`
@@ -108,12 +110,14 @@ func parseLsOptions(cmd *cobra.Command) listOptions {
 	timeFormat, _ := cmd.Flags().GetString("time-format")
 	sortBy, _ := cmd.Flags().GetString("sort")
 	reverse, _ := cmd.Flags().GetBool("reverse")
+	limit, _ := cmd.Flags().GetUint64("limit")
 	return listOptions{
 		long:       long,
 		timeField:  timeField,
 		timeFormat: timeFormat,
 		sortBy:     sortBy,
 		reverse:    reverse,
+		limit:      limit,
 	}
 }
 
@@ -132,6 +136,12 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	onlyDeleted, _ := cmd.Flags().GetBool("only-deleted")
 	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
 	opts := parseLsOptions(cmd)
+	if opts.limit > 0 {
+		if opts.limit > maxListFolderLimit {
+			return invalidArgumentsErrorWithDetails("`ls --limit` is too large", flagErrorDetails("limit"))
+		}
+		arg.Limit = uint32(opts.limit)
+	}
 
 	dbx := filesNewFunc(config)
 
@@ -164,9 +174,9 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		metaRes, _ = getFileMetadata(dbx, path)
 		entries = []files.IsMetadata{metaRes}
 	} else {
-		entries = res.Entries
+		entries = appendMetadataWithLimit(entries, res.Entries, opts.limit)
 
-		for res.HasMore {
+		for res.HasMore && !metadataLimitReached(entries, opts.limit) {
 			arg := files.NewListFolderContinueArg(res.Cursor)
 
 			res, err = dbx.ListFolderContinue(arg)
@@ -174,7 +184,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 				return err
 			}
 
-			entries = append(entries, res.Entries...)
+			entries = appendMetadataWithLimit(entries, res.Entries, opts.limit)
 		}
 	}
 
@@ -185,6 +195,20 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return renderLsOutput(cmd, path, arg, onlyDeleted, opts, entries)
+}
+
+func appendMetadataWithLimit(entries []files.IsMetadata, next []files.IsMetadata, limit uint64) []files.IsMetadata {
+	for _, entry := range next {
+		if metadataLimitReached(entries, limit) {
+			break
+		}
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+func metadataLimitReached(entries []files.IsMetadata, limit uint64) bool {
+	return limit > 0 && uint64(len(entries)) >= limit
 }
 
 func prepareLsEntries(dbx files.Client, entries []files.IsMetadata, onlyDeleted bool) ([]files.IsMetadata, error) {
@@ -251,6 +275,7 @@ func newLsInput(path string, arg *files.ListFolderArg, onlyDeleted bool, opts li
 		Recursive:      arg.Recursive,
 		IncludeDeleted: arg.IncludeDeleted,
 		OnlyDeleted:    onlyDeleted,
+		Limit:          opts.limit,
 		Long:           opts.long,
 		Sort:           opts.sortBy,
 		Reverse:        opts.reverse,
@@ -361,6 +386,7 @@ func init() {
 	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
 	lsCmd.Flags().BoolP("include-deleted", "d", false, "Include deleted files")
 	lsCmd.Flags().BoolP("only-deleted", "D", false, "Only show deleted files")
+	lsCmd.Flags().Uint64("limit", 0, "Maximum number of entries to return")
 	lsCmd.Flags().String("sort", "", "Sort by: name, size, time, type")
 	lsCmd.Flags().BoolP("reverse", "r", false, "Reverse sort order")
 	lsCmd.Flags().String("time", "server", "Time field: server, client")
