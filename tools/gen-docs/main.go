@@ -15,9 +15,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/dropbox/dbxcli/cmd"
 	"github.com/spf13/cobra"
@@ -25,6 +28,18 @@ import (
 )
 
 const outputDir = "docs/commands"
+
+const (
+	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
+	commandDestructiveLevelAnnotation   = "dbxcli.destructiveLevel"
+	destructiveLevelNone                = "none"
+)
+
+var stdinStdoutNotes = map[string]string{
+	"get":                 "Use `-` as the local target to write downloaded file bytes to stdout; diagnostics go to stderr.",
+	"put":                 "Use `-` as the local source to upload from stdin; stdin is spooled to a temporary file before upload.",
+	"share-link download": "Use `-` as the target for file shared links to write bytes to stdout; folder shared links require `--recursive` and cannot be written to stdout.",
+}
 
 func main() {
 	if err := run(); err != nil {
@@ -60,6 +75,9 @@ func run() error {
 	if err := doc.GenMarkdownTreeCustom(root, outputDir, prepender, linkHandler); err != nil {
 		return fmt.Errorf("generate command docs: %w", err)
 	}
+	if err := addCommandMetadata(root); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -68,4 +86,135 @@ func disableAutoGenTag(command *cobra.Command) {
 	for _, child := range command.Commands() {
 		disableAutoGenTag(child)
 	}
+}
+
+func addCommandMetadata(root *cobra.Command) error {
+	return walkCommands(root, func(command *cobra.Command) error {
+		path := filepath.Join(outputDir, strings.ReplaceAll(command.CommandPath(), " ", "_")+".md")
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read generated doc %s: %w", path, err)
+		}
+
+		updated := insertMetadataSection(contents, commandMetadataSection(command))
+		if err := os.WriteFile(path, updated, 0o644); err != nil {
+			return fmt.Errorf("write generated doc %s: %w", path, err)
+		}
+		return nil
+	})
+}
+
+func walkCommands(command *cobra.Command, fn func(*cobra.Command) error) error {
+	if !command.IsAvailableCommand() || command.IsAdditionalHelpTopicCommand() {
+		return nil
+	}
+	if err := fn(command); err != nil {
+		return err
+	}
+
+	children := append([]*cobra.Command{}, command.Commands()...)
+	sort.Slice(children, func(i, j int) bool {
+		return children[i].Name() < children[j].Name()
+	})
+	for _, child := range children {
+		if err := walkCommands(child, fn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func insertMetadataSection(contents []byte, section []byte) []byte {
+	marker := []byte("\n### SEE ALSO\n\n")
+	index := bytes.Index(contents, marker)
+	if index == -1 {
+		return append(append(contents, '\n'), section...)
+	}
+
+	result := make([]byte, 0, len(contents)+len(section)+1)
+	result = append(result, contents[:index]...)
+	result = append(result, '\n')
+	result = append(result, section...)
+	result = append(result, contents[index:]...)
+	return result
+}
+
+func commandMetadataSection(command *cobra.Command) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("### Command metadata\n\n")
+	buf.WriteString(fmt.Sprintf("* Structured JSON output: %s\n", yesNo(commandSupportsStructuredOutput(command))))
+	buf.WriteString("* JSON help manifest: yes\n")
+
+	if aliases := sortedAliases(command); len(aliases) > 0 {
+		buf.WriteString("* Aliases: ")
+		for i, alias := range aliases {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString("`" + alias + "`")
+		}
+		buf.WriteString("\n")
+	}
+
+	if note, ok := stdinStdoutNotes[relativeCommandPath(command)]; ok {
+		buf.WriteString("* Stdin/stdout behavior: " + note + "\n")
+	}
+
+	if level := commandDestructiveLevel(command); level != destructiveLevelNone {
+		buf.WriteString("* Destructive behavior: `" + level + "`\n")
+	}
+
+	buf.WriteString("\n")
+	return buf.Bytes()
+}
+
+func commandSupportsStructuredOutput(command *cobra.Command) bool {
+	return command != nil && command.Annotations[structuredOutputSupportedAnnotation] == "true"
+}
+
+func commandDestructiveLevel(command *cobra.Command) string {
+	if command == nil || command.Annotations == nil {
+		return destructiveLevelNone
+	}
+	level := strings.TrimSpace(command.Annotations[commandDestructiveLevelAnnotation])
+	if level == "" {
+		return destructiveLevelNone
+	}
+	parts := strings.Split(level, ",")
+	level = strings.TrimSpace(parts[0])
+	if level == "" {
+		return destructiveLevelNone
+	}
+	return level
+}
+
+func sortedAliases(command *cobra.Command) []string {
+	if command == nil || len(command.Aliases) == 0 {
+		return nil
+	}
+	aliases := append([]string{}, command.Aliases...)
+	sort.Strings(aliases)
+	return aliases
+}
+
+func relativeCommandPath(command *cobra.Command) string {
+	if command == nil {
+		return ""
+	}
+	path := command.CommandPath()
+	if command.Root() != nil {
+		rootName := command.Root().Name()
+		if path == rootName {
+			return path
+		}
+		return strings.TrimPrefix(path, rootName+" ")
+	}
+	return path
+}
+
+func yesNo(value bool) string {
+	if value {
+		return "yes"
+	}
+	return "no"
 }

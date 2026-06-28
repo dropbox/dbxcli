@@ -22,6 +22,12 @@ dbxcli version [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins

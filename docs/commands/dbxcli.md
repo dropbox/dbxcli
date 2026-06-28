@@ -18,6 +18,12 @@ manage your team and more. It is easy, scriptable and works on all platforms!
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: no
+* JSON help manifest: yes
+
+
 ### SEE ALSO
 
 * [dbxcli account](dbxcli_account.md)	 - Display account information

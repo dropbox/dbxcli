@@ -40,6 +40,13 @@ dbxcli get [flags] <source> [<target>]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+* Stdin/stdout behavior: Use `-` as the local target to write downloaded file bytes to stdout; diagnostics go to stderr.
+
+
 ### SEE ALSO
 
 * [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins

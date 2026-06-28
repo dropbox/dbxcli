@@ -46,6 +46,13 @@ dbxcli share-link download <url> [target] [flags]
   -v, --verbose            Enable verbose logging
 ```
 
+### Command metadata
+
+* Structured JSON output: yes
+* JSON help manifest: yes
+* Stdin/stdout behavior: Use `-` as the target for file shared links to write bytes to stdout; folder shared links require `--recursive` and cannot be written to stdout.
+
+
 ### SEE ALSO
 
 * [dbxcli share-link](dbxcli_share-link.md)	 - Shared link commands
