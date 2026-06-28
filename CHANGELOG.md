@@ -2,11 +2,29 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...HEAD)
+
+## [v3.5.1](https://github.com/dropbox/dbxcli/tree/v3.5.1) (2026-06-28)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.0...v3.5.1)
 
 **Added:**
 
 - Added structured `logout --output=json` output with saved-credential removal, token-revoke status, and already-logged-out reporting.
+- Added `result.auth` to `account --output=json` exposing credential source, refreshability, and auth file type.
+- Added `--content`, `--limit`, and `--order-by` flags to `search` command.
+- Added stable exit codes (0-8) mapped from JSON error codes for shell/CI scripting.
+- Added `partial_transfer` error code for stdout download failures after partial output.
+
+**Changed:**
+
+- Bumped Go module path to `github.com/dropbox/dbxcli/v3`.
+- Restructured README into focused topic docs under `docs/`.
+
+**Fixed:**
+
+- Fixed interface pointer comparison in share-link error parsers using reflection-based `samePointer` helper.
+- Migrated error assertions to `errors.Is` for correct wrapped-error handling.
+- Fixed reflection-based `ErrorSummary` extraction to avoid `CanInterface` pitfalls.
 
 ## [v3.5.0](https://github.com/dropbox/dbxcli/tree/v3.5.0) (2026-06-26)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.4.0...v3.5.0)
