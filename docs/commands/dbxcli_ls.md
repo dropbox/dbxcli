@@ -22,6 +22,7 @@ dbxcli ls [flags] [<path>]
 ```
   -h, --help                 help for ls
   -d, --include-deleted      Include deleted files
+      --limit uint           Maximum number of entries to return
   -l, --long                 Long listing
   -D, --only-deleted         Only show deleted files
   -R, --recurse              Recursively list all subfolders

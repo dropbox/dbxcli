@@ -183,6 +183,7 @@ func TestLsJSONListsResultsAndInput(t *testing.T) {
 	setLsOutputJSON(t, cmd)
 	setLsFlag(t, cmd, "recurse", "true")
 	setLsFlag(t, cmd, "include-deleted", "true")
+	setLsFlag(t, cmd, "limit", "50")
 	setLsFlag(t, cmd, "long", "true")
 	setLsFlag(t, cmd, "sort", "name")
 	setLsFlag(t, cmd, "reverse", "true")
@@ -232,6 +233,9 @@ func TestLsJSONListsResultsAndInput(t *testing.T) {
 	if !listArg.Recursive || !listArg.IncludeDeleted {
 		t.Fatalf("ListFolder flags = recursive:%v include_deleted:%v, want true/true", listArg.Recursive, listArg.IncludeDeleted)
 	}
+	if listArg.Limit != 50 {
+		t.Fatalf("ListFolder limit = %d, want 50", listArg.Limit)
+	}
 
 	got := decodeLsOutput(t, stdout)
 	if got.Input.Path != "/" {
@@ -242,6 +246,9 @@ func TestLsJSONListsResultsAndInput(t *testing.T) {
 	}
 	if got.Input.Sort != "name" || !got.Input.Reverse || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
 		t.Fatalf("input options = %+v, want sort/name reverse/client/rfc3339", got.Input)
+	}
+	if got.Input.Limit != 50 {
+		t.Fatalf("input limit = %d, want 50", got.Input.Limit)
 	}
 	if len(got.Results) != 2 {
 		t.Fatalf("results = %d, want 2", len(got.Results))
@@ -255,6 +262,68 @@ func TestLsJSONListsResultsAndInput(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), `"entries"`) {
 		t.Fatalf("JSON output = %s, want operation results and no entries key", stdout.String())
+	}
+}
+
+func TestLsLimitStopsPaginationAndTruncatesOutput(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsOutputJSON(t, cmd)
+	setLsFlag(t, cmd, "limit", "2")
+
+	var listArg *files.ListFolderArg
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			listArg = arg
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/one.txt", PathLower: "/one.txt"}, Id: "id:one", Rev: "rev-one"},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/two.txt", PathLower: "/two.txt"}, Id: "id:two", Rev: "rev-two"},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/three.txt", PathLower: "/three.txt"}, Id: "id:three", Rev: "rev-three"},
+				},
+				HasMore: true,
+				Cursor:  "cursor",
+			}, nil
+		},
+		listFolderContinueFn: func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+			t.Fatalf("ListFolderContinue should not be called after reaching limit: %v", arg)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := ls(cmd, nil); err != nil {
+		t.Fatalf("ls error: %v", err)
+	}
+	if listArg == nil {
+		t.Fatal("ListFolder was not called")
+	}
+	if listArg.Limit != 2 {
+		t.Fatalf("ListFolder limit = %d, want 2", listArg.Limit)
+	}
+
+	got := decodeLsOutput(t, stdout)
+	if got.Input.Limit != 2 {
+		t.Fatalf("input limit = %d, want 2", got.Input.Limit)
+	}
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
+	}
+	for _, result := range got.Results {
+		if result.Result.PathDisplay == "/three.txt" {
+			t.Fatalf("results include truncated entry: %#v", got.Results)
+		}
+	}
+}
+
+func TestLsLimitRejectsUint32Overflow(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsFlag(t, cmd, "limit", "4294967296")
+
+	if err := ls(cmd, nil); err == nil {
+		t.Fatal("expected ls limit overflow error")
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want empty output on validation error", got)
 	}
 }
 
@@ -467,6 +536,7 @@ func testLsCmd(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	cmd.Flags().BoolP("recurse", "R", false, "")
 	cmd.Flags().BoolP("include-deleted", "d", false, "")
 	cmd.Flags().BoolP("only-deleted", "D", false, "")
+	cmd.Flags().Uint64("limit", 0, "")
 	cmd.Flags().String("sort", "", "")
 	cmd.Flags().BoolP("reverse", "r", false, "")
 	cmd.Flags().String("time", "server", "")

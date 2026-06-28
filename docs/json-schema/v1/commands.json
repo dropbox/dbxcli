@@ -88,6 +88,7 @@
     ],
     "ls_input": [
       "include_deleted",
+      "limit",
       "long",
       "only_deleted",
       "path",
@@ -152,6 +153,7 @@
       "revision"
     ],
     "revs_input": [
+      "limit",
       "long",
       "path",
       "time",

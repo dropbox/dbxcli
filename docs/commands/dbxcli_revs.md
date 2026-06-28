@@ -12,6 +12,7 @@ dbxcli revs [flags] <file>
 
 ```
   -h, --help                 help for revs
+      --limit uint           Maximum number of revisions to return
   -l, --long                 Long listing
       --time string          Time field: server, client (default "server")
       --time-format string   Time format: short (2006-01-02 15:04), rfc3339

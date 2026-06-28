@@ -73,10 +73,12 @@ func TestRenderRevisionResultsLongModeUsesTimeOptions(t *testing.T) {
 func TestRevsUsesListRevisionsAndCommandOutput(t *testing.T) {
 	cmd, stdout := testRevsCmd()
 	var gotPath string
+	var gotLimit uint64
 
 	stubFilesClient(t, &mockFilesClient{
 		listRevisionsFn: func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
 			gotPath = arg.Path
+			gotLimit = arg.Limit
 			return files.NewListRevisionsResult(false, []*files.FileMetadata{
 				{Rev: "rev-c"},
 			}), nil
@@ -90,6 +92,9 @@ func TestRevsUsesListRevisionsAndCommandOutput(t *testing.T) {
 	if gotPath != "/report.pdf" {
 		t.Fatalf("ListRevisions path = %q, want %q", gotPath, "/report.pdf")
 	}
+	if gotLimit != 10 {
+		t.Fatalf("ListRevisions limit = %d, want SDK default 10", gotLimit)
+	}
 	if got, want := stdout.String(), "rev-c\n"; got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
 	}
@@ -99,14 +104,17 @@ func TestRevsJSONOutputsInputAndResults(t *testing.T) {
 	cmd, stdout := testRevsCmd()
 	setRevsOutputJSON(t, cmd)
 	setRevsFlag(t, cmd, "long", "true")
+	setRevsFlag(t, cmd, "limit", "25")
 	setRevsFlag(t, cmd, "time", "client")
 	setRevsFlag(t, cmd, "time-format", "rfc3339")
 	var gotPath string
+	var gotLimit uint64
 	clientModified := time.Date(2026, 6, 22, 10, 0, 0, 0, time.UTC)
 
 	stubFilesClient(t, &mockFilesClient{
 		listRevisionsFn: func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
 			gotPath = arg.Path
+			gotLimit = arg.Limit
 			return files.NewListRevisionsResult(false, []*files.FileMetadata{
 				{
 					Metadata: files.Metadata{
@@ -128,9 +136,12 @@ func TestRevsJSONOutputsInputAndResults(t *testing.T) {
 	if gotPath != "/report.pdf" {
 		t.Fatalf("ListRevisions path = %q, want /report.pdf", gotPath)
 	}
+	if gotLimit != 25 {
+		t.Fatalf("ListRevisions limit = %d, want 25", gotLimit)
+	}
 
 	got := decodeRevsOutput(t, stdout)
-	if got.Input.Path != "/report.pdf" || !got.Input.Long || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
+	if got.Input.Path != "/report.pdf" || got.Input.Limit != 25 || !got.Input.Long || got.Input.Time != "client" || got.Input.TimeFormat != "rfc3339" {
 		t.Fatalf("input = %#v, want path/long/time/time_format", got.Input)
 	}
 	if len(got.Results) != 1 {
@@ -180,6 +191,7 @@ func testRevsCmd() (*cobra.Command, *bytes.Buffer) {
 	cmd := &cobra.Command{Use: "revs"}
 	cmd.SetOut(&stdout)
 	cmd.Flags().BoolP("long", "l", false, "")
+	cmd.Flags().Uint64("limit", 0, "")
 	cmd.Flags().String("time", "server", "")
 	cmd.Flags().String("time-format", "", "")
 	cmd.Flags().String(outputFlag, "text", "")

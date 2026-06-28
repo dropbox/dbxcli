@@ -29,6 +29,7 @@ type listOptions struct {
 	timeFormat string
 	sortBy     string
 	reverse    bool
+	limit      uint64
 }
 
 func formatTime(t time.Time, opts listOptions) string {
