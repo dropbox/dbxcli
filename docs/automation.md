@@ -199,14 +199,24 @@ To upload a local file literally named `-`, use `./-`.
 
 ## Exit status
 
-Current behavior:
+`dbxcli` uses stable exit codes for shell scripts, CI jobs, and agents. Text
+and JSON output modes use the same exit-code contract. Successful commands
+exit `0`, including successful commands that return warnings.
 
-* `0` means success.
-* Non-zero means failure.
-* In JSON mode, inspect `error.code` for stable machine handling.
+| Exit code | Meaning | JSON error codes |
+|-----------|---------|------------------|
+| `0` | Success | none |
+| `1` | Generic error | `command_failed`, `dropbox_api_error` |
+| `2` | Auth failure | `auth_required`, `auth_refresh_failed`, `auth_exchange_failed`, `app_key_required`, `env_token_still_active` |
+| `3` | Permission denied | `permission_denied` |
+| `4` | Not found | `not_found` |
+| `5` | Conflict | `path_conflict` |
+| `6` | Rate limited | `rate_limited` |
+| `7` | Validation or usage error | `invalid_arguments`, `unknown_command`, `unknown_flag`, `structured_output_unsupported` |
+| `8` | Partial stdout/output transfer | `partial_transfer` |
 
-Specific error-code-to-exit-code mapping is planned as a future automation
-milestone.
+In JSON mode, inspect both the process exit code and `error.code` for the most
+specific machine-readable failure reason.
 
 ## Shell completion
 

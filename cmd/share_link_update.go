@@ -18,7 +18,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )

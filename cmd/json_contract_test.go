@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -519,6 +519,7 @@ func expectedJSONErrorCodes() []string {
 		jsonErrorCodeEnvTokenStillActive,
 		jsonErrorCodeInvalidArguments,
 		jsonErrorCodeNotFound,
+		jsonErrorCodePartialTransfer,
 		jsonErrorCodePathConflict,
 		jsonErrorCodePermissionDenied,
 		jsonErrorCodeRateLimited,

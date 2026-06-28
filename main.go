@@ -17,7 +17,7 @@ package main
 import (
 	"log"
 
-	"github.com/dropbox/dbxcli/cmd"
+	"github.com/dropbox/dbxcli/v3/cmd"
 )
 
 var version = "0.1.0"

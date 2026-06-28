@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
@@ -32,6 +33,129 @@ func TestRootCmdInvalidFlagReturnsError(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for invalid flag")
 	}
+}
+
+func TestExecuteExitsWithMappedCodes(t *testing.T) {
+	missingAuthFile := filepath.Join(t.TempDir(), "missing-auth.json")
+
+	tests := []struct {
+		name           string
+		args           []string
+		env            map[string]string
+		wantExitCode   int
+		wantStdoutText string
+		wantStderrText string
+	}{
+		{
+			name:           "success",
+			args:           []string{"--help"},
+			wantExitCode:   exitCodeSuccess,
+			wantStdoutText: "Usage:",
+		},
+		{
+			name:           "unknown command",
+			args:           []string{"does-not-exist"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unknown command "does-not-exist"`,
+		},
+		{
+			name:           "json unknown command",
+			args:           []string{"--output=json", "does-not-exist"},
+			wantExitCode:   exitCodeValidationError,
+			wantStdoutText: `"code":"unknown_command"`,
+		},
+		{
+			name:           "unsupported output format",
+			args:           []string{"--output=yaml", "ls", "/"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
+			name:           "last unsupported output format wins",
+			args:           []string{"--output=json", "--output=yaml", "ls", "/"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
+			name:           "auth required",
+			args:           []string{"ls", "/"},
+			env:            map[string]string{envAccessToken: "", envAuthFile: missingAuthFile},
+			wantExitCode:   exitCodeAuthFailure,
+			wantStderrText: "no saved Dropbox credentials",
+		},
+		{
+			name:           "structured output unsupported",
+			args:           []string{"completion", "--output=json"},
+			wantExitCode:   exitCodeValidationError,
+			wantStdoutText: `"code":"structured_output_unsupported"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exitCode, stdout, stderr := executeExitTestSubprocess(t, tt.args, tt.env)
+			if exitCode != tt.wantExitCode {
+				t.Fatalf("exit code = %d, want %d\nstdout: %s\nstderr: %s", exitCode, tt.wantExitCode, stdout, stderr)
+			}
+			if tt.wantStdoutText != "" && !strings.Contains(stdout, tt.wantStdoutText) {
+				t.Fatalf("stdout = %q, want %q", stdout, tt.wantStdoutText)
+			}
+			if tt.wantStderrText != "" && !strings.Contains(stderr, tt.wantStderrText) {
+				t.Fatalf("stderr = %q, want %q", stderr, tt.wantStderrText)
+			}
+		})
+	}
+}
+
+func executeExitTestSubprocess(t *testing.T, args []string, env map[string]string) (int, string, string) {
+	t.Helper()
+
+	cmdArgs := append([]string{"-test.run=TestExecuteExitHelper", "--"}, args...)
+	cmd := exec.Command(os.Args[0], cmdArgs...)
+	cmd.Env = append(os.Environ(), "DBXCLI_TEST_EXECUTE_HELPER=1")
+	for key, value := range env {
+		cmd.Env = append(cmd.Env, key+"="+value)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		return exitCodeSuccess, stdout.String(), stderr.String()
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode(), stdout.String(), stderr.String()
+	}
+	t.Fatalf("run helper subprocess: %v\nstdout: %s\nstderr: %s", err, stdout.String(), stderr.String())
+	return exitCodeGenericError, stdout.String(), stderr.String()
+}
+
+func TestExecuteExitHelper(t *testing.T) {
+	if os.Getenv("DBXCLI_TEST_EXECUTE_HELPER") != "1" {
+		return
+	}
+
+	separator := -1
+	for i, arg := range os.Args {
+		if arg == "--" {
+			separator = i
+			break
+		}
+	}
+	if separator < 0 {
+		os.Exit(exitCodeGenericError)
+	}
+
+	args := append([]string(nil), os.Args[separator+1:]...)
+	os.Args = append([]string{"dbxcli"}, args...)
+	RootCmd.SetArgs(args)
+	Execute()
+	os.Exit(exitCodeSuccess)
 }
 
 func newAuthTestCommand() *cobra.Command {

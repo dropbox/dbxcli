@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/spf13/cobra"
@@ -25,12 +25,25 @@ const (
 	jsonErrorCodeEnvTokenStillActive         = "env_token_still_active"
 	jsonErrorCodeInvalidArguments            = "invalid_arguments"
 	jsonErrorCodeNotFound                    = "not_found"
+	jsonErrorCodePartialTransfer             = "partial_transfer"
 	jsonErrorCodePathConflict                = "path_conflict"
 	jsonErrorCodePermissionDenied            = "permission_denied"
 	jsonErrorCodeRateLimited                 = "rate_limited"
 	jsonErrorCodeStructuredOutputUnsupported = "structured_output_unsupported"
 	jsonErrorCodeUnknownCommand              = "unknown_command"
 	jsonErrorCodeUnknownFlag                 = "unknown_flag"
+)
+
+const (
+	exitCodeSuccess          = 0
+	exitCodeGenericError     = 1
+	exitCodeAuthFailure      = 2
+	exitCodePermissionDenied = 3
+	exitCodeNotFound         = 4
+	exitCodeConflict         = 5
+	exitCodeRateLimited      = 6
+	exitCodeValidationError  = 7
+	exitCodePartialTransfer  = 8
 )
 
 type jsonCodedError interface {
@@ -202,7 +215,11 @@ func parseOutputFormat(value string) (output.Format, error) {
 	case output.FormatJSON:
 		return output.FormatJSON, nil
 	default:
-		return "", fmt.Errorf("unsupported output format %q: use text or json", value)
+		return "", invalidArgumentsErrorfWithDetails(
+			"unsupported output format %q: use text or json",
+			flagValueErrorDetails(outputFlag, value),
+			value,
+		)
 	}
 }
 
@@ -273,6 +290,38 @@ func renderCommandErrorWithJSON(cmd *cobra.Command, err error, forceJSON bool) {
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Error: %v\n", err)
 	if jsonErrorCode(err) == jsonErrorCodeUnknownCommand {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s --help' for usage.\n", cmd.CommandPath())
+	}
+}
+
+func exitCodeForError(err error) int {
+	if err == nil {
+		return exitCodeSuccess
+	}
+
+	switch jsonErrorCode(err) {
+	case jsonErrorCodeAppKeyRequired,
+		jsonErrorCodeAuthExchangeFailed,
+		jsonErrorCodeAuthRefreshFailed,
+		jsonErrorCodeAuthRequired,
+		jsonErrorCodeEnvTokenStillActive:
+		return exitCodeAuthFailure
+	case jsonErrorCodePermissionDenied:
+		return exitCodePermissionDenied
+	case jsonErrorCodeNotFound:
+		return exitCodeNotFound
+	case jsonErrorCodePathConflict:
+		return exitCodeConflict
+	case jsonErrorCodeRateLimited:
+		return exitCodeRateLimited
+	case jsonErrorCodeInvalidArguments,
+		jsonErrorCodeStructuredOutputUnsupported,
+		jsonErrorCodeUnknownCommand,
+		jsonErrorCodeUnknownFlag:
+		return exitCodeValidationError
+	case jsonErrorCodePartialTransfer:
+		return exitCodePartialTransfer
+	default:
+		return exitCodeGenericError
 	}
 }
 

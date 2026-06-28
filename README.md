@@ -1,7 +1,7 @@
 # `dbxcli`: Dropbox from the command line
 
 [![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli)](https://goreportcard.com/report/github.com/dropbox/dbxcli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli/v3)](https://goreportcard.com/report/github.com/dropbox/dbxcli/v3)
 
 `dbxcli` is a scriptable Dropbox CLI for files, shared links, teams, and
 automation workflows. It is built for humans at the terminal, scripts, CI jobs,
@@ -126,7 +126,7 @@ Release assets include:
 ### Build from source
 
 ```sh
-go install github.com/dropbox/dbxcli@latest
+go install github.com/dropbox/dbxcli/v3@latest
 ```
 
 Or build from a clone:

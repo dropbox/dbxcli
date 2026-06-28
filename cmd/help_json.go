@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

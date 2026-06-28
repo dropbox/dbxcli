@@ -248,7 +248,7 @@ func Execute() {
 	cmd, err := RootCmd.ExecuteC()
 	if err != nil {
 		renderCommandErrorWithJSON(cmd, err, jsonErrorOutput)
-		os.Exit(1)
+		os.Exit(exitCodeForError(err))
 	}
 }
 
