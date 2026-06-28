@@ -145,6 +145,21 @@ func TestStructuredOutputGoldenSuccessOutputAudit(t *testing.T) {
 	}
 }
 
+func TestAccountAuthContractOmitsSensitiveFields(t *testing.T) {
+	example := jsonGoldenSuccessOutputExamples()["account"]
+	encoded, err := json.Marshal(example)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output := string(encoded)
+	for _, forbidden := range []string{"access_token", "refresh_token", "app_key", "auth.json", ".config"} {
+		if strings.Contains(output, forbidden) {
+			t.Fatalf("account JSON contains %q: %s", forbidden, output)
+		}
+	}
+}
+
 func TestPublicJSONSchemaFiles(t *testing.T) {
 	tests := []struct {
 		file       string
@@ -701,6 +716,7 @@ func sampleJSONAccount() jsonAccount {
 	return jsonAccount{
 		Type:            "full",
 		AccountID:       "dbid:account",
+		Auth:            &accountAuth{Source: authSourceSaved, Refreshable: true, AuthFile: authFileDefault},
 		Name:            &jsonAccountName{GivenName: "Ada", Surname: "Lovelace", FamiliarName: "Ada", DisplayName: "Ada Lovelace", AbbreviatedName: "AL"},
 		Email:           "ada@example.com",
 		EmailVerified:   true,
@@ -818,6 +834,7 @@ func jsonContractStringPtr(value string) *string {
 func jsonContractDefinitions() map[string][]string {
 	return normalizeStringSliceMap(map[string][]string{
 		"account":                    jsonFieldNames[jsonAccount](),
+		"account_auth":               jsonFieldNames[accountAuth](),
 		"account_input":              jsonFieldNames[accountInput](),
 		"account_name":               jsonFieldNames[jsonAccountName](),
 		"account_team":               jsonFieldNames[jsonAccountTeam](),

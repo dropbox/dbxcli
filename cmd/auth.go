@@ -35,6 +35,13 @@ const (
 	tokenAccessTypeParam   = "token_access_type"
 	tokenAccessTypeOffline = "offline"
 	tokenRefreshWindow     = 5 * time.Minute
+
+	authSourceEnv   = "env"
+	authSourceSaved = "saved"
+
+	authFileDefault = "default"
+	authFileCustom  = "custom"
+	authFileNone    = "none"
 )
 
 // TokenMap maps domains to a map of commands to saved credentials.
@@ -53,6 +60,14 @@ type storedCredential struct {
 type appCredentials struct {
 	Key string
 }
+
+type authContext struct {
+	Source      string
+	Refreshable bool
+	AuthFile    string
+}
+
+var currentAuthContext *authContext
 
 var readAppKey = func(prompt string) (string, error) {
 	fmt.Print(prompt)
@@ -174,6 +189,13 @@ func authFilePath() (string, error) {
 	return filepath.Join(dir, ".config", "dbxcli", configFileName), nil
 }
 
+func authFileKind() string {
+	if os.Getenv(envAuthFile) != "" {
+		return authFileCustom
+	}
+	return authFileDefault
+}
+
 func readTokens(filePath string) (TokenMap, error) {
 	b, err := os.ReadFile(filePath)
 	if err != nil {
@@ -202,15 +224,15 @@ func writeTokens(filePath string, tokens TokenMap) error {
 	return os.WriteFile(filePath, b, 0600)
 }
 
-func getAccessToken(tokType string, domain string, force bool) (string, string, error) {
+func getAccessCredential(tokType string, domain string, force bool) (storedCredential, string, error) {
 	filePath, err := authFilePath()
 	if err != nil {
-		return "", "", err
+		return storedCredential{}, "", err
 	}
 
 	tokenMap, err := readTokens(filePath)
 	if err != nil && !os.IsNotExist(err) {
-		return "", "", fmt.Errorf("read auth file %q: %w", filePath, err)
+		return storedCredential{}, "", fmt.Errorf("read auth file %q: %w", filePath, err)
 	}
 	if tokenMap == nil {
 		tokenMap = make(TokenMap)
@@ -223,15 +245,15 @@ func getAccessToken(tokType string, domain string, force bool) (string, string, 
 
 	if force || (credential.AccessToken == "" && credential.RefreshToken == "") {
 		if !force {
-			return "", "", missingAccessTokenError(tokType)
+			return storedCredential{}, "", missingAccessTokenError(tokType)
 		}
 		credential, err = requestAccessCredential(tokType, domain)
 		if err != nil {
-			return "", "", err
+			return storedCredential{}, "", err
 		}
 		tokens[tokType] = credential
 		if err = writeTokens(filePath, tokenMap); err != nil {
-			return "", "", err
+			return storedCredential{}, "", err
 		}
 	}
 
@@ -240,16 +262,24 @@ func getAccessToken(tokType string, domain string, force bool) (string, string, 
 		if err != nil {
 			details := authTokenDetails(tokType)
 			if jsonErrorCode(err) == jsonErrorCodeAppKeyRequired {
-				return "", "", appKeyRequiredErrorfWithDetails("refresh saved Dropbox credentials: %w; run %q again", details, err, loginCommand(tokType))
+				return storedCredential{}, "", appKeyRequiredErrorfWithDetails("refresh saved Dropbox credentials: %w; run %q again", details, err, loginCommand(tokType))
 			}
-			return "", "", authRefreshFailedErrorfWithDetails("refresh saved Dropbox credentials: %w; run %q again", details, err, loginCommand(tokType))
+			return storedCredential{}, "", authRefreshFailedErrorfWithDetails("refresh saved Dropbox credentials: %w; run %q again", details, err, loginCommand(tokType))
 		}
 		tokens[tokType] = credential
 		if err = writeTokens(filePath, tokenMap); err != nil {
-			return "", "", err
+			return storedCredential{}, "", err
 		}
 	}
 
+	return credential, filePath, nil
+}
+
+func getAccessToken(tokType string, domain string, force bool) (string, string, error) {
+	credential, filePath, err := getAccessCredential(tokType, domain, force)
+	if err != nil {
+		return "", "", err
+	}
 	return credential.AccessToken, filePath, nil
 }
 

@@ -145,6 +145,8 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 }
 
 func initDbx(cmd *cobra.Command, args []string) (err error) {
+	currentAuthContext = nil
+
 	if commandIsJSONHelp(cmd) {
 		return nil
 	}
@@ -162,17 +164,27 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 
 	if accessToken := os.Getenv(envAccessToken); accessToken != "" {
 		config = makeDropboxConfig(accessToken, verbose, asMember, domain)
+		currentAuthContext = &authContext{
+			Source:      authSourceEnv,
+			Refreshable: false,
+			AuthFile:    authFileNone,
+		}
 		config = withRootNamespace(config, tokenType(cmd))
 		return nil
 	}
 
 	tokType := tokenType(cmd)
-	accessToken, _, err := getAccessToken(tokType, domain, false)
+	credential, _, err := getAccessCredential(tokType, domain, false)
 	if err != nil {
 		return err
 	}
 
-	config = makeDropboxConfig(accessToken, verbose, asMember, domain)
+	config = makeDropboxConfig(credential.AccessToken, verbose, asMember, domain)
+	currentAuthContext = &authContext{
+		Source:      authSourceSaved,
+		Refreshable: credential.RefreshToken != "",
+		AuthFile:    authFileKind(),
+	}
 	config = withRootNamespace(config, tokType)
 
 	return
