@@ -79,6 +79,7 @@ Stable error codes:
 | `app_key_required`              | Login or token refresh needs a Dropbox app key.                                   |
 | `auth_exchange_failed`          | The OAuth authorization-code exchange failed or returned unusable tokens.         |
 | `not_found`                     | Dropbox reported that the requested object was not found.                         |
+| `partial_transfer`              | A download-to-stdout stream failed after partial output was already written.      |
 | `permission_denied`             | Dropbox denied access because of permissions, scope, member selection, or state.  |
 | `rate_limited`                  | Dropbox rate limited the request.                                                 |
 | `dropbox_api_error`             | Dropbox returned an API error that does not map to a more specific code yet.      |

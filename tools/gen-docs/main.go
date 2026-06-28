@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dropbox/dbxcli/cmd"
+	"github.com/dropbox/dbxcli/v3/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 )

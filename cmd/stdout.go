@@ -12,6 +12,22 @@ import (
 
 var errStdoutBrokenPipe = errors.New("stdout broken pipe")
 
+type partialTransferError struct {
+	bytesWritten int64
+}
+
+func (e partialTransferError) Error() string {
+	return fmt.Sprintf("download failed after writing %d bytes to stdout; cannot retry partial output", e.bytesWritten)
+}
+
+func (e partialTransferError) JSONErrorCode() string {
+	return jsonErrorCodePartialTransfer
+}
+
+func (e partialTransferError) JSONErrorDetails() map[string]any {
+	return map[string]any{"bytes_written": e.bytesWritten}
+}
+
 func downloadToStdout(dbx files.Client, src string, w io.Writer) error {
 	ignoreBrokenPipeSignal()
 
@@ -45,7 +61,7 @@ func downloadToStdout(dbx files.Client, src string, w io.Writer) error {
 }
 
 func partialStdoutError(bytesWritten int64) error {
-	return fmt.Errorf("download failed after writing %d bytes to stdout; cannot retry partial output", bytesWritten)
+	return partialTransferError{bytesWritten: bytesWritten}
 }
 
 type stdoutBrokenPipeWriter struct {

@@ -43,6 +43,7 @@
             "app_key_required",
             "auth_exchange_failed",
             "not_found",
+            "partial_transfer",
             "permission_denied",
             "rate_limited",
             "dropbox_api_error",

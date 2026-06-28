@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dropbox/dbxcli/internal/output"
+	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -770,6 +770,11 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 			err:  authRefreshFailedErrorf("refresh saved Dropbox credentials: failed"),
 			want: jsonErrorCodeAuthRefreshFailed,
 		},
+		{
+			name: "partial transfer",
+			err:  partialStdoutError(12),
+			want: jsonErrorCodePartialTransfer,
+		},
 	}
 
 	for _, tt := range tests {
@@ -778,6 +783,121 @@ func TestJSONErrorCodeUsesCodedErrors(t *testing.T) {
 				t.Fatalf("jsonErrorCode = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestExitCodeForStableJSONErrorCodes(t *testing.T) {
+	tests := []struct {
+		code string
+		want int
+	}{
+		{jsonErrorCodeAppKeyRequired, exitCodeAuthFailure},
+		{jsonErrorCodeAuthExchangeFailed, exitCodeAuthFailure},
+		{jsonErrorCodeAuthRefreshFailed, exitCodeAuthFailure},
+		{jsonErrorCodeAuthRequired, exitCodeAuthFailure},
+		{jsonErrorCodeCommandFailed, exitCodeGenericError},
+		{jsonErrorCodeDropboxAPIError, exitCodeGenericError},
+		{jsonErrorCodeEnvTokenStillActive, exitCodeAuthFailure},
+		{jsonErrorCodeInvalidArguments, exitCodeValidationError},
+		{jsonErrorCodeNotFound, exitCodeNotFound},
+		{jsonErrorCodePartialTransfer, exitCodePartialTransfer},
+		{jsonErrorCodePathConflict, exitCodeConflict},
+		{jsonErrorCodePermissionDenied, exitCodePermissionDenied},
+		{jsonErrorCodeRateLimited, exitCodeRateLimited},
+		{jsonErrorCodeStructuredOutputUnsupported, exitCodeValidationError},
+		{jsonErrorCodeUnknownCommand, exitCodeValidationError},
+		{jsonErrorCodeUnknownFlag, exitCodeValidationError},
+	}
+
+	if got := exitCodeForError(nil); got != exitCodeSuccess {
+		t.Fatalf("exitCodeForError(nil) = %d, want %d", got, exitCodeSuccess)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.code, func(t *testing.T) {
+			err := newCodedError(tt.code, errors.New(tt.code))
+			if got := exitCodeForError(err); got != tt.want {
+				t.Fatalf("exitCodeForError(%s) = %d, want %d", tt.code, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExitCodeForCommonFailures(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{
+			name: "generic",
+			err:  errors.New("unexpected local failure"),
+			want: exitCodeGenericError,
+		},
+		{
+			name: "auth",
+			err:  authRequiredErrorf("no saved Dropbox credentials"),
+			want: exitCodeAuthFailure,
+		},
+		{
+			name: "permission denied",
+			err:  dropboxauth.AccessAPIError{},
+			want: exitCodePermissionDenied,
+		},
+		{
+			name: "not found",
+			err:  files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}},
+			want: exitCodeNotFound,
+		},
+		{
+			name: "conflict",
+			err:  pathConflictErrorWithPath("/file", "path exists and is not a folder: /file"),
+			want: exitCodeConflict,
+		},
+		{
+			name: "rate limited",
+			err:  dropboxauth.RateLimitAPIError{},
+			want: exitCodeRateLimited,
+		},
+		{
+			name: "validation",
+			err:  invalidArgumentsErrorWithDetails("missing path", argumentErrorDetails("path")),
+			want: exitCodeValidationError,
+		},
+		{
+			name: "partial transfer",
+			err:  partialStdoutError(12),
+			want: exitCodePartialTransfer,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := exitCodeForError(tt.err); got != tt.want {
+				t.Fatalf("exitCodeForError(%v) = %d, want %d", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseOutputFormatInvalidValueIsValidationError(t *testing.T) {
+	_, err := parseOutputFormat("yaml")
+	if err == nil {
+		t.Fatal("expected invalid output format error")
+	}
+	if got := jsonErrorCode(err); got != jsonErrorCodeInvalidArguments {
+		t.Fatalf("jsonErrorCode = %q, want %q", got, jsonErrorCodeInvalidArguments)
+	}
+	if got := exitCodeForError(err); got != exitCodeValidationError {
+		t.Fatalf("exitCodeForError = %d, want %d", got, exitCodeValidationError)
+	}
+
+	details := jsonErrorDetails(err)
+	if details["flag"] != outputFlag {
+		t.Fatalf("details[flag] = %v, want %q", details["flag"], outputFlag)
+	}
+	if details["value"] != "yaml" {
+		t.Fatalf("details[value] = %v, want yaml", details["value"])
 	}
 }
 
