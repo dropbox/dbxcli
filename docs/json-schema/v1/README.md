@@ -1,7 +1,8 @@
 # dbxcli JSON schema v1
 
 These schemas describe the stable top-level JSON envelopes emitted by
-`dbxcli --output=json`.
+`dbxcli --output=json` and JSON help responses emitted by
+`dbxcli --help --output=json`.
 
 - `success.schema.json` validates successful command responses.
 - `error.schema.json` validates command error responses.
@@ -21,8 +22,11 @@ Successful responses always include:
 
 Schema v1 is intended to be stable. New fields, commands, warning codes, and
 error details may be added in minor releases. Existing top-level fields,
-existing stable error codes, and existing result status meanings should not be
+existing stable error codes, and existing result status meanings will not be
 removed or renamed within schema v1.
+
+JSON responses must not include access tokens, refresh tokens, authorization
+codes, or app secrets.
 
 Error responses always include:
 
@@ -50,13 +54,12 @@ available as a JSON command manifest with `--help --output=json`; for example,
 continues to print text help, and shell-completion protocol commands remain
 text-only.
 
-Current JSON-enabled command paths include `version`, `account`, `du`, `ls`,
-`search`, `revs`, `cp`, `mv`, `put`, `get`, `share-link create`,
-`share-link list`, `share-link info`, `share-link update`,
-`share-link revoke`, `share-link download`, `share list folder`,
-`share list link`, `team info`, `team list-members`, `team list-groups`,
-`team add-member`, `team remove-member`, `mkdir`, `rm`, `restore`, and
-`logout`.
+The current JSON-enabled command paths are listed in `commands.json`.
+
+`account` results include auth context under `result.auth`:
+`result.auth.source` is `saved` or `env`; `result.auth.refreshable` is a
+boolean; and `result.auth.auth_file` is `default`, `custom`, or `none`.
+dbxcli does not include the full auth file path by default.
 
 Warnings are objects with a stable `code` and human-readable `message`; they
 may include optional command-specific details. Current warning codes include

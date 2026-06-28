@@ -91,7 +91,7 @@ Prefer flags that make automation outcomes explicit:
 ```sh
 dbxcli put --if-exists fail report.md /Reports/report.md
 dbxcli put --if-exists skip report.md /Reports/report.md --output=json
-dbxcli rm /Reports/old-report.md --output=json
+dbxcli share-link create /Reports/report.md --output=json
 ```
 
 Use `--output=json` when the caller needs stable statuses, result kinds,
@@ -112,6 +112,27 @@ Use `dbxcli login` to save refreshable credentials:
 dbxcli login
 ```
 
+Use `dbxcli account --output=json` as an auth and identity check. The account
+result includes `result.auth`:
+
+`result.auth` example:
+
+```json
+{
+  "auth": {
+    "source": "saved",
+    "refreshable": true,
+    "auth_file": "default"
+  }
+}
+```
+
+Stable auth fields:
+
+* `result.auth.source`: `saved` or `env`
+* `result.auth.refreshable`: boolean
+* `result.auth.auth_file`: `default`, `custom`, or `none`
+
 Use `DBXCLI_ACCESS_TOKEN` for automation with short-lived Dropbox access tokens:
 
 ```sh
@@ -121,6 +142,18 @@ DBXCLI_ACCESS_TOKEN=sl.xxxxxx dbxcli ls --output=json /
 This token is used directly and is not saved or refreshed. If it expires, the
 command fails and you must provide a fresh token.
 
+`result.auth` example:
+
+```json
+{
+  "auth": {
+    "source": "env",
+    "refreshable": false,
+    "auth_file": "none"
+  }
+}
+```
+
 Set `DBXCLI_AUTH_FILE` to use a different saved credentials file:
 
 ```sh
@@ -128,10 +161,22 @@ DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli login
 DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli ls /
 ```
 
+`result.auth` example:
+
+```json
+{
+  "auth": {
+    "source": "saved",
+    "refreshable": true,
+    "auth_file": "custom"
+  }
+}
+```
+
 `dbxcli logout` revokes saved Dropbox tokens and removes local saved
-credentials. If `DBXCLI_ACCESS_TOKEN` is set, unset it before running logout;
-environment-provided tokens are not saved locally and cannot be removed by
-dbxcli.
+credentials. Environment-provided tokens are not saved locally, so `dbxcli`
+cannot remove them. If `DBXCLI_ACCESS_TOKEN` is set, unset it before running
+logout.
 
 ## Stdin and stdout
 

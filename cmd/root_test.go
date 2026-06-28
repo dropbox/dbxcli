@@ -266,6 +266,7 @@ func TestInitDbxUsesAccessTokenEnv(t *testing.T) {
 	if config.PathRoot != `{".tag": "root", "root": "root-ns"}` {
 		t.Fatalf("expected path root from env token account, got %q", config.PathRoot)
 	}
+	assertCurrentAuthContext(t, authSourceEnv, false, authFileNone)
 }
 
 func TestInitDbxAccessTokenEnvTakesPrecedenceOverAuthFile(t *testing.T) {
@@ -296,6 +297,7 @@ func TestInitDbxAccessTokenEnvTakesPrecedenceOverAuthFile(t *testing.T) {
 	if config.PathRoot != `{".tag": "root", "root": "env-root"}` {
 		t.Fatalf("expected path root from env token account, got %q", config.PathRoot)
 	}
+	assertCurrentAuthContext(t, authSourceEnv, false, authFileNone)
 }
 
 func TestInitDbxAccessTokenEnvBypassesRefresh(t *testing.T) {
@@ -379,6 +381,47 @@ func TestInitDbxUsesAuthFileEnv(t *testing.T) {
 	if config.PathRoot != `{".tag": "root", "root": "team-root"}` {
 		t.Fatalf("expected path root from saved token account, got %q", config.PathRoot)
 	}
+	assertCurrentAuthContext(t, authSourceSaved, false, authFileCustom)
+}
+
+func TestInitDbxRecordsSavedRefreshableAuthContext(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			return testRootFullAccount(common.NewUserRootInfo("root-ns", "home-ns")), nil
+		},
+	})
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAuthFile, "")
+
+	expiry := time.Now().Add(time.Hour)
+	authFile := filepath.Join(home, ".config", "dbxcli", "auth.json")
+	if err := writeTokens(authFile, TokenMap{
+		"": {
+			tokenPersonal: {
+				AccessToken:  "file-token",
+				RefreshToken: "refresh-token",
+				Expiry:       &expiry,
+				AppKey:       "app-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := newAuthTestCommand()
+	if err := initDbx(cmd, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Token != "file-token" {
+		t.Fatalf("expected saved token, got %q", config.Token)
+	}
+	assertCurrentAuthContext(t, authSourceSaved, true, authFileDefault)
 }
 
 func TestWithRootNamespaceSkipsTeamManage(t *testing.T) {
@@ -394,6 +437,17 @@ func TestWithRootNamespaceSkipsTeamManage(t *testing.T) {
 
 	if got.PathRoot != "" {
 		t.Fatalf("path root = %q, want empty", got.PathRoot)
+	}
+}
+
+func assertCurrentAuthContext(t *testing.T, source string, refreshable bool, authFile string) {
+	t.Helper()
+
+	if currentAuthContext == nil {
+		t.Fatal("currentAuthContext = nil")
+	}
+	if currentAuthContext.Source != source || currentAuthContext.Refreshable != refreshable || currentAuthContext.AuthFile != authFile {
+		t.Fatalf("currentAuthContext = %#v, want source=%q refreshable=%t auth_file=%q", currentAuthContext, source, refreshable, authFile)
 	}
 }
 

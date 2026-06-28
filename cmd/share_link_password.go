@@ -74,7 +74,7 @@ func sharedLinkPasswordFromFlags(cmd *cobra.Command) (sharedLinkPasswordOptions,
 		password, err = cmd.Flags().GetString("password")
 	case passwordPrompt:
 		password, err = readSharedLinkPassword("Shared link password: ", cmd.InOrStdin(), cmd.ErrOrStderr())
-	case passwordFile != "":
+	default:
 		password, err = sharedLinkPasswordFromFile(passwordFile)
 	}
 	if err != nil {

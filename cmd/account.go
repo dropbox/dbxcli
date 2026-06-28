@@ -30,6 +30,7 @@ type accountInput struct {
 type jsonAccount struct {
 	Type            string           `json:"type"`
 	AccountID       string           `json:"account_id"`
+	Auth            *accountAuth     `json:"auth,omitempty"`
 	Name            *jsonAccountName `json:"name,omitempty"`
 	Email           string           `json:"email"`
 	EmailVerified   bool             `json:"email_verified"`
@@ -58,13 +59,19 @@ type jsonAccountTeam struct {
 	MemberID string `json:"member_id,omitempty"`
 }
 
+type accountAuth struct {
+	Source      string `json:"source"`
+	Refreshable bool   `json:"refreshable"`
+	AuthFile    string `json:"auth_file,omitempty"`
+}
+
 const (
 	accountJSONStatusFound = "found"
 	accountKindAccount     = "account"
 )
 
 // renderFullAccount prints the account details returned by GetCurrentAccount.
-func renderFullAccount(out io.Writer, fa *users.FullAccount) error {
+func renderFullAccount(out io.Writer, fa *users.FullAccount, auth *accountAuth) error {
 	w := new(tabwriter.Writer)
 	w.Init(out, 4, 8, 1, ' ', 0)
 
@@ -73,17 +80,20 @@ func renderFullAccount(out io.Writer, fa *users.FullAccount) error {
 	fmt.Fprintf(w, "Account Type:\t%s\n", fa.AccountType.Tag)
 	fmt.Fprintf(w, "Locale:\t%s\n", fa.Locale)
 	fmt.Fprintf(w, "Referral Link:\t%s\n", fa.ReferralLink)
-	fmt.Fprintf(w, "Profile Photo Url:\t%s\n", fa.ProfilePhotoUrl)
+	if fa.ProfilePhotoUrl != "" {
+		fmt.Fprintf(w, "Profile Photo URL:\t%s\n", fa.ProfilePhotoUrl)
+	}
 	fmt.Fprintf(w, "Paired Account:\t%t\n", fa.IsPaired)
 	if fa.Team != nil {
 		fmt.Fprintf(w, "Team:\n  Name:\t%s\n  Id:\t%s\n  Member Id:\t%s\n", fa.Team.Name, fa.Team.Id, fa.TeamMemberId)
 	}
+	renderAccountAuth(w, auth)
 
 	return w.Flush()
 }
 
 // renderBasicAccount prints the account details returned by GetAccount.
-func renderBasicAccount(out io.Writer, ba *users.BasicAccount) error {
+func renderBasicAccount(out io.Writer, ba *users.BasicAccount, auth *accountAuth) error {
 	w := new(tabwriter.Writer)
 	w.Init(out, 4, 8, 1, ' ', 0)
 
@@ -97,9 +107,35 @@ func renderBasicAccount(out io.Writer, ba *users.BasicAccount) error {
 	if ba.TeamMemberId != "" {
 		fmt.Fprintf(w, "Team Member Id:\t%s\n", ba.TeamMemberId)
 	}
-	fmt.Fprintf(w, "Profile Photo URL:\t%s\n", ba.ProfilePhotoUrl)
+	if ba.ProfilePhotoUrl != "" {
+		fmt.Fprintf(w, "Profile Photo URL:\t%s\n", ba.ProfilePhotoUrl)
+	}
+	renderAccountAuth(w, auth)
 
 	return w.Flush()
+}
+
+func renderAccountAuth(out io.Writer, auth *accountAuth) {
+	if auth == nil {
+		return
+	}
+
+	authFile := auth.AuthFile
+	if authFile == "" {
+		authFile = authFileNone
+	}
+	fmt.Fprintf(out, "\nAuth:\n  Source:\t%s\n  Refreshable:\t%t\n  Auth File:\t%s\n", accountAuthSourceText(auth.Source), auth.Refreshable, authFile)
+}
+
+func accountAuthSourceText(source string) string {
+	switch source {
+	case authSourceSaved:
+		return "saved credentials"
+	case authSourceEnv:
+		return envAccessToken
+	default:
+		return source
+	}
 }
 
 func account(cmd *cobra.Command, args []string) error {
@@ -109,6 +145,7 @@ func account(cmd *cobra.Command, args []string) error {
 
 	dbx := usersNewFunc(config)
 	out := commandOutput(cmd)
+	auth := accountAuthFromContext(currentAuthContext)
 
 	if len(args) == 0 {
 		// If no arguments are provided get the current user's account
@@ -118,8 +155,8 @@ func account(cmd *cobra.Command, args []string) error {
 		}
 		input := accountInput{}
 		return out.Render(func(w io.Writer) error {
-			return renderFullAccount(w, res)
-		}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonFullAccount(res))))
+			return renderFullAccount(w, res, auth)
+		}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonFullAccount(res, auth))))
 	}
 
 	// Otherwise look up an account with the provided ID
@@ -132,8 +169,8 @@ func account(cmd *cobra.Command, args []string) error {
 		AccountID: args[0],
 	}
 	return out.Render(func(w io.Writer) error {
-		return renderBasicAccount(w, res)
-	}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonBasicAccount(res))))
+		return renderBasicAccount(w, res, auth)
+	}, withJSONCommand(cmd, newAccountOperationOutput(input, jsonBasicAccount(res, auth))))
 }
 
 func newAccountOperationOutput(input accountInput, account jsonAccount) jsonOperationOutput {
@@ -142,8 +179,9 @@ func newAccountOperationOutput(input accountInput, account jsonAccount) jsonOper
 	}, nil)
 }
 
-func jsonFullAccount(fa *users.FullAccount) jsonAccount {
+func jsonFullAccount(fa *users.FullAccount, auth *accountAuth) jsonAccount {
 	account := jsonAccountFromBase("full", fa.Account)
+	account.Auth = auth
 	account.Locale = fa.Locale
 	account.ReferralLink = fa.ReferralLink
 	account.IsPaired = boolPtr(fa.IsPaired)
@@ -161,11 +199,23 @@ func jsonFullAccount(fa *users.FullAccount) jsonAccount {
 	return account
 }
 
-func jsonBasicAccount(ba *users.BasicAccount) jsonAccount {
+func jsonBasicAccount(ba *users.BasicAccount, auth *accountAuth) jsonAccount {
 	account := jsonAccountFromBase("basic", ba.Account)
+	account.Auth = auth
 	account.IsTeammate = boolPtr(ba.IsTeammate)
 	account.TeamMemberID = ba.TeamMemberId
 	return account
+}
+
+func accountAuthFromContext(ctx *authContext) *accountAuth {
+	if ctx == nil || ctx.Source == "" {
+		return nil
+	}
+	return &accountAuth{
+		Source:      ctx.Source,
+		Refreshable: ctx.Refreshable,
+		AuthFile:    ctx.AuthFile,
+	}
 }
 
 func jsonAccountFromBase(accountType string, account users.Account) jsonAccount {
