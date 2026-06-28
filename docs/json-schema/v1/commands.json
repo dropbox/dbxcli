@@ -344,7 +344,8 @@
       "result_input": "relocation_input",
       "result": "metadata",
       "statuses": [
-        "copied"
+        "copied",
+        "skipped"
       ],
       "kinds": [
         "deleted",
@@ -453,7 +454,8 @@
       "result_input": "relocation_input",
       "result": "metadata",
       "statuses": [
-        "moved"
+        "moved",
+        "skipped"
       ],
       "kinds": [
         "deleted",

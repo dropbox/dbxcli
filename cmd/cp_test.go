@@ -290,6 +290,240 @@ func TestCpJSONErrorUsesCommandStderr(t *testing.T) {
 	}
 }
 
+func TestCpCommandDefinesIfExistsFlag(t *testing.T) {
+	flag := cpCmd.Flags().Lookup("if-exists")
+	if flag == nil {
+		t.Fatal("cp should define --if-exists")
+	}
+	if flag.DefValue != relocationIfExistsFail {
+		t.Fatalf("--if-exists default = %q, want %q", flag.DefValue, relocationIfExistsFail)
+	}
+}
+
+func TestCpInvalidIfExistsReturnsInvalidArguments(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", "replace"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"})
+	if err == nil {
+		t.Fatal("expected cp error")
+	}
+	if code := jsonErrorCode(err); code != jsonErrorCodeInvalidArguments {
+		t.Fatalf("json error code = %q, want %q", code, jsonErrorCodeInvalidArguments)
+	}
+	details := jsonErrorDetails(err)
+	if details["flag"] != "if-exists" || details["value"] != "replace" {
+		t.Fatalf("details = %#v, want if-exists flag value", details)
+	}
+	if stdout.String() != "" {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
+func TestCpIfExistsFailCallsCopy(t *testing.T) {
+	var copied []*files.RelocationArg
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, relocationTestGetMetadataNotFoundError()
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			copied = append(copied, arg)
+			return files.NewRelocationResult(relocationTestFileMetadata(arg.ToPath, 1)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsFail); err != nil {
+		t.Fatal(err)
+	}
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if len(copied) != 1 {
+		t.Fatalf("copied = %d, want 1", len(copied))
+	}
+}
+
+func TestCpIfExistsSkipExistingDestinationDoesNotCopy(t *testing.T) {
+	var copied bool
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != "/dest/file.txt" {
+				t.Fatalf("metadata path = %q, want /dest/file.txt", arg.Path)
+			}
+			return relocationTestFileMetadata(arg.Path, 8), nil
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			copied = true
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if copied {
+		t.Fatal("CopyV2 called for skipped destination")
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusSkipped {
+		t.Fatalf("status = %q, want skipped", got.Results[0].Status)
+	}
+	if got.Results[0].Input.FromPath != "/src/file.txt" || got.Results[0].Input.ToPath != "/dest/file.txt" {
+		t.Fatalf("input = %#v, want source and destination", got.Results[0].Input)
+	}
+}
+
+func TestCpIfExistsSkipMissingDestinationCopies(t *testing.T) {
+	var copied []*files.RelocationArg
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, relocationTestGetMetadataNotFoundError()
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			copied = append(copied, arg)
+			return files.NewRelocationResult(relocationTestFileMetadata(arg.ToPath, 3)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if len(copied) != 1 {
+		t.Fatalf("copied = %d, want 1", len(copied))
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if got.Results[0].Status != relocationJSONStatusCopied {
+		t.Fatalf("status = %q, want copied", got.Results[0].Status)
+	}
+}
+
+func TestCpIfExistsSkipConvertsDestinationConflict(t *testing.T) {
+	getMetadataCalls := 0
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			getMetadataCalls++
+			if getMetadataCalls < 3 {
+				return nil, relocationTestGetMetadataNotFoundError()
+			}
+			return relocationTestFileMetadata(arg.Path, 13), nil
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return nil, relocationTestCopyDestinationConflictError()
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusSkipped {
+		t.Fatalf("status = %q, want skipped", got.Results[0].Status)
+	}
+}
+
+func TestCpIfExistsSkipMultipleSourcesAppliesPerTarget(t *testing.T) {
+	var copied []string
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			switch arg.Path {
+			case "/dest/a.txt":
+				return relocationTestFileMetadata(arg.Path, 1), nil
+			case "/dest/b.txt":
+				return nil, relocationTestGetMetadataNotFoundError()
+			default:
+				t.Fatalf("unexpected metadata path %q", arg.Path)
+				return nil, nil
+			}
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			copied = append(copied, arg.ToPath)
+			return files.NewRelocationResult(relocationTestFileMetadata(arg.ToPath, 2)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/a.txt", "/src/b.txt", "/dest"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if len(copied) != 1 || copied[0] != "/dest/b.txt" {
+		t.Fatalf("copied = %#v, want only /dest/b.txt", copied)
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusSkipped || got.Results[1].Status != relocationJSONStatusCopied {
+		t.Fatalf("statuses = %q, %q; want skipped, copied", got.Results[0].Status, got.Results[1].Status)
+	}
+}
+
+func TestCpIfExistsSkipTextModeQuiet(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return relocationTestFileMetadata(arg.Path, 8), nil
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			t.Fatal("CopyV2 called for skipped destination")
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, string(output.FormatText), "")
+	cmd.Flags().String("if-exists", relocationIfExistsFail, "")
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsSkip); err != nil {
+		t.Fatal(err)
+	}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if stdout.String() != "" {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+}
+
 func TestCpCommandSupportsStructuredOutput(t *testing.T) {
 	if !commandSupportsStructuredOutput(cpCmd) {
 		t.Fatal("cp should support structured output")
@@ -299,6 +533,7 @@ func TestCpCommandSupportsStructuredOutput(t *testing.T) {
 func newRelocationTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Flags().String(outputFlag, string(output.FormatText), "")
+	cmd.Flags().String("if-exists", relocationIfExistsFail, "")
 	if err := cmd.Flags().Set(outputFlag, string(output.FormatJSON)); err != nil {
 		panic(err)
 	}
@@ -312,9 +547,16 @@ func newRelocationTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 }
 
 type relocationOutput struct {
-	Input    map[string]any     `json:"input"`
-	Results  []relocationResult `json:"results"`
-	Warnings []jsonWarning      `json:"warnings"`
+	Input    map[string]any         `json:"input"`
+	Results  []relocationJSONResult `json:"results"`
+	Warnings []jsonWarning          `json:"warnings"`
+}
+
+type relocationJSONResult struct {
+	Status string          `json:"status"`
+	Kind   string          `json:"kind"`
+	Input  relocationInput `json:"input"`
+	Result jsonMetadata    `json:"result"`
 }
 
 func decodeRelocationOutput(t *testing.T, data []byte) relocationOutput {
@@ -336,4 +578,42 @@ func decodeRelocationOutput(t *testing.T, data []byte) relocationOutput {
 		t.Fatalf("warnings = %+v, want empty", got.Warnings)
 	}
 	return got
+}
+
+func relocationTestFileMetadata(pathDisplay string, size uint64) *files.FileMetadata {
+	metadata := files.NewFileMetadata(path.Base(pathDisplay), "id:"+path.Base(pathDisplay), time.Time{}, time.Time{}, "rev", size)
+	metadata.PathDisplay = pathDisplay
+	metadata.PathLower = strings.ToLower(pathDisplay)
+	return metadata
+}
+
+func relocationTestGetMetadataNotFoundError() error {
+	return files.GetMetadataAPIError{
+		EndpointError: &files.GetMetadataError{
+			Tagged: dropbox.Tagged{Tag: files.GetMetadataErrorPath},
+			Path:   &files.LookupError{Tagged: dropbox.Tagged{Tag: files.LookupErrorNotFound}},
+		},
+	}
+}
+
+func relocationTestCopyDestinationConflictError() error {
+	return files.CopyV2APIError{
+		EndpointError: relocationTestDestinationConflictError(),
+	}
+}
+
+func relocationTestMoveDestinationConflictError() error {
+	return files.MoveV2APIError{
+		EndpointError: relocationTestDestinationConflictError(),
+	}
+}
+
+func relocationTestDestinationConflictError() *files.RelocationError {
+	return &files.RelocationError{
+		Tagged: dropbox.Tagged{Tag: files.RelocationErrorTo},
+		To: &files.WriteError{
+			Tagged:   dropbox.Tagged{Tag: files.WriteErrorConflict},
+			Conflict: &files.WriteConflictError{Tagged: dropbox.Tagged{Tag: files.WriteConflictErrorFile}},
+		},
+	}
 }

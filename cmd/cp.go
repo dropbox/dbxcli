@@ -37,9 +37,14 @@ func cp(cmd *cobra.Command, args []string) error {
 		return invalidArgumentsErrorWithDetails("cp requires a source and a destination", argumentsErrorDetails("source", "destination"))
 	}
 
+	opts, err := parseRelocationOptions(cmd)
+	if err != nil {
+		return err
+	}
+
 	var cpErrors []error
 	var relocationArgs []*files.RelocationArg
-	var results []relocationResult
+	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
 	dbx := filesNewFunc(config)
@@ -52,6 +57,17 @@ func cp(cmd *cobra.Command, args []string) error {
 			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, dst, err)
 			cpErrors = append(cpErrors, relocationError)
 		} else {
+			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
+			if err != nil {
+				cpErrors = append(cpErrors, fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err))
+				continue
+			}
+			if skipped {
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusSkipped, result))
+				}
+				continue
+			}
 			relocationArgs = append(relocationArgs, arg)
 		}
 	}
@@ -59,6 +75,12 @@ func cp(cmd *cobra.Command, args []string) error {
 	for _, arg := range relocationArgs {
 		res, err := dbx.CopyV2(arg)
 		if err != nil {
+			if result, skipped := relocationSkipAfterDestinationConflict(dbx, arg, err, opts); skipped {
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusSkipped, result))
+				}
+				continue
+			}
 			copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			cpErrors = append(cpErrors, copyError)
 			continue
@@ -70,7 +92,7 @@ func cp(cmd *cobra.Command, args []string) error {
 				cpErrors = append(cpErrors, copyError)
 				continue
 			}
-			results = append(results, result)
+			results = append(results, relocationOperationResult(relocationJSONStatusCopied, result))
 		}
 	}
 
@@ -84,7 +106,7 @@ func cp(cmd *cobra.Command, args []string) error {
 	if !collectResults {
 		return nil
 	}
-	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(relocationJSONStatusCopied, results))
+	return renderJSONOperationOutput(cmd, nil, results)
 }
 
 // cpCmd represents the cp command
@@ -98,4 +120,5 @@ var cpCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(cpCmd)
 	enableStructuredOutput(cpCmd)
+	cpCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail or skip")
 }

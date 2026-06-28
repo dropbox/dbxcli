@@ -37,9 +37,14 @@ func mv(cmd *cobra.Command, args []string) error {
 		return invalidArgumentsErrorWithDetails("mv command requires a source and a destination", argumentsErrorDetails("source", "destination"))
 	}
 
+	opts, err := parseRelocationOptions(cmd)
+	if err != nil {
+		return err
+	}
+
 	var mvErrors []error
 	var relocationArgs []*files.RelocationArg
-	var results []relocationResult
+	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
 	dbx := filesNewFunc(config)
@@ -51,6 +56,17 @@ func mv(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			mvErrors = append(mvErrors, fmt.Errorf("Error validating move for %s to %s: %v", argument, dst, err))
 		} else {
+			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
+			if err != nil {
+				mvErrors = append(mvErrors, fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err))
+				continue
+			}
+			if skipped {
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusSkipped, result))
+				}
+				continue
+			}
 			relocationArgs = append(relocationArgs, arg)
 		}
 	}
@@ -58,6 +74,12 @@ func mv(cmd *cobra.Command, args []string) error {
 	for _, arg := range relocationArgs {
 		res, err := dbx.MoveV2(arg)
 		if err != nil {
+			if result, skipped := relocationSkipAfterDestinationConflict(dbx, arg, err, opts); skipped {
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusSkipped, result))
+				}
+				continue
+			}
 			moveError := fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			mvErrors = append(mvErrors, moveError)
 			continue
@@ -69,7 +91,7 @@ func mv(cmd *cobra.Command, args []string) error {
 				mvErrors = append(mvErrors, moveError)
 				continue
 			}
-			results = append(results, result)
+			results = append(results, relocationOperationResult(relocationJSONStatusMoved, result))
 		}
 	}
 
@@ -83,12 +105,12 @@ func mv(cmd *cobra.Command, args []string) error {
 	if !collectResults {
 		return nil
 	}
-	return renderJSONOperationOutput(cmd, nil, relocationOperationResults(relocationJSONStatusMoved, results))
+	return renderJSONOperationOutput(cmd, nil, results)
 }
 
 // mvCmd represents the mv command
 var mvCmd = &cobra.Command{
-	Use:   "mv [flags] <source> <target>",
+	Use:   "mv [flags] <source> [more sources] <target>",
 	Short: "Move files",
 	RunE:  mv,
 }
@@ -96,4 +118,5 @@ var mvCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(mvCmd)
 	enableStructuredOutput(mvCmd)
+	mvCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail or skip")
 }

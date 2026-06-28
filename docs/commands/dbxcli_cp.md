@@ -11,7 +11,8 @@ dbxcli cp [flags] <source> [more sources] <target>
 ### Options
 
 ```
-  -h, --help   help for cp
+  -h, --help               help for cp
+      --if-exists string   What to do when the destination exists: fail or skip (default "fail")
 ```
 
 ### Options inherited from parent commands

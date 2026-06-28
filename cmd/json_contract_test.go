@@ -885,14 +885,14 @@ func jsonContractDefinitions() map[string][]string {
 func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 	return map[string]jsonGoldenCommandSchema{
 		"account":           operationSchema("account_input", schemaRef("account_input"), "account", []string{accountJSONStatusFound}, []string{accountKindAccount}, nil),
-		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusCopied}, metadataKinds(), nil),
+		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusCopied, relocationJSONStatusSkipped}, metadataKinds(), nil),
 		"du":                operationSchema("empty", schemaRef("empty"), "du_output", []string{duJSONStatusReported}, []string{duKindSpaceUsage}, nil),
 		"get":               operationSchema("get_input", schemaRef("get_result_input"), "metadata", []string{getStatusCreated, getStatusDownloaded, getStatusExisting}, []string{getKindFile, getKindFolder}, nil),
 		"help":              operationSchema("help_input", schemaRef("empty"), "command_manifest", []string{jsonHelpStatusDescribed}, []string{jsonHelpKindCommand}, nil),
 		"ls":                operationSchema("ls_input", schemaRef("empty"), "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
 		"logout":            operationSchema("empty", schemaRef("empty"), "logout_result", []string{logoutStatusAlreadyLoggedOut, logoutStatusLoggedOut}, []string{logoutKindAuth}, []string{jsonWarningCodeTokenRevokeFailed}),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting}, []string{mkdirKindFolder}, nil),
-		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved}, metadataKinds(), nil),
+		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusMoved, relocationJSONStatusSkipped}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
 		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),

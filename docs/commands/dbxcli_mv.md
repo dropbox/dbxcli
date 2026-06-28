@@ -5,13 +5,14 @@
 Move files
 
 ```
-dbxcli mv [flags] <source> <target>
+dbxcli mv [flags] <source> [more sources] <target>
 ```
 
 ### Options
 
 ```
-  -h, --help   help for mv
+  -h, --help               help for mv
+      --if-exists string   What to do when the destination exists: fail or skip (default "fail")
 ```
 
 ### Options inherited from parent commands
