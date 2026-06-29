@@ -234,6 +234,135 @@
               "value_kind": "boolean"
             }
           ],
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {
+              "as_member": {
+                "type": "string",
+                "description": "Member ID to perform action as",
+                "x-cli-kind": "flag",
+                "x-cli-name": "as-member",
+                "x-value-kind": "dropbox_member_id",
+                "x-inherited": true
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Include deleted files",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "include-deleted",
+                "x-value-kind": "boolean",
+                "x-shorthand": "d"
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Maximum number of entries to return",
+                "default": 0,
+                "x-cli-kind": "flag",
+                "x-cli-name": "limit",
+                "x-value-kind": "integer"
+              },
+              "long": {
+                "type": "boolean",
+                "description": "Long listing",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "long",
+                "x-value-kind": "boolean",
+                "x-shorthand": "l"
+              },
+              "only_deleted": {
+                "type": "boolean",
+                "description": "Only show deleted files",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "only-deleted",
+                "x-value-kind": "boolean",
+                "x-shorthand": "D"
+              },
+              "path": {
+                "type": "string",
+                "description": "Dropbox folder or file path",
+                "x-cli-kind": "arg",
+                "x-cli-name": "path",
+                "x-value-kind": "dropbox_path"
+              },
+              "recurse": {
+                "type": "boolean",
+                "description": "Alias for --recursive",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "recurse",
+                "x-value-kind": "boolean",
+                "x-shorthand": "R"
+              },
+              "recursive": {
+                "type": "boolean",
+                "description": "Recursively list all subfolders",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "recursive",
+                "x-value-kind": "boolean"
+              },
+              "reverse": {
+                "type": "boolean",
+                "description": "Reverse sort order",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "reverse",
+                "x-value-kind": "boolean",
+                "x-shorthand": "r"
+              },
+              "sort": {
+                "type": "string",
+                "description": "Sort by: name, size, time, type",
+                "enum": [
+                  "name",
+                  "size",
+                  "time",
+                  "type"
+                ],
+                "x-cli-kind": "flag",
+                "x-cli-name": "sort",
+                "x-value-kind": "enum"
+              },
+              "time": {
+                "type": "string",
+                "description": "Time field: server, client",
+                "enum": [
+                  "client",
+                  "server"
+                ],
+                "default": "server",
+                "x-cli-kind": "flag",
+                "x-cli-name": "time",
+                "x-value-kind": "enum"
+              },
+              "time_format": {
+                "type": "string",
+                "description": "Time format: short (2006-01-02 15:04), rfc3339",
+                "enum": [
+                  "rfc3339",
+                  "short"
+                ],
+                "x-cli-kind": "flag",
+                "x-cli-name": "time-format",
+                "x-value-kind": "enum"
+              },
+              "verbose": {
+                "type": "boolean",
+                "description": "Enable verbose logging",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "verbose",
+                "x-value-kind": "boolean",
+                "x-inherited": true,
+                "x-shorthand": "v"
+              }
+            }
+          },
           "supports_structured_output": true,
           "auth_modes": [
             "personal",

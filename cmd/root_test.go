@@ -71,6 +71,30 @@ func TestExecuteExitsWithMappedCodes(t *testing.T) {
 			wantStderrText: `unsupported output format "yaml"`,
 		},
 		{
+			name:           "unsupported output format with root help",
+			args:           []string{"--help", "--output=yaml"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
+			name:           "unsupported output format with command help",
+			args:           []string{"put", "--help", "--output=yaml"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
+			name:           "unsupported output format with help command",
+			args:           []string{"help", "put", "--output=yaml"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
+			name:           "unsupported output format before help command",
+			args:           []string{"--output=yaml", "help", "put"},
+			wantExitCode:   exitCodeValidationError,
+			wantStderrText: `unsupported output format "yaml"`,
+		},
+		{
 			name:           "last unsupported output format wins",
 			args:           []string{"--output=json", "--output=yaml", "ls", "/"},
 			wantExitCode:   exitCodeValidationError,

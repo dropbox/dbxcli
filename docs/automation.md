@@ -87,9 +87,15 @@ dbxcli share-link create --help --output=json
 dbxcli --output=json help share-link create
 ```
 
-Use JSON help to discover command paths, structured args, flags, aliases, known
-auth modes, known destructive levels, stdin/stdout behavior, schema refs, and
-whether normal structured command output is supported.
+Use JSON help to discover command paths, structured args, flags, generated
+input schemas, aliases, known auth modes, known destructive levels,
+stdin/stdout behavior, schema refs, and whether normal structured command
+output is supported.
+
+Each manifest result includes `input_schema`, a JSON Schema object for the
+command's CLI inputs. It uses JSON-friendly names such as `if_exists` while
+preserving original CLI names in `x-cli-name`, so tools can validate structured
+input and then build the correct argument/flag invocation.
 
 ## Safe scripting patterns
 

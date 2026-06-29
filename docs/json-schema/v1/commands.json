@@ -64,6 +64,31 @@
       "usage",
       "value_kind"
     ],
+    "command_input_property": [
+      "default",
+      "description",
+      "enum",
+      "format",
+      "items",
+      "minItems",
+      "type",
+      "writeOnly",
+      "x-cli-kind",
+      "x-cli-name",
+      "x-conflicts",
+      "x-inherited",
+      "x-may-prompt",
+      "x-sensitive",
+      "x-shorthand",
+      "x-stream-dash",
+      "x-value-kind"
+    ],
+    "command_input_schema": [
+      "additionalProperties",
+      "properties",
+      "required",
+      "type"
+    ],
     "command_manifest": [
       "aliases",
       "args",
@@ -72,6 +97,7 @@
       "dropbox_scopes",
       "examples",
       "flags",
+      "input_schema",
       "manifest_version",
       "may_prompt",
       "path",

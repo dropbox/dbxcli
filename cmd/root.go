@@ -238,9 +238,15 @@ manage your team and more. It is easy, scriptable and works on all platforms!`,
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	jsonErrorOutput := outputJSONRequested(os.Args[1:])
+	args := os.Args[1:]
+	jsonErrorOutput := outputJSONRequested(args)
+	if err := rawArgsHelpOutputFormatError(args); err != nil {
+		renderCommandErrorWithJSON(RootCmd, err, jsonErrorOutput)
+		os.Exit(exitCodeForError(err))
+	}
+
 	restoreDeprecatedCommands := func() {}
-	if rawArgsRequestJSONHelp(os.Args[1:]) {
+	if rawArgsRequestJSONHelp(args) {
 		restoreDeprecatedCommands = temporarilyClearDeprecatedCommands(RootCmd)
 	}
 	defer restoreDeprecatedCommands()

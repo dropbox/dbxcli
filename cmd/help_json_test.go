@@ -281,6 +281,31 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	if len(put.Examples) == 0 {
 		t.Fatal("put examples = empty, want examples")
 	}
+
+	if put.InputSchema.Type != "object" || put.InputSchema.AdditionalProperties {
+		t.Fatalf("put input_schema = %+v, want strict object", put.InputSchema)
+	}
+	assertStringSliceEqual(t, "put input_schema required", put.InputSchema.Required, []string{"source"})
+	assertJSONHelpInputProperty(t, put.InputSchema, "source", "string", "arg", "source", "local_path")
+	if !put.InputSchema.Properties["source"].XStreamDash {
+		t.Fatal("put source x-stream-dash = false, want true")
+	}
+	assertJSONHelpInputProperty(t, put.InputSchema, "target", "string", "arg", "target", "dropbox_path")
+	ifExists := assertJSONHelpInputProperty(t, put.InputSchema, "if_exists", "string", "flag", "if-exists", "enum")
+	assertStringSliceEqual(t, "put input_schema if_exists enum", ifExists.Enum, []string{"fail", "overwrite", "skip"})
+	if ifExists.Default != "overwrite" {
+		t.Fatalf("put if_exists default = %#v, want overwrite", ifExists.Default)
+	}
+	recursive := assertJSONHelpInputProperty(t, put.InputSchema, "recursive", "boolean", "flag", "recursive", "boolean")
+	if recursive.Default != false {
+		t.Fatalf("put recursive default = %#v, want false", recursive.Default)
+	}
+	if _, ok := put.InputSchema.Properties["help"]; ok {
+		t.Fatal("put input_schema contains help flag")
+	}
+	if _, ok := put.InputSchema.Properties["output"]; ok {
+		t.Fatal("put input_schema contains output flag")
+	}
 }
 
 func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
@@ -297,6 +322,17 @@ func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
 		t.Fatal("cp source variadic = false, want true")
 	}
 	assertStringSliceEqual(t, "cp --if-exists enum", jsonHelpFlagByName(t, cp.Flags, "if-exists").EnumValues, []string{"fail", "skip"})
+	assertStringSliceEqual(t, "cp input_schema required", cp.InputSchema.Required, []string{"source", "target"})
+	source := assertJSONHelpInputProperty(t, cp.InputSchema, "source", "array", "arg", "source", "dropbox_path")
+	if source.Items == nil || source.Items.Type != "string" {
+		t.Fatalf("cp source items = %+v, want string items", source.Items)
+	}
+	if source.MinItems != 1 {
+		t.Fatalf("cp source minItems = %d, want 1", source.MinItems)
+	}
+	assertJSONHelpInputProperty(t, cp.InputSchema, "target", "string", "arg", "target", "dropbox_path")
+	cpIfExists := assertJSONHelpInputProperty(t, cp.InputSchema, "if_exists", "string", "flag", "if-exists", "enum")
+	assertStringSliceEqual(t, "cp input_schema if_exists enum", cpIfExists.Enum, []string{"fail", "skip"})
 
 	create := jsonCommandManifestFor(shareLinkCreateCmd)
 	assertStringSliceEqual(t, "share-link create audience enum", jsonHelpFlagByName(t, create.Flags, "audience").EnumValues, []string{"public", "team", "members", "no-one"})
@@ -311,6 +347,22 @@ func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
 	update := jsonCommandManifestFor(shareLinkUpdateCmd)
 	assertStringSliceEqual(t, "share-link update expires conflict", jsonHelpFlagByName(t, update.Flags, "expires").Conflicts, []string{"remove-expiration"})
 	assertStringSliceEqual(t, "share-link update remove-password conflict", jsonHelpFlagByName(t, update.Flags, "remove-password").Conflicts, []string{"password", "password-file", "password-prompt"})
+	audience := assertJSONHelpInputProperty(t, update.InputSchema, "audience", "string", "flag", "audience", "enum")
+	assertStringSliceEqual(t, "share-link update input_schema audience enum", audience.Enum, []string{"members", "no-one", "public", "team"})
+	expires := assertJSONHelpInputProperty(t, update.InputSchema, "expires", "string", "flag", "expires", "rfc3339_timestamp")
+	if expires.Format != "date-time" {
+		t.Fatalf("share-link update expires format = %q, want date-time", expires.Format)
+	}
+	removeExpiration := assertJSONHelpInputProperty(t, update.InputSchema, "remove_expiration", "boolean", "flag", "remove-expiration", "boolean")
+	assertStringSliceEqual(t, "share-link update remove_expiration conflicts", removeExpiration.XConflicts, []string{"expires"})
+	password := assertJSONHelpInputProperty(t, update.InputSchema, "password", "string", "flag", "password", "secret")
+	if !password.XSensitive || !password.WriteOnly {
+		t.Fatalf("share-link update password sensitivity = %+v, want sensitive writeOnly", password)
+	}
+	passwordPrompt := assertJSONHelpInputProperty(t, update.InputSchema, "password_prompt", "boolean", "flag", "password-prompt", "boolean")
+	if !passwordPrompt.XMayPrompt {
+		t.Fatal("share-link update password_prompt x-may-prompt = false, want true")
+	}
 
 	deprecatedListLink := jsonCommandManifestFor(shareListLinksCmd)
 	if !strings.Contains(deprecatedListLink.Use, "[path]") {
@@ -347,6 +399,24 @@ func TestJSONHelpManifestRegistryAudit(t *testing.T) {
 		}
 
 		manifest := jsonCommandManifestFor(command)
+		if manifest.InputSchema.Type != "object" {
+			t.Errorf("%s input_schema type = %q, want object", path, manifest.InputSchema.Type)
+		}
+		if manifest.InputSchema.AdditionalProperties {
+			t.Errorf("%s input_schema additionalProperties = true, want false", path)
+		}
+		if manifest.InputSchema.Required == nil {
+			t.Errorf("%s input_schema required = nil, want empty array", path)
+		}
+		if manifest.InputSchema.Properties == nil {
+			t.Errorf("%s input_schema properties = nil, want empty object", path)
+		}
+		if _, ok := manifest.InputSchema.Properties["help"]; ok {
+			t.Errorf("%s input_schema contains help flag", path)
+		}
+		if _, ok := manifest.InputSchema.Properties["output"]; ok {
+			t.Errorf("%s input_schema contains output flag", path)
+		}
 		flagNames := make(map[string]bool)
 		for _, flag := range manifest.Flags {
 			flagNames[flag.Name] = true
@@ -536,6 +606,72 @@ func TestJSONHelpRawArgsDetection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := rawArgsRequestJSONHelp(tt.args); got != tt.want {
 				t.Fatalf("rawArgsRequestJSONHelp(%v) = %v, want %v", tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRawArgsHelpOutputFormatError(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name: "text help",
+			args: []string{"put", "--help"},
+		},
+		{
+			name: "json help",
+			args: []string{"put", "--help", "--output=json"},
+		},
+		{
+			name: "explicit text help",
+			args: []string{"put", "--help", "--output", "text"},
+		},
+		{
+			name:    "invalid help output",
+			args:    []string{"put", "--help", "--output=yaml"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid root help output",
+			args:    []string{"--help", "--output", "yaml"},
+			wantErr: true,
+		},
+		{
+			name: "normal command invalid output is not help",
+			args: []string{"put", "--output=yaml", "file.txt"},
+		},
+		{
+			name: "last valid output wins",
+			args: []string{"put", "--output=yaml", "--output=json", "--help"},
+		},
+		{
+			name:    "last invalid output wins",
+			args:    []string{"put", "--output=json", "--output=yaml", "--help"},
+			wantErr: true,
+		},
+		{
+			name: "output after double dash ignored",
+			args: []string{"put", "--help", "--", "--output=yaml"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := rawArgsHelpOutputFormatError(tt.args)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("rawArgsHelpOutputFormatError(%v) = nil, want error", tt.args)
+				}
+				if !strings.Contains(err.Error(), `unsupported output format "yaml"`) {
+					t.Fatalf("error = %q, want unsupported output format", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("rawArgsHelpOutputFormatError(%v) = %v, want nil", tt.args, err)
 			}
 		})
 	}
@@ -880,6 +1016,18 @@ func jsonHelpArgByName(t *testing.T, args []jsonCommandArg, name string) jsonCom
 	}
 	t.Fatalf("arg %q not found", name)
 	return jsonCommandArg{}
+}
+
+func assertJSONHelpInputProperty(t *testing.T, schema jsonCommandInputSchema, name string, propertyType string, cliKind string, cliName string, valueKind string) jsonCommandInputProperty {
+	t.Helper()
+	property, ok := schema.Properties[name]
+	if !ok {
+		t.Fatalf("input_schema property %q not found in %+v", name, schema.Properties)
+	}
+	if property.Type != propertyType || property.XCLIKind != cliKind || property.XCLIName != cliName || property.XValueKind != valueKind {
+		t.Fatalf("input_schema property %s = %+v, want type=%s x-cli-kind=%s x-cli-name=%s x-value-kind=%s", name, property, propertyType, cliKind, cliName, valueKind)
+	}
+	return property
 }
 
 func sortStrings(values []string) {
