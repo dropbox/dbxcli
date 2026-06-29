@@ -93,9 +93,10 @@ stdin/stdout behavior, schema refs, and whether normal structured command
 output is supported.
 
 Each manifest result includes `input_schema`, a JSON Schema object for the
-command's CLI inputs. It uses JSON-friendly names such as `if_exists` while
-preserving original CLI names in `x-cli-name`, so tools can validate structured
-input and then build the correct argument/flag invocation.
+command's CLI inputs. It uses JSON-friendly names such as `if_exists`, includes
+enum values for bounded arguments and flags, and preserves original CLI names in
+`x-cli-name`, so tools can validate structured input and then build the correct
+argument/flag invocation.
 
 ## Safe scripting patterns
 

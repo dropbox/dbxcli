@@ -135,7 +135,8 @@
         "placement",
         "value_kind",
         "description",
-        "stream_dash"
+        "stream_dash",
+        "enum_values"
       ],
       "properties": {
         "name": {
@@ -158,6 +159,12 @@
         },
         "stream_dash": {
           "type": "boolean"
+        },
+        "enum_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

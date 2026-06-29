@@ -174,7 +174,11 @@ func commandMetadataSection(command *cobra.Command) []byte {
 			if arg.StreamDash {
 				streamDash = ", `-` stream operand"
 			}
-			buf.WriteString(fmt.Sprintf("`%s` (%s, %s%s%s)", arg.Name, requirement, arg.ValueKind, variadic, streamDash))
+			enumValues := ""
+			if len(arg.EnumValues) > 0 {
+				enumValues = "; values: " + markdownValueList(arg.EnumValues)
+			}
+			buf.WriteString(fmt.Sprintf("`%s` (%s, %s%s%s%s)", arg.Name, requirement, arg.ValueKind, variadic, streamDash, enumValues))
 		}
 		buf.WriteString("\n")
 	}

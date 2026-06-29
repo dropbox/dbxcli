@@ -39,6 +39,7 @@
     ],
     "command_arg": [
       "description",
+      "enum_values",
       "name",
       "placement",
       "required",

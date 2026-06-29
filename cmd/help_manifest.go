@@ -135,7 +135,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 		Known:    true,
 	},
 	"login": {
-		Args:      []jsonCommandArg{commandArg("token-type", false, false, "auth_type", "Credential type: personal, team-access, or team-manage")},
+		Args:      []jsonCommandArg{enumCommandArg("token-type", false, false, "auth_type", "Credential type: personal, team-access, or team-manage", "personal", "team-access", "team-manage")},
 		Examples:  []jsonCommandExample{{Description: "Log in with the personal Dropbox app key", Command: "dbxcli login"}},
 		Flags:     map[string]jsonCommandFlagMetadata{"app-key": {ValueKind: "dropbox_app_key"}},
 		MayPrompt: true,
@@ -374,7 +374,14 @@ func commandArg(name string, required bool, variadic bool, valueKind string, des
 		Placement:   "positional",
 		ValueKind:   valueKind,
 		Description: description,
+		EnumValues:  []string{},
 	}
+}
+
+func enumCommandArg(name string, required bool, variadic bool, valueKind string, description string, enumValues ...string) jsonCommandArg {
+	arg := commandArg(name, required, variadic, valueKind, description)
+	arg.EnumValues = sortedCopyStringSlice(enumValues)
+	return arg
 }
 
 func streamCommandArg(name string, required bool, variadic bool, valueKind string, description string) jsonCommandArg {

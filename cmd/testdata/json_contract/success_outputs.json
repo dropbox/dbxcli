@@ -378,7 +378,8 @@
               "placement": "positional",
               "value_kind": "dropbox_path",
               "description": "Dropbox folder or file path",
-              "stream_dash": false
+              "stream_dash": false,
+              "enum_values": []
             }
           ],
           "examples": [

@@ -247,6 +247,19 @@ func TestJSONHelpManifestFields(t *testing.T) {
 	if !strings.Contains(helpFromRoot.Use, "[flags]") {
 		t.Fatalf("help use from root manifest = %q, want flags in use line", helpFromRoot.Use)
 	}
+	if _, ok := helpFromRoot.InputSchema.Properties["as_member"]; ok {
+		t.Fatal("help input_schema contains as_member, want no auth-only global")
+	}
+	if _, ok := helpFromRoot.InputSchema.Properties["verbose"]; !ok {
+		t.Fatal("help input_schema missing verbose")
+	}
+	rootManifest := jsonHelpManifestByPath(t, got, "dbxcli")
+	if _, ok := rootManifest.InputSchema.Properties["as_member"]; ok {
+		t.Fatal("root input_schema contains as_member, want no auth-only global")
+	}
+	if _, ok := rootManifest.InputSchema.Properties["verbose"]; !ok {
+		t.Fatal("root input_schema missing verbose")
+	}
 	stdout, _, err = executeJSONHelpTestRoot(t, []string{"help", "help", "--output=json"})
 	if err != nil {
 		t.Fatalf("Execute help help returned error: %v", err)
@@ -374,16 +387,38 @@ func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
 	if !login.MayPrompt {
 		t.Fatal("login may_prompt = false, want true")
 	}
+	tokenType := jsonHelpArgByName(t, login.Args, "token-type")
+	assertStringSliceEqual(t, "login token-type enum", tokenType.EnumValues, []string{"personal", "team-access", "team-manage"})
+	tokenTypeSchema := assertJSONHelpInputProperty(t, login.InputSchema, "token_type", "string", "arg", "token-type", "auth_type")
+	assertStringSliceEqual(t, "login token_type input_schema enum", tokenTypeSchema.Enum, []string{"personal", "team-access", "team-manage"})
+	if _, ok := login.InputSchema.Properties["as_member"]; ok {
+		t.Fatal("login input_schema contains as_member, want no auth-only global")
+	}
+	if _, ok := login.InputSchema.Properties["verbose"]; !ok {
+		t.Fatal("login input_schema missing verbose")
+	}
 	if jsonHelpFlagByName(t, login.Flags, "app-key").ValueKind != "dropbox_app_key" {
 		t.Fatalf("login app-key value_kind = %q", jsonHelpFlagByName(t, login.Flags, "app-key").ValueKind)
 	}
 
-	completion := jsonCommandManifestFor(newCompletionCmd())
+	root := newJSONHelpTestRoot(t)
+	root.AddCommand(newCompletionCmd())
+	completionCmd, _, err := root.Find([]string{"completion"})
+	if err != nil {
+		t.Fatalf("find completion command: %v", err)
+	}
+	completion := jsonCommandManifestFor(completionCmd)
 	if completion.SupportsStructuredOutput {
 		t.Fatal("completion supports_structured_output = true, want false")
 	}
 	if len(completion.AuthModes) != 0 || len(completion.DropboxScopes) != 0 {
 		t.Fatalf("completion auth/scopes = %v/%v, want none", completion.AuthModes, completion.DropboxScopes)
+	}
+	if _, ok := completion.InputSchema.Properties["as_member"]; ok {
+		t.Fatal("completion input_schema contains as_member, want no auth-only global")
+	}
+	if _, ok := completion.InputSchema.Properties["verbose"]; !ok {
+		t.Fatal("completion input_schema missing verbose")
 	}
 }
 
