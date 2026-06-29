@@ -315,6 +315,130 @@ func TestLsLimitStopsPaginationAndTruncatesOutput(t *testing.T) {
 	}
 }
 
+func TestLsOnlyDeletedLimitCountsFilteredEntries(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsOutputJSON(t, cmd)
+	setLsFlag(t, cmd, "only-deleted", "true")
+	setLsFlag(t, cmd, "limit", "2")
+
+	continueCalled := false
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			if !arg.IncludeDeleted {
+				t.Fatal("ListFolder include_deleted = false, want true")
+			}
+			if arg.Limit != 2 {
+				t.Fatalf("ListFolder limit = %d, want 2", arg.Limit)
+			}
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/active-a.txt"}},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/active-b.txt"}},
+					&files.DeletedMetadata{Metadata: files.Metadata{PathDisplay: "/deleted-a.txt", PathLower: "/deleted-a.txt"}},
+				},
+				HasMore: true,
+				Cursor:  "cursor-1",
+			}, nil
+		},
+		listFolderContinueFn: func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+			continueCalled = true
+			if arg.Cursor != "cursor-1" {
+				t.Fatalf("ListFolderContinue cursor = %q, want cursor-1", arg.Cursor)
+			}
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.DeletedMetadata{Metadata: files.Metadata{PathDisplay: "/deleted-b.txt", PathLower: "/deleted-b.txt"}},
+					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/active-c.txt"}},
+				},
+				HasMore: false,
+			}, nil
+		},
+		listRevisionsFn: func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
+			return files.NewListRevisionsResult(false, []*files.FileMetadata{
+				{
+					Metadata: files.Metadata{
+						PathDisplay: arg.Path,
+						PathLower:   arg.Path,
+					},
+					Id:  "id:" + arg.Path,
+					Rev: "rev:" + arg.Path,
+				},
+			}), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := ls(cmd, nil); err != nil {
+		t.Fatalf("ls error: %v", err)
+	}
+	if !continueCalled {
+		t.Fatal("ListFolderContinue was not called; want pagination until deleted limit is reached")
+	}
+
+	got := decodeLsOutput(t, stdout)
+	if !got.Input.OnlyDeleted || got.Input.Limit != 2 {
+		t.Fatalf("input = %#v, want only_deleted true and limit 2", got.Input)
+	}
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want 2 deleted entries: %#v", len(got.Results), got.Results)
+	}
+	for i, want := range []string{"/deleted-a.txt", "/deleted-b.txt"} {
+		result := got.Results[i]
+		if result.Result.PathDisplay != want || !result.Result.Deleted {
+			t.Fatalf("result[%d] = %#v, want deleted path %s", i, result, want)
+		}
+	}
+}
+
+func TestLsOnlyDeletedLimitTruncatesFilteredPage(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsOutputJSON(t, cmd)
+	setLsFlag(t, cmd, "only-deleted", "true")
+	setLsFlag(t, cmd, "limit", "1")
+
+	mock := &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.DeletedMetadata{Metadata: files.Metadata{PathDisplay: "/deleted-a.txt", PathLower: "/deleted-a.txt"}},
+					&files.DeletedMetadata{Metadata: files.Metadata{PathDisplay: "/deleted-b.txt", PathLower: "/deleted-b.txt"}},
+				},
+				HasMore: true,
+				Cursor:  "cursor-1",
+			}, nil
+		},
+		listFolderContinueFn: func(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+			t.Fatalf("ListFolderContinue called after reaching filtered limit: %v", arg)
+			return nil, nil
+		},
+		listRevisionsFn: func(arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
+			return files.NewListRevisionsResult(false, []*files.FileMetadata{
+				{
+					Metadata: files.Metadata{
+						PathDisplay: arg.Path,
+						PathLower:   arg.Path,
+					},
+					Id:  "id:" + arg.Path,
+					Rev: "rev:" + arg.Path,
+				},
+			}), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := ls(cmd, nil); err != nil {
+		t.Fatalf("ls error: %v", err)
+	}
+
+	got := decodeLsOutput(t, stdout)
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1 deleted entry", len(got.Results))
+	}
+	if got.Results[0].Result.PathDisplay != "/deleted-a.txt" || !got.Results[0].Result.Deleted {
+		t.Fatalf("result = %#v, want first deleted entry", got.Results[0])
+	}
+}
+
 func TestLsRecurseAliasSetsRecursiveListFolderArg(t *testing.T) {
 	cmd, stdout := testLsCmd(t)
 	setLsOutputJSON(t, cmd)
