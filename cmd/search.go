@@ -97,12 +97,16 @@ func parseSearchOptions(cmd *cobra.Command) (searchCommandOptions, error) {
 	content, _ := cmd.Flags().GetBool("content")
 	limit, _ := cmd.Flags().GetUint64("limit")
 	orderBy, _ := cmd.Flags().GetString("order-by")
+	listOpts, err := parseListOptions(cmd)
+	if err != nil {
+		return searchCommandOptions{}, err
+	}
 	if !validSearchOrderBy(orderBy) {
 		return searchCommandOptions{}, invalidArgumentsErrorWithDetails("`search --order-by` must be one of: relevance, modified", flagErrorDetails("order-by"))
 	}
 
 	return searchCommandOptions{
-		list:    parseLsOptions(cmd),
+		list:    listOpts,
 		content: content,
 		limit:   limit,
 		orderBy: orderBy,

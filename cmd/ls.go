@@ -104,23 +104,6 @@ func setPathDisplayAsDeleted(metadata files.IsMetadata) {
 	}
 }
 
-func parseLsOptions(cmd *cobra.Command) listOptions {
-	long, _ := cmd.Flags().GetBool("long")
-	timeField, _ := cmd.Flags().GetString("time")
-	timeFormat, _ := cmd.Flags().GetString("time-format")
-	sortBy, _ := cmd.Flags().GetString("sort")
-	reverse, _ := cmd.Flags().GetBool("reverse")
-	limit, _ := cmd.Flags().GetUint64("limit")
-	return listOptions{
-		long:       long,
-		timeField:  timeField,
-		timeFormat: timeFormat,
-		sortBy:     sortBy,
-		reverse:    reverse,
-		limit:      limit,
-	}
-}
-
 func ls(cmd *cobra.Command, args []string) (err error) {
 
 	path := ""
@@ -131,11 +114,14 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	arg := files.NewListFolderArg(path)
-	arg.Recursive, _ = cmd.Flags().GetBool("recurse")
+	arg.Recursive = lsRecursive(cmd)
 	arg.IncludeDeleted, _ = cmd.Flags().GetBool("include-deleted")
 	onlyDeleted, _ := cmd.Flags().GetBool("only-deleted")
 	arg.IncludeDeleted = arg.IncludeDeleted || onlyDeleted
-	opts := parseLsOptions(cmd)
+	opts, err := parseListOptions(cmd)
+	if err != nil {
+		return err
+	}
 	if opts.limit > 0 {
 		if opts.limit > maxListFolderLimit {
 			return invalidArgumentsErrorWithDetails("`ls --limit` is too large", flagErrorDetails("limit"))
@@ -209,6 +195,12 @@ func appendMetadataWithLimit(entries []files.IsMetadata, next []files.IsMetadata
 
 func metadataLimitReached(entries []files.IsMetadata, limit uint64) bool {
 	return limit > 0 && uint64(len(entries)) >= limit
+}
+
+func lsRecursive(cmd *cobra.Command) bool {
+	recursive, _ := cmd.Flags().GetBool("recursive")
+	recurse, _ := cmd.Flags().GetBool("recurse")
+	return recursive || recurse
 }
 
 func prepareLsEntries(dbx files.Client, entries []files.IsMetadata, onlyDeleted bool) ([]files.IsMetadata, error) {
@@ -383,7 +375,8 @@ func init() {
 	RootCmd.AddCommand(lsCmd)
 
 	lsCmd.Flags().BoolP("long", "l", false, "Long listing")
-	lsCmd.Flags().BoolP("recurse", "R", false, "Recursively list all subfolders")
+	lsCmd.Flags().Bool("recursive", false, "Recursively list all subfolders")
+	lsCmd.Flags().BoolP("recurse", "R", false, "Alias for --recursive")
 	lsCmd.Flags().BoolP("include-deleted", "d", false, "Include deleted files")
 	lsCmd.Flags().BoolP("only-deleted", "D", false, "Only show deleted files")
 	lsCmd.Flags().Uint64("limit", 0, "Maximum number of entries to return")

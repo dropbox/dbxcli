@@ -50,13 +50,16 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 		arg.Limit = limit
 	}
 
+	opts, err := parseListOptions(cmd)
+	if err != nil {
+		return err
+	}
+
 	dbx := filesNewFunc(config)
 	res, err := dbx.ListRevisions(arg)
 	if err != nil {
 		return
 	}
-
-	opts := parseLsOptions(cmd)
 
 	return renderRevisionsOutput(cmd, path, limit, res.Entries, opts)
 }
