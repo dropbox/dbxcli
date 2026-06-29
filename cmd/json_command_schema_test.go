@@ -74,6 +74,34 @@ func TestPublicCommandSuccessSchemaRejectsInvalidStatus(t *testing.T) {
 	}
 }
 
+func TestPublicCommandSuccessSchemaRejectsInvalidPrimitiveType(t *testing.T) {
+	schema := loadJSONValueFile(t, "../docs/json-schema/v1/commands.schema.json")
+	validator := newSubsetJSONSchemaValidator(t, schema)
+
+	value := decodeJSONValue(t, loadJSONGoldenSuccessOutputs(t)["put"])
+	root := value.(map[string]any)
+	input := root["input"].(map[string]any)
+	input["recursive"] = "false"
+
+	if err := validator.validate(schema, value, "$"); err == nil {
+		t.Fatal("invalid primitive type validated successfully")
+	}
+}
+
+func TestJSONHelpManifestsValidateAgainstPublicManifestSchema(t *testing.T) {
+	schema := loadJSONValueFile(t, "../docs/json-schema/v1/manifest.schema.json")
+	validator := newSubsetJSONSchemaValidator(t, schema)
+
+	RootCmd.InitDefaultHelpCmd()
+	for _, command := range publicCommandSubtree(RootCmd) {
+		manifest := jsonCommandManifestFor(command)
+		value := normalizeJSONValue(t, manifest)
+		if err := validator.validate(schema, value, manifest.Path); err != nil {
+			t.Fatalf("manifest %q does not validate: %v", manifest.Path, err)
+		}
+	}
+}
+
 func loadCommandSchemaCatalog(t *testing.T) schemagen.CommandCatalog {
 	t.Helper()
 
@@ -209,11 +237,12 @@ func (v subsetJSONSchemaValidator) validateObjectSchema(schema map[string]any, v
 	}
 
 	if typeValue, ok := schema["type"]; ok {
-		typeName, ok := typeValue.(string)
-		if !ok {
-			return fmt.Errorf("%s type is %T, want string", path, typeValue)
+		if err := validateJSONSchemaTypeValue(path, value, typeValue); err != nil {
+			return err
 		}
-		if err := validateJSONSchemaType(path, value, typeName); err != nil {
+	}
+	if minimumValue, ok := schema["minimum"]; ok {
+		if err := validateJSONSchemaMinimum(path, value, minimumValue); err != nil {
 			return err
 		}
 	}
@@ -236,11 +265,27 @@ func (v subsetJSONSchemaValidator) validateObjectSchema(schema map[string]any, v
 			return fmt.Errorf("%s properties on non-object %T", path, value)
 		}
 		properties := propertiesValue.(map[string]any)
-		if additionalProperties, ok := schema["additionalProperties"].(bool); ok && !additionalProperties {
-			for name := range object {
-				if _, ok := properties[name]; !ok {
-					return fmt.Errorf("%s has unexpected property %q", path, name)
+		if additionalProperties, ok := schema["additionalProperties"]; ok {
+			switch additionalProperties := additionalProperties.(type) {
+			case bool:
+				if !additionalProperties {
+					for name := range object {
+						if _, ok := properties[name]; !ok {
+							return fmt.Errorf("%s has unexpected property %q", path, name)
+						}
+					}
 				}
+			case map[string]any:
+				for name, propertyValue := range object {
+					if _, ok := properties[name]; ok {
+						continue
+					}
+					if err := v.validate(additionalProperties, propertyValue, path+"."+name); err != nil {
+						return err
+					}
+				}
+			default:
+				return fmt.Errorf("%s additionalProperties is %T, want bool or object", path, additionalProperties)
 			}
 		}
 		for name, propertySchema := range properties {
@@ -287,6 +332,29 @@ func (v subsetJSONSchemaValidator) resolveRef(ref string) (any, error) {
 	return current, nil
 }
 
+func validateJSONSchemaTypeValue(path string, value any, typeValue any) error {
+	switch typeValue := typeValue.(type) {
+	case string:
+		return validateJSONSchemaType(path, value, typeValue)
+	case []any:
+		var errors []string
+		for _, item := range typeValue {
+			typeName, ok := item.(string)
+			if !ok {
+				return fmt.Errorf("%s type entry is %T, want string", path, item)
+			}
+			if err := validateJSONSchemaType(path, value, typeName); err == nil {
+				return nil
+			} else {
+				errors = append(errors, err.Error())
+			}
+		}
+		return fmt.Errorf("%s did not match any allowed type: %s", path, strings.Join(errors, "; "))
+	default:
+		return fmt.Errorf("%s type is %T, want string or array", path, typeValue)
+	}
+}
+
 func validateJSONSchemaType(path string, value any, typeName string) error {
 	switch typeName {
 	case "object":
@@ -316,6 +384,21 @@ func validateJSONSchemaType(path string, value any, typeName string) error {
 		}
 	default:
 		return fmt.Errorf("%s has unsupported schema type %q", path, typeName)
+	}
+	return nil
+}
+
+func validateJSONSchemaMinimum(path string, value any, minimumValue any) error {
+	minimum, ok := minimumValue.(float64)
+	if !ok {
+		return fmt.Errorf("%s minimum is %T, want number", path, minimumValue)
+	}
+	number, ok := value.(float64)
+	if !ok {
+		return fmt.Errorf("%s minimum on non-number %T", path, value)
+	}
+	if number < minimum {
+		return fmt.Errorf("%s = %v, want >= %v", path, number, minimum)
 	}
 	return nil
 }

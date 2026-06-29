@@ -3,58 +3,131 @@
     "account": {
       "additionalProperties": false,
       "properties": {
-        "account_id": {},
-        "account_type": {},
-        "auth": {},
-        "disabled": {},
-        "email": {},
-        "email_verified": {},
-        "is_paired": {},
-        "is_teammate": {},
-        "locale": {},
-        "name": {},
-        "profile_photo_url": {},
-        "referral_link": {},
-        "team": {},
-        "team_member_id": {},
-        "type": {}
+        "account_id": {
+          "type": "string"
+        },
+        "account_type": {
+          "type": "string"
+        },
+        "auth": {
+          "$ref": "#/$defs/account_auth"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "is_paired": {
+          "type": "boolean"
+        },
+        "is_teammate": {
+          "type": "boolean"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/account_name"
+        },
+        "profile_photo_url": {
+          "type": "string"
+        },
+        "referral_link": {
+          "type": "string"
+        },
+        "team": {
+          "$ref": "#/$defs/account_team"
+        },
+        "team_member_id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "basic",
+            "full"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "account_id",
+        "disabled",
+        "email",
+        "email_verified",
+        "type"
+      ],
       "type": "object"
     },
     "account_auth": {
       "additionalProperties": false,
       "properties": {
-        "auth_file": {},
-        "refreshable": {},
-        "source": {}
+        "auth_file": {
+          "type": "string"
+        },
+        "refreshable": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        }
       },
+      "required": [
+        "refreshable",
+        "source"
+      ],
       "type": "object"
     },
     "account_input": {
       "additionalProperties": false,
       "properties": {
-        "account_id": {}
+        "account_id": {
+          "type": "string"
+        }
       },
       "type": "object"
     },
     "account_name": {
       "additionalProperties": false,
       "properties": {
-        "abbreviated_name": {},
-        "display_name": {},
-        "familiar_name": {},
-        "given_name": {},
-        "surname": {}
+        "abbreviated_name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "familiar_name": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "surname": {
+          "type": "string"
+        }
       },
       "type": "object"
     },
     "account_team": {
       "additionalProperties": false,
       "properties": {
-        "id": {},
-        "member_id": {},
-        "name": {}
+        "id": {
+          "type": "string"
+        },
+        "member_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
       },
+      "required": [
+        "id",
+        "name"
+      ],
       "type": "object"
     },
     "command_account": {
@@ -95,15 +168,44 @@
     "command_arg": {
       "additionalProperties": false,
       "properties": {
-        "description": {},
-        "enum_values": {},
-        "name": {},
-        "placement": {},
-        "required": {},
-        "stream_dash": {},
-        "value_kind": {},
-        "variadic": {}
+        "description": {
+          "type": "string"
+        },
+        "enum_values": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "placement": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "stream_dash": {
+          "type": "boolean"
+        },
+        "value_kind": {
+          "type": "string"
+        },
+        "variadic": {
+          "type": "boolean"
+        }
       },
+      "required": [
+        "description",
+        "enum_values",
+        "name",
+        "placement",
+        "required",
+        "stream_dash",
+        "value_kind",
+        "variadic"
+      ],
       "type": "object"
     },
     "command_cp": {
@@ -179,27 +281,79 @@
     "command_example": {
       "additionalProperties": false,
       "properties": {
-        "command": {},
-        "description": {}
+        "command": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
       },
+      "required": [
+        "command",
+        "description"
+      ],
       "type": "object"
     },
     "command_flag": {
       "additionalProperties": false,
       "properties": {
-        "conflicts": {},
-        "default": {},
-        "enum_values": {},
-        "inherited": {},
-        "may_prompt": {},
-        "name": {},
-        "required": {},
-        "sensitive": {},
-        "shorthand": {},
-        "type": {},
-        "usage": {},
-        "value_kind": {}
+        "conflicts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "default": {
+          "type": "string"
+        },
+        "enum_values": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "inherited": {
+          "type": "boolean"
+        },
+        "may_prompt": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitive": {
+          "type": "boolean"
+        },
+        "shorthand": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "string"
+        },
+        "value_kind": {
+          "type": "string"
+        }
       },
+      "required": [
+        "conflicts",
+        "default",
+        "enum_values",
+        "inherited",
+        "may_prompt",
+        "name",
+        "required",
+        "sensitive",
+        "shorthand",
+        "type",
+        "usage",
+        "value_kind"
+      ],
       "type": "object"
     },
     "command_get": {
@@ -275,34 +429,109 @@
     "command_input_property": {
       "additionalProperties": false,
       "properties": {
-        "default": {},
-        "description": {},
-        "enum": {},
-        "format": {},
-        "items": {},
-        "minItems": {},
-        "type": {},
-        "writeOnly": {},
-        "x-cli-kind": {},
-        "x-cli-name": {},
-        "x-conflicts": {},
-        "x-inherited": {},
-        "x-may-prompt": {},
-        "x-sensitive": {},
-        "x-shorthand": {},
-        "x-stream-dash": {},
-        "x-value-kind": {}
+        "default": {
+          "type": [
+            "array",
+            "boolean",
+            "integer",
+            "string"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "enum": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "format": {
+          "type": "string"
+        },
+        "items": {
+          "$ref": "#/$defs/command_input_property"
+        },
+        "minItems": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "array",
+            "boolean",
+            "integer",
+            "string"
+          ],
+          "type": "string"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "x-cli-kind": {
+          "type": "string"
+        },
+        "x-cli-name": {
+          "type": "string"
+        },
+        "x-conflicts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "x-inherited": {
+          "type": "boolean"
+        },
+        "x-may-prompt": {
+          "type": "boolean"
+        },
+        "x-sensitive": {
+          "type": "boolean"
+        },
+        "x-shorthand": {
+          "type": "string"
+        },
+        "x-stream-dash": {
+          "type": "boolean"
+        },
+        "x-value-kind": {
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "command_input_schema": {
       "additionalProperties": false,
       "properties": {
-        "additionalProperties": {},
-        "properties": {},
-        "required": {},
-        "type": {}
+        "additionalProperties": {
+          "const": false
+        },
+        "properties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/command_input_property"
+          },
+          "type": "object"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "object"
+        }
       },
+      "required": [
+        "additionalProperties",
+        "properties",
+        "required",
+        "type"
+      ],
       "type": "object"
     },
     "command_logout": {
@@ -378,28 +607,125 @@
     "command_manifest": {
       "additionalProperties": false,
       "properties": {
-        "aliases": {},
-        "args": {},
-        "auth_modes": {},
-        "destructive_level": {},
-        "dropbox_scopes": {},
-        "examples": {},
-        "flags": {},
-        "input_schema": {},
-        "manifest_version": {},
-        "may_prompt": {},
-        "path": {},
-        "result_kinds": {},
-        "result_statuses": {},
-        "runnable": {},
-        "schema_refs": {},
-        "scope_accuracy": {},
-        "short": {},
-        "stdin_stdout": {},
-        "supports_structured_output": {},
-        "use": {},
-        "warning_codes": {}
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "args": {
+          "items": {
+            "$ref": "#/$defs/command_arg"
+          },
+          "type": "array"
+        },
+        "auth_modes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "destructive_level": {
+          "enum": [
+            "admin",
+            "delete",
+            "none"
+          ],
+          "type": "string"
+        },
+        "dropbox_scopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "examples": {
+          "items": {
+            "$ref": "#/$defs/command_example"
+          },
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/command_flag"
+          },
+          "type": "array"
+        },
+        "input_schema": {
+          "$ref": "#/$defs/command_input_schema"
+        },
+        "manifest_version": {
+          "const": "1"
+        },
+        "may_prompt": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "result_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "result_statuses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "runnable": {
+          "type": "boolean"
+        },
+        "schema_refs": {
+          "$ref": "#/$defs/command_schema_refs"
+        },
+        "scope_accuracy": {
+          "type": "string"
+        },
+        "short": {
+          "type": "string"
+        },
+        "stdin_stdout": {
+          "$ref": "#/$defs/command_stdin_stdout"
+        },
+        "supports_structured_output": {
+          "type": "boolean"
+        },
+        "use": {
+          "type": "string"
+        },
+        "warning_codes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
       },
+      "required": [
+        "aliases",
+        "args",
+        "auth_modes",
+        "destructive_level",
+        "dropbox_scopes",
+        "examples",
+        "flags",
+        "input_schema",
+        "manifest_version",
+        "may_prompt",
+        "path",
+        "result_kinds",
+        "result_statuses",
+        "runnable",
+        "schema_refs",
+        "scope_accuracy",
+        "short",
+        "stdin_stdout",
+        "supports_structured_output",
+        "use",
+        "warning_codes"
+      ],
       "type": "object"
     },
     "command_mkdir": {
@@ -615,11 +941,23 @@
     "command_schema_refs": {
       "additionalProperties": false,
       "properties": {
-        "command_contract": {},
-        "command_success_schema": {},
-        "error_schema": {},
-        "success_schema": {}
+        "command_contract": {
+          "type": "string"
+        },
+        "command_success_schema": {
+          "type": "string"
+        },
+        "error_schema": {
+          "type": "string"
+        },
+        "success_schema": {
+          "type": "string"
+        }
       },
+      "required": [
+        "error_schema",
+        "success_schema"
+      ],
       "type": "object"
     },
     "command_search": {
@@ -940,11 +1278,25 @@
     "command_stdin_stdout": {
       "additionalProperties": false,
       "properties": {
-        "reads_stdin": {},
-        "stderr": {},
-        "stdout": {},
-        "writes_binary_stdout": {}
+        "reads_stdin": {
+          "type": "boolean"
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "stdout": {
+          "type": "string"
+        },
+        "writes_binary_stdout": {
+          "type": "boolean"
+        }
       },
+      "required": [
+        "reads_stdin",
+        "stderr",
+        "stdout",
+        "writes_binary_stdout"
+      ],
       "type": "object"
     },
     "command_team_20add_2dmember": {
@@ -1160,21 +1512,49 @@
     "du_allocation": {
       "additionalProperties": false,
       "properties": {
-        "allocated": {},
-        "type": {},
-        "used": {},
-        "user_within_team_space_allocated": {},
-        "user_within_team_space_limit_type": {},
-        "user_within_team_space_used_cached": {}
+        "allocated": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "used": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "user_within_team_space_allocated": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "user_within_team_space_limit_type": {
+          "type": "string"
+        },
+        "user_within_team_space_used_cached": {
+          "minimum": 0,
+          "type": "integer"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "du_output": {
       "additionalProperties": false,
       "properties": {
-        "allocation": {},
-        "used": {}
+        "allocation": {
+          "$ref": "#/$defs/du_allocation"
+        },
+        "used": {
+          "minimum": 0,
+          "type": "integer"
+        }
       },
+      "required": [
+        "allocation",
+        "used"
+      ],
       "type": "object"
     },
     "empty": {
@@ -1185,141 +1565,353 @@
     "get_input": {
       "additionalProperties": false,
       "properties": {
-        "recursive": {},
-        "source": {},
-        "stdout": {},
-        "target": {}
+        "recursive": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "stdout": {
+          "type": "boolean"
+        },
+        "target": {
+          "type": "string"
+        }
       },
+      "required": [
+        "recursive",
+        "source",
+        "stdout",
+        "target"
+      ],
       "type": "object"
     },
     "get_result_input": {
       "additionalProperties": false,
       "properties": {
-        "source": {},
-        "target": {}
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
       },
+      "required": [
+        "source",
+        "target"
+      ],
       "type": "object"
     },
     "help_input": {
       "additionalProperties": false,
       "properties": {
-        "help": {},
-        "path": {}
+        "help": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        }
       },
+      "required": [
+        "help",
+        "path"
+      ],
       "type": "object"
     },
     "logout_result": {
       "additionalProperties": false,
       "properties": {
-        "remote_token_revoked": {},
-        "removed_saved_credentials": {}
+        "remote_token_revoked": {
+          "type": "boolean"
+        },
+        "removed_saved_credentials": {
+          "type": "boolean"
+        }
       },
+      "required": [
+        "remote_token_revoked",
+        "removed_saved_credentials"
+      ],
       "type": "object"
     },
     "ls_input": {
       "additionalProperties": false,
       "properties": {
-        "include_deleted": {},
-        "limit": {},
-        "long": {},
-        "only_deleted": {},
-        "path": {},
-        "recursive": {},
-        "reverse": {},
-        "sort": {},
-        "time": {},
-        "time_format": {}
+        "include_deleted": {
+          "type": "boolean"
+        },
+        "limit": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "long": {
+          "type": "boolean"
+        },
+        "only_deleted": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "reverse": {
+          "type": "boolean"
+        },
+        "sort": {
+          "enum": [
+            "name",
+            "size",
+            "time",
+            "type"
+          ],
+          "type": "string"
+        },
+        "time": {
+          "enum": [
+            "client",
+            "server"
+          ],
+          "type": "string"
+        },
+        "time_format": {
+          "type": "string"
+        }
       },
+      "required": [
+        "include_deleted",
+        "long",
+        "only_deleted",
+        "path",
+        "recursive",
+        "reverse"
+      ],
       "type": "object"
     },
     "metadata": {
       "additionalProperties": false,
       "properties": {
-        "client_modified": {},
-        "deleted": {},
-        "id": {},
-        "path_display": {},
-        "path_lower": {},
-        "rev": {},
-        "server_modified": {},
-        "size": {},
-        "type": {}
+        "client_modified": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "path_display": {
+          "type": "string"
+        },
+        "path_lower": {
+          "type": "string"
+        },
+        "rev": {
+          "type": "string"
+        },
+        "server_modified": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "mkdir_input": {
       "additionalProperties": false,
       "properties": {
-        "parents": {},
-        "path": {}
+        "parents": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        }
       },
+      "required": [
+        "parents",
+        "path"
+      ],
       "type": "object"
     },
     "operation_output": {
       "additionalProperties": false,
       "properties": {
-        "command": {},
-        "input": {},
-        "ok": {},
-        "results": {},
-        "schema_version": {},
-        "warnings": {}
+        "command": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/operation_result"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/warning"
+          },
+          "type": "array"
+        }
       },
+      "required": [
+        "command",
+        "input",
+        "ok",
+        "results",
+        "schema_version",
+        "warnings"
+      ],
       "type": "object"
     },
     "operation_result": {
       "additionalProperties": false,
       "properties": {
-        "input": {},
-        "kind": {},
+        "input": {
+          "type": "object"
+        },
+        "kind": {
+          "type": "string"
+        },
         "result": {},
-        "status": {}
+        "status": {
+          "type": "string"
+        }
       },
+      "required": [
+        "input",
+        "kind",
+        "result",
+        "status"
+      ],
       "type": "object"
     },
     "put_input": {
       "additionalProperties": false,
       "properties": {
-        "if_exists": {},
-        "recursive": {},
-        "source": {},
-        "stdin": {},
-        "target": {}
+        "if_exists": {
+          "enum": [
+            "fail",
+            "overwrite",
+            "skip"
+          ],
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "stdin": {
+          "type": "boolean"
+        },
+        "target": {
+          "type": "string"
+        }
       },
+      "required": [
+        "if_exists",
+        "recursive",
+        "source",
+        "stdin",
+        "target"
+      ],
       "type": "object"
     },
     "put_result_input": {
       "additionalProperties": false,
       "properties": {
-        "source": {},
-        "target": {}
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
       },
+      "required": [
+        "source",
+        "target"
+      ],
       "type": "object"
     },
     "relocation_input": {
       "additionalProperties": false,
       "properties": {
-        "from_path": {},
-        "to_path": {}
+        "from_path": {
+          "type": "string"
+        },
+        "to_path": {
+          "type": "string"
+        }
       },
+      "required": [
+        "from_path",
+        "to_path"
+      ],
       "type": "object"
     },
     "remove_input": {
       "additionalProperties": false,
       "properties": {
-        "force": {},
-        "path": {},
-        "permanent": {},
-        "recursive": {}
+        "force": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "permanent": {
+          "type": "boolean"
+        },
+        "recursive": {
+          "type": "boolean"
+        }
       },
+      "required": [
+        "force",
+        "path",
+        "permanent",
+        "recursive"
+      ],
       "type": "object"
     },
     "restore_input": {
       "additionalProperties": false,
       "properties": {
-        "path": {},
-        "revision": {}
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
       },
+      "required": [
+        "path",
+        "revision"
+      ],
       "type": "object"
     },
     "result_account": {
@@ -2151,256 +2743,666 @@
     "revs_input": {
       "additionalProperties": false,
       "properties": {
-        "limit": {},
-        "long": {},
-        "path": {},
-        "time": {},
-        "time_format": {}
+        "limit": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "long": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "time": {
+          "enum": [
+            "client",
+            "server"
+          ],
+          "type": "string"
+        },
+        "time_format": {
+          "type": "string"
+        }
       },
+      "required": [
+        "long",
+        "path"
+      ],
       "type": "object"
     },
     "search_input": {
       "additionalProperties": false,
       "properties": {
-        "content": {},
-        "limit": {},
-        "long": {},
-        "order_by": {},
-        "path": {},
-        "query": {},
-        "reverse": {},
-        "sort": {},
-        "time": {},
-        "time_format": {}
+        "content": {
+          "type": "boolean"
+        },
+        "limit": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "long": {
+          "type": "boolean"
+        },
+        "order_by": {
+          "enum": [
+            "modified",
+            "relevance"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "reverse": {
+          "type": "boolean"
+        },
+        "sort": {
+          "enum": [
+            "name",
+            "size",
+            "time",
+            "type"
+          ],
+          "type": "string"
+        },
+        "time": {
+          "enum": [
+            "client",
+            "server"
+          ],
+          "type": "string"
+        },
+        "time_format": {
+          "type": "string"
+        }
       },
+      "required": [
+        "content",
+        "long",
+        "query",
+        "reverse"
+      ],
       "type": "object"
     },
     "share_folder": {
       "additionalProperties": false,
       "properties": {
-        "access_inheritance": {},
-        "access_type": {},
-        "is_inside_team_folder": {},
-        "is_team_folder": {},
-        "name": {},
-        "owner_display_names": {},
-        "parent_folder_name": {},
-        "parent_shared_folder_id": {},
-        "path_lower": {},
-        "preview_url": {},
-        "shared_folder_id": {},
-        "time_invited": {},
-        "type": {}
+        "access_inheritance": {
+          "type": "string"
+        },
+        "access_type": {
+          "type": "string"
+        },
+        "is_inside_team_folder": {
+          "type": "boolean"
+        },
+        "is_team_folder": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner_display_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "parent_folder_name": {
+          "type": "string"
+        },
+        "parent_shared_folder_id": {
+          "type": "string"
+        },
+        "path_lower": {
+          "type": "string"
+        },
+        "preview_url": {
+          "type": "string"
+        },
+        "shared_folder_id": {
+          "type": "string"
+        },
+        "time_invited": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "shared_folder"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "share_link_create_input": {
       "additionalProperties": false,
       "properties": {
-        "access": {},
-        "allow_download": {},
-        "audience": {},
-        "disallow_download": {},
-        "expires": {},
-        "password": {},
-        "path": {},
-        "remove_expiration": {}
+        "access": {
+          "enum": [
+            "editor",
+            "max",
+            "viewer"
+          ],
+          "type": "string"
+        },
+        "allow_download": {
+          "type": "boolean"
+        },
+        "audience": {
+          "enum": [
+            "members",
+            "no-one",
+            "public",
+            "team"
+          ],
+          "type": "string"
+        },
+        "disallow_download": {
+          "type": "boolean"
+        },
+        "expires": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "password": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "remove_expiration": {
+          "type": "boolean"
+        }
       },
+      "required": [
+        "path"
+      ],
       "type": "object"
     },
     "share_link_download_input": {
       "additionalProperties": false,
       "properties": {
-        "password": {},
-        "path": {},
-        "recursive": {},
-        "target": {},
-        "url": {}
+        "password": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "target": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       },
+      "required": [
+        "url"
+      ],
       "type": "object"
     },
     "share_link_download_result": {
       "additionalProperties": false,
       "properties": {
-        "link": {},
-        "target": {}
+        "link": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "target": {
+          "type": "string"
+        }
       },
+      "required": [
+        "target"
+      ],
       "type": "object"
     },
     "share_link_info_input": {
       "additionalProperties": false,
       "properties": {
-        "password": {},
-        "path": {},
-        "url": {}
+        "password": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       },
+      "required": [
+        "url"
+      ],
       "type": "object"
     },
     "share_link_list_input": {
       "additionalProperties": false,
       "properties": {
-        "direct_only": {},
-        "path": {}
+        "direct_only": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        }
       },
+      "required": [
+        "direct_only"
+      ],
       "type": "object"
     },
     "share_link_metadata": {
       "additionalProperties": false,
       "properties": {
-        "client_modified": {},
-        "expires": {},
-        "id": {},
-        "name": {},
-        "path_lower": {},
-        "permissions": {},
-        "rev": {},
-        "server_modified": {},
-        "size": {},
-        "type": {},
-        "url": {}
+        "client_modified": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "expires": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path_lower": {
+          "type": "string"
+        },
+        "permissions": {
+          "$ref": "#/$defs/share_link_permissions"
+        },
+        "rev": {
+          "type": "string"
+        },
+        "server_modified": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ],
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       },
+      "required": [
+        "type",
+        "url"
+      ],
       "type": "object"
     },
     "share_link_permissions": {
       "additionalProperties": false,
       "properties": {
-        "access_level": {},
-        "allow_comments": {},
-        "allow_download": {},
-        "can_allow_download": {},
-        "can_disallow_download": {},
-        "can_remove_expiry": {},
-        "can_remove_password": {},
-        "can_revoke": {},
-        "can_set_expiry": {},
-        "can_set_password": {},
-        "can_use_extended_sharing_controls": {},
-        "effective_audience": {},
-        "requested_visibility": {},
-        "require_password": {},
-        "resolved_visibility": {}
+        "access_level": {
+          "type": "string"
+        },
+        "allow_comments": {
+          "type": "boolean"
+        },
+        "allow_download": {
+          "type": "boolean"
+        },
+        "can_allow_download": {
+          "type": "boolean"
+        },
+        "can_disallow_download": {
+          "type": "boolean"
+        },
+        "can_remove_expiry": {
+          "type": "boolean"
+        },
+        "can_remove_password": {
+          "type": "boolean"
+        },
+        "can_revoke": {
+          "type": "boolean"
+        },
+        "can_set_expiry": {
+          "type": "boolean"
+        },
+        "can_set_password": {
+          "type": "boolean"
+        },
+        "can_use_extended_sharing_controls": {
+          "type": "boolean"
+        },
+        "effective_audience": {
+          "type": "string"
+        },
+        "requested_visibility": {
+          "type": "string"
+        },
+        "require_password": {
+          "type": "boolean"
+        },
+        "resolved_visibility": {
+          "type": "string"
+        }
       },
+      "required": [
+        "allow_comments",
+        "allow_download",
+        "can_allow_download",
+        "can_disallow_download",
+        "can_remove_expiry",
+        "can_revoke",
+        "can_set_expiry"
+      ],
       "type": "object"
     },
     "share_link_revoke_input": {
       "additionalProperties": false,
       "properties": {
-        "path": {},
-        "url": {}
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       },
       "type": "object"
     },
     "share_link_revoke_result": {
       "additionalProperties": false,
       "properties": {
-        "link": {},
-        "url": {}
+        "link": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "url": {
+          "type": "string"
+        }
       },
+      "required": [
+        "url"
+      ],
       "type": "object"
     },
     "share_link_update_input": {
       "additionalProperties": false,
       "properties": {
-        "allow_download": {},
-        "audience": {},
-        "disallow_download": {},
-        "expires": {},
-        "password": {},
-        "remove_expiration": {},
-        "remove_password": {},
-        "url": {}
+        "allow_download": {
+          "type": "boolean"
+        },
+        "audience": {
+          "enum": [
+            "members",
+            "no-one",
+            "public",
+            "team"
+          ],
+          "type": "string"
+        },
+        "disallow_download": {
+          "type": "boolean"
+        },
+        "expires": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "password": {
+          "type": "boolean"
+        },
+        "remove_expiration": {
+          "type": "boolean"
+        },
+        "remove_password": {
+          "type": "boolean"
+        },
+        "url": {
+          "type": "string"
+        }
       },
+      "required": [
+        "url"
+      ],
       "type": "object"
     },
     "team_group": {
       "additionalProperties": false,
       "properties": {
-        "group_external_id": {},
-        "group_id": {},
-        "group_management_type": {},
-        "group_name": {},
-        "member_count": {},
-        "type": {}
+        "group_external_id": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "group_management_type": {
+          "type": "string"
+        },
+        "group_name": {
+          "type": "string"
+        },
+        "member_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "team_group"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "team_info": {
       "additionalProperties": false,
       "properties": {
-        "name": {},
-        "num_licensed_users": {},
-        "num_provisioned_users": {},
-        "team_id": {},
-        "type": {}
+        "name": {
+          "type": "string"
+        },
+        "num_licensed_users": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "num_provisioned_users": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "team"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "team_member": {
       "additionalProperties": false,
       "properties": {
-        "account_id": {},
-        "email": {},
-        "email_verified": {},
-        "external_id": {},
-        "groups": {},
-        "invited_on": {},
-        "is_directory_restricted": {},
-        "joined_on": {},
-        "member_folder_id": {},
-        "membership_type": {},
-        "name": {},
-        "persistent_id": {},
-        "profile_photo_url": {},
-        "role": {},
-        "status": {},
-        "suspended_on": {},
-        "team_member_id": {},
-        "type": {}
+        "account_id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "external_id": {
+          "type": "string"
+        },
+        "groups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "invited_on": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "is_directory_restricted": {
+          "type": "boolean"
+        },
+        "joined_on": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "member_folder_id": {
+          "type": "string"
+        },
+        "membership_type": {
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/account_name"
+        },
+        "persistent_id": {
+          "type": "string"
+        },
+        "profile_photo_url": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "suspended_on": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "team_member_id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "team_member"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "team_member_add_input": {
       "additionalProperties": false,
       "properties": {
-        "email": {},
-        "first_name": {},
-        "last_name": {}
+        "email": {
+          "type": "string"
+        },
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        }
       },
+      "required": [
+        "email",
+        "first_name",
+        "last_name"
+      ],
       "type": "object"
     },
     "team_member_add_item": {
       "additionalProperties": false,
       "properties": {
-        "email": {},
-        "member": {},
-        "tag": {}
+        "email": {
+          "type": "string"
+        },
+        "member": {
+          "$ref": "#/$defs/team_member"
+        },
+        "tag": {
+          "type": "string"
+        }
       },
       "type": "object"
     },
     "team_member_mutation": {
       "additionalProperties": false,
       "properties": {
-        "async_job_id": {},
-        "results": {},
-        "tag": {},
-        "type": {}
+        "async_job_id": {
+          "type": "string"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/team_member_add_item"
+          },
+          "type": "array"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "team_member_add",
+            "team_member_remove"
+          ],
+          "type": "string"
+        }
       },
+      "required": [
+        "type"
+      ],
       "type": "object"
     },
     "team_member_remove_input": {
       "additionalProperties": false,
       "properties": {
-        "email": {}
+        "email": {
+          "type": "string"
+        }
       },
+      "required": [
+        "email"
+      ],
       "type": "object"
     },
     "version": {
       "additionalProperties": false,
       "properties": {
-        "sdk_version": {},
-        "spec_version": {},
-        "version": {}
+        "sdk_version": {
+          "type": "string"
+        },
+        "spec_version": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
       },
+      "required": [
+        "sdk_version",
+        "spec_version",
+        "version"
+      ],
       "type": "object"
     },
     "warning": {
