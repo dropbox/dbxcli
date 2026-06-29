@@ -26,7 +26,13 @@ dbxcli share list folder [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `sharing.read`
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `listed`
+* Result kinds: `shared_folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/share list folder`
 
 
 ### SEE ALSO

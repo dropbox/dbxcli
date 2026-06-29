@@ -54,8 +54,16 @@ dbxcli put [flags] <source> [<target>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.write`, `files.metadata.read`
+* Arguments: `source` (required, local_path, `-` stream operand), `target` (optional, dropbox_path)
+* Flag metadata: `--if-exists` (values: `fail`, `overwrite`, `skip`), `--output` (values: `json`, `text`)
 * Stdin/stdout behavior: Use `-` as the local source to upload from stdin; stdin is spooled to a temporary file before upload.
+* Result statuses: `created`, `existing`, `skipped`, `uploaded`
+* Result kinds: `file`, `folder`
+* Warning codes: `skipped_symlink`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/put`
 
 
 ### SEE ALSO

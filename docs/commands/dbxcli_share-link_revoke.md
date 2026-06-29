@@ -38,7 +38,14 @@ dbxcli share-link revoke [url] [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `sharing.read`, `sharing.write`
+* Arguments: `url` (optional, url)
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `revoked`
+* Result kinds: `file`, `folder`, `link`, `shared_link`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link revoke`
 
 
 ### SEE ALSO

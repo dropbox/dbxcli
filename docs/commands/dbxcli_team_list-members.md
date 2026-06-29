@@ -26,7 +26,13 @@ dbxcli team list-members [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `team-manage`
+* Dropbox scopes: `members.read`
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `listed`
+* Result kinds: `team_member`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/team list-members`
 
 
 ### SEE ALSO

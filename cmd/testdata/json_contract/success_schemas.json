@@ -37,23 +37,65 @@
       "member_id",
       "name"
     ],
-    "command_flag": [
-      "default",
-      "inherited",
+    "command_arg": [
+      "description",
       "name",
+      "placement",
+      "required",
+      "stream_dash",
+      "value_kind",
+      "variadic"
+    ],
+    "command_example": [
+      "command",
+      "description"
+    ],
+    "command_flag": [
+      "conflicts",
+      "default",
+      "enum_values",
+      "inherited",
+      "may_prompt",
+      "name",
+      "required",
+      "sensitive",
+      "shorthand",
       "type",
-      "usage"
+      "usage",
+      "value_kind"
     ],
     "command_manifest": [
       "aliases",
+      "args",
       "auth_modes",
       "destructive_level",
+      "dropbox_scopes",
+      "examples",
       "flags",
+      "manifest_version",
+      "may_prompt",
       "path",
+      "result_kinds",
+      "result_statuses",
       "runnable",
+      "schema_refs",
+      "scope_accuracy",
       "short",
+      "stdin_stdout",
       "supports_structured_output",
-      "use"
+      "use",
+      "warning_codes"
+    ],
+    "command_schema_refs": [
+      "command_contract",
+      "error_schema",
+      "success_schema"
+    ],
+    "command_stdin_stdout": [
+      "reads_stdin",
+      "stderr",
+      "stdout",
+      "writes_binary_stdout"
     ],
     "du_allocation": [
       "allocated",

@@ -6,6 +6,8 @@ These schemas describe the stable top-level JSON envelopes emitted by
 
 - `success.schema.json` validates successful command responses.
 - `error.schema.json` validates command error responses.
+- `manifest.schema.json` validates each command manifest object emitted by
+  JSON help.
 - `commands.json` documents command-specific input/result payload names,
   result statuses, result kinds, and warning codes.
 
@@ -55,6 +57,36 @@ continues to print text help, and shell-completion protocol commands remain
 text-only.
 
 The current JSON-enabled command paths are listed in `commands.json`.
+
+## Command Manifest v1
+
+JSON help is the canonical command manifest surface:
+
+```sh
+dbxcli --help --output=json
+dbxcli put --help --output=json
+dbxcli --output=json help put
+```
+
+Each manifest result has `status: "described"`, `kind: "command"`, and a
+`result` object that validates against `manifest.schema.json`.
+
+Manifest v1 keeps the original JSON help fields and adds machine-contract
+metadata:
+
+- `manifest_version: "1"`
+- structured `args`
+- enriched `flags`, including enum values, conflicts, prompt behavior, and
+  sensitive inputs
+- `examples`
+- `schema_refs`
+- best-effort audited `dropbox_scopes`
+- `stdin_stdout`
+- `result_statuses`, `result_kinds`, and `warning_codes`
+
+`scope_accuracy` is currently `audited_best_effort` for commands with audited
+manifest metadata. Scope metadata is intended for planning and diagnostics;
+Dropbox API errors remain the source of truth at runtime.
 
 `account` results include auth context under `result.auth`:
 `result.auth.source` is `saved` or `env`; `result.auth.refreshable` is a

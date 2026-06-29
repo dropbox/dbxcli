@@ -29,23 +29,69 @@ type jsonHelpInput struct {
 }
 
 type jsonCommandManifest struct {
-	Path                     string            `json:"path"`
-	Use                      string            `json:"use"`
-	Short                    string            `json:"short"`
-	Aliases                  []string          `json:"aliases"`
-	Runnable                 bool              `json:"runnable"`
-	Flags                    []jsonCommandFlag `json:"flags"`
-	SupportsStructuredOutput bool              `json:"supports_structured_output"`
-	AuthModes                []string          `json:"auth_modes"`
-	DestructiveLevel         string            `json:"destructive_level"`
+	Path                     string                 `json:"path"`
+	Use                      string                 `json:"use"`
+	Short                    string                 `json:"short"`
+	Aliases                  []string               `json:"aliases"`
+	Runnable                 bool                   `json:"runnable"`
+	Flags                    []jsonCommandFlag      `json:"flags"`
+	SupportsStructuredOutput bool                   `json:"supports_structured_output"`
+	AuthModes                []string               `json:"auth_modes"`
+	DestructiveLevel         string                 `json:"destructive_level"`
+	ManifestVersion          string                 `json:"manifest_version"`
+	Args                     []jsonCommandArg       `json:"args"`
+	Examples                 []jsonCommandExample   `json:"examples"`
+	SchemaRefs               jsonCommandSchemaRefs  `json:"schema_refs"`
+	DropboxScopes            []string               `json:"dropbox_scopes"`
+	ScopeAccuracy            string                 `json:"scope_accuracy"`
+	StdinStdout              jsonCommandStdinStdout `json:"stdin_stdout"`
+	ResultStatuses           []string               `json:"result_statuses"`
+	ResultKinds              []string               `json:"result_kinds"`
+	WarningCodes             []string               `json:"warning_codes"`
+	MayPrompt                bool                   `json:"may_prompt"`
 }
 
 type jsonCommandFlag struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`
-	Default   string `json:"default"`
-	Usage     string `json:"usage"`
-	Inherited bool   `json:"inherited"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	Default    string   `json:"default"`
+	Usage      string   `json:"usage"`
+	Inherited  bool     `json:"inherited"`
+	Shorthand  string   `json:"shorthand"`
+	EnumValues []string `json:"enum_values"`
+	Conflicts  []string `json:"conflicts"`
+	Required   bool     `json:"required"`
+	Sensitive  bool     `json:"sensitive"`
+	MayPrompt  bool     `json:"may_prompt"`
+	ValueKind  string   `json:"value_kind"`
+}
+
+type jsonCommandArg struct {
+	Name        string `json:"name"`
+	Required    bool   `json:"required"`
+	Variadic    bool   `json:"variadic"`
+	Placement   string `json:"placement"`
+	ValueKind   string `json:"value_kind"`
+	Description string `json:"description"`
+	StreamDash  bool   `json:"stream_dash"`
+}
+
+type jsonCommandExample struct {
+	Description string `json:"description"`
+	Command     string `json:"command"`
+}
+
+type jsonCommandSchemaRefs struct {
+	SuccessSchema   string `json:"success_schema"`
+	ErrorSchema     string `json:"error_schema"`
+	CommandContract string `json:"command_contract,omitempty"`
+}
+
+type jsonCommandStdinStdout struct {
+	ReadsStdin         bool   `json:"reads_stdin"`
+	WritesBinaryStdout bool   `json:"writes_binary_stdout"`
+	Stdout             string `json:"stdout"`
+	Stderr             string `json:"stderr"`
 }
 
 func installJSONHelp(root *cobra.Command) {
@@ -263,17 +309,31 @@ func publicCommandSubtree(cmd *cobra.Command) []*cobra.Command {
 func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 	cmd.InitDefaultHelpFlag()
 	cmd.InitDefaultVersionFlag()
+	path := jsonManifestCommandPath(cmd)
+	meta := commandManifestMetadataFor(path)
+	supportsStructuredOutput := commandSupportsStructuredOutput(cmd)
 
 	return jsonCommandManifest{
-		Path:                     jsonManifestCommandPath(cmd),
+		Path:                     path,
 		Use:                      cmd.UseLine(),
 		Short:                    cmd.Short,
 		Aliases:                  sortedCopyStringSlice(cmd.Aliases),
 		Runnable:                 cmd.Runnable(),
-		Flags:                    jsonCommandFlags(cmd),
-		SupportsStructuredOutput: commandSupportsStructuredOutput(cmd),
+		Flags:                    jsonCommandFlags(cmd, meta.Flags),
+		SupportsStructuredOutput: supportsStructuredOutput,
 		AuthModes:                commandManifestAuthModes(cmd),
 		DestructiveLevel:         commandManifestDestructiveLevel(cmd),
+		ManifestVersion:          commandManifestVersion,
+		Args:                     normalizeJSONCommandArgs(meta.Args),
+		Examples:                 normalizeJSONCommandExamples(meta.Examples),
+		SchemaRefs:               commandManifestSchemaRefs(path, supportsStructuredOutput),
+		DropboxScopes:            sortedCopyStringSlice(meta.DropboxScopes),
+		ScopeAccuracy:            commandManifestScopeAccuracy(meta),
+		StdinStdout:              commandManifestStdinStdout(meta),
+		ResultStatuses:           sortedCopyStringSlice(meta.ResultStatuses),
+		ResultKinds:              sortedCopyStringSlice(meta.ResultKinds),
+		WarningCodes:             sortedCopyStringSlice(meta.WarningCodes),
+		MayPrompt:                meta.MayPrompt,
 	}
 }
 
@@ -287,7 +347,7 @@ func jsonManifestCommandPath(cmd *cobra.Command) string {
 	return jsonCommandPath(cmd)
 }
 
-func jsonCommandFlags(cmd *cobra.Command) []jsonCommandFlag {
+func jsonCommandFlags(cmd *cobra.Command, metadata map[string]jsonCommandFlagMetadata) []jsonCommandFlag {
 	flagsByName := make(map[string]jsonCommandFlag)
 	addFlags := func(flags *pflag.FlagSet, inherited bool) {
 		if flags == nil {
@@ -304,12 +364,20 @@ func jsonCommandFlags(cmd *cobra.Command) []jsonCommandFlag {
 			if flag.Value != nil {
 				flagType = flag.Value.Type()
 			}
+			flagMeta := metadata[flag.Name]
 			flagsByName[flag.Name] = jsonCommandFlag{
-				Name:      flag.Name,
-				Type:      flagType,
-				Default:   flag.DefValue,
-				Usage:     flag.Usage,
-				Inherited: inherited,
+				Name:       flag.Name,
+				Type:       flagType,
+				Default:    flag.DefValue,
+				Usage:      flag.Usage,
+				Inherited:  inherited,
+				Shorthand:  flag.Shorthand,
+				EnumValues: sortedCopyStringSlice(flagMeta.EnumValues),
+				Conflicts:  sortedCopyStringSlice(flagMeta.Conflicts),
+				Required:   flagMeta.Required,
+				Sensitive:  flagMeta.Sensitive,
+				MayPrompt:  flagMeta.MayPrompt,
+				ValueKind:  commandManifestFlagValueKind(flag, flagMeta),
 			}
 		})
 	}
@@ -328,6 +396,11 @@ func jsonCommandFlags(cmd *cobra.Command) []jsonCommandFlag {
 		result = append(result, flagsByName[name])
 	}
 	return result
+}
+
+// CommandManifestFor returns the JSON help manifest for a command.
+func CommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
+	return jsonCommandManifestFor(cmd)
 }
 
 func setCommandAuthModes(cmd *cobra.Command, modes ...string) {

@@ -23,6 +23,12 @@ Use JSON help to discover whether a command supports structured command output:
 dbxcli put --help --output=json
 ```
 
+JSON help is also the Command Manifest v1 surface for tools and agents. Each
+command manifest includes structured positional arguments, flag enum values and
+conflicts, prompt/sensitive-input metadata, examples, auth modes, best-effort
+Dropbox scopes, stdin/stdout behavior, schema refs, result statuses/kinds, and
+known warning codes.
+
 Successful JSON responses use a stable envelope:
 
 ```json
@@ -81,8 +87,9 @@ dbxcli share-link create --help --output=json
 dbxcli --output=json help share-link create
 ```
 
-Use JSON help to discover command paths, flags, aliases, known auth modes, known
-destructive levels, and whether normal structured command output is supported.
+Use JSON help to discover command paths, structured args, flags, aliases, known
+auth modes, known destructive levels, stdin/stdout behavior, schema refs, and
+whether normal structured command output is supported.
 
 ## Safe scripting patterns
 

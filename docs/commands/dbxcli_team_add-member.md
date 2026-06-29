@@ -26,8 +26,15 @@ dbxcli team add-member [flags] <email> <first-name> <last-name>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `team-manage`
+* Dropbox scopes: `members.write`
+* Arguments: `email` (required, email), `first-name` (required, string), `last-name` (required, string)
+* Flag metadata: `--output` (values: `json`, `text`)
 * Destructive behavior: `admin`
+* Result statuses: `added`, `completed`, `started`
+* Result kinds: `team_member`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/team add-member`
 
 
 ### SEE ALSO

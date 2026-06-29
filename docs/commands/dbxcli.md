@@ -22,7 +22,10 @@ manage your team and more. It is easy, scriptable and works on all platforms!
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: none
+* Dropbox scopes: none
+* Flag metadata: `--output` (values: `json`, `text`)
 
 
 ### SEE ALSO

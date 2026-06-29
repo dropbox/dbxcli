@@ -50,7 +50,14 @@ dbxcli share-link update <url> [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `sharing.read`, `sharing.write`
+* Arguments: `url` (required, url)
+* Flag metadata: `--allow-download` (conflicts: `disallow-download`), `--audience` (values: `members`, `no-one`, `public`, `team`), `--disallow-download` (conflicts: `allow-download`), `--expires` (conflicts: `remove-expiration`), `--output` (values: `json`, `text`), `--password` (conflicts: `password-file`, `password-prompt`, `remove-password`; sensitive), `--password-file` (conflicts: `password`, `password-prompt`, `remove-password`), `--password-prompt` (conflicts: `password`, `password-file`, `remove-password`; may prompt), `--remove-expiration` (conflicts: `expires`), `--remove-password` (conflicts: `password`, `password-file`, `password-prompt`)
+* Result statuses: `updated`
+* Result kinds: `file`, `folder`, `link`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link update`
 
 
 ### SEE ALSO

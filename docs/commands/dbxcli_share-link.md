@@ -26,7 +26,10 @@ Create, list, inspect, download, update, and revoke Dropbox shared links.
 
 * Structured JSON output: no
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: none
+* Dropbox scopes: none
+* Flag metadata: `--output` (values: `json`, `text`)
 
 
 ### SEE ALSO

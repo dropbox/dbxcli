@@ -40,7 +40,14 @@ dbxcli restore [flags] <target-path> <revision>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.write`, `files.metadata.read`
+* Arguments: `target-path` (required, dropbox_path), `revision` (required, revision)
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `restored`
+* Result kinds: `file`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/restore`
 
 
 ### SEE ALSO

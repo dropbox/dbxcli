@@ -26,7 +26,13 @@ dbxcli version [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: none
+* Dropbox scopes: none
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `reported`
+* Result kinds: `version`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/version`
 
 
 ### SEE ALSO

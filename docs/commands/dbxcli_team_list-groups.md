@@ -26,7 +26,13 @@ dbxcli team list-groups [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `team-manage`
+* Dropbox scopes: `groups.read`
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `listed`
+* Result kinds: `team_group`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/team list-groups`
 
 
 ### SEE ALSO

@@ -215,6 +215,48 @@ func TestPublicJSONSchemaFiles(t *testing.T) {
 	}
 }
 
+func TestPublicJSONManifestSchemaFile(t *testing.T) {
+	schema := loadPublicJSONSchema(t, "../docs/json-schema/v1/manifest.schema.json")
+	if schema.Schema == "" {
+		t.Fatal("manifest schema has no $schema")
+	}
+	if schema.ID == "" {
+		t.Fatal("manifest schema has no $id")
+	}
+	if schema.Type != "object" {
+		t.Fatalf("manifest schema type = %q, want object", schema.Type)
+	}
+	want := []string{
+		"aliases",
+		"args",
+		"auth_modes",
+		"destructive_level",
+		"dropbox_scopes",
+		"examples",
+		"flags",
+		"manifest_version",
+		"may_prompt",
+		"path",
+		"result_kinds",
+		"result_statuses",
+		"runnable",
+		"schema_refs",
+		"scope_accuracy",
+		"short",
+		"stdin_stdout",
+		"supports_structured_output",
+		"use",
+		"warning_codes",
+	}
+	assertStringSliceEqual(t, "manifest schema required", schema.Required, want)
+	assertStringSliceEqual(t, "manifest schema properties", mapKeys(schema.Properties), want)
+	for _, def := range []string{"arg", "example", "flag", "schema_refs", "stdin_stdout"} {
+		if _, ok := schema.Defs[def]; !ok {
+			t.Fatalf("manifest schema missing $defs.%s", def)
+		}
+	}
+}
+
 func TestPublicJSONCommandCatalogMatchesGoldenContract(t *testing.T) {
 	got := loadJSONContractFile(t, "../docs/json-schema/v1/commands.json", "public command catalog")
 	want := loadJSONGoldenContract(t)
@@ -608,23 +650,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 			newJSONOperationResult(getStatusDownloaded, getKindFile, getResultInput{Source: "/Reports/old.pdf", Target: "old.pdf"}, file),
 		}, nil),
 		"help": newJSONOperationOutput(jsonHelpInput{Help: true, Path: "ls"}, []jsonOperationResult{
-			newJSONOperationResult(jsonHelpStatusDescribed, jsonHelpKindCommand, nil, jsonCommandManifest{
-				Path:     "ls",
-				Use:      "dbxcli ls [flags] [<path>]",
-				Short:    "List files and folders",
-				Aliases:  []string{},
-				Runnable: true,
-				Flags: []jsonCommandFlag{{
-					Name:      "output",
-					Type:      "string",
-					Default:   "text",
-					Usage:     "Output format: text, json",
-					Inherited: true,
-				}},
-				SupportsStructuredOutput: true,
-				AuthModes:                []string{"personal", "team-access"},
-				DestructiveLevel:         destructiveLevelNone,
-			}),
+			newJSONOperationResult(jsonHelpStatusDescribed, jsonHelpKindCommand, nil, jsonCommandManifestFor(lsCmd)),
 		}, nil),
 		"ls": newJSONOperationOutput(lsInput{Path: "/Reports", Recursive: false, IncludeDeleted: true, OnlyDeleted: false, Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(lsJSONStatusListed, file.Type, nil, file),
@@ -842,8 +868,12 @@ func jsonContractDefinitions() map[string][]string {
 		"du_allocation":              jsonFieldNames[duAllocation](),
 		"du_output":                  jsonFieldNames[duOutput](),
 		"empty":                      {},
+		"command_arg":                jsonFieldNames[jsonCommandArg](),
+		"command_example":            jsonFieldNames[jsonCommandExample](),
 		"command_flag":               jsonFieldNames[jsonCommandFlag](),
 		"command_manifest":           jsonFieldNames[jsonCommandManifest](),
+		"command_schema_refs":        jsonFieldNames[jsonCommandSchemaRefs](),
+		"command_stdin_stdout":       jsonFieldNames[jsonCommandStdinStdout](),
 		"get_input":                  jsonFieldNames[getCommandInput](),
 		"get_result_input":           jsonFieldNames[getResultInput](),
 		"help_input":                 jsonFieldNames[jsonHelpInput](),

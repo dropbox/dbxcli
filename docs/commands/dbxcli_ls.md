@@ -45,7 +45,14 @@ dbxcli ls [flags] [<path>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.metadata.read`
+* Arguments: `path` (optional, dropbox_path)
+* Flag metadata: `--output` (values: `json`, `text`), `--sort` (values: `name`, `size`, `time`, `type`), `--time` (values: `client`, `server`), `--time-format` (values: `rfc3339`, `short`)
+* Result statuses: `listed`
+* Result kinds: `deleted`, `file`, `folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/ls`
 
 
 ### SEE ALSO

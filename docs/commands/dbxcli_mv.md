@@ -27,7 +27,14 @@ dbxcli mv [flags] <source> [more sources] <target>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.write`, `files.metadata.read`
+* Arguments: `source` (required, dropbox_path, variadic), `target` (required, dropbox_path)
+* Flag metadata: `--if-exists` (values: `fail`, `skip`), `--output` (values: `json`, `text`)
+* Result statuses: `moved`, `skipped`
+* Result kinds: `deleted`, `file`, `folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/mv`
 
 
 ### SEE ALSO

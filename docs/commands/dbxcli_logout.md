@@ -35,7 +35,14 @@ dbxcli logout [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: none
+* Dropbox scopes: none
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `already_logged_out`, `logged_out`
+* Result kinds: `auth`
+* Warning codes: `token_revoke_failed`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/logout`
 
 
 ### SEE ALSO
