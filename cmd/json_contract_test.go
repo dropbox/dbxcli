@@ -234,6 +234,7 @@ func TestPublicJSONManifestSchemaFile(t *testing.T) {
 		"dropbox_scopes",
 		"examples",
 		"flags",
+		"input_schema",
 		"manifest_version",
 		"may_prompt",
 		"path",
@@ -250,7 +251,7 @@ func TestPublicJSONManifestSchemaFile(t *testing.T) {
 	}
 	assertStringSliceEqual(t, "manifest schema required", schema.Required, want)
 	assertStringSliceEqual(t, "manifest schema properties", mapKeys(schema.Properties), want)
-	for _, def := range []string{"arg", "example", "flag", "schema_refs", "stdin_stdout"} {
+	for _, def := range []string{"arg", "example", "flag", "input_property", "input_schema", "schema_refs", "stdin_stdout"} {
 		if _, ok := schema.Defs[def]; !ok {
 			t.Fatalf("manifest schema missing $defs.%s", def)
 		}
@@ -871,6 +872,8 @@ func jsonContractDefinitions() map[string][]string {
 		"command_arg":                jsonFieldNames[jsonCommandArg](),
 		"command_example":            jsonFieldNames[jsonCommandExample](),
 		"command_flag":               jsonFieldNames[jsonCommandFlag](),
+		"command_input_property":     jsonFieldNames[jsonCommandInputProperty](),
+		"command_input_schema":       jsonFieldNames[jsonCommandInputSchema](),
 		"command_manifest":           jsonFieldNames[jsonCommandManifest](),
 		"command_schema_refs":        jsonFieldNames[jsonCommandSchemaRefs](),
 		"command_stdin_stdout":       jsonFieldNames[jsonCommandStdinStdout](),

@@ -49,6 +49,7 @@ type jsonCommandManifest struct {
 	ResultKinds              []string               `json:"result_kinds"`
 	WarningCodes             []string               `json:"warning_codes"`
 	MayPrompt                bool                   `json:"may_prompt"`
+	InputSchema              jsonCommandInputSchema `json:"input_schema"`
 }
 
 type jsonCommandFlag struct {
@@ -92,6 +93,34 @@ type jsonCommandStdinStdout struct {
 	WritesBinaryStdout bool   `json:"writes_binary_stdout"`
 	Stdout             string `json:"stdout"`
 	Stderr             string `json:"stderr"`
+}
+
+type jsonCommandInputSchema struct {
+	Type                 string                              `json:"type"`
+	AdditionalProperties bool                                `json:"additionalProperties"`
+	Required             []string                            `json:"required"`
+	Properties           map[string]jsonCommandInputProperty `json:"properties"`
+}
+
+type jsonCommandInputProperty struct {
+	Type        string                    `json:"type"`
+	Description string                    `json:"description,omitempty"`
+	Items       *jsonCommandInputProperty `json:"items,omitempty"`
+	Enum        []string                  `json:"enum,omitempty"`
+	Default     any                       `json:"default,omitempty"`
+	Format      string                    `json:"format,omitempty"`
+	MinItems    int                       `json:"minItems,omitempty"`
+	WriteOnly   bool                      `json:"writeOnly,omitempty"`
+
+	XCLIKind    string   `json:"x-cli-kind,omitempty"`
+	XCLIName    string   `json:"x-cli-name,omitempty"`
+	XValueKind  string   `json:"x-value-kind,omitempty"`
+	XStreamDash bool     `json:"x-stream-dash,omitempty"`
+	XSensitive  bool     `json:"x-sensitive,omitempty"`
+	XConflicts  []string `json:"x-conflicts,omitempty"`
+	XInherited  bool     `json:"x-inherited,omitempty"`
+	XShorthand  string   `json:"x-shorthand,omitempty"`
+	XMayPrompt  bool     `json:"x-may-prompt,omitempty"`
 }
 
 func installJSONHelp(root *cobra.Command) {
@@ -183,6 +212,41 @@ func isJSONHelpCommand(cmd *cobra.Command) bool {
 
 func rawArgsRequestJSONHelp(args []string) bool {
 	return outputJSONRequested(args) && (rawArgsHaveHelpFlag(args) || rawArgsFirstCommand(args) == "help")
+}
+
+func rawArgsHelpOutputFormatError(args []string) error {
+	if !rawArgsHaveHelpFlag(args) {
+		return nil
+	}
+	value, ok := rawArgsOutputValue(args)
+	if !ok {
+		return nil
+	}
+	_, err := parseOutputFormat(value)
+	return err
+}
+
+func rawArgsOutputValue(args []string) (string, bool) {
+	value := ""
+	found := false
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--":
+			return value, found
+		case arg == "--output":
+			if i+1 >= len(args) {
+				return value, found
+			}
+			value = args[i+1]
+			found = true
+			i++
+		case strings.HasPrefix(arg, "--output="):
+			value = strings.TrimPrefix(arg, "--output=")
+			found = true
+		}
+	}
+	return value, found
 }
 
 func rawArgsHaveHelpFlag(args []string) bool {
@@ -312,6 +376,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 	path := jsonManifestCommandPath(cmd)
 	meta := commandManifestMetadataFor(path)
 	supportsStructuredOutput := commandSupportsStructuredOutput(cmd)
+	flags := jsonCommandFlags(cmd, meta.Flags)
 
 	return jsonCommandManifest{
 		Path:                     path,
@@ -319,7 +384,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 		Short:                    cmd.Short,
 		Aliases:                  sortedCopyStringSlice(cmd.Aliases),
 		Runnable:                 cmd.Runnable(),
-		Flags:                    jsonCommandFlags(cmd, meta.Flags),
+		Flags:                    flags,
 		SupportsStructuredOutput: supportsStructuredOutput,
 		AuthModes:                commandManifestAuthModes(cmd),
 		DestructiveLevel:         commandManifestDestructiveLevel(cmd),
@@ -334,6 +399,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 		ResultKinds:              sortedCopyStringSlice(meta.ResultKinds),
 		WarningCodes:             sortedCopyStringSlice(meta.WarningCodes),
 		MayPrompt:                meta.MayPrompt,
+		InputSchema:              commandInputSchemaFor(meta.Args, flags),
 	}
 }
 

@@ -24,7 +24,8 @@
     "result_statuses",
     "result_kinds",
     "warning_codes",
-    "may_prompt"
+    "may_prompt",
+    "input_schema"
   ],
   "properties": {
     "path": {
@@ -118,6 +119,9 @@
     },
     "may_prompt": {
       "type": "boolean"
+    },
+    "input_schema": {
+      "$ref": "#/$defs/input_schema"
     }
   },
   "$defs": {
@@ -275,6 +279,110 @@
         },
         "stderr": {
           "type": "string"
+        }
+      }
+    },
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "additionalProperties",
+        "required",
+        "properties"
+      ],
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "additionalProperties": {
+          "const": false
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/input_property"
+          }
+        }
+      }
+    },
+    "input_property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "array",
+            "boolean",
+            "integer",
+            "string"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "items": {
+          "$ref": "#/$defs/input_property"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default": {},
+        "format": {
+          "type": "string"
+        },
+        "minItems": {
+          "type": "integer"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "x-cli-kind": {
+          "type": "string",
+          "enum": [
+            "arg",
+            "flag"
+          ]
+        },
+        "x-cli-name": {
+          "type": "string"
+        },
+        "x-value-kind": {
+          "type": "string"
+        },
+        "x-stream-dash": {
+          "type": "boolean"
+        },
+        "x-sensitive": {
+          "type": "boolean"
+        },
+        "x-conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "x-inherited": {
+          "type": "boolean"
+        },
+        "x-shorthand": {
+          "type": "string"
+        },
+        "x-may-prompt": {
+          "type": "boolean"
         }
       }
     }

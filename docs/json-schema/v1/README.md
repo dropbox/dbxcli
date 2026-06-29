@@ -78,11 +78,20 @@ metadata:
 - structured `args`
 - enriched `flags`, including enum values, conflicts, prompt behavior, and
   sensitive inputs
+- generated `input_schema` for command arguments and flags
 - `examples`
 - `schema_refs`
 - best-effort audited `dropbox_scopes`
 - `stdin_stdout`
 - `result_statuses`, `result_kinds`, and `warning_codes`
+
+`input_schema` is a JSON Schema object generated from the command manifest's
+structured positional arguments and flags. It is intended for tool callers,
+MCP-style integrations, and automation planners that need to validate command
+inputs before building a CLI invocation. It excludes `--help` and `--output`,
+uses JSON-friendly property names such as `if_exists`, and preserves the
+original CLI names in `x-cli-name`. Sensitive inputs are marked with
+`writeOnly` and `x-sensitive`; flag conflicts are listed in `x-conflicts`.
 
 `scope_accuracy` is currently `audited_best_effort` for commands with audited
 manifest metadata. Scope metadata is intended for planning and diagnostics;
