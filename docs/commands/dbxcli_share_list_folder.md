@@ -33,6 +33,7 @@ dbxcli share list folder [flags]
 * Result statuses: `listed`
 * Result kinds: `shared_folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share list folder`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_20list_20folder`
 
 
 ### SEE ALSO

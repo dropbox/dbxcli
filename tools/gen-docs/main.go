@@ -229,6 +229,9 @@ func commandMetadataSection(command *cobra.Command) []byte {
 	if manifest.SchemaRefs.CommandContract != "" {
 		buf.WriteString("* JSON contract: `" + manifest.SchemaRefs.CommandContract + "`\n")
 	}
+	if manifest.SchemaRefs.CommandSuccessSchema != "" {
+		buf.WriteString("* JSON success schema: `" + manifest.SchemaRefs.CommandSuccessSchema + "`\n")
+	}
 
 	buf.WriteString("\n")
 	return buf.Bytes()

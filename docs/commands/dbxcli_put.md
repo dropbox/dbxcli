@@ -64,6 +64,7 @@ dbxcli put [flags] <source> [<target>]
 * Result kinds: `file`, `folder`
 * Warning codes: `skipped_symlink`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/put`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_put`
 
 
 ### SEE ALSO

@@ -33,6 +33,7 @@ dbxcli version [flags]
 * Result statuses: `reported`
 * Result kinds: `version`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/version`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_version`
 
 
 ### SEE ALSO

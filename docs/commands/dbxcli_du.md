@@ -33,6 +33,7 @@ dbxcli du [flags]
 * Result statuses: `reported`
 * Result kinds: `space_usage`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/du`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_du`
 
 
 ### SEE ALSO

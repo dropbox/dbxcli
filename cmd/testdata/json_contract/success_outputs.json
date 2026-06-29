@@ -391,7 +391,8 @@
           "schema_refs": {
             "success_schema": "docs/json-schema/v1/success.schema.json",
             "error_schema": "docs/json-schema/v1/error.schema.json",
-            "command_contract": "docs/json-schema/v1/commands.json#/commands/ls"
+            "command_contract": "docs/json-schema/v1/commands.json#/commands/ls",
+            "command_success_schema": "docs/json-schema/v1/commands.schema.json#/$defs/command_ls"
           },
           "dropbox_scopes": [
             "files.metadata.read"

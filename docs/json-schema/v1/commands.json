@@ -115,6 +115,7 @@
     ],
     "command_schema_refs": [
       "command_contract",
+      "command_success_schema",
       "error_schema",
       "success_schema"
     ],

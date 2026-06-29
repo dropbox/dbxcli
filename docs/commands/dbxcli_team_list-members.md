@@ -33,6 +33,7 @@ dbxcli team list-members [flags]
 * Result statuses: `listed`
 * Result kinds: `team_member`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/team list-members`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_team_20list_2dmembers`
 
 
 ### SEE ALSO

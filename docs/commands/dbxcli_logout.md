@@ -43,6 +43,7 @@ dbxcli logout [flags]
 * Result kinds: `auth`
 * Warning codes: `token_revoke_failed`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/logout`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_logout`
 
 
 ### SEE ALSO

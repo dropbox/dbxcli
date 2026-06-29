@@ -38,6 +38,7 @@ dbxcli revs [flags] <file>
 * Result statuses: `revision`
 * Result kinds: `file`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/revs`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_revs`
 
 
 ### SEE ALSO

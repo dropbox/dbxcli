@@ -35,6 +35,7 @@ dbxcli mkdir [flags] <directory>
 * Result statuses: `created`, `existing`
 * Result kinds: `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/mkdir`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_mkdir`
 
 
 ### SEE ALSO

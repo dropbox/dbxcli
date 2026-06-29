@@ -291,6 +291,9 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	if put.SchemaRefs.CommandContract != "docs/json-schema/v1/commands.json#/commands/put" {
 		t.Fatalf("put command_contract = %q", put.SchemaRefs.CommandContract)
 	}
+	if put.SchemaRefs.CommandSuccessSchema != "docs/json-schema/v1/commands.schema.json#/$defs/command_put" {
+		t.Fatalf("put command_success_schema = %q", put.SchemaRefs.CommandSuccessSchema)
+	}
 	if len(put.Examples) == 0 {
 		t.Fatal("put examples = empty, want examples")
 	}
@@ -497,6 +500,18 @@ func TestJSONHelpManifestRegistryAudit(t *testing.T) {
 			}
 			if _, err := os.Stat(filepath.Join("..", commandManifestContractFile)); err != nil {
 				t.Errorf("%s command contract file %q is not readable: %v", path, commandManifestContractFile, err)
+			}
+		}
+		if manifest.SupportsStructuredOutput && manifest.SchemaRefs.CommandSuccessSchema == "" {
+			t.Errorf("%s supports structured output but has no command success schema ref", path)
+		}
+		if manifest.SchemaRefs.CommandSuccessSchema != "" {
+			wantPrefix := commandManifestCommandSchema + "#/$defs/command_"
+			if !strings.HasPrefix(manifest.SchemaRefs.CommandSuccessSchema, wantPrefix) {
+				t.Errorf("%s command success schema = %q, want prefix %q", path, manifest.SchemaRefs.CommandSuccessSchema, wantPrefix)
+			}
+			if _, err := os.Stat(filepath.Join("..", commandManifestCommandSchema)); err != nil {
+				t.Errorf("%s command success schema file %q is not readable: %v", path, commandManifestCommandSchema, err)
 			}
 		}
 	}

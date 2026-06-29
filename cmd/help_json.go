@@ -84,9 +84,10 @@ type jsonCommandExample struct {
 }
 
 type jsonCommandSchemaRefs struct {
-	SuccessSchema   string `json:"success_schema"`
-	ErrorSchema     string `json:"error_schema"`
-	CommandContract string `json:"command_contract,omitempty"`
+	SuccessSchema        string `json:"success_schema"`
+	ErrorSchema          string `json:"error_schema"`
+	CommandContract      string `json:"command_contract,omitempty"`
+	CommandSuccessSchema string `json:"command_success_schema,omitempty"`
 }
 
 type jsonCommandStdinStdout struct {

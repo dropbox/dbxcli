@@ -35,6 +35,7 @@ dbxcli team add-member [flags] <email> <first-name> <last-name>
 * Result statuses: `added`, `completed`, `started`
 * Result kinds: `team_member`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/team add-member`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_team_20add_2dmember`
 
 
 ### SEE ALSO

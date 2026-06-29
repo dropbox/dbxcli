@@ -33,6 +33,7 @@ dbxcli team list-groups [flags]
 * Result statuses: `listed`
 * Result kinds: `team_group`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/team list-groups`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_team_20list_2dgroups`
 
 
 ### SEE ALSO
