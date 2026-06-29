@@ -3,7 +3,291 @@
   "cp": {"ok":true,"schema_version":"1","command":"cp","input":{},"results":[{"input":{"from_path":"/Reports/old.pdf","to_path":"/Reports/copy.pdf"},"result":{"type":"file","path_display":"/Reports/copy.pdf","path_lower":"/reports/copy.pdf","id":"id:file","rev":"015f","size":123,"server_modified":"2026-06-25T12:00:00Z","client_modified":"2026-06-25T11:00:00Z"},"status":"copied","kind":"file"}],"warnings":[]},
   "du": {"ok":true,"schema_version":"1","command":"du","input":{},"results":[{"kind":"space_usage","input":{},"result":{"used":2048,"allocation":{"type":"team","allocated":1000000,"used":2048,"user_within_team_space_allocated":500000,"user_within_team_space_used_cached":1024,"user_within_team_space_limit_type":"fixed"}},"status":"reported"}],"warnings":[]},
   "get": {"ok":true,"schema_version":"1","command":"get","input":{"source":"/Reports/old.pdf","target":"old.pdf","recursive":false,"stdout":false},"results":[{"status":"downloaded","kind":"file","input":{"source":"/Reports/old.pdf","target":"old.pdf"},"result":{"type":"file","path_display":"/Reports/old.pdf","path_lower":"/reports/old.pdf","id":"id:file","rev":"015f","size":123,"server_modified":"2026-06-25T12:00:00Z","client_modified":"2026-06-25T11:00:00Z"}}],"warnings":[]},
-  "help": {"ok":true,"schema_version":"1","command":"help","input":{"help":true,"path":"ls"},"results":[{"status":"described","kind":"command","input":{},"result":{"path":"ls","use":"dbxcli ls [flags] [<path>]","short":"List files and folders","aliases":[],"runnable":true,"flags":[{"name":"output","type":"string","default":"text","usage":"Output format: text, json","inherited":true}],"supports_structured_output":true,"auth_modes":["personal","team-access"],"destructive_level":"none"}}],"warnings":[]},
+  "help": {
+    "ok": true,
+    "schema_version": "1",
+    "command": "help",
+    "input": {
+      "help": true,
+      "path": "ls"
+    },
+    "results": [
+      {
+        "status": "described",
+        "kind": "command",
+        "input": {},
+        "result": {
+          "path": "ls",
+          "use": "dbxcli ls [flags] [<path>]",
+          "short": "List files and folders",
+          "aliases": [],
+          "runnable": true,
+          "flags": [
+            {
+              "name": "as-member",
+              "type": "string",
+              "default": "",
+              "usage": "Member ID to perform action as",
+              "inherited": true,
+              "shorthand": "",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "dropbox_member_id"
+            },
+            {
+              "name": "help",
+              "type": "bool",
+              "default": "false",
+              "usage": "help for ls",
+              "inherited": false,
+              "shorthand": "h",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "include-deleted",
+              "type": "bool",
+              "default": "false",
+              "usage": "Include deleted files",
+              "inherited": false,
+              "shorthand": "d",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "limit",
+              "type": "uint64",
+              "default": "0",
+              "usage": "Maximum number of entries to return",
+              "inherited": false,
+              "shorthand": "",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "integer"
+            },
+            {
+              "name": "long",
+              "type": "bool",
+              "default": "false",
+              "usage": "Long listing",
+              "inherited": false,
+              "shorthand": "l",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "only-deleted",
+              "type": "bool",
+              "default": "false",
+              "usage": "Only show deleted files",
+              "inherited": false,
+              "shorthand": "D",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "output",
+              "type": "string",
+              "default": "text",
+              "usage": "Output format: text, json",
+              "inherited": true,
+              "shorthand": "",
+              "enum_values": [
+                "json",
+                "text"
+              ],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "enum"
+            },
+            {
+              "name": "recurse",
+              "type": "bool",
+              "default": "false",
+              "usage": "Alias for --recursive",
+              "inherited": false,
+              "shorthand": "R",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "recursive",
+              "type": "bool",
+              "default": "false",
+              "usage": "Recursively list all subfolders",
+              "inherited": false,
+              "shorthand": "",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "reverse",
+              "type": "bool",
+              "default": "false",
+              "usage": "Reverse sort order",
+              "inherited": false,
+              "shorthand": "r",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
+              "name": "sort",
+              "type": "string",
+              "default": "",
+              "usage": "Sort by: name, size, time, type",
+              "inherited": false,
+              "shorthand": "",
+              "enum_values": [
+                "name",
+                "size",
+                "time",
+                "type"
+              ],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "enum"
+            },
+            {
+              "name": "time",
+              "type": "string",
+              "default": "server",
+              "usage": "Time field: server, client",
+              "inherited": false,
+              "shorthand": "",
+              "enum_values": [
+                "client",
+                "server"
+              ],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "enum"
+            },
+            {
+              "name": "time-format",
+              "type": "string",
+              "default": "",
+              "usage": "Time format: short (2006-01-02 15:04), rfc3339",
+              "inherited": false,
+              "shorthand": "",
+              "enum_values": [
+                "rfc3339",
+                "short"
+              ],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "enum"
+            },
+            {
+              "name": "verbose",
+              "type": "bool",
+              "default": "false",
+              "usage": "Enable verbose logging",
+              "inherited": true,
+              "shorthand": "v",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            }
+          ],
+          "supports_structured_output": true,
+          "auth_modes": [
+            "personal",
+            "team-access"
+          ],
+          "destructive_level": "none",
+          "manifest_version": "1",
+          "args": [
+            {
+              "name": "path",
+              "required": false,
+              "variadic": false,
+              "placement": "positional",
+              "value_kind": "dropbox_path",
+              "description": "Dropbox folder or file path",
+              "stream_dash": false
+            }
+          ],
+          "examples": [
+            {
+              "description": "List the root folder",
+              "command": "dbxcli ls /"
+            }
+          ],
+          "schema_refs": {
+            "success_schema": "docs/json-schema/v1/success.schema.json",
+            "error_schema": "docs/json-schema/v1/error.schema.json",
+            "command_contract": "docs/json-schema/v1/commands.json#/commands/ls"
+          },
+          "dropbox_scopes": [
+            "files.metadata.read"
+          ],
+          "scope_accuracy": "audited_best_effort",
+          "stdin_stdout": {
+            "reads_stdin": false,
+            "writes_binary_stdout": false,
+            "stdout": "command_results",
+            "stderr": "status_progress_warnings_diagnostics"
+          },
+          "result_statuses": [
+            "listed"
+          ],
+          "result_kinds": [
+            "deleted",
+            "file",
+            "folder"
+          ],
+          "warning_codes": [],
+          "may_prompt": false
+        }
+      }
+    ],
+    "warnings": []
+  },
   "ls": {"ok":true,"schema_version":"1","command":"ls","input":{"path":"/Reports","recursive":false,"include_deleted":true,"only_deleted":false,"long":true,"sort":"name","reverse":false,"time":"server","time_format":"2006-01-02"},"results":[{"status":"listed","kind":"file","result":{"type":"file","path_display":"/Reports/old.pdf","path_lower":"/reports/old.pdf","id":"id:file","rev":"015f","size":123,"server_modified":"2026-06-25T12:00:00Z","client_modified":"2026-06-25T11:00:00Z"},"input":{}}],"warnings":[]},
   "logout": {"ok":true,"schema_version":"1","command":"logout","input":{},"results":[{"status":"logged_out","kind":"auth","input":{},"result":{"removed_saved_credentials":true,"remote_token_revoked":true}}],"warnings":[]},
   "mkdir": {"ok":true,"schema_version":"1","command":"mkdir","input":{"path":"/Reports/new","parents":true},"results":[{"status":"created","kind":"folder","input":{"path":"/Reports/new","parents":true},"result":{"type":"folder","path_display":"/Reports/new","path_lower":"/reports/new","id":"id:folder"}}],"warnings":[]},

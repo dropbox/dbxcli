@@ -152,7 +152,7 @@ When path is supplied, dbxcli lists direct shared links for that Dropbox path on
 }
 
 var shareListLinksCmd = &cobra.Command{
-	Use:        "link",
+	Use:        "link [path]",
 	Short:      "List shared links",
 	Deprecated: "use `dbxcli share-link list` instead",
 	RunE:       shareListLinks,

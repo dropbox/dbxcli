@@ -29,11 +29,7 @@ import (
 
 const outputDir = "docs/commands"
 
-const (
-	structuredOutputSupportedAnnotation = "dbxcli.supportsStructuredOutput"
-	commandDestructiveLevelAnnotation   = "dbxcli.destructiveLevel"
-	destructiveLevelNone                = "none"
-)
+const destructiveLevelNone = "none"
 
 var stdinStdoutNotes = map[string]string{
 	"get":                 "Use `-` as the local target to write downloaded file bytes to stdout; diagnostics go to stderr.",
@@ -140,11 +136,14 @@ func insertMetadataSection(contents []byte, section []byte) []byte {
 }
 
 func commandMetadataSection(command *cobra.Command) []byte {
+	manifest := cmd.CommandManifestFor(command)
 	var buf bytes.Buffer
 	buf.WriteString("### Command metadata\n\n")
-	buf.WriteString(fmt.Sprintf("* Structured JSON output: %s\n", yesNo(commandSupportsStructuredOutput(command))))
+	buf.WriteString(fmt.Sprintf("* Structured JSON output: %s\n", yesNo(manifest.SupportsStructuredOutput)))
 	buf.WriteString("* JSON help manifest: yes\n")
-	buf.WriteString("* Auth modes: " + markdownValueList(cmd.CommandManifestAuthModes(command)) + "\n")
+	buf.WriteString("* Manifest version: `" + manifest.ManifestVersion + "`\n")
+	buf.WriteString("* Auth modes: " + markdownValueList(manifest.AuthModes) + "\n")
+	buf.WriteString("* Dropbox scopes: " + markdownValueList(manifest.DropboxScopes) + "\n")
 
 	if aliases := sortedAliases(command); len(aliases) > 0 {
 		buf.WriteString("* Aliases: ")
@@ -157,36 +156,78 @@ func commandMetadataSection(command *cobra.Command) []byte {
 		buf.WriteString("\n")
 	}
 
-	if note, ok := stdinStdoutNotes[relativeCommandPath(command)]; ok {
-		buf.WriteString("* Stdin/stdout behavior: " + note + "\n")
+	if len(manifest.Args) > 0 {
+		buf.WriteString("* Arguments: ")
+		for i, arg := range manifest.Args {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			requirement := "optional"
+			if arg.Required {
+				requirement = "required"
+			}
+			variadic := ""
+			if arg.Variadic {
+				variadic = ", variadic"
+			}
+			streamDash := ""
+			if arg.StreamDash {
+				streamDash = ", `-` stream operand"
+			}
+			buf.WriteString(fmt.Sprintf("`%s` (%s, %s%s%s)", arg.Name, requirement, arg.ValueKind, variadic, streamDash))
+		}
+		buf.WriteString("\n")
 	}
 
-	if level := commandDestructiveLevel(command); level != destructiveLevelNone {
+	if len(manifest.Flags) > 0 {
+		var describedFlags []string
+		for _, flag := range manifest.Flags {
+			var details []string
+			if len(flag.EnumValues) > 0 {
+				details = append(details, "values: "+markdownValueList(flag.EnumValues))
+			}
+			if len(flag.Conflicts) > 0 {
+				details = append(details, "conflicts: "+markdownValueList(flag.Conflicts))
+			}
+			if flag.Sensitive {
+				details = append(details, "sensitive")
+			}
+			if flag.MayPrompt {
+				details = append(details, "may prompt")
+			}
+			if len(details) > 0 {
+				describedFlags = append(describedFlags, "`--"+flag.Name+"` ("+strings.Join(details, "; ")+")")
+			}
+		}
+		if len(describedFlags) > 0 {
+			buf.WriteString("* Flag metadata: " + strings.Join(describedFlags, ", ") + "\n")
+		}
+	}
+
+	if note, ok := stdinStdoutNotes[relativeCommandPath(command)]; ok {
+		buf.WriteString("* Stdin/stdout behavior: " + note + "\n")
+	} else if manifest.StdinStdout.ReadsStdin || manifest.StdinStdout.WritesBinaryStdout {
+		buf.WriteString(fmt.Sprintf("* Stdin/stdout behavior: reads_stdin=%t, writes_binary_stdout=%t\n", manifest.StdinStdout.ReadsStdin, manifest.StdinStdout.WritesBinaryStdout))
+	}
+
+	if level := manifest.DestructiveLevel; level != destructiveLevelNone {
 		buf.WriteString("* Destructive behavior: `" + level + "`\n")
+	}
+	if len(manifest.ResultStatuses) > 0 {
+		buf.WriteString("* Result statuses: " + markdownValueList(manifest.ResultStatuses) + "\n")
+	}
+	if len(manifest.ResultKinds) > 0 {
+		buf.WriteString("* Result kinds: " + markdownValueList(manifest.ResultKinds) + "\n")
+	}
+	if len(manifest.WarningCodes) > 0 {
+		buf.WriteString("* Warning codes: " + markdownValueList(manifest.WarningCodes) + "\n")
+	}
+	if manifest.SchemaRefs.CommandContract != "" {
+		buf.WriteString("* JSON contract: `" + manifest.SchemaRefs.CommandContract + "`\n")
 	}
 
 	buf.WriteString("\n")
 	return buf.Bytes()
-}
-
-func commandSupportsStructuredOutput(command *cobra.Command) bool {
-	return command != nil && command.Annotations[structuredOutputSupportedAnnotation] == "true"
-}
-
-func commandDestructiveLevel(command *cobra.Command) string {
-	if command == nil || command.Annotations == nil {
-		return destructiveLevelNone
-	}
-	level := strings.TrimSpace(command.Annotations[commandDestructiveLevelAnnotation])
-	if level == "" {
-		return destructiveLevelNone
-	}
-	parts := strings.Split(level, ",")
-	level = strings.TrimSpace(parts[0])
-	if level == "" {
-		return destructiveLevelNone
-	}
-	return level
 }
 
 func sortedAliases(command *cobra.Command) []string {

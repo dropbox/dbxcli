@@ -51,7 +51,14 @@ dbxcli share-link create <path> [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `sharing.read`, `sharing.write`
+* Arguments: `path` (required, dropbox_path)
+* Flag metadata: `--access` (values: `editor`, `max`, `viewer`), `--allow-download` (conflicts: `disallow-download`), `--audience` (values: `members`, `no-one`, `public`, `team`), `--disallow-download` (conflicts: `allow-download`), `--expires` (conflicts: `remove-expiration`), `--output` (values: `json`, `text`), `--password` (conflicts: `password-file`, `password-prompt`; sensitive), `--password-file` (conflicts: `password`, `password-prompt`), `--password-prompt` (conflicts: `password`, `password-file`; may prompt), `--remove-expiration` (conflicts: `expires`)
+* Result statuses: `created`, `existing`
+* Result kinds: `file`, `folder`, `link`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link create`
 
 
 ### SEE ALSO

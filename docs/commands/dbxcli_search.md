@@ -34,7 +34,14 @@ dbxcli search [flags] <query> [path-scope]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.read`, `files.metadata.read`
+* Arguments: `query` (required, string), `path-scope` (optional, dropbox_path)
+* Flag metadata: `--order-by` (values: `modified`, `relevance`), `--output` (values: `json`, `text`), `--sort` (values: `name`, `size`, `time`, `type`), `--time` (values: `client`, `server`), `--time-format` (values: `rfc3339`, `short`)
+* Result statuses: `found`
+* Result kinds: `deleted`, `file`, `folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/search`
 
 
 ### SEE ALSO

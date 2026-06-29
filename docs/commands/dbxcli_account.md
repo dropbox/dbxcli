@@ -33,7 +33,14 @@ dbxcli account [flags] [<account-id>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `account_info.read`
+* Arguments: `account-id` (optional, account_id)
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `found`
+* Result kinds: `account`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/account`
 
 
 ### SEE ALSO

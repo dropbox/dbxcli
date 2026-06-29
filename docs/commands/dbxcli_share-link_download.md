@@ -50,8 +50,15 @@ dbxcli share-link download <url> [target] [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.read`, `sharing.read`
+* Arguments: `url` (required, url), `target` (optional, local_path, `-` stream operand)
+* Flag metadata: `--output` (values: `json`, `text`), `--password` (conflicts: `password-file`, `password-prompt`; sensitive), `--password-file` (conflicts: `password`, `password-prompt`), `--password-prompt` (conflicts: `password`, `password-file`; may prompt)
 * Stdin/stdout behavior: Use `-` as the target for file shared links to write bytes to stdout; folder shared links require `--recursive` and cannot be written to stdout.
+* Result statuses: `downloaded`
+* Result kinds: `file`, `folder`, `link`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link download`
 
 
 ### SEE ALSO

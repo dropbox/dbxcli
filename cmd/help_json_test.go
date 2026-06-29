@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -253,6 +254,146 @@ func TestJSONHelpManifestFields(t *testing.T) {
 	helpFromCommand := jsonHelpManifestByPath(t, decodeJSONHelpOutput(t, stdout), "help")
 	if helpFromCommand.Use != helpFromRoot.Use {
 		t.Fatalf("help use differs between manifests: root %q, command %q", helpFromRoot.Use, helpFromCommand.Use)
+	}
+}
+
+func TestJSONHelpManifestV1MachineFields(t *testing.T) {
+	put := jsonCommandManifestFor(putCmd)
+	if put.ManifestVersion != commandManifestVersion {
+		t.Fatalf("manifest_version = %q, want %q", put.ManifestVersion, commandManifestVersion)
+	}
+	assertJSONHelpArg(t, put.Args, "source", true, "local_path", true)
+	assertJSONHelpArg(t, put.Args, "target", false, "dropbox_path", false)
+	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "fail"})
+	if !put.StdinStdout.ReadsStdin || put.StdinStdout.WritesBinaryStdout {
+		t.Fatalf("put stdin_stdout = %+v, want stdin only", put.StdinStdout)
+	}
+	assertStringSliceEqual(t, "put warning codes", put.WarningCodes, []string{jsonWarningCodeSkippedSymlink})
+	assertStringSliceEqual(t, "put result statuses", put.ResultStatuses, []string{"created", "existing", "skipped", "uploaded"})
+	assertStringSliceEqual(t, "put result kinds", put.ResultKinds, []string{"file", "folder"})
+	assertStringSliceEqual(t, "put scopes", put.DropboxScopes, []string{"files.content.write", "files.metadata.read"})
+	if put.ScopeAccuracy != commandManifestScopeAccuracyBestEffort {
+		t.Fatalf("scope_accuracy = %q, want %q", put.ScopeAccuracy, commandManifestScopeAccuracyBestEffort)
+	}
+	if put.SchemaRefs.CommandContract != "docs/json-schema/v1/commands.json#/commands/put" {
+		t.Fatalf("put command_contract = %q", put.SchemaRefs.CommandContract)
+	}
+	if len(put.Examples) == 0 {
+		t.Fatal("put examples = empty, want examples")
+	}
+}
+
+func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
+	get := jsonCommandManifestFor(getCmd)
+	assertJSONHelpArg(t, get.Args, "source", true, "dropbox_path", false)
+	assertJSONHelpArg(t, get.Args, "target", false, "local_path", true)
+	if !get.StdinStdout.WritesBinaryStdout {
+		t.Fatalf("get stdin_stdout = %+v, want binary stdout support", get.StdinStdout)
+	}
+
+	cp := jsonCommandManifestFor(cpCmd)
+	assertJSONHelpArg(t, cp.Args, "source", true, "dropbox_path", false)
+	if !jsonHelpArgByName(t, cp.Args, "source").Variadic {
+		t.Fatal("cp source variadic = false, want true")
+	}
+	assertStringSliceEqual(t, "cp --if-exists enum", jsonHelpFlagByName(t, cp.Flags, "if-exists").EnumValues, []string{"fail", "skip"})
+
+	create := jsonCommandManifestFor(shareLinkCreateCmd)
+	assertStringSliceEqual(t, "share-link create audience enum", jsonHelpFlagByName(t, create.Flags, "audience").EnumValues, []string{"public", "team", "members", "no-one"})
+	assertStringSliceEqual(t, "share-link create allow conflict", jsonHelpFlagByName(t, create.Flags, "allow-download").Conflicts, []string{"disallow-download"})
+	if !jsonHelpFlagByName(t, create.Flags, "password").Sensitive {
+		t.Fatal("share-link create password sensitive = false, want true")
+	}
+	if !jsonHelpFlagByName(t, create.Flags, "password-prompt").MayPrompt {
+		t.Fatal("share-link create password-prompt may_prompt = false, want true")
+	}
+
+	update := jsonCommandManifestFor(shareLinkUpdateCmd)
+	assertStringSliceEqual(t, "share-link update expires conflict", jsonHelpFlagByName(t, update.Flags, "expires").Conflicts, []string{"remove-expiration"})
+	assertStringSliceEqual(t, "share-link update remove-password conflict", jsonHelpFlagByName(t, update.Flags, "remove-password").Conflicts, []string{"password", "password-file", "password-prompt"})
+
+	deprecatedListLink := jsonCommandManifestFor(shareListLinksCmd)
+	if !strings.Contains(deprecatedListLink.Use, "[path]") {
+		t.Fatalf("share list link use = %q, want optional path", deprecatedListLink.Use)
+	}
+	assertJSONHelpArg(t, deprecatedListLink.Args, "path", false, "dropbox_path", false)
+
+	login := jsonCommandManifestFor(loginCmd)
+	if !login.MayPrompt {
+		t.Fatal("login may_prompt = false, want true")
+	}
+	if jsonHelpFlagByName(t, login.Flags, "app-key").ValueKind != "dropbox_app_key" {
+		t.Fatalf("login app-key value_kind = %q", jsonHelpFlagByName(t, login.Flags, "app-key").ValueKind)
+	}
+
+	completion := jsonCommandManifestFor(newCompletionCmd())
+	if completion.SupportsStructuredOutput {
+		t.Fatal("completion supports_structured_output = true, want false")
+	}
+	if len(completion.AuthModes) != 0 || len(completion.DropboxScopes) != 0 {
+		t.Fatalf("completion auth/scopes = %v/%v, want none", completion.AuthModes, completion.DropboxScopes)
+	}
+}
+
+func TestJSONHelpManifestRegistryAudit(t *testing.T) {
+	RootCmd.InitDefaultHelpCmd()
+
+	for _, command := range publicCommandSubtree(RootCmd) {
+		path := jsonCommandManifestFor(command).Path
+		if command.Runnable() {
+			if !commandManifestRegistry[path].Known {
+				t.Errorf("runnable command %q has no command manifest registry entry", path)
+			}
+		}
+
+		manifest := jsonCommandManifestFor(command)
+		flagNames := make(map[string]bool)
+		for _, flag := range manifest.Flags {
+			flagNames[flag.Name] = true
+		}
+		if registry := commandManifestRegistry[path]; registry.Known {
+			for name, flagMeta := range registry.Flags {
+				if !flagNames[name] {
+					t.Errorf("%s has registry metadata for unknown flag --%s", path, name)
+				}
+				for _, conflict := range flagMeta.Conflicts {
+					if !flagNames[conflict] {
+						t.Errorf("%s registry metadata for --%s conflicts with unknown flag --%s", path, name, conflict)
+					}
+				}
+			}
+		}
+		for _, flag := range manifest.Flags {
+			for _, conflict := range flag.Conflicts {
+				if !flagNames[conflict] {
+					t.Errorf("%s --%s conflicts with unknown flag --%s", path, flag.Name, conflict)
+				}
+			}
+		}
+		if manifest.SchemaRefs.SuccessSchema != commandManifestSuccessSchema {
+			t.Errorf("%s success schema = %q", path, manifest.SchemaRefs.SuccessSchema)
+		}
+		if _, err := os.Stat(filepath.Join("..", manifest.SchemaRefs.SuccessSchema)); err != nil {
+			t.Errorf("%s success schema %q is not readable: %v", path, manifest.SchemaRefs.SuccessSchema, err)
+		}
+		if manifest.SchemaRefs.ErrorSchema != commandManifestErrorSchema {
+			t.Errorf("%s error schema = %q", path, manifest.SchemaRefs.ErrorSchema)
+		}
+		if _, err := os.Stat(filepath.Join("..", manifest.SchemaRefs.ErrorSchema)); err != nil {
+			t.Errorf("%s error schema %q is not readable: %v", path, manifest.SchemaRefs.ErrorSchema, err)
+		}
+		if manifest.SupportsStructuredOutput && manifest.SchemaRefs.CommandContract == "" {
+			t.Errorf("%s supports structured output but has no command contract ref", path)
+		}
+		if manifest.SchemaRefs.CommandContract != "" {
+			wantPrefix := commandManifestContractFile + "#/commands/"
+			if !strings.HasPrefix(manifest.SchemaRefs.CommandContract, wantPrefix) {
+				t.Errorf("%s command contract = %q, want prefix %q", path, manifest.SchemaRefs.CommandContract, wantPrefix)
+			}
+			if _, err := os.Stat(filepath.Join("..", commandManifestContractFile)); err != nil {
+				t.Errorf("%s command contract file %q is not readable: %v", path, commandManifestContractFile, err)
+			}
+		}
 	}
 }
 
@@ -720,6 +861,25 @@ func jsonHelpFlagByName(t *testing.T, flags []jsonCommandFlag, name string) json
 	}
 	t.Fatalf("flag %q not found", name)
 	return jsonCommandFlag{}
+}
+
+func assertJSONHelpArg(t *testing.T, args []jsonCommandArg, name string, required bool, valueKind string, streamDash bool) {
+	t.Helper()
+	arg := jsonHelpArgByName(t, args, name)
+	if arg.Required != required || arg.ValueKind != valueKind || arg.StreamDash != streamDash {
+		t.Fatalf("arg %s = %+v, want required=%t value_kind=%s stream_dash=%t", name, arg, required, valueKind, streamDash)
+	}
+}
+
+func jsonHelpArgByName(t *testing.T, args []jsonCommandArg, name string) jsonCommandArg {
+	t.Helper()
+	for _, arg := range args {
+		if arg.Name == name {
+			return arg
+		}
+	}
+	t.Fatalf("arg %q not found", name)
+	return jsonCommandArg{}
 }
 
 func sortStrings(values []string) {

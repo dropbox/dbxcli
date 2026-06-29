@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/dropbox/dbxcli/master/docs/json-schema/v1/manifest.schema.json",
+  "title": "dbxcli JSON command manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "path",
+    "use",
+    "short",
+    "aliases",
+    "runnable",
+    "flags",
+    "supports_structured_output",
+    "auth_modes",
+    "destructive_level",
+    "manifest_version",
+    "args",
+    "examples",
+    "schema_refs",
+    "dropbox_scopes",
+    "scope_accuracy",
+    "stdin_stdout",
+    "result_statuses",
+    "result_kinds",
+    "warning_codes",
+    "may_prompt"
+  ],
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "use": {
+      "type": "string"
+    },
+    "short": {
+      "type": "string"
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runnable": {
+      "type": "boolean"
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flag"
+      }
+    },
+    "supports_structured_output": {
+      "type": "boolean"
+    },
+    "auth_modes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "destructive_level": {
+      "type": "string",
+      "enum": [
+        "none",
+        "delete",
+        "admin"
+      ]
+    },
+    "manifest_version": {
+      "const": "1"
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/arg"
+      }
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/example"
+      }
+    },
+    "schema_refs": {
+      "$ref": "#/$defs/schema_refs"
+    },
+    "dropbox_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_accuracy": {
+      "type": "string"
+    },
+    "stdin_stdout": {
+      "$ref": "#/$defs/stdin_stdout"
+    },
+    "result_statuses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "result_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warning_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "may_prompt": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "arg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "required",
+        "variadic",
+        "placement",
+        "value_kind",
+        "description",
+        "stream_dash"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "variadic": {
+          "type": "boolean"
+        },
+        "placement": {
+          "type": "string"
+        },
+        "value_kind": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "stream_dash": {
+          "type": "boolean"
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "command"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        }
+      }
+    },
+    "flag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "default",
+        "usage",
+        "inherited",
+        "shorthand",
+        "enum_values",
+        "conflicts",
+        "required",
+        "sensitive",
+        "may_prompt",
+        "value_kind"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "string"
+        },
+        "inherited": {
+          "type": "boolean"
+        },
+        "shorthand": {
+          "type": "string"
+        },
+        "enum_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitive": {
+          "type": "boolean"
+        },
+        "may_prompt": {
+          "type": "boolean"
+        },
+        "value_kind": {
+          "type": "string"
+        }
+      }
+    },
+    "schema_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "success_schema",
+        "error_schema"
+      ],
+      "properties": {
+        "success_schema": {
+          "type": "string"
+        },
+        "error_schema": {
+          "type": "string"
+        },
+        "command_contract": {
+          "type": "string"
+        }
+      }
+    },
+    "stdin_stdout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reads_stdin",
+        "writes_binary_stdout",
+        "stdout",
+        "stderr"
+      ],
+      "properties": {
+        "reads_stdin": {
+          "type": "boolean"
+        },
+        "writes_binary_stdout": {
+          "type": "boolean"
+        },
+        "stdout": {
+          "type": "string"
+        },
+        "stderr": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

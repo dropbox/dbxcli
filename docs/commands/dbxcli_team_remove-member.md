@@ -26,8 +26,15 @@ dbxcli team remove-member [flags] <email>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `team-manage`
+* Dropbox scopes: `members.write`
+* Arguments: `email` (required, email)
+* Flag metadata: `--output` (values: `json`, `text`)
 * Destructive behavior: `admin`
+* Result statuses: `completed`, `removed`, `started`
+* Result kinds: `team_member`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/team remove-member`
 
 
 ### SEE ALSO

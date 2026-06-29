@@ -26,7 +26,13 @@ dbxcli du [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `account_info.read`
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `reported`
+* Result kinds: `space_usage`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/du`
 
 
 ### SEE ALSO

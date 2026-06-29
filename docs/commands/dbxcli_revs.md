@@ -30,7 +30,14 @@ dbxcli revs [flags] <file>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.metadata.read`
+* Arguments: `file` (required, dropbox_path)
+* Flag metadata: `--output` (values: `json`, `text`), `--time` (values: `client`, `server`), `--time-format` (values: `rfc3339`, `short`)
+* Result statuses: `revision`
+* Result kinds: `file`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/revs`
 
 
 ### SEE ALSO

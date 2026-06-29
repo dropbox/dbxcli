@@ -44,8 +44,15 @@ dbxcli get [flags] <source> [<target>]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.read`, `files.metadata.read`
+* Arguments: `source` (required, dropbox_path), `target` (optional, local_path, `-` stream operand)
+* Flag metadata: `--output` (values: `json`, `text`)
 * Stdin/stdout behavior: Use `-` as the local target to write downloaded file bytes to stdout; diagnostics go to stderr.
+* Result statuses: `created`, `downloaded`, `existing`
+* Result kinds: `file`, `folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/get`
 
 
 ### SEE ALSO

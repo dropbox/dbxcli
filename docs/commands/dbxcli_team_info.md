@@ -26,7 +26,13 @@ dbxcli team info [flags]
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `team-manage`
+* Dropbox scopes: `team_info.read`
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `found`
+* Result kinds: `team`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/team info`
 
 
 ### SEE ALSO

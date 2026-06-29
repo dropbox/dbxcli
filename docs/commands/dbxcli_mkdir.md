@@ -27,7 +27,14 @@ dbxcli mkdir [flags] <directory>
 
 * Structured JSON output: yes
 * JSON help manifest: yes
+* Manifest version: `1`
 * Auth modes: `personal`, `team-access`
+* Dropbox scopes: `files.content.write`
+* Arguments: `directory` (required, dropbox_path)
+* Flag metadata: `--output` (values: `json`, `text`)
+* Result statuses: `created`, `existing`
+* Result kinds: `folder`
+* JSON contract: `docs/json-schema/v1/commands.json#/commands/mkdir`
 
 
 ### SEE ALSO
