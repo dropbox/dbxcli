@@ -53,6 +53,7 @@ dbxcli get [flags] <source> [<target>]
 * Result statuses: `created`, `downloaded`, `existing`
 * Result kinds: `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/get`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_get`
 
 
 ### SEE ALSO

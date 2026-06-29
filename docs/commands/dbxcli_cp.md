@@ -35,6 +35,7 @@ dbxcli cp [flags] <source> [more sources] <target>
 * Result statuses: `copied`, `skipped`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/cp`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_cp`
 
 
 ### SEE ALSO

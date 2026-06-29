@@ -46,6 +46,7 @@ dbxcli share-link revoke [url] [flags]
 * Result statuses: `revoked`
 * Result kinds: `file`, `folder`, `link`, `shared_link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link revoke`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20revoke`
 
 
 ### SEE ALSO

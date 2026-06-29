@@ -262,6 +262,9 @@
         },
         "command_contract": {
           "type": "string"
+        },
+        "command_success_schema": {
+          "type": "string"
         }
       }
     },

@@ -53,6 +53,7 @@ dbxcli ls [flags] [<path>]
 * Result statuses: `listed`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/ls`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_ls`
 
 
 ### SEE ALSO

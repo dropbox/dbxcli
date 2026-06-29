@@ -33,6 +33,7 @@ dbxcli team info [flags]
 * Result statuses: `found`
 * Result kinds: `team`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/team info`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_team_20info`
 
 
 ### SEE ALSO

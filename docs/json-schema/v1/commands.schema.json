@@ -1,0 +1,2676 @@
+{
+  "$defs": {
+    "account": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {},
+        "account_type": {},
+        "auth": {},
+        "disabled": {},
+        "email": {},
+        "email_verified": {},
+        "is_paired": {},
+        "is_teammate": {},
+        "locale": {},
+        "name": {},
+        "profile_photo_url": {},
+        "referral_link": {},
+        "team": {},
+        "team_member_id": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "account_auth": {
+      "additionalProperties": false,
+      "properties": {
+        "auth_file": {},
+        "refreshable": {},
+        "source": {}
+      },
+      "type": "object"
+    },
+    "account_input": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {}
+      },
+      "type": "object"
+    },
+    "account_name": {
+      "additionalProperties": false,
+      "properties": {
+        "abbreviated_name": {},
+        "display_name": {},
+        "familiar_name": {},
+        "given_name": {},
+        "surname": {}
+      },
+      "type": "object"
+    },
+    "account_team": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {},
+        "member_id": {},
+        "name": {}
+      },
+      "type": "object"
+    },
+    "command_account": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "account"
+        },
+        "input": {
+          "$ref": "#/$defs/account_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_account"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_account"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_arg": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {},
+        "enum_values": {},
+        "name": {},
+        "placement": {},
+        "required": {},
+        "stream_dash": {},
+        "value_kind": {},
+        "variadic": {}
+      },
+      "type": "object"
+    },
+    "command_cp": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "cp"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_cp"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_cp"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_du": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "du"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_du"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_du"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_example": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {},
+        "description": {}
+      },
+      "type": "object"
+    },
+    "command_flag": {
+      "additionalProperties": false,
+      "properties": {
+        "conflicts": {},
+        "default": {},
+        "enum_values": {},
+        "inherited": {},
+        "may_prompt": {},
+        "name": {},
+        "required": {},
+        "sensitive": {},
+        "shorthand": {},
+        "type": {},
+        "usage": {},
+        "value_kind": {}
+      },
+      "type": "object"
+    },
+    "command_get": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "get"
+        },
+        "input": {
+          "$ref": "#/$defs/get_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_get"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_get"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_help": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "help"
+        },
+        "input": {
+          "$ref": "#/$defs/help_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_help"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_help"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_input_property": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {},
+        "description": {},
+        "enum": {},
+        "format": {},
+        "items": {},
+        "minItems": {},
+        "type": {},
+        "writeOnly": {},
+        "x-cli-kind": {},
+        "x-cli-name": {},
+        "x-conflicts": {},
+        "x-inherited": {},
+        "x-may-prompt": {},
+        "x-sensitive": {},
+        "x-shorthand": {},
+        "x-stream-dash": {},
+        "x-value-kind": {}
+      },
+      "type": "object"
+    },
+    "command_input_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "additionalProperties": {},
+        "properties": {},
+        "required": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "command_logout": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "logout"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_logout"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_logout"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_ls": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "ls"
+        },
+        "input": {
+          "$ref": "#/$defs/ls_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_ls"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_ls"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "aliases": {},
+        "args": {},
+        "auth_modes": {},
+        "destructive_level": {},
+        "dropbox_scopes": {},
+        "examples": {},
+        "flags": {},
+        "input_schema": {},
+        "manifest_version": {},
+        "may_prompt": {},
+        "path": {},
+        "result_kinds": {},
+        "result_statuses": {},
+        "runnable": {},
+        "schema_refs": {},
+        "scope_accuracy": {},
+        "short": {},
+        "stdin_stdout": {},
+        "supports_structured_output": {},
+        "use": {},
+        "warning_codes": {}
+      },
+      "type": "object"
+    },
+    "command_mkdir": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "mkdir"
+        },
+        "input": {
+          "$ref": "#/$defs/mkdir_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_mkdir"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_mkdir"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_mv": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "mv"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_mv"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_mv"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_put": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "put"
+        },
+        "input": {
+          "$ref": "#/$defs/put_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_put"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_put"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_restore": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "restore"
+        },
+        "input": {
+          "$ref": "#/$defs/restore_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_restore"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_restore"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_revs": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "revs"
+        },
+        "input": {
+          "$ref": "#/$defs/revs_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_revs"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_revs"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_rm": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "rm"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_rm"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_rm"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_schema_refs": {
+      "additionalProperties": false,
+      "properties": {
+        "command_contract": {},
+        "command_success_schema": {},
+        "error_schema": {},
+        "success_schema": {}
+      },
+      "type": "object"
+    },
+    "command_search": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "search"
+        },
+        "input": {
+          "$ref": "#/$defs/search_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_search"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_search"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_20list_20folder": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share list folder"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_20list_20folder"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_20list_20folder"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_20list_20link": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share list link"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_list_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_20list_20link"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_20list_20link"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20create": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link create"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_create_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20create"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20create"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20download": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link download"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_download_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20download"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20download"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20info": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link info"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_info_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20info"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20info"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20list": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link list"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_list_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20list"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20list"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20revoke": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link revoke"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_revoke_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20revoke"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20revoke"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_share_2dlink_20update": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link update"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_update_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20update"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20update"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_stdin_stdout": {
+      "additionalProperties": false,
+      "properties": {
+        "reads_stdin": {},
+        "stderr": {},
+        "stdout": {},
+        "writes_binary_stdout": {}
+      },
+      "type": "object"
+    },
+    "command_team_20add_2dmember": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "team add-member"
+        },
+        "input": {
+          "$ref": "#/$defs/team_member_add_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_team_20add_2dmember"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_team_20add_2dmember"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_team_20info": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "team info"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_team_20info"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_team_20info"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_team_20list_2dgroups": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "team list-groups"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_team_20list_2dgroups"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_team_20list_2dgroups"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_team_20list_2dmembers": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "team list-members"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_team_20list_2dmembers"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_team_20list_2dmembers"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_team_20remove_2dmember": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "team remove-member"
+        },
+        "input": {
+          "$ref": "#/$defs/team_member_remove_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_team_20remove_2dmember"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_team_20remove_2dmember"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "command_version": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "version"
+        },
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_version"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_version"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "du_allocation": {
+      "additionalProperties": false,
+      "properties": {
+        "allocated": {},
+        "type": {},
+        "used": {},
+        "user_within_team_space_allocated": {},
+        "user_within_team_space_limit_type": {},
+        "user_within_team_space_used_cached": {}
+      },
+      "type": "object"
+    },
+    "du_output": {
+      "additionalProperties": false,
+      "properties": {
+        "allocation": {},
+        "used": {}
+      },
+      "type": "object"
+    },
+    "empty": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "get_input": {
+      "additionalProperties": false,
+      "properties": {
+        "recursive": {},
+        "source": {},
+        "stdout": {},
+        "target": {}
+      },
+      "type": "object"
+    },
+    "get_result_input": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {},
+        "target": {}
+      },
+      "type": "object"
+    },
+    "help_input": {
+      "additionalProperties": false,
+      "properties": {
+        "help": {},
+        "path": {}
+      },
+      "type": "object"
+    },
+    "logout_result": {
+      "additionalProperties": false,
+      "properties": {
+        "remote_token_revoked": {},
+        "removed_saved_credentials": {}
+      },
+      "type": "object"
+    },
+    "ls_input": {
+      "additionalProperties": false,
+      "properties": {
+        "include_deleted": {},
+        "limit": {},
+        "long": {},
+        "only_deleted": {},
+        "path": {},
+        "recursive": {},
+        "reverse": {},
+        "sort": {},
+        "time": {},
+        "time_format": {}
+      },
+      "type": "object"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "client_modified": {},
+        "deleted": {},
+        "id": {},
+        "path_display": {},
+        "path_lower": {},
+        "rev": {},
+        "server_modified": {},
+        "size": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "mkdir_input": {
+      "additionalProperties": false,
+      "properties": {
+        "parents": {},
+        "path": {}
+      },
+      "type": "object"
+    },
+    "operation_output": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {},
+        "input": {},
+        "ok": {},
+        "results": {},
+        "schema_version": {},
+        "warnings": {}
+      },
+      "type": "object"
+    },
+    "operation_result": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {},
+        "kind": {},
+        "result": {},
+        "status": {}
+      },
+      "type": "object"
+    },
+    "put_input": {
+      "additionalProperties": false,
+      "properties": {
+        "if_exists": {},
+        "recursive": {},
+        "source": {},
+        "stdin": {},
+        "target": {}
+      },
+      "type": "object"
+    },
+    "put_result_input": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {},
+        "target": {}
+      },
+      "type": "object"
+    },
+    "relocation_input": {
+      "additionalProperties": false,
+      "properties": {
+        "from_path": {},
+        "to_path": {}
+      },
+      "type": "object"
+    },
+    "remove_input": {
+      "additionalProperties": false,
+      "properties": {
+        "force": {},
+        "path": {},
+        "permanent": {},
+        "recursive": {}
+      },
+      "type": "object"
+    },
+    "restore_input": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {},
+        "revision": {}
+      },
+      "type": "object"
+    },
+    "result_account": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/account_input"
+        },
+        "kind": {
+          "enum": [
+            "account"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/account"
+        },
+        "status": {
+          "enum": [
+            "found"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_cp": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/relocation_input"
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "copied",
+            "skipped"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_du": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "space_usage"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/du_output"
+        },
+        "status": {
+          "enum": [
+            "reported"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_get": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/get_result_input"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "created",
+            "downloaded",
+            "existing"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_help": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "command"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/command_manifest"
+        },
+        "status": {
+          "enum": [
+            "described"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_logout": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "auth"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/logout_result"
+        },
+        "status": {
+          "enum": [
+            "already_logged_out",
+            "logged_out"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_ls": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_mkdir": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/mkdir_input"
+        },
+        "kind": {
+          "enum": [
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "created",
+            "existing"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_mv": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/relocation_input"
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "moved",
+            "skipped"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_put": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/put_result_input"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "created",
+            "existing",
+            "skipped",
+            "uploaded"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_restore": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/restore_input"
+        },
+        "kind": {
+          "enum": [
+            "file"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "restored"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_revs": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "revision"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_rm": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/remove_input"
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "deleted",
+            "permanently_deleted"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_search": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/metadata"
+        },
+        "status": {
+          "enum": [
+            "found"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_20list_20folder": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "shared_folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_folder"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_20list_20link": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20create": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "status": {
+          "enum": [
+            "created",
+            "existing"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20download": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_download_result"
+        },
+        "status": {
+          "enum": [
+            "downloaded"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20info": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "status": {
+          "enum": [
+            "found"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20list": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20revoke": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link",
+            "shared_link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_revoke_result"
+        },
+        "status": {
+          "enum": [
+            "revoked"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_share_2dlink_20update": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder",
+            "link"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_metadata"
+        },
+        "status": {
+          "enum": [
+            "updated"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_team_20add_2dmember": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/team_member_add_input"
+        },
+        "kind": {
+          "enum": [
+            "team_member"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/team_member_mutation"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "completed",
+            "started"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_team_20info": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "team"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/team_info"
+        },
+        "status": {
+          "enum": [
+            "found"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_team_20list_2dgroups": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "team_group"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/team_group"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_team_20list_2dmembers": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "team_member"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/team_member"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_team_20remove_2dmember": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/team_member_remove_input"
+        },
+        "kind": {
+          "enum": [
+            "team_member"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/team_member_mutation"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "removed",
+            "started"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "result_version": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "version"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/version"
+        },
+        "status": {
+          "enum": [
+            "reported"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
+    "revs_input": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {},
+        "long": {},
+        "path": {},
+        "time": {},
+        "time_format": {}
+      },
+      "type": "object"
+    },
+    "search_input": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {},
+        "limit": {},
+        "long": {},
+        "order_by": {},
+        "path": {},
+        "query": {},
+        "reverse": {},
+        "sort": {},
+        "time": {},
+        "time_format": {}
+      },
+      "type": "object"
+    },
+    "share_folder": {
+      "additionalProperties": false,
+      "properties": {
+        "access_inheritance": {},
+        "access_type": {},
+        "is_inside_team_folder": {},
+        "is_team_folder": {},
+        "name": {},
+        "owner_display_names": {},
+        "parent_folder_name": {},
+        "parent_shared_folder_id": {},
+        "path_lower": {},
+        "preview_url": {},
+        "shared_folder_id": {},
+        "time_invited": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "share_link_create_input": {
+      "additionalProperties": false,
+      "properties": {
+        "access": {},
+        "allow_download": {},
+        "audience": {},
+        "disallow_download": {},
+        "expires": {},
+        "password": {},
+        "path": {},
+        "remove_expiration": {}
+      },
+      "type": "object"
+    },
+    "share_link_download_input": {
+      "additionalProperties": false,
+      "properties": {
+        "password": {},
+        "path": {},
+        "recursive": {},
+        "target": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "share_link_download_result": {
+      "additionalProperties": false,
+      "properties": {
+        "link": {},
+        "target": {}
+      },
+      "type": "object"
+    },
+    "share_link_info_input": {
+      "additionalProperties": false,
+      "properties": {
+        "password": {},
+        "path": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "share_link_list_input": {
+      "additionalProperties": false,
+      "properties": {
+        "direct_only": {},
+        "path": {}
+      },
+      "type": "object"
+    },
+    "share_link_metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "client_modified": {},
+        "expires": {},
+        "id": {},
+        "name": {},
+        "path_lower": {},
+        "permissions": {},
+        "rev": {},
+        "server_modified": {},
+        "size": {},
+        "type": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "share_link_permissions": {
+      "additionalProperties": false,
+      "properties": {
+        "access_level": {},
+        "allow_comments": {},
+        "allow_download": {},
+        "can_allow_download": {},
+        "can_disallow_download": {},
+        "can_remove_expiry": {},
+        "can_remove_password": {},
+        "can_revoke": {},
+        "can_set_expiry": {},
+        "can_set_password": {},
+        "can_use_extended_sharing_controls": {},
+        "effective_audience": {},
+        "requested_visibility": {},
+        "require_password": {},
+        "resolved_visibility": {}
+      },
+      "type": "object"
+    },
+    "share_link_revoke_input": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "share_link_revoke_result": {
+      "additionalProperties": false,
+      "properties": {
+        "link": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "share_link_update_input": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_download": {},
+        "audience": {},
+        "disallow_download": {},
+        "expires": {},
+        "password": {},
+        "remove_expiration": {},
+        "remove_password": {},
+        "url": {}
+      },
+      "type": "object"
+    },
+    "team_group": {
+      "additionalProperties": false,
+      "properties": {
+        "group_external_id": {},
+        "group_id": {},
+        "group_management_type": {},
+        "group_name": {},
+        "member_count": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "team_info": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {},
+        "num_licensed_users": {},
+        "num_provisioned_users": {},
+        "team_id": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "team_member": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {},
+        "email": {},
+        "email_verified": {},
+        "external_id": {},
+        "groups": {},
+        "invited_on": {},
+        "is_directory_restricted": {},
+        "joined_on": {},
+        "member_folder_id": {},
+        "membership_type": {},
+        "name": {},
+        "persistent_id": {},
+        "profile_photo_url": {},
+        "role": {},
+        "status": {},
+        "suspended_on": {},
+        "team_member_id": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "team_member_add_input": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {},
+        "first_name": {},
+        "last_name": {}
+      },
+      "type": "object"
+    },
+    "team_member_add_item": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {},
+        "member": {},
+        "tag": {}
+      },
+      "type": "object"
+    },
+    "team_member_mutation": {
+      "additionalProperties": false,
+      "properties": {
+        "async_job_id": {},
+        "results": {},
+        "tag": {},
+        "type": {}
+      },
+      "type": "object"
+    },
+    "team_member_remove_input": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {}
+      },
+      "type": "object"
+    },
+    "version": {
+      "additionalProperties": false,
+      "properties": {
+        "sdk_version": {},
+        "spec_version": {},
+        "version": {}
+      },
+      "type": "object"
+    },
+    "warning": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "warnings_account": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_cp": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_du": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_get": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_help": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_logout": {
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/warning"
+          },
+          {
+            "properties": {
+              "code": {
+                "enum": [
+                  "token_revoke_failed"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "warnings_ls": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_mkdir": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_mv": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_put": {
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/warning"
+          },
+          {
+            "properties": {
+              "code": {
+                "enum": [
+                  "skipped_symlink"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "warnings_restore": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_revs": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_rm": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_search": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_20list_20folder": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_20list_20link": {
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/warning"
+          },
+          {
+            "properties": {
+              "code": {
+                "enum": [
+                  "deprecated_command"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "warnings_share_2dlink_20create": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_2dlink_20download": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_2dlink_20info": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_2dlink_20list": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_2dlink_20revoke": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_share_2dlink_20update": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_team_20add_2dmember": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_team_20info": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_team_20list_2dgroups": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_team_20list_2dmembers": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_team_20remove_2dmember": {
+      "items": false,
+      "type": "array"
+    },
+    "warnings_version": {
+      "items": false,
+      "type": "array"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/dropbox/dbxcli/master/docs/json-schema/v1/commands.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/command_account"
+    },
+    {
+      "$ref": "#/$defs/command_cp"
+    },
+    {
+      "$ref": "#/$defs/command_du"
+    },
+    {
+      "$ref": "#/$defs/command_get"
+    },
+    {
+      "$ref": "#/$defs/command_help"
+    },
+    {
+      "$ref": "#/$defs/command_logout"
+    },
+    {
+      "$ref": "#/$defs/command_ls"
+    },
+    {
+      "$ref": "#/$defs/command_mkdir"
+    },
+    {
+      "$ref": "#/$defs/command_mv"
+    },
+    {
+      "$ref": "#/$defs/command_put"
+    },
+    {
+      "$ref": "#/$defs/command_restore"
+    },
+    {
+      "$ref": "#/$defs/command_revs"
+    },
+    {
+      "$ref": "#/$defs/command_rm"
+    },
+    {
+      "$ref": "#/$defs/command_search"
+    },
+    {
+      "$ref": "#/$defs/command_share_20list_20folder"
+    },
+    {
+      "$ref": "#/$defs/command_share_20list_20link"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20create"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20download"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20info"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20list"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20revoke"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20update"
+    },
+    {
+      "$ref": "#/$defs/command_team_20add_2dmember"
+    },
+    {
+      "$ref": "#/$defs/command_team_20info"
+    },
+    {
+      "$ref": "#/$defs/command_team_20list_2dgroups"
+    },
+    {
+      "$ref": "#/$defs/command_team_20list_2dmembers"
+    },
+    {
+      "$ref": "#/$defs/command_team_20remove_2dmember"
+    },
+    {
+      "$ref": "#/$defs/command_version"
+    }
+  ],
+  "title": "dbxcli command-specific JSON success responses",
+  "type": "object"
+}

@@ -38,6 +38,7 @@ dbxcli rm [flags] <file>
 * Result statuses: `deleted`, `permanently_deleted`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/rm`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_rm`
 
 
 ### SEE ALSO

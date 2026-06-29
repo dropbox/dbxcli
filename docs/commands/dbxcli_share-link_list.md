@@ -46,6 +46,7 @@ dbxcli share-link list [path] [flags]
 * Result statuses: `listed`
 * Result kinds: `file`, `folder`, `link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link list`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20list`
 
 
 ### SEE ALSO

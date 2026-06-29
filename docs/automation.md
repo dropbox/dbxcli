@@ -73,6 +73,9 @@ a non-zero status:
 
 The full JSON command catalog, stable error codes, and schemas live in
 [json-schema/v1](json-schema/v1/README.md).
+Use `commands.schema.json` from that directory when a caller needs
+command-specific success validation for `input`, `results`, statuses, kinds,
+and warning codes.
 
 ## JSON help manifest
 

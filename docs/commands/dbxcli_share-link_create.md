@@ -59,6 +59,7 @@ dbxcli share-link create <path> [flags]
 * Result statuses: `created`, `existing`
 * Result kinds: `file`, `folder`, `link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link create`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20create`
 
 
 ### SEE ALSO

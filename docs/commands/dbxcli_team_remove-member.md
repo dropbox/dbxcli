@@ -35,6 +35,7 @@ dbxcli team remove-member [flags] <email>
 * Result statuses: `completed`, `removed`, `started`
 * Result kinds: `team_member`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/team remove-member`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_team_20remove_2dmember`
 
 
 ### SEE ALSO

@@ -41,6 +41,7 @@ dbxcli account [flags] [<account-id>]
 * Result statuses: `found`
 * Result kinds: `account`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/account`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_account`
 
 
 ### SEE ALSO

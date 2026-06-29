@@ -35,6 +35,7 @@ dbxcli mv [flags] <source> [more sources] <target>
 * Result statuses: `moved`, `skipped`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/mv`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_mv`
 
 
 ### SEE ALSO

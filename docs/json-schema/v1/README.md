@@ -10,6 +10,9 @@ These schemas describe the stable top-level JSON envelopes emitted by
   JSON help.
 - `commands.json` documents command-specific input/result payload names,
   result statuses, result kinds, and warning codes.
+- `commands.schema.json` validates command-specific success responses using
+  `commands.json`: exact command names, top-level input fields, per-result
+  input/result fields, result statuses/kinds, and warning codes.
 
 Successful responses always include:
 
@@ -57,6 +60,16 @@ continues to print text help, and shell-completion protocol commands remain
 text-only.
 
 The current JSON-enabled command paths are listed in `commands.json`.
+`commands.schema.json` is generated from that catalog:
+
+```sh
+go run ./tools/gen-json-schemas
+```
+
+The command-specific schema intentionally starts with field-set and enum
+validation. It locks which fields may appear, which result statuses/kinds are
+valid for each command, and which warning codes are valid. It does not yet
+describe every nested primitive type.
 
 ## Command Manifest v1
 
@@ -96,6 +109,11 @@ affect a no-auth command may be omitted from that command's `input_schema`.
 Sensitive inputs are marked with `writeOnly` and `x-sensitive`; flag conflicts
 are listed in `x-conflicts`.
 
+For commands with structured JSON output, `schema_refs.command_success_schema`
+points to the command-specific definition inside `commands.schema.json`.
+`schema_refs.command_contract` points to the source catalog entry in
+`commands.json`.
+
 `scope_accuracy` is currently `audited_best_effort` for commands with audited
 manifest metadata. Scope metadata is intended for planning and diagnostics;
 Dropbox API errors remain the source of truth at runtime.
@@ -134,5 +152,5 @@ Stable error codes:
 | `command_failed`                | Fallback for failures without a more specific stable code.                        |
 
 Command-specific `input` and `result` payload contracts are listed in
-`commands.json` and locked by the golden contract fixtures under
-`cmd/testdata/json_contract/`.
+`commands.json`, validated through `commands.schema.json`, and locked by the
+golden contract fixtures under `cmd/testdata/json_contract/`.

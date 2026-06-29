@@ -59,6 +59,7 @@ dbxcli share-link download <url> [target] [flags]
 * Result statuses: `downloaded`
 * Result kinds: `file`, `folder`, `link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link download`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20download`
 
 
 ### SEE ALSO

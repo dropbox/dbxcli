@@ -1,6 +1,9 @@
 package cmd
 
-import "github.com/spf13/pflag"
+import (
+	"github.com/dropbox/dbxcli/v3/internal/jsonschema"
+	"github.com/spf13/pflag"
+)
 
 const (
 	commandManifestVersion                 = "1"
@@ -9,6 +12,7 @@ const (
 	commandManifestSuccessSchema = "docs/json-schema/v1/success.schema.json"
 	commandManifestErrorSchema   = "docs/json-schema/v1/error.schema.json"
 	commandManifestContractFile  = "docs/json-schema/v1/commands.json"
+	commandManifestCommandSchema = "docs/json-schema/v1/commands.schema.json"
 )
 
 type jsonCommandManifestMetadata struct {
@@ -420,6 +424,7 @@ func commandManifestSchemaRefs(path string, supportsStructuredOutput bool) jsonC
 	if supportsStructuredOutput || path == "help" {
 		if _, ok := commandContractRegistry[path]; ok {
 			refs.CommandContract = commandManifestContractFile + "#/commands/" + path
+			refs.CommandSuccessSchema = commandManifestCommandSchema + "#/$defs/" + jsonschema.CommandDefinitionName(path)
 		}
 	}
 	return refs

@@ -48,6 +48,7 @@ dbxcli restore [flags] <target-path> <revision>
 * Result statuses: `restored`
 * Result kinds: `file`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/restore`
+* JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_restore`
 
 
 ### SEE ALSO
