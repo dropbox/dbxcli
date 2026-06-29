@@ -3,6 +3,8 @@ package cmd
 import (
 	"strconv"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 func commandInputSchemaFor(args []jsonCommandArg, flags []jsonCommandFlag) jsonCommandInputSchema {
@@ -18,6 +20,7 @@ func commandInputSchemaFor(args []jsonCommandArg, flags []jsonCommandFlag) jsonC
 		property := jsonCommandInputProperty{
 			Type:        commandInputPropertyType(arg.ValueKind, ""),
 			Description: arg.Description,
+			Enum:        sortedCopyStringSlice(arg.EnumValues),
 			XCLIKind:    "arg",
 			XCLIName:    arg.Name,
 			XValueKind:  arg.ValueKind,
@@ -25,7 +28,11 @@ func commandInputSchemaFor(args []jsonCommandArg, flags []jsonCommandFlag) jsonC
 		}
 		if arg.Variadic {
 			property.Type = "array"
-			property.Items = &jsonCommandInputProperty{Type: commandInputPropertyType(arg.ValueKind, "")}
+			property.Items = &jsonCommandInputProperty{
+				Type: commandInputPropertyType(arg.ValueKind, ""),
+				Enum: sortedCopyStringSlice(arg.EnumValues),
+			}
+			property.Enum = nil
 			if arg.Required {
 				property.MinItems = 1
 			}
@@ -74,6 +81,28 @@ func commandInputSchemaFor(args []jsonCommandArg, flags []jsonCommandFlag) jsonC
 	}
 
 	return schema
+}
+
+func commandInputSchemaFlags(cmd *cobra.Command, flags []jsonCommandFlag) []jsonCommandFlag {
+	filtered := make([]jsonCommandFlag, 0, len(flags))
+	excludeAsMember := commandInputSchemaExcludesAsMember(cmd)
+	for _, flag := range flags {
+		if excludeAsMember && flag.Name == "as-member" {
+			continue
+		}
+		filtered = append(filtered, flag)
+	}
+	return filtered
+}
+
+func commandInputSchemaExcludesAsMember(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+	return cmd.Root() == cmd ||
+		commandSkipsAuth(cmd) ||
+		isNoAuthCommand(cmd) ||
+		commandHasTopLevelName(cmd, "completion")
 }
 
 func commandInputSchemaIncludesFlag(flag jsonCommandFlag) bool {

@@ -68,13 +68,14 @@ type jsonCommandFlag struct {
 }
 
 type jsonCommandArg struct {
-	Name        string `json:"name"`
-	Required    bool   `json:"required"`
-	Variadic    bool   `json:"variadic"`
-	Placement   string `json:"placement"`
-	ValueKind   string `json:"value_kind"`
-	Description string `json:"description"`
-	StreamDash  bool   `json:"stream_dash"`
+	Name        string   `json:"name"`
+	Required    bool     `json:"required"`
+	Variadic    bool     `json:"variadic"`
+	Placement   string   `json:"placement"`
+	ValueKind   string   `json:"value_kind"`
+	Description string   `json:"description"`
+	StreamDash  bool     `json:"stream_dash"`
+	EnumValues  []string `json:"enum_values"`
 }
 
 type jsonCommandExample struct {
@@ -377,6 +378,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 	meta := commandManifestMetadataFor(path)
 	supportsStructuredOutput := commandSupportsStructuredOutput(cmd)
 	flags := jsonCommandFlags(cmd, meta.Flags)
+	args := normalizeJSONCommandArgs(meta.Args)
 
 	return jsonCommandManifest{
 		Path:                     path,
@@ -389,7 +391,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 		AuthModes:                commandManifestAuthModes(cmd),
 		DestructiveLevel:         commandManifestDestructiveLevel(cmd),
 		ManifestVersion:          commandManifestVersion,
-		Args:                     normalizeJSONCommandArgs(meta.Args),
+		Args:                     args,
 		Examples:                 normalizeJSONCommandExamples(meta.Examples),
 		SchemaRefs:               commandManifestSchemaRefs(path, supportsStructuredOutput),
 		DropboxScopes:            sortedCopyStringSlice(meta.DropboxScopes),
@@ -399,7 +401,7 @@ func jsonCommandManifestFor(cmd *cobra.Command) jsonCommandManifest {
 		ResultKinds:              sortedCopyStringSlice(meta.ResultKinds),
 		WarningCodes:             sortedCopyStringSlice(meta.WarningCodes),
 		MayPrompt:                meta.MayPrompt,
-		InputSchema:              commandInputSchemaFor(meta.Args, flags),
+		InputSchema:              commandInputSchemaFor(args, commandInputSchemaFlags(cmd, flags)),
 	}
 }
 

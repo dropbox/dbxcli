@@ -37,7 +37,7 @@ dbxcli login [personal|team-access|team-manage] [flags]
 * Manifest version: `1`
 * Auth modes: none
 * Dropbox scopes: none
-* Arguments: `token-type` (optional, auth_type)
+* Arguments: `token-type` (optional, auth_type; values: `personal`, `team-access`, `team-manage`)
 * Flag metadata: `--output` (values: `json`, `text`)
 
 
