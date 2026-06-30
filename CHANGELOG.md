@@ -4,6 +4,22 @@
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...HEAD)
 
+**Added:**
+
+- Added Dependabot configuration for Go modules and GitHub Actions dependencies.
+- Added automation documentation with CI, direct-token, saved-auth-file, and JSON error-handling examples.
+- Added richer JSON `error.details` fields for operation context, paths, URLs, revisions, email addresses, member IDs, Dropbox API summaries, and retry-after values.
+
+**Changed:**
+
+- Updated root command help and generated command docs to reflect current files, shared-link, team, and automation workflows.
+
+**Infrastructure:**
+
+- Added golden JSON error output fixtures and live JSON error envelope tests.
+- Hardened JSON error detail collection through wrapped and joined errors.
+- Reduced false-positive Dropbox `api_summary` detection for local path errors.
+
 ## [v3.5.1](https://github.com/dropbox/dbxcli/tree/v3.5.1) (2026-06-28)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.0...v3.5.1)
 

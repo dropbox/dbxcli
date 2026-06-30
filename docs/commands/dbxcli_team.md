@@ -30,7 +30,7 @@ Team management commands
 
 ### SEE ALSO
 
-* [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins
+* [dbxcli](dbxcli.md)	 - Scriptable Dropbox CLI for files, shared links, teams, and automation
 * [dbxcli team add-member](dbxcli_team_add-member.md)	 - Add a new member to a team
 * [dbxcli team info](dbxcli_team_info.md)	 - Get team information
 * [dbxcli team list-groups](dbxcli_team_list-groups.md)	 - List groups

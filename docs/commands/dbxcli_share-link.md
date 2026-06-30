@@ -34,7 +34,7 @@ Create, list, inspect, download, update, and revoke Dropbox shared links.
 
 ### SEE ALSO
 
-* [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins
+* [dbxcli](dbxcli.md)	 - Scriptable Dropbox CLI for files, shared links, teams, and automation
 * [dbxcli share-link create](dbxcli_share-link_create.md)	 - Create a shared link
 * [dbxcli share-link download](dbxcli_share-link_download.md)	 - Download shared link content
 * [dbxcli share-link info](dbxcli_share-link_info.md)	 - Display shared link information

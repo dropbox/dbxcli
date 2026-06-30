@@ -40,7 +40,7 @@ dbxcli completion [bash|zsh|fish|powershell] [flags]
 
 ### SEE ALSO
 
-* [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins
+* [dbxcli](dbxcli.md)	 - Scriptable Dropbox CLI for files, shared links, teams, and automation
 * [dbxcli completion bash](dbxcli_completion_bash.md)	 - Generate the autocompletion script for bash
 * [dbxcli completion fish](dbxcli_completion_fish.md)	 - Generate the autocompletion script for fish
 * [dbxcli completion powershell](dbxcli_completion_powershell.md)	 - Generate the autocompletion script for powershell

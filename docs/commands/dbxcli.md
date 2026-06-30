@@ -2,12 +2,14 @@
 
 ## dbxcli
 
-A command line tool for Dropbox users and team admins
+Scriptable Dropbox CLI for files, shared links, teams, and automation
 
 ### Synopsis
 
-Use dbxcli to quickly interact with your Dropbox, upload/download files,
-manage your team and more. It is easy, scriptable and works on all platforms!
+Use dbxcli to work with Dropbox files, folders, shared links, and team
+workflows from a terminal. It supports text output for humans, structured JSON
+output for automation, pipe-friendly transfers, refreshable OAuth login, and
+direct-token automation for scripts, CI jobs, and agent-style workflows.
 
 ### Options
 

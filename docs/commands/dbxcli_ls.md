@@ -58,5 +58,5 @@ dbxcli ls [flags] [<path>]
 
 ### SEE ALSO
 
-* [dbxcli](dbxcli.md)	 - A command line tool for Dropbox users and team admins
+* [dbxcli](dbxcli.md)	 - Scriptable Dropbox CLI for files, shared links, teams, and automation
 
