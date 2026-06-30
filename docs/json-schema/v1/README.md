@@ -43,7 +43,7 @@ Error responses always include:
 - `error.details`: optional machine-readable context, included only when
   dbxcli has reliable structured details such as `argument`, `arguments`,
   `flag`, `flags`, `value`, `path`, `token_type`, `login_command`, `env_var`,
-  Dropbox `api_summary`, or Dropbox `api_endpoint`
+  Dropbox `api_summary`, Dropbox `api_endpoint`, or `bytes_written`
 - `warnings`: machine-actionable warnings, or `[]`
 
 Command results and JSON errors are written to stdout. Status, progress,
@@ -125,11 +125,12 @@ boolean; and `result.auth.auth_file` is `default`, `custom`, or `none`.
 dbxcli does not include the full auth file path by default.
 
 Warnings are objects with a stable `code` and human-readable `message`; they
-may include optional command-specific details. Current warning codes include
+may include optional command-specific details. JSON responses from deprecated
+command paths include `deprecated_command`. Current warning codes include
 `deprecated_command` for deprecated command paths and `skipped_symlink` for
-symlinks skipped by recursive upload. `logout` may return
-`token_revoke_failed` when saved credentials were removed locally but one or
-more Dropbox tokens could not be revoked remotely.
+symlinks skipped by recursive upload. `logout` may return `token_revoke_failed`
+when saved credentials were removed locally but one or more Dropbox tokens could
+not be revoked remotely.
 
 Stable error codes:
 

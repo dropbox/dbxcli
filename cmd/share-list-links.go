@@ -28,11 +28,10 @@ type shareLinkListInput struct {
 	DirectOnly bool   `json:"direct_only"`
 }
 
+const shareListLinksDeprecatedMessage = "use `dbxcli share-link list` instead"
+
 func shareListLinks(cmd *cobra.Command, args []string) (err error) {
-	return shareLinkListWithWarnings(cmd, args, []jsonWarning{{
-		Code:    jsonWarningCodeDeprecatedCommand,
-		Message: "use `dbxcli share-link list` instead",
-	}})
+	return shareLinkListWithWarnings(cmd, args, jsonCommandWarnings(cmd))
 }
 
 func shareLinkList(cmd *cobra.Command, args []string) error {
@@ -154,7 +153,7 @@ When path is supplied, dbxcli lists direct shared links for that Dropbox path on
 var shareListLinksCmd = &cobra.Command{
 	Use:        "link [path]",
 	Short:      "List shared links",
-	Deprecated: "use `dbxcli share-link list` instead",
+	Deprecated: shareListLinksDeprecatedMessage,
 	RunE:       shareListLinks,
 }
 

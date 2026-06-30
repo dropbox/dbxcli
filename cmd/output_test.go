@@ -319,6 +319,34 @@ func TestRenderCommandErrorWritesJSONErrorToStdout(t *testing.T) {
 	}
 }
 
+func TestRenderCommandErrorIncludesDeprecatedCommandWarning(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{
+		Use:        "link",
+		Deprecated: "use `dbxcli share-link list` instead",
+	}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	renderCommandError(cmd, errors.New("failed"))
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if len(got.Warnings) != 1 {
+		t.Fatalf("warnings = %+v, want one warning", got.Warnings)
+	}
+	if got.Warnings[0].Code != jsonWarningCodeDeprecatedCommand {
+		t.Fatalf("warning code = %q, want %q", got.Warnings[0].Code, jsonWarningCodeDeprecatedCommand)
+	}
+	if got.Warnings[0].Message != "use `dbxcli share-link list` instead" {
+		t.Fatalf("warning message = %q, want deprecation message", got.Warnings[0].Message)
+	}
+}
+
 func TestRenderCommandErrorIncludesCodedDetails(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

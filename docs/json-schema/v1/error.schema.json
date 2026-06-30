@@ -56,8 +56,69 @@
         },
         "details": {
           "type": "object",
-          "description": "Optional machine-readable context for stable error handling. Common keys include argument, arguments, flag, flags, value, path, token_type, login_command, env_var, api_summary, and api_endpoint. Present only when dbxcli has reliable structured details.",
-          "additionalProperties": true
+          "description": "Optional machine-readable context for stable error handling. Present only when dbxcli has reliable structured details.",
+          "additionalProperties": false,
+          "properties": {
+            "argument": {
+              "type": "string",
+              "description": "Single positional argument related to the error."
+            },
+            "arguments": {
+              "type": "array",
+              "description": "Positional arguments related to the error.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "flag": {
+              "type": "string",
+              "description": "Single flag related to the error, without leading dashes."
+            },
+            "flags": {
+              "type": "array",
+              "description": "Flags related to the error, without leading dashes.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "value": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ],
+              "description": "Invalid or relevant value supplied by the caller."
+            },
+            "path": {
+              "type": "string",
+              "description": "Local or Dropbox path related to the error."
+            },
+            "token_type": {
+              "type": "string",
+              "description": "Credential type related to an auth error."
+            },
+            "login_command": {
+              "type": "string",
+              "description": "Suggested login command for auth remediation."
+            },
+            "env_var": {
+              "type": "string",
+              "description": "Environment variable related to auth or configuration remediation."
+            },
+            "api_summary": {
+              "type": "string",
+              "description": "Dropbox API error summary when available."
+            },
+            "api_endpoint": {
+              "type": "string",
+              "description": "Dropbox API endpoint parsed from an SDK error message when available."
+            },
+            "bytes_written": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of bytes written before a partial stdout transfer failed."
+            }
+          }
         }
       }
     },
