@@ -45,9 +45,9 @@ func formatTime(t time.Time, opts listOptions) string {
 
 func getTime(e *files.FileMetadata, opts listOptions) time.Time {
 	if opts.timeField == "client" {
-		return e.ClientModified
+		return time.Time(e.ClientModified)
 	}
-	return e.ServerModified
+	return time.Time(e.ServerModified)
 }
 
 func sortEntries(entries []files.IsMetadata, opts listOptions) {

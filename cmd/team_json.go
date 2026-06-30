@@ -186,9 +186,9 @@ func teamMemberJSONFromDropbox(member *team.TeamMemberInfo) teamMemberJSON {
 	if profile.MembershipType != nil {
 		result.MembershipType = profile.MembershipType.Tag
 	}
-	result.InvitedOn = jsonTimePtr(profile.InvitedOn)
-	result.JoinedOn = jsonTimePtr(profile.JoinedOn)
-	result.SuspendedOn = jsonTimePtr(profile.SuspendedOn)
+	result.InvitedOn = jsonDBXTimePtr(profile.InvitedOn)
+	result.JoinedOn = jsonDBXTimePtr(profile.JoinedOn)
+	result.SuspendedOn = jsonDBXTimePtr(profile.SuspendedOn)
 	result.PersistentID = profile.PersistentId
 	result.IsDirectoryRestricted = profile.IsDirectoryRestricted
 	result.ProfilePhotoURL = profile.ProfilePhotoUrl

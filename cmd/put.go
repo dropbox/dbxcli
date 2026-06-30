@@ -538,7 +538,7 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	commitInfo.StrictConflict = ifExists != putIfExistsOverwrite
 
 	// The Dropbox API only accepts timestamps in UTC with second precision.
-	ts := time.Now().UTC().Round(time.Second)
+	ts := dropbox.DBXTime(time.Now().UTC().Round(time.Second))
 	commitInfo.ClientModified = &ts
 
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {

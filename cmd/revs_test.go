@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -35,8 +36,8 @@ func TestRenderRevisionResultsLongModeUsesTimeOptions(t *testing.T) {
 			Metadata:       files.Metadata{PathDisplay: "/report.pdf"},
 			Rev:            "rev-a",
 			Size:           4096,
-			ServerModified: serverModified,
-			ClientModified: clientModified,
+			ServerModified: dropbox.DBXTime(serverModified),
+			ClientModified: dropbox.DBXTime(clientModified),
 		},
 	}
 
@@ -81,7 +82,7 @@ func TestRevsUsesListRevisionsAndCommandOutput(t *testing.T) {
 			gotLimit = arg.Limit
 			return files.NewListRevisionsResult(false, []*files.FileMetadata{
 				{Rev: "rev-c"},
-			}), nil
+			}, false), nil
 		},
 	})
 
@@ -124,9 +125,9 @@ func TestRevsJSONOutputsInputAndResults(t *testing.T) {
 					Id:             "id:file",
 					Rev:            "rev-a",
 					Size:           42,
-					ClientModified: clientModified,
+					ClientModified: dropbox.DBXTime(clientModified),
 				},
-			}), nil
+			}, false), nil
 		},
 	})
 

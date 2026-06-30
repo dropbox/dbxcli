@@ -40,10 +40,18 @@ type rawModifySharedLinkSettingsArgs struct {
 type rawSharedLinkSettings struct {
 	RequirePassword *bool                             `json:"require_password,omitempty"`
 	LinkPassword    string                            `json:"link_password,omitempty"`
-	Expires         *time.Time                        `json:"expires,omitempty"`
+	Expires         *dropbox.DBXTime                  `json:"expires,omitempty"`
 	Audience        *sharing.LinkAudience             `json:"audience,omitempty"`
 	Access          *sharing.RequestedLinkAccessLevel `json:"access,omitempty"`
 	AllowDownload   *bool                             `json:"allow_download,omitempty"`
+}
+
+func rawSharedLinkExpires(value *time.Time) *dropbox.DBXTime {
+	if value == nil {
+		return nil
+	}
+	t := dropbox.DBXTime(*value)
+	return &t
 }
 
 func (dbx *sdkSharedLinkClient) CreateSharedLinkWithRawSettings(path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {

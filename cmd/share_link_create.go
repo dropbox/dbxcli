@@ -256,7 +256,8 @@ func (opts shareLinkCreateOptions) hasCreateSettings() bool {
 
 func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts shareLinkCreateOptions) {
 	if opts.expires != nil {
-		settings.Expires = opts.expires
+		t := dropbox.DBXTime(*opts.expires)
+		settings.Expires = &t
 	}
 	if opts.allowDownload {
 		settings.AllowDownload = true
@@ -275,7 +276,7 @@ func applySharedLinkCreateSettings(settings *sharing.SharedLinkSettings, opts sh
 
 func rawSharedLinkSettingsFromCreateOptions(opts shareLinkCreateOptions) *rawSharedLinkSettings {
 	settings := &rawSharedLinkSettings{
-		Expires:  opts.expires,
+		Expires:  rawSharedLinkExpires(opts.expires),
 		Audience: opts.audience,
 		Access:   opts.access,
 	}

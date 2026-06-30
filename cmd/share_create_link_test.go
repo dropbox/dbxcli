@@ -189,8 +189,8 @@ func TestSharedLinkCreateWithExpiresSetsExpiration(t *testing.T) {
 			if arg.Settings.Expires == nil {
 				t.Fatal("expires = nil, want expiration time")
 			}
-			if !arg.Settings.Expires.Equal(wantExpires) {
-				t.Fatalf("expires = %s, want %s", arg.Settings.Expires.Format(time.RFC3339), wantExpires.Format(time.RFC3339))
+			if !time.Time(*arg.Settings.Expires).Equal(wantExpires) {
+				t.Fatalf("expires = %s, want %s", time.Time(*arg.Settings.Expires).Format(time.RFC3339), wantExpires.Format(time.RFC3339))
 			}
 			return sharedLinkFile("/file.txt", "https://example.com/file"), nil
 		},
@@ -299,7 +299,7 @@ func TestSharedLinkCreateWithDisallowDownloadCombinesRawCreateSettings(t *testin
 			if settings.AllowDownload == nil || *settings.AllowDownload {
 				t.Fatalf("allow_download = %v, want false", settings.AllowDownload)
 			}
-			if settings.Expires == nil || !settings.Expires.Equal(expires) {
+			if settings.Expires == nil || !time.Time(*settings.Expires).Equal(expires) {
 				t.Fatalf("expires = %v, want %v", settings.Expires, expires)
 			}
 			if settings.Access == nil || settings.Access.Tag != sharing.RequestedLinkAccessLevelViewer {
@@ -892,7 +892,7 @@ func TestSharedLinkCreateWithExpiresUpdatesExistingLink(t *testing.T) {
 	existing := sharedLinkFile("/file.txt", "https://example.com/file-old")
 	mock := &mockSharedLinkClient{
 		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
-			if arg.Settings == nil || arg.Settings.Expires == nil || !arg.Settings.Expires.Equal(wantExpires) {
+			if arg.Settings == nil || arg.Settings.Expires == nil || !time.Time(*arg.Settings.Expires).Equal(wantExpires) {
 				t.Fatalf("create settings = %#v, want expires %s", arg.Settings, wantExpires.Format(time.RFC3339))
 			}
 			return nil, alreadyExistsError(existing)
@@ -904,7 +904,7 @@ func TestSharedLinkCreateWithExpiresUpdatesExistingLink(t *testing.T) {
 			if arg.RemoveExpiration {
 				t.Fatal("RemoveExpiration = true, want false")
 			}
-			if arg.Settings == nil || arg.Settings.Expires == nil || !arg.Settings.Expires.Equal(wantExpires) {
+			if arg.Settings == nil || arg.Settings.Expires == nil || !time.Time(*arg.Settings.Expires).Equal(wantExpires) {
 				t.Fatalf("modify settings = %#v, want expires %s", arg.Settings, wantExpires.Format(time.RFC3339))
 			}
 			return sharedLinkFile("/file.txt", "https://example.com/file-new"), nil
@@ -1426,7 +1426,7 @@ func TestShareLinkListPaginationRequiresCursor(t *testing.T) {
 }
 
 func sharedLinkFile(pathLower string, url string) *sharing.FileLinkMetadata {
-	link := sharing.NewFileLinkMetadata(url, path.Base(pathLower), nil, time.Time{}, time.Time{}, "rev", 1)
+	link := sharing.NewFileLinkMetadata(url, path.Base(pathLower), nil, dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev", 1)
 	link.PathLower = strings.ToLower(pathLower)
 	return link
 }

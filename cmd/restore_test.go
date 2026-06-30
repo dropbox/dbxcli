@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -49,7 +50,7 @@ func TestRestoreQuietByDefault(t *testing.T) {
 			return &files.FileMetadata{
 				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf", PathLower: "/reports/old.pdf"},
 				Rev:            "current-rev",
-				ServerModified: serverModified,
+				ServerModified: dropbox.DBXTime(serverModified),
 			}, nil
 		},
 	}
@@ -81,7 +82,7 @@ func TestRestoreVerbosePrintsRevisionAndServerModifiedTime(t *testing.T) {
 			return &files.FileMetadata{
 				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf", PathLower: "/reports/old.pdf"},
 				Rev:            "current-rev",
-				ServerModified: serverModified,
+				ServerModified: dropbox.DBXTime(serverModified),
 			}, nil
 		},
 	}
@@ -108,8 +109,8 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 		Id:             "id:abc",
 		Rev:            "current-rev",
 		Size:           123,
-		ClientModified: clientModified,
-		ServerModified: serverModified,
+		ClientModified: dropbox.DBXTime(clientModified),
+		ServerModified: dropbox.DBXTime(serverModified),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -153,8 +154,8 @@ func TestRestoreJSONOutputsInputAndMetadata(t *testing.T) {
 				Id:             "id:abc",
 				Rev:            "current-rev",
 				Size:           123,
-				ClientModified: clientModified,
-				ServerModified: serverModified,
+				ClientModified: dropbox.DBXTime(clientModified),
+				ServerModified: dropbox.DBXTime(serverModified),
 			}, nil
 		},
 	}
@@ -227,7 +228,7 @@ func TestRestoreJSONVerboseDoesNotPrintText(t *testing.T) {
 			return &files.FileMetadata{
 				Metadata:       files.Metadata{PathDisplay: "/Reports/old.pdf"},
 				Rev:            "current-rev",
-				ServerModified: time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC),
+				ServerModified: dropbox.DBXTime(time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC)),
 			}, nil
 		},
 	}

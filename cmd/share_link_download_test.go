@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
@@ -919,7 +920,7 @@ func newShareLinkDownloadTestCommand(stdout, stderr *bytes.Buffer) *cobra.Comman
 }
 
 func downloadableSharedLinkFile(name string, pathLower string, url string, size uint64) *sharing.FileLinkMetadata {
-	link := sharing.NewFileLinkMetadata(url, name, nil, time.Time{}, time.Time{}, "rev", size)
+	link := sharing.NewFileLinkMetadata(url, name, nil, dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev", size)
 	link.PathLower = strings.ToLower(pathLower)
 	return link
 }

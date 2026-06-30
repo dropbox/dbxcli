@@ -3,6 +3,7 @@ package cmd
 import (
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 )
 
@@ -62,7 +63,7 @@ func shareLinkJSONMetadataFromDropbox(link sharing.IsSharedLinkMetadata) (shareL
 		Name:        base.Name,
 		PathLower:   base.PathLower,
 		ID:          base.Id,
-		Expires:     jsonTimePtr(base.Expires),
+		Expires:     jsonDBXTimePtr(base.Expires),
 		Permissions: shareLinkJSONPermissionsFromDropbox(base.LinkPermissions),
 	}
 
@@ -70,8 +71,8 @@ func shareLinkJSONMetadataFromDropbox(link sharing.IsSharedLinkMetadata) (shareL
 		size := file.Size
 		result.Rev = file.Rev
 		result.Size = &size
-		result.ServerModified = jsonTime(file.ServerModified)
-		result.ClientModified = jsonTime(file.ClientModified)
+		result.ServerModified = jsonTime(time.Time(file.ServerModified))
+		result.ClientModified = jsonTime(time.Time(file.ClientModified))
 	}
 
 	return result, true
@@ -134,9 +135,9 @@ func shareLinkJSONPermissionsFromDropbox(permissions *sharing.LinkPermissions) *
 	return result
 }
 
-func jsonTimePtr(value *time.Time) *string {
+func jsonDBXTimePtr(value *dropbox.DBXTime) *string {
 	if value == nil {
 		return nil
 	}
-	return jsonTime(*value)
+	return jsonTime(time.Time(*value))
 }
