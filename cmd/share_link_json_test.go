@@ -143,7 +143,7 @@ func TestDeprecatedShareListLinkJSONIncludesWarning(t *testing.T) {
 	})
 
 	var stdout bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := &cobra.Command{Deprecated: shareListLinksDeprecatedMessage}
 	cmd.SetOut(&stdout)
 	setShareLinkOutputJSON(t, cmd)
 
@@ -178,7 +178,10 @@ func TestDeprecatedShareListLinkJSONKeepsDeprecationTextOffStdout(t *testing.T) 
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := &cobra.Command{
+		Use:        "link",
+		Deprecated: shareListLinksDeprecatedMessage,
+	}
 	cmd.SetOut(&stdout)
 	cmd.SetErr(&stderr)
 	setShareLinkOutputJSON(t, cmd)

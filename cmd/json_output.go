@@ -60,7 +60,7 @@ func newJSONErrorResponse(cmd *cobra.Command, err error) jsonErrorResponse {
 			Code:    jsonErrorCode(err),
 			Details: jsonErrorDetails(err),
 		},
-		Warnings: emptyJSONWarnings(),
+		Warnings: jsonCommandWarnings(cmd),
 	}
 }
 
@@ -146,6 +146,16 @@ func normalizeJSONWarnings(warnings []jsonWarning) []jsonWarning {
 		return emptyJSONWarnings()
 	}
 	return warnings
+}
+
+func jsonCommandWarnings(cmd *cobra.Command) []jsonWarning {
+	if cmd == nil || cmd.Deprecated == "" {
+		return emptyJSONWarnings()
+	}
+	return []jsonWarning{{
+		Code:    jsonWarningCodeDeprecatedCommand,
+		Message: cmd.Deprecated,
+	}}
 }
 
 func jsonCommandPath(cmd *cobra.Command) string {
