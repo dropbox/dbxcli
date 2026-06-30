@@ -51,7 +51,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsErrorWithDetails("`share-link update` requires a non-empty URL", argumentErrorDetails("url"))
+		return invalidArgumentsErrorWithDetails("`share-link update` requires a non-empty URL", mergeJSONErrorDetails(argumentErrorDetails("url"), urlErrorDetails(url)))
 	}
 
 	opts, err := parseShareLinkUpdateOptions(cmd)
@@ -62,7 +62,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	dbx := newSharedLinkClient(config)
 	if opts.usesRawSettings() {
 		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromUpdateOptions(opts), opts.removeExpiration); err != nil {
-			return err
+			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}
 		return renderShareLinkUpdateOutput(cmd, dbx, url, opts, nil)
 	}
@@ -88,7 +88,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	if opts.hasSDKSettings() {
 		link, err := dbx.ModifySharedLinkSettings(arg)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}
 		return renderShareLinkUpdateOutput(cmd, dbx, url, opts, link)
 	}
@@ -111,13 +111,13 @@ func renderShareLinkUpdateOutput(cmd *cobra.Command, dbx sharedLinkClient, url s
 		var err error
 		link, err = dbx.GetSharedLinkMetadata(arg)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}
 	}
 
 	result, ok := shareLinkJSONMetadataFromDropbox(link)
 	if !ok {
-		return errors.New("found unknown shared link type")
+		return withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_update"), urlErrorDetails(url))
 	}
 
 	return renderJSONOperationOutput(

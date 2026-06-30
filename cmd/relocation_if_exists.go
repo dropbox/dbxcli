@@ -114,3 +114,15 @@ func isRelocationWriteConflict(err *files.WriteError) bool {
 		(err.Conflict.Tag == files.WriteConflictErrorFile ||
 			err.Conflict.Tag == files.WriteConflictErrorFolder)
 }
+
+func relocationFailureDetails(fromPath, toPath string) map[string]any {
+	return relocationErrorDetails(fromPath, toPath)
+}
+
+func relocationAggregateError(commandName, operation string, count int, failures []map[string]any) error {
+	details := operationErrorDetails(operation)
+	if len(failures) == 1 {
+		details = mergeJSONErrorDetails(details, failures[0])
+	}
+	return commandFailedErrorfWithDetails("%s: %d error(s)", details, commandName, count)
+}

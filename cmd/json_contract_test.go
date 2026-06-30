@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
@@ -11,6 +12,10 @@ import (
 	"testing"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
 
@@ -142,6 +147,30 @@ func TestStructuredOutputGoldenSuccessOutputAudit(t *testing.T) {
 		if !contractSet[command] {
 			t.Errorf("code-derived success output example includes non-contract command %q", command)
 		}
+	}
+}
+
+func TestStructuredOutputGoldenErrorOutputAudit(t *testing.T) {
+	fixtures := loadJSONGoldenErrorOutputs(t)
+	examples := jsonGoldenErrorOutputExamples()
+	schema := compileJSONSchemaFile(t, "../docs/json-schema/v1/error.schema.json")
+
+	for name, fixture := range fixtures {
+		if _, ok := examples[name]; !ok {
+			t.Errorf("golden error output includes unknown example %q", name)
+		}
+		if err := schema.Validate(decodeJSONValueForSchema(t, fixture)); err != nil {
+			t.Errorf("golden error output for %q does not validate: %v", name, err)
+		}
+		assertGoldenErrorOutputShape(t, name, fixture)
+	}
+	for name, example := range examples {
+		fixture, ok := fixtures[name]
+		if !ok {
+			t.Errorf("code-derived error output example %q has no golden output", name)
+			continue
+		}
+		assertGoldenJSONEqual(t, name, fixture, example)
 	}
 }
 
@@ -536,6 +565,24 @@ func loadJSONGoldenSuccessOutputs(t *testing.T) map[string]json.RawMessage {
 	return fixtures
 }
 
+func loadJSONGoldenErrorOutputs(t *testing.T) map[string]json.RawMessage {
+	t.Helper()
+
+	data, err := os.ReadFile("testdata/json_contract/error_outputs.json")
+	if err != nil {
+		t.Fatalf("read golden error output fixture: %v", err)
+	}
+
+	var fixtures map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fixtures); err != nil {
+		t.Fatalf("decode golden error output fixture: %v", err)
+	}
+	if len(fixtures) == 0 {
+		t.Fatalf("golden error output fixture has no examples")
+	}
+	return fixtures
+}
+
 func loadPublicJSONSchema(t *testing.T, file string) publicJSONSchema {
 	t.Helper()
 
@@ -617,6 +664,33 @@ func assertGoldenSuccessOutputStatuses(t *testing.T, command string, fixture jso
 		if result.Kind == "unknown" {
 			t.Errorf("golden output for %q result %d must not use unknown kind", command, i)
 		}
+	}
+}
+
+func assertGoldenErrorOutputShape(t *testing.T, name string, fixture json.RawMessage) {
+	t.Helper()
+
+	var got jsonErrorResponse
+	if err := json.Unmarshal(fixture, &got); err != nil {
+		t.Fatalf("decode golden error output for %q: %v", name, err)
+	}
+	if got.OK {
+		t.Errorf("golden error output for %q has ok=true", name)
+	}
+	if got.SchemaVersion != jsonSchemaVersion {
+		t.Errorf("golden error output for %q schema_version = %q, want %q", name, got.SchemaVersion, jsonSchemaVersion)
+	}
+	if got.Command == "" {
+		t.Errorf("golden error output for %q has empty command", name)
+	}
+	if got.Error.Message == "" {
+		t.Errorf("golden error output for %q has empty error.message", name)
+	}
+	if got.Error.Code == "" {
+		t.Errorf("golden error output for %q has empty error.code", name)
+	}
+	if got.Warnings == nil {
+		t.Errorf("golden error output for %q has nil warnings; want [] when empty", name)
 	}
 }
 
@@ -738,6 +812,100 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		examples[command] = example
 	}
 	return examples
+}
+
+func jsonGoldenErrorOutputExamples() map[string]jsonErrorResponse {
+	rateLimit := dropboxauth.NewRateLimitError(nil)
+	rateLimit.RetryAfter = 12
+
+	examples := map[string]jsonErrorResponse{
+		"auth_required": newJSONErrorResponse(jsonErrorExampleCommand("account"), missingAccessTokenError(tokenPersonal)),
+		"as_member_api_error": newJSONErrorResponse(
+			jsonErrorExampleCommandWithAsMember("ls", "dbmid:member"),
+			fmt.Errorf("list folder: %w", files.ListFolderAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/."}}),
+		),
+		"deprecated_warning": newJSONErrorResponse(
+			jsonDeprecatedErrorExampleCommand("share list link", shareListLinksDeprecatedMessage),
+			invalidArgumentsErrorWithDetails(
+				"`share-link list` accepts at most one `path` argument",
+				mergeJSONErrorDetails(operationErrorDetails("share_link_list"), argumentErrorDetails("path"), pathErrorDetails("/extra")),
+			),
+		),
+		"dropbox_api_error": newJSONErrorResponse(
+			jsonErrorExampleCommand("share-link create"),
+			withJSONErrorDetails(
+				fmt.Errorf("share: %w", sharing.CreateSharedLinkWithSettingsAPIError{APIError: dropbox.APIError{ErrorSummary: "shared_link_already_exists/."}}),
+				operationErrorDetails("share_link_create"),
+				pathErrorDetails("/Reports/old.pdf"),
+			),
+		),
+		"invalid_arguments": newJSONErrorResponse(
+			jsonErrorExampleCommand("put"),
+			invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, or fail)", flagValueErrorDetails("if-exists", "replace"), "replace"),
+		),
+		"not_found": newJSONErrorResponse(
+			jsonErrorExampleCommand("get"),
+			withJSONErrorDetails(
+				fmt.Errorf("download: %w", files.DownloadAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/."}}),
+				operationErrorDetails("download"),
+				pathErrorDetails("/missing.txt"),
+			),
+		),
+		"partial_transfer": newJSONErrorResponse(
+			jsonErrorExampleCommand("get"),
+			withJSONErrorDetails(partialStdoutError(12), operationErrorDetails("download"), pathErrorDetails("/big.bin")),
+		),
+		"path_conflict": newJSONErrorResponse(jsonErrorExampleCommand("mkdir"), pathConflictErrorWithPath("/file", "path exists and is not a folder: %s", "/file")),
+		"rate_limited": newJSONErrorResponse(
+			jsonErrorExampleCommand("put"),
+			withJSONErrorDetails(
+				fmt.Errorf("upload: %w", dropboxauth.RateLimitAPIError{APIError: dropbox.APIError{ErrorSummary: "too_many_requests/."}, RateLimitError: rateLimit}),
+				operationErrorDetails("upload"),
+				pathErrorDetails("/upload.bin"),
+			),
+		),
+		"restore_revision": newJSONErrorResponse(
+			jsonErrorExampleCommand("restore"),
+			withJSONErrorDetails(
+				fmt.Errorf("restore: %w", files.RestoreAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/."}}),
+				restoreErrorDetails("/Reports/old.pdf", "015f"),
+			),
+		),
+		"structured_output_unsupported": newJSONErrorResponse(jsonErrorExampleCommand("login"), output.ErrStructuredOutputUnsupported),
+		"team_email": newJSONErrorResponse(
+			jsonErrorExampleCommand("team add-member"),
+			withJSONErrorDetails(errors.New("add failed"), operationErrorDetails("team_add_member"), emailErrorDetails("new@example.com")),
+		),
+	}
+	return examples
+}
+
+func jsonErrorExampleCommand(path string) *cobra.Command {
+	root := &cobra.Command{Use: "dbxcli"}
+	if path == "" || path == "dbxcli" {
+		return root
+	}
+
+	parent := root
+	for _, part := range strings.Split(path, " ") {
+		child := &cobra.Command{Use: part}
+		parent.AddCommand(child)
+		parent = child
+	}
+	return parent
+}
+
+func jsonErrorExampleCommandWithAsMember(path string, memberID string) *cobra.Command {
+	cmd := jsonErrorExampleCommand(path)
+	cmd.Flags().String("as-member", "", "")
+	_ = cmd.Flags().Set("as-member", memberID)
+	return cmd
+}
+
+func jsonDeprecatedErrorExampleCommand(path string, deprecated string) *cobra.Command {
+	cmd := jsonErrorExampleCommand(path)
+	cmd.Deprecated = deprecated
+	return cmd
 }
 
 func sampleJSONAccount() jsonAccount {

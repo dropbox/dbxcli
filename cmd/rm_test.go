@@ -635,8 +635,13 @@ func TestRmJSONErrorWritesNoOutput(t *testing.T) {
 	}
 	stubFilesClient(t, mock)
 
-	if err := rm(cmd, []string{"/File.txt"}); err == nil {
+	err := rm(cmd, []string{"/File.txt"})
+	if err == nil {
 		t.Fatal("expected rm error")
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "delete" || details["path"] != "/File.txt" {
+		t.Fatalf("details = %#v, want delete operation and path", details)
 	}
 	if got := stdout.String(); got != "" {
 		t.Fatalf("stdout = %q, want empty output on error", got)

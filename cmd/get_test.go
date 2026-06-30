@@ -868,6 +868,10 @@ func TestGetJSONRecursiveErrorEmitsNoSuccessJSON(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected recursive error")
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "download" || details["path"] != "/remote" {
+		t.Fatalf("details = %#v, want download operation and source path", details)
+	}
 	if stdout.Len() != 0 {
 		t.Fatalf("stdout = %q, want empty on recursive error", stdout.String())
 	}

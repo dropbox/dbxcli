@@ -869,6 +869,10 @@ func TestPutJSONIfExistsFailReturnsErrorWithoutStdout(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "upload" || details["from_path"] != tmpFile || details["to_path"] != "/existing.txt" {
+		t.Fatalf("details = %#v, want upload operation and source/destination", details)
+	}
 	if stdout.Len() != 0 {
 		t.Fatalf("stdout = %q, want empty on error", stdout.String())
 	}

@@ -307,11 +307,11 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	srcInfo, err := os.Stat(src)
 	if err != nil {
-		return
+		return withJSONErrorDetails(err, operationErrorDetails("upload"), pathErrorDetails(src))
 	}
 
 	if srcInfo.IsDir() && !recursive {
-		return invalidArgumentsErrorfWithDetails("%s is a directory (use --recursive to upload directories)", pathErrorDetails(src), src)
+		return invalidArgumentsErrorfWithDetails("%s is a directory (use --recursive to upload directories)", mergeJSONErrorDetails(operationErrorDetails("upload"), pathErrorDetails(src)), src)
 	}
 
 	// Default `dst` to the base segment of the source path; use the second argument if provided.
@@ -331,11 +331,11 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	if srcInfo.IsDir() {
 		if commandOutputFormat(cmd) == output.FormatText {
-			return putRecursive(src, dst, opts)
+			return withJSONErrorDetails(putRecursive(src, dst, opts), operationErrorDetails("upload"), relocationErrorDetails(src, dst))
 		}
 		results, warnings, err := putRecursiveWithResults(src, dst, opts)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, operationErrorDetails("upload"), relocationErrorDetails(src, dst))
 		}
 		return renderPutResultsWithWarnings(cmd, putCommandInput{
 			Source:    src,
@@ -348,7 +348,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 
 	result, err := putFileWithResult(src, dst, opts)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("upload"), relocationErrorDetails(src, dst))
 	}
 	return renderPutResults(cmd, putCommandInput{
 		Source:    src,
@@ -364,12 +364,12 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		return invalidArgumentsErrorWithDetails("`put -` requires an explicit target path", argumentErrorDetails("dst"))
 	}
 	if recursive {
-		return invalidArgumentsErrorWithDetails("`put -` cannot be used with --recursive", flagErrorDetails("recursive"))
+		return invalidArgumentsErrorWithDetails("`put -` cannot be used with --recursive", mergeJSONErrorDetails(operationErrorDetails("upload"), flagErrorDetails("recursive")))
 	}
 
 	dst := args[1]
 	if strings.HasSuffix(dst, "/") {
-		return invalidArgumentsErrorfWithDetails("cannot upload stdin to directory target %q; provide a full Dropbox file path", pathErrorDetails(dst), dst)
+		return invalidArgumentsErrorfWithDetails("cannot upload stdin to directory target %q; provide a full Dropbox file path", mergeJSONErrorDetails(operationErrorDetails("upload"), pathErrorDetails(dst)), dst)
 	}
 
 	dstPath, err := validatePath(dst)
@@ -380,7 +380,7 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 	dbx := filesNewFunc(config)
 	action, existingMetadata, err := checkPutStdinDestination(dbx, dstPath, opts.ifExists)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("upload"), relocationErrorDetails("-", dstPath))
 	}
 	if action == putDestinationSkip {
 		reportPutSkipped(opts, dstPath)
@@ -399,7 +399,7 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 
 	tmpPath, _, cleanup, err := spoolStdinToTemp(cmd.InOrStdin())
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("upload"), relocationErrorDetails("-", dstPath))
 	}
 
 	result, uploadErr := putFileWithResult(tmpPath, dstPath, opts)
@@ -409,12 +409,12 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		if cleanupErr != nil {
 			reportStdinCleanupFailure(opts, tmpPath, cleanupErr)
 		}
-		return uploadErr
+		return withJSONErrorDetails(uploadErr, operationErrorDetails("upload"), relocationErrorDetails("-", dstPath))
 	}
 
 	if cleanupErr != nil {
 		reportStdinCleanupFailure(opts, tmpPath, cleanupErr)
-		return fmt.Errorf("failed to remove temp file %s after upload; sensitive stdin data may remain on disk: %w", tmpPath, cleanupErr)
+		return withJSONErrorDetails(fmt.Errorf("failed to remove temp file %s after upload; sensitive stdin data may remain on disk: %w", tmpPath, cleanupErr), operationErrorDetails("upload"), relocationErrorDetails("-", dstPath))
 	}
 
 	result.Input.Source = "-"
@@ -589,7 +589,7 @@ func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (pu
 		return putDestinationUpload, nil, nil
 	}
 	if _, ok := meta.(*files.FolderMetadata); ok {
-		return putDestinationUpload, nil, invalidArgumentsErrorfWithDetails("cannot upload stdin to folder %q; provide a full Dropbox file path", pathErrorDetails(dst), dst)
+		return putDestinationUpload, nil, invalidArgumentsErrorfWithDetails("cannot upload stdin to folder %q; provide a full Dropbox file path", mergeJSONErrorDetails(operationErrorDetails("upload"), pathErrorDetails(dst)), dst)
 	}
 	return actionForExistingDestination(dst, ifExists, meta)
 }
@@ -782,7 +782,7 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, withJSONErrorDetails(err, operationErrorDetails("upload"), pathErrorDetails(src))
 	}
 
 	dbx := filesNewFunc(config)
@@ -791,13 +791,13 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 	if collectResults {
 		result, mkdirErr := putDirectoryWithResult(dbx, src, dst)
 		if mkdirErr != nil {
-			uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", dst, mkdirErr))
+			uploadErrors = append(uploadErrors, withJSONErrorDetails(fmt.Errorf("mkdir %s: %w", dst, mkdirErr), operationErrorDetails("create_folder"), pathErrorDetails(dst)))
 		} else {
 			results = append(results, result)
 		}
 	} else {
 		if mkdirErr := putDirectory(dbx, dst); mkdirErr != nil {
-			uploadErrors = append(uploadErrors, fmt.Errorf("mkdir %s: %w", dst, mkdirErr))
+			uploadErrors = append(uploadErrors, withJSONErrorDetails(fmt.Errorf("mkdir %s: %w", dst, mkdirErr), operationErrorDetails("create_folder"), pathErrorDetails(dst)))
 		}
 	}
 
@@ -838,11 +838,11 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, withJSONErrorDetails(err, operationErrorDetails("upload"), pathErrorDetails(src))
 	}
 
 	if len(uploadErrors) > 0 {
-		return nil, nil, fmt.Errorf("failed to upload %d file(s): %v", len(uploadErrors), uploadErrors[0])
+		return nil, nil, commandFailedErrorfWithDetails("failed to upload %d file(s): %v", mergeJSONErrorDetails(operationErrorDetails("upload"), relocationErrorDetails(src, dst)), len(uploadErrors), uploadErrors[0])
 	}
 	return results, warnings, nil
 }

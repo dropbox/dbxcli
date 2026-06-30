@@ -42,9 +42,41 @@ Error responses always include:
 - `error.code`: stable machine-readable error code
 - `error.details`: optional machine-readable context, included only when
   dbxcli has reliable structured details such as `argument`, `arguments`,
-  `flag`, `flags`, `value`, `path`, `token_type`, `login_command`, `env_var`,
-  Dropbox `api_summary`, Dropbox `api_endpoint`, or `bytes_written`
+  `flag`, `flags`, `value`, `path`, `revision`, `email`, `member_id`,
+  `from_path`, `to_path`, `url`, `operation`, `token_type`, `login_command`,
+  `env_var`, Dropbox `api_summary`, Dropbox `api_endpoint`, `bytes_written`,
+  or `retry_after_seconds`
 - `warnings`: machine-actionable warnings, or `[]`
+
+Reusable `error.details` keys:
+
+| Key | Meaning |
+| --- | --- |
+| `argument` | Single positional argument related to validation or remediation. |
+| `arguments` | Multiple positional arguments related to validation or remediation. |
+| `flag` | Single CLI flag related to validation or remediation, without leading dashes. |
+| `flags` | Multiple CLI flags related to validation or remediation, without leading dashes. |
+| `value` | Invalid or relevant user-provided flag value. |
+| `path` | Dropbox or local path directly related to the error. |
+| `revision` | Dropbox file revision directly related to the error. |
+| `email` | Email address directly related to the error. |
+| `member_id` | Dropbox team member ID supplied by the caller, such as `--as-member`. |
+| `from_path` | Source path for copy, move, upload, download, or another relocation-style operation. |
+| `to_path` | Destination path for copy, move, upload, download, or another relocation-style operation. |
+| `url` | Shared-link or API URL related to the error. |
+| `operation` | High-level operation, such as `upload`, `download`, `delete`, `restore`, or `share_link_create`. |
+| `token_type` | Credential type related to an auth error. |
+| `login_command` | Suggested login command for auth remediation. |
+| `env_var` | Environment variable related to auth or configuration remediation. |
+| `api_summary` | Dropbox API error summary when available. |
+| `api_endpoint` | Dropbox API endpoint parsed from an SDK error message when available. |
+| `bytes_written` | Number of bytes written before a partial stdout transfer failed. |
+| `retry_after_seconds` | Number of seconds to wait before retrying a rate-limited request. |
+
+Prefer these existing path keys before adding new synonyms: use `path` for one
+directly relevant path and `from_path`/`to_path` for relocation-style source
+and destination context. Add a new key such as `target` or `local_path` only
+when the existing keys would be ambiguous.
 
 Command results and JSON errors are written to stdout. Status, progress,
 human-facing warnings, diagnostics, and verbose logs are written to stderr.

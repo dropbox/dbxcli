@@ -56,13 +56,13 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsErrorWithDetails("`share-link revoke` requires a non-empty URL", argumentErrorDetails("url"))
+		return invalidArgumentsErrorWithDetails("`share-link revoke` requires a non-empty URL", mergeJSONErrorDetails(argumentErrorDetails("url"), urlErrorDetails(url)))
 	}
 
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewRevokeSharedLinkArg(url)
 	if err := dbx.RevokeSharedLink(arg); err != nil {
-		return err
+		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
 	}
 
 	commandVerboseStatus(cmd, "Revoked shared link %s", url)
@@ -91,13 +91,16 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 	if !localFlagChanged(cmd, "path") {
 		return opts, nil
 	}
-	if len(args) != 0 {
-		return opts, invalidArgumentsErrorWithDetails("`--path` cannot be used with a shared link URL", mergeJSONErrorDetails(flagErrorDetails("path"), argumentErrorDetails("url")))
-	}
-
 	pathArg, err := localStringFlag(cmd, "path")
 	if err != nil {
 		return opts, err
+	}
+	if len(args) != 0 {
+		details := mergeJSONErrorDetails(operationErrorDetails("share_link_revoke"), flagErrorDetails("path"), argumentErrorDetails("url"))
+		if pathArg != "" {
+			details = mergeJSONErrorDetails(details, pathErrorDetails(pathArg))
+		}
+		return opts, invalidArgumentsErrorWithDetails("`--path` cannot be used with a shared link URL", details)
 	}
 	if pathArg == "" {
 		return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
@@ -108,7 +111,7 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 		return opts, err
 	}
 	if dropboxPath == "" {
-		return opts, invalidArgumentsErrorWithDetails("cannot revoke shared links for Dropbox root", pathErrorDetails("/"))
+		return opts, invalidArgumentsErrorWithDetails("cannot revoke shared links for Dropbox root", mergeJSONErrorDetails(operationErrorDetails("share_link_revoke"), pathErrorDetails("/")))
 	}
 
 	opts.path = dropboxPath
@@ -123,24 +126,24 @@ func revokeSharedLinksForPath(cmd *cobra.Command, path string) ([]shareLinkRevok
 	dbx := newSharedLinkClient(config)
 	links, err := listSharedLinks(dbx, arg)
 	if err != nil {
-		return nil, err
+		return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 	}
 	if len(links) == 0 {
-		return nil, fmt.Errorf("no direct shared links found for %q", path)
+		return nil, withJSONErrorDetails(fmt.Errorf("no direct shared links found for %q", path), operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 	}
 
 	revoked := make([]shareLinkRevokeResult, 0, len(links))
 	for _, link := range links {
 		url, ok := sharedLinkURL(link)
 		if !ok {
-			return nil, errors.New("shared link response did not include a URL")
+			return nil, withJSONErrorDetails(errors.New("shared link response did not include a URL"), operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 		}
 		metadata, ok := shareLinkJSONMetadataFromDropbox(link)
 		if !ok {
-			return nil, errors.New("found unknown shared link type")
+			return nil, withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 		}
 		if err := dbx.RevokeSharedLink(sharing.NewRevokeSharedLinkArg(url)); err != nil {
-			return nil, fmt.Errorf("revoke shared link %s: %w", url, err)
+			return nil, withJSONErrorDetails(fmt.Errorf("revoke shared link %s: %w", url, err), urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
 		}
 		revoked = append(revoked, shareLinkRevokeResult{
 			URL:  url,

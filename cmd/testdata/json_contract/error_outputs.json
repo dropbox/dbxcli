@@ -1,0 +1,179 @@
+{
+  "auth_required": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "account",
+    "error": {
+      "message": "no saved Dropbox credentials; run \"dbxcli login\" first or set DBXCLI_ACCESS_TOKEN",
+      "code": "auth_required",
+      "details": {
+        "token_type": "personal",
+        "login_command": "dbxcli login",
+        "env_var": "DBXCLI_ACCESS_TOKEN"
+      }
+    },
+    "warnings": []
+  },
+  "as_member_api_error": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "ls",
+    "error": {
+      "message": "list folder: path/not_found/.",
+      "code": "not_found",
+      "details": {
+        "api_summary": "path/not_found/.",
+        "member_id": "dbmid:member"
+      }
+    },
+    "warnings": []
+  },
+  "deprecated_warning": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "share list link",
+    "error": {
+      "message": "`share-link list` accepts at most one `path` argument",
+      "code": "invalid_arguments",
+      "details": {
+        "operation": "share_link_list",
+        "argument": "path",
+        "path": "/extra"
+      }
+    },
+    "warnings": [
+      {
+        "code": "deprecated_command",
+        "message": "use `dbxcli share-link list` instead"
+      }
+    ]
+  },
+  "dropbox_api_error": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "share-link create",
+    "error": {
+      "message": "share: shared_link_already_exists/.",
+      "code": "dropbox_api_error",
+      "details": {
+        "operation": "share_link_create",
+        "path": "/Reports/old.pdf",
+        "api_summary": "shared_link_already_exists/."
+      }
+    },
+    "warnings": []
+  },
+  "invalid_arguments": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "put",
+    "error": {
+      "message": "invalid --if-exists \"replace\" (use overwrite, skip, or fail)",
+      "code": "invalid_arguments",
+      "details": {
+        "flag": "if-exists",
+        "value": "replace"
+      }
+    },
+    "warnings": []
+  },
+  "not_found": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "get",
+    "error": {
+      "message": "download: path/not_found/.",
+      "code": "not_found",
+      "details": {
+        "operation": "download",
+        "path": "/missing.txt",
+        "api_summary": "path/not_found/."
+      }
+    },
+    "warnings": []
+  },
+  "partial_transfer": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "get",
+    "error": {
+      "message": "download failed after writing 12 bytes to stdout; cannot retry partial output",
+      "code": "partial_transfer",
+      "details": {
+        "operation": "download",
+        "path": "/big.bin",
+        "bytes_written": 12
+      }
+    },
+    "warnings": []
+  },
+  "path_conflict": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "mkdir",
+    "error": {
+      "message": "path exists and is not a folder: /file",
+      "code": "path_conflict",
+      "details": {
+        "path": "/file"
+      }
+    },
+    "warnings": []
+  },
+  "rate_limited": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "put",
+    "error": {
+      "message": "upload: too_many_requests/.",
+      "code": "rate_limited",
+      "details": {
+        "operation": "upload",
+        "path": "/upload.bin",
+        "api_summary": "too_many_requests/.",
+        "retry_after_seconds": 12
+      }
+    },
+    "warnings": []
+  },
+  "restore_revision": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "restore",
+    "error": {
+      "message": "restore: path/not_found/.",
+      "code": "not_found",
+      "details": {
+        "operation": "restore",
+        "path": "/Reports/old.pdf",
+        "revision": "015f",
+        "api_summary": "path/not_found/."
+      }
+    },
+    "warnings": []
+  },
+  "structured_output_unsupported": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "login",
+    "error": {
+      "message": "structured output is not supported for this command yet",
+      "code": "structured_output_unsupported"
+    },
+    "warnings": []
+  },
+  "team_email": {
+    "ok": false,
+    "schema_version": "1",
+    "command": "team add-member",
+    "error": {
+      "message": "add failed",
+      "code": "command_failed",
+      "details": {
+        "operation": "team_add_member",
+        "email": "new@example.com"
+      }
+    },
+    "warnings": []
+  }
+}

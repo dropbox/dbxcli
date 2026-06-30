@@ -131,6 +131,50 @@ func TestExecuteExitsWithMappedCodes(t *testing.T) {
 	}
 }
 
+func TestExecuteJSONErrorOutputsValidateAgainstSchema(t *testing.T) {
+	missingAuthFile := filepath.Join(t.TempDir(), "missing-auth.json")
+
+	tests := []struct {
+		name string
+		args []string
+		env  map[string]string
+		code string
+	}{
+		{
+			name: "unknown command",
+			args: []string{"--output=json", "does-not-exist"},
+			code: jsonErrorCodeUnknownCommand,
+		},
+		{
+			name: "auth required",
+			args: []string{"ls", "--output=json", "/"},
+			env:  map[string]string{envAccessToken: "", envAuthFile: missingAuthFile},
+			code: jsonErrorCodeAuthRequired,
+		},
+		{
+			name: "structured output unsupported",
+			args: []string{"completion", "--output=json"},
+			code: jsonErrorCodeStructuredOutputUnsupported,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exitCode, stdout, stderr := executeExitTestSubprocess(t, tt.args, tt.env)
+			if exitCode == exitCodeSuccess {
+				t.Fatalf("exit code = 0, want non-zero\nstdout: %s\nstderr: %s", stdout, stderr)
+			}
+			if stderr != "" {
+				t.Fatalf("stderr = %q, want JSON error on stdout only", stderr)
+			}
+			got := decodeJSONErrorResponse(t, stdout)
+			if got.Error.Code != tt.code {
+				t.Fatalf("code = %q, want %q\nstdout: %s", got.Error.Code, tt.code, stdout)
+			}
+		})
+	}
+}
+
 func executeExitTestSubprocess(t *testing.T, args []string, env map[string]string) (int, string, string) {
 	t.Helper()
 

@@ -57,13 +57,13 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	dbx := filesNewFunc(config)
 	metadata, err := dbx.Restore(arg)
 	if err != nil {
-		return
+		return withJSONErrorDetails(err, restoreErrorDetails(path, rev))
 	}
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	result, err := newRestoreResult(path, rev, metadata)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, restoreErrorDetails(path, rev))
 	}
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
@@ -72,6 +72,10 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 		}
 		return renderRestoreResult(w, result)
 	}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
+}
+
+func restoreErrorDetails(path, revision string) map[string]any {
+	return mergeJSONErrorDetails(operationErrorDetails("restore"), pathErrorDetails(path), revisionErrorDetails(revision))
 }
 
 func newRestoreResult(path, revision string, metadata *files.FileMetadata) (restoreResult, error) {

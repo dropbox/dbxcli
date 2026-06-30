@@ -53,14 +53,14 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		return invalidArgumentsErrorWithDetails("`search` requires a `query` argument", argumentErrorDetails("query"))
 	}
 	if len(args) > 2 {
-		return invalidArgumentsErrorWithDetails("`search` accepts at most one optional `path-scope` argument", argumentErrorDetails("path-scope"))
+		return invalidArgumentsErrorWithDetails("`search` accepts at most one optional `path-scope` argument", mergeJSONErrorDetails(argumentErrorDetails("path-scope"), pathErrorDetails(args[2])))
 	}
 
 	var scope string
 	if len(args) == 2 {
 		scope = args[1]
 		if !strings.HasPrefix(scope, "/") {
-			return invalidArgumentsErrorWithDetails("`search` `path-scope` must begin with \"/\"", argumentErrorDetails("path-scope"))
+			return invalidArgumentsErrorWithDetails("`search` `path-scope` must begin with \"/\"", mergeJSONErrorDetails(argumentErrorDetails("path-scope"), pathErrorDetails(scope)))
 		}
 	}
 

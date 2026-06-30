@@ -93,6 +93,34 @@
               "type": "string",
               "description": "Local or Dropbox path related to the error."
             },
+            "revision": {
+              "type": "string",
+              "description": "Dropbox file revision related to the error."
+            },
+            "email": {
+              "type": "string",
+              "description": "Email address related to the error."
+            },
+            "member_id": {
+              "type": "string",
+              "description": "Dropbox team member ID supplied by the caller."
+            },
+            "from_path": {
+              "type": "string",
+              "description": "Source Dropbox path related to a relocation error."
+            },
+            "to_path": {
+              "type": "string",
+              "description": "Destination Dropbox path related to a relocation error."
+            },
+            "url": {
+              "type": "string",
+              "description": "Shared link URL related to the error."
+            },
+            "operation": {
+              "type": "string",
+              "description": "High-level operation related to the error."
+            },
             "token_type": {
               "type": "string",
               "description": "Credential type related to an auth error."
@@ -117,6 +145,11 @@
               "type": "integer",
               "minimum": 0,
               "description": "Number of bytes written before a partial stdout transfer failed."
+            },
+            "retry_after_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of seconds to wait before retrying a rate-limited request."
             }
           }
         }

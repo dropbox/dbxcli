@@ -135,17 +135,17 @@ func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) 
 
 		pathMetaData, err := getFileMetadata(dbx, path)
 		if err != nil {
-			return nil, err
+			return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(path))
 		}
 
 		if _, ok := pathMetaData.(*files.FileMetadata); !ok && !opts.allowNonEmptyFolder() {
 			folderArg := files.NewListFolderArg(path)
 			res, err := dbx.ListFolder(folderArg)
 			if err != nil {
-				return nil, err
+				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(path))
 			}
 			if len(res.Entries) != 0 {
-				return nil, invalidArgumentsErrorfWithDetails("rm: cannot remove ‘%s’: Directory not empty, use `--force`/`-f` or `--recursive`/`-r` to proceed", pathErrorDetails(path), path)
+				return nil, invalidArgumentsErrorfWithDetails("rm: cannot remove ‘%s’: Directory not empty, use `--force`/`-f` or `--recursive`/`-r` to proceed", mergeJSONErrorDetails(operationErrorDetails(removeOperation(opts)), pathErrorDetails(path)), path)
 			}
 		}
 		targets = append(targets, removeTarget{path: path, metadata: pathMetaData})
@@ -163,12 +163,12 @@ func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions)
 
 		if opts.permanent {
 			if err := dbx.PermanentlyDelete(arg); err != nil {
-				return nil, err
+				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
 			}
 		} else {
 			res, err := dbx.DeleteV2(arg)
 			if err != nil {
-				return nil, err
+				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
 			}
 			if res != nil && res.Metadata != nil {
 				metadata = res.Metadata
@@ -177,7 +177,7 @@ func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions)
 
 		result, err := newRemoveResult(target.path, metadata, opts)
 		if err != nil {
-			return nil, err
+			return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
 		}
 		results = append(results, result)
 	}
@@ -234,6 +234,13 @@ func (r removeResult) displayPath() string {
 
 func (o removeOptions) allowNonEmptyFolder() bool {
 	return o.force || o.recursive
+}
+
+func removeOperation(opts removeOptions) string {
+	if opts.permanent {
+		return "permanent_delete"
+	}
+	return "delete"
 }
 
 // rmCmd represents the rm command

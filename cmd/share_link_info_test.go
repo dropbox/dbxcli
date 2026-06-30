@@ -217,6 +217,10 @@ func TestShareLinkInfoReturnsAPIError(t *testing.T) {
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want API error", err)
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_info" || details["url"] != "https://www.dropbox.com/s/abc123" {
+		t.Fatalf("details = %#v, want share_link_info URL context", details)
+	}
 }
 
 func TestShareLinkInfoDoesNotBreakOtherCommands(t *testing.T) {

@@ -58,7 +58,7 @@ func newJSONErrorResponse(cmd *cobra.Command, err error) jsonErrorResponse {
 		Error: jsonError{
 			Message: err.Error(),
 			Code:    jsonErrorCode(err),
-			Details: jsonErrorDetails(err),
+			Details: jsonErrorDetailsForCommand(cmd, err),
 		},
 		Warnings: jsonCommandWarnings(cmd),
 	}

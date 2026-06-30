@@ -43,6 +43,7 @@ func cp(cmd *cobra.Command, args []string) error {
 	}
 
 	var cpErrors []error
+	var cpErrorDetails []map[string]any
 	var relocationArgs []*files.RelocationArg
 	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
@@ -56,10 +57,12 @@ func cp(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			relocationError := fmt.Errorf("Error validating copy for %s to %s: %v", argument, dst, err)
 			cpErrors = append(cpErrors, relocationError)
+			cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				cpErrors = append(cpErrors, fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err))
+				cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
 			if skipped {
@@ -83,6 +86,7 @@ func cp(cmd *cobra.Command, args []string) error {
 			}
 			copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			cpErrors = append(cpErrors, copyError)
+			cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 			continue
 		}
 		if collectResults {
@@ -90,6 +94,7 @@ func cp(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				copyError := fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err)
 				cpErrors = append(cpErrors, copyError)
+				cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
 			results = append(results, relocationOperationResult(relocationJSONStatusCopied, result))
@@ -100,7 +105,7 @@ func cp(cmd *cobra.Command, args []string) error {
 		for _, cpError := range cpErrors {
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%v\n", cpError)
 		}
-		return fmt.Errorf("cp: %d error(s)", len(cpErrors))
+		return relocationAggregateError("cp", "copy", len(cpErrors), cpErrorDetails)
 	}
 
 	if !collectResults {

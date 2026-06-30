@@ -44,7 +44,7 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 
 	url := args[0]
 	if url == "" {
-		return invalidArgumentsErrorWithDetails("`share-link info` requires a non-empty URL", argumentErrorDetails("url"))
+		return invalidArgumentsErrorWithDetails("`share-link info` requires a non-empty URL", mergeJSONErrorDetails(argumentErrorDetails("url"), urlErrorDetails(url)))
 	}
 
 	opts, err := parseShareLinkInfoOptions(cmd)
@@ -63,12 +63,12 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 
 	link, err := dbx.GetSharedLinkMetadata(arg)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_info"))
 	}
 
 	result, ok := shareLinkJSONMetadataFromDropbox(link)
 	if !ok {
-		return errors.New("found unknown shared link type")
+		return withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_info"), urlErrorDetails(url))
 	}
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {

@@ -363,10 +363,11 @@ func TestShareLinkDownloadPathRejectsInvalidCombinations(t *testing.T) {
 		path      string
 		recursive bool
 		want      string
+		wantPath  string
 	}{
 		{name: "empty path", path: "", want: "`--path` requires a non-empty path"},
-		{name: "root path", path: "/", want: "cannot download shared-link root with `--path`"},
-		{name: "recursive path", path: "/sub/nested.txt", recursive: true, want: "`--path` cannot be used with --recursive"},
+		{name: "root path", path: "/", want: "cannot download shared-link root with `--path`", wantPath: "/"},
+		{name: "recursive path", path: "/sub/nested.txt", recursive: true, want: "`--path` cannot be used with --recursive", wantPath: "/sub/nested.txt"},
 	}
 
 	for _, tt := range tests {
@@ -396,6 +397,12 @@ func TestShareLinkDownloadPathRejectsInvalidCombinations(t *testing.T) {
 			err := shareLinkDownload(cmd, []string{"https://example.com/folder", filepath.Join(t.TempDir(), "target")})
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
 				t.Fatalf("error = %v, want %q", err, tt.want)
+			}
+			if tt.wantPath != "" {
+				details := jsonErrorDetails(err)
+				if details["path"] != tt.wantPath {
+					t.Fatalf("details = %#v, want path %q", details, tt.wantPath)
+				}
 			}
 			if called {
 				t.Fatal("shared link API should not be called")
@@ -446,6 +453,10 @@ func TestShareLinkDownloadFolderRejectsStdoutTarget(t *testing.T) {
 	}
 	if got, want := jsonErrorCode(err), jsonErrorCodeInvalidArguments; got != want {
 		t.Fatalf("jsonErrorCode = %q, want %q", got, want)
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_download" || details["url"] != "https://example.com/folder" {
+		t.Fatalf("details = %#v, want share_link_download operation and URL", details)
 	}
 }
 

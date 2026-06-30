@@ -83,7 +83,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if dst == "-" {
 		if commandOutputFormat(cmd) == output.FormatJSON {
-			return invalidArgumentsErrorWithDetails("`get --output=json` cannot be used with stdout target `-`", mergeJSONErrorDetails(argumentErrorDetails("dst"), flagErrorDetails("output")))
+			return invalidArgumentsErrorWithDetails("`get --output=json` cannot be used with stdout target `-`", mergeJSONErrorDetails(operationErrorDetails("download"), argumentErrorDetails("dst"), flagErrorDetails("output")))
 		}
 		return getStdout(cmd, src, recursive)
 	}
@@ -93,7 +93,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
 	if err != nil {
 		if recursive {
-			return fmt.Errorf("get metadata for %s: %v", src, err)
+			return withJSONErrorDetails(fmt.Errorf("get metadata for %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
 		}
 		// For non-recursive, fall through to download (will fail with proper error)
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
@@ -101,7 +101,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		}
 		result, err := downloadFileWithResult(dbx, src, dst, opts)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
 		return renderGetResults(cmd, getCommandInput{
 			Source:    src,
@@ -113,17 +113,17 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	if _, ok := meta.(*files.FolderMetadata); ok {
 		if !recursive {
-			return invalidArgumentsErrorfWithDetails("%s is a folder (use --recursive to download folders)", pathErrorDetails(src), src)
+			return invalidArgumentsErrorfWithDetails("%s is a folder (use --recursive to download folders)", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src)), src)
 		}
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
 			dst = filepath.Join(dst, path.Base(src))
 		}
 		if commandOutputFormat(cmd) == output.FormatText {
-			return getRecursive(dbx, src, dst)
+			return withJSONErrorDetails(getRecursive(dbx, src, dst), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
 		results, err := getRecursiveWithResults(dbx, src, dst, meta, opts)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
 		return renderGetResults(cmd, getCommandInput{
 			Source:    src,
@@ -139,7 +139,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	result, err := downloadFileWithResult(dbx, src, dst, opts)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 	}
 	return renderGetResults(cmd, getCommandInput{
 		Source:    src,
@@ -199,7 +199,7 @@ func getOperationResults(results []getResult) []jsonOperationResult {
 
 func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	if recursive {
-		return invalidArgumentsErrorWithDetails("`get -` cannot be used with --recursive", flagErrorDetails("recursive"))
+		return invalidArgumentsErrorWithDetails("`get -` cannot be used with --recursive", mergeJSONErrorDetails(operationErrorDetails("download"), flagErrorDetails("recursive")))
 	}
 
 	dbx := filesNewFunc(config)
@@ -207,11 +207,11 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
 	if err == nil {
 		if _, ok := meta.(*files.FolderMetadata); ok {
-			return invalidArgumentsErrorfWithDetails("%s is a folder; cannot download folder to stdout", pathErrorDetails(src), src)
+			return invalidArgumentsErrorfWithDetails("%s is a folder; cannot download folder to stdout", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src)), src)
 		}
 	}
 
-	return downloadToStdout(dbx, src, cmd.OutOrStdout())
+	return withJSONErrorDetails(downloadToStdout(dbx, src, cmd.OutOrStdout()), operationErrorDetails("download"), pathErrorDetails(src))
 }
 
 func getWithClient(dbx files.Client, args []string) (err error) {
@@ -232,7 +232,7 @@ func getWithClient(dbx files.Client, args []string) (err error) {
 		dst = filepath.Join(dst, path.Base(src))
 	}
 
-	return downloadFile(dbx, src, dst)
+	return withJSONErrorDetails(downloadFile(dbx, src, dst), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 }
 
 func getRecursive(dbx files.Client, src, dst string) error {
@@ -250,7 +250,7 @@ func getRecursiveInternal(dbx files.Client, src, dst string, rootMeta files.IsMe
 
 	res, err := dbx.ListFolder(arg)
 	if err != nil {
-		return nil, fmt.Errorf("list folder %s: %v", src, err)
+		return nil, withJSONErrorDetails(fmt.Errorf("list folder %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
 	}
 
 	var entries []files.IsMetadata
@@ -259,7 +259,7 @@ func getRecursiveInternal(dbx files.Client, src, dst string, rootMeta files.IsMe
 		cont := files.NewListFolderContinueArg(res.Cursor)
 		res, err = dbx.ListFolderContinue(cont)
 		if err != nil {
-			return nil, fmt.Errorf("list folder continue: %v", err)
+			return nil, withJSONErrorDetails(fmt.Errorf("list folder continue: %v", err), operationErrorDetails("download"), pathErrorDetails(src))
 		}
 		entries = append(entries, res.Entries...)
 	}
@@ -335,7 +335,7 @@ func getRecursiveInternal(dbx files.Client, src, dst string, rootMeta files.IsMe
 		for _, e := range downloadErrors {
 			fmt.Fprintf(getErrorOutput(opts), "Error: %v\n", e)
 		}
-		return nil, fmt.Errorf("get: %d error(s)", len(downloadErrors))
+		return nil, commandFailedErrorfWithDetails("get: %d error(s)", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst)), len(downloadErrors))
 	}
 
 	return results, nil

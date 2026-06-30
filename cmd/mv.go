@@ -43,6 +43,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	var mvErrors []error
+	var mvErrorDetails []map[string]any
 	var relocationArgs []*files.RelocationArg
 	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
@@ -55,10 +56,12 @@ func mv(cmd *cobra.Command, args []string) error {
 		arg, err := makeRelocationArg(argument, dst)
 		if err != nil {
 			mvErrors = append(mvErrors, fmt.Errorf("Error validating move for %s to %s: %v", argument, dst, err))
+			mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				mvErrors = append(mvErrors, fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err))
+				mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
 			if skipped {
@@ -82,6 +85,7 @@ func mv(cmd *cobra.Command, args []string) error {
 			}
 			moveError := fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err)
 			mvErrors = append(mvErrors, moveError)
+			mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 			continue
 		}
 		if collectResults {
@@ -89,6 +93,7 @@ func mv(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				moveError := fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err)
 				mvErrors = append(mvErrors, moveError)
+				mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
 			results = append(results, relocationOperationResult(relocationJSONStatusMoved, result))
@@ -99,7 +104,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		for _, mvError := range mvErrors {
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%v\n", mvError)
 		}
-		return fmt.Errorf("mv: %d error(s)", len(mvErrors))
+		return relocationAggregateError("mv", "move", len(mvErrors), mvErrorDetails)
 	}
 
 	if !collectResults {
