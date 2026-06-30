@@ -60,16 +60,17 @@ continues to print text help, and shell-completion protocol commands remain
 text-only.
 
 The current JSON-enabled command paths are listed in `commands.json`.
-`commands.schema.json` is generated from that catalog:
+`commands.schema.json` is generated from that catalog plus schema metadata in
+the generator:
 
 ```sh
 go run ./tools/gen-json-schemas
 ```
 
-The command-specific schema intentionally starts with field-set and enum
-validation. It locks which fields may appear, which result statuses/kinds are
-valid for each command, and which warning codes are valid. It does not yet
-describe every nested primitive type.
+The command-specific schema locks which fields may appear, which fields are
+required when stable, primitive field types, stable nested objects, result
+statuses/kinds, and warning codes. It intentionally avoids over-modeling
+Dropbox SDK enum values that dbxcli does not own.
 
 ## Command Manifest v1
 

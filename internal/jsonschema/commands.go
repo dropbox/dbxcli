@@ -61,7 +61,11 @@ func GenerateCommandSuccessSchema(catalog CommandCatalog) (map[string]any, error
 	}
 
 	for _, name := range sortedMapKeys(catalog.Definitions) {
-		defs[name] = objectSchema(catalog.Definitions[name])
+		schema, err := objectSchema(name, catalog.Definitions[name])
+		if err != nil {
+			return nil, err
+		}
+		defs[name] = schema
 	}
 
 	commandRefs := make([]any, 0, len(catalog.Commands))
@@ -182,16 +186,41 @@ func commandWarningsSchema(codes []string) map[string]any {
 	}
 }
 
-func objectSchema(fields []string) map[string]any {
+func objectSchema(name string, fields []string) (map[string]any, error) {
+	knownFields := make(map[string]bool, len(fields))
+	for _, field := range fields {
+		knownFields[field] = true
+	}
+
+	config := commandDefinitionSchema(name)
+	for field := range config.Properties {
+		if !knownFields[field] {
+			return nil, fmt.Errorf("%s: schema references unknown field %q", name, field)
+		}
+	}
+	for _, field := range config.Required {
+		if !knownFields[field] {
+			return nil, fmt.Errorf("%s: required references unknown field %q", name, field)
+		}
+	}
+
 	properties := make(map[string]any, len(fields))
 	for _, field := range fields {
-		properties[field] = map[string]any{}
+		if schema, ok := config.Properties[field]; ok {
+			properties[field] = schema
+			continue
+		}
+		properties[field] = defaultPropertySchema(field)
 	}
-	return map[string]any{
+	schema := map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"properties":           properties,
 	}
+	if len(config.Required) > 0 {
+		schema["required"] = sortedCopy(config.Required)
+	}
+	return schema, nil
 }
 
 func warningSchema() map[string]any {

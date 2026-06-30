@@ -653,7 +653,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"help": newJSONOperationOutput(jsonHelpInput{Help: true, Path: "ls"}, []jsonOperationResult{
 			newJSONOperationResult(jsonHelpStatusDescribed, jsonHelpKindCommand, nil, jsonCommandManifestFor(lsCmd)),
 		}, nil),
-		"ls": newJSONOperationOutput(lsInput{Path: "/Reports", Recursive: false, IncludeDeleted: true, OnlyDeleted: false, Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
+		"ls": newJSONOperationOutput(lsInput{Path: "/Reports", Recursive: false, IncludeDeleted: true, OnlyDeleted: false, Long: true, Sort: "type", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(lsJSONStatusListed, file.Type, nil, file),
 		}, nil),
 		"logout": newJSONOperationOutput(nil, []jsonOperationResult{
@@ -677,7 +677,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"rm": newJSONOperationOutput(nil, []jsonOperationResult{
 			newJSONOperationResult(removeJSONStatusDeleted, file.Type, removeInput{Path: "/Reports/old.pdf", Permanent: false, Recursive: false, Force: false}, file),
 		}, nil),
-		"search": newJSONOperationOutput(searchInput{Query: "report", Path: "/Reports", Long: true, Sort: "name", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
+		"search": newJSONOperationOutput(searchInput{Query: "report", Path: "/Reports", Long: true, Sort: "type", Reverse: false, Time: "server", TimeFormat: "2006-01-02"}, []jsonOperationResult{
 			newJSONOperationResult(searchJSONStatusFound, folder.Type, nil, folder),
 		}, nil),
 		"share list folder": newJSONOperationOutput(shareFolderListInput{}, []jsonOperationResult{
@@ -686,7 +686,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"share list link": newJSONOperationOutput(shareLinkListInput{Path: "/Reports/old.pdf", DirectOnly: true}, []jsonOperationResult{
 			shareLinkJSONOperationResult(shareLinkJSONStatusListed, sharedLink),
 		}, []jsonWarning{{Code: jsonWarningCodeDeprecatedCommand, Message: "use `dbxcli share-link list` instead"}}),
-		"share-link create": newJSONOperationOutput(shareLinkCreateInput{Path: "/Reports/old.pdf", Access: "viewer", Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true}, []jsonOperationResult{
+		"share-link create": newJSONOperationOutput(shareLinkCreateInput{Path: "/Reports/old.pdf", Access: "max", Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true}, []jsonOperationResult{
 			shareLinkJSONOperationResult(shareLinkJSONStatusCreated, sharedLink),
 		}, nil),
 		"share-link download": newJSONOperationOutput(shareLinkDownloadInput{URL: sharedLink.URL, Target: "old.pdf", Path: "/old.pdf", Recursive: false, Password: true}, []jsonOperationResult{
