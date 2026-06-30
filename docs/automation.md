@@ -77,6 +77,21 @@ Use `commands.schema.json` from that directory when a caller needs
 command-specific success validation for `input`, `results`, primitive field
 types, statuses, kinds, and warning codes.
 
+## Schema-first automation
+
+Automation should treat the CLI and schemas as the stable interface:
+
+* Use `dbxcli --help --output=json` for command discovery.
+* Use each manifest's `input_schema` to validate arguments and flags before
+  building a CLI invocation.
+* Use `commands.schema.json` to validate successful JSON responses.
+* Use `error.schema.json` to validate JSON error responses.
+* Prefer schema URLs from a pinned release tag when reproducibility matters.
+
+dbxcli intentionally does not expose a separate machine protocol. Tools should
+invoke the CLI, read stdout as JSON in `--output=json` mode, and treat stderr as
+status, progress, warnings, diagnostics, and verbose logs.
+
 ## JSON help manifest
 
 JSON help is the machine-readable command discovery surface. It is separate

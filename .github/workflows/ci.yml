@@ -50,9 +50,9 @@ jobs:
       - run: go run ./tools/gen-docs
       - run: go run ./tools/gen-json-schemas
       - run: git diff --exit-code docs/commands
-      - run: git diff --exit-code docs/json-schema/v1/commands.schema.json
+      - run: git diff --exit-code docs/json-schema/v1
       - run: test -z "$(git status --porcelain -- docs/commands)"
-      - run: test -z "$(git status --porcelain -- docs/json-schema/v1/commands.schema.json)"
+      - run: test -z "$(git status --porcelain -- docs/json-schema/v1)"
 
   chocolatey:
     name: Chocolatey package
