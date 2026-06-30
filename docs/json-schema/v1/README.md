@@ -14,6 +14,45 @@ These schemas describe the stable top-level JSON envelopes emitted by
   `commands.json`: exact command names, top-level input fields, per-result
   input/result fields, result statuses/kinds, and warning codes.
 
+## How to validate output
+
+Use JSON help to discover a command before invoking it:
+
+```sh
+dbxcli put --help --output=json > put-help.json
+```
+
+Each command manifest includes an `input_schema` object for that command's
+arguments and flags. Automation can validate planned structured input against
+that schema, then build the corresponding CLI invocation using the `x-cli-name`
+metadata.
+
+Run commands that need machine-readable results with `--output=json`:
+
+```sh
+dbxcli put --if-exists fail --output=json report.md /Reports/report.md > result.json
+```
+
+Validate the response based on `ok`:
+
+- `ok: true`: validate with `commands.schema.json`.
+- `ok: false`: validate with `error.schema.json`.
+- JSON help manifests: validate each result with `manifest.schema.json`.
+
+For reproducible automation, pin schema URLs to a release tag:
+
+```text
+https://raw.githubusercontent.com/dropbox/dbxcli/v3.5.1/docs/json-schema/v1/commands.schema.json
+```
+
+Use `master` schema URLs only when the caller intentionally wants latest
+development behavior.
+
+Schema v1 intentionally does not guarantee exact `error.message` text, Dropbox
+SDK enum exhaustiveness, or that future minor releases will avoid additive
+fields. Treat `error.code`, result `status`, result `kind`, and documented
+field names as the stable machine contract.
+
 Successful responses always include:
 
 - `ok: true`

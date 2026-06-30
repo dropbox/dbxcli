@@ -227,9 +227,11 @@ func rootNamespaceID(account *users.FullAccount) string {
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "dbxcli",
-	Short: "A command line tool for Dropbox users and team admins",
-	Long: `Use dbxcli to quickly interact with your Dropbox, upload/download files,
-manage your team and more. It is easy, scriptable and works on all platforms!`,
+	Short: "Scriptable Dropbox CLI for files, shared links, teams, and automation",
+	Long: `Use dbxcli to work with Dropbox files, folders, shared links, and team
+workflows from a terminal. It supports text output for humans, structured JSON
+output for automation, pipe-friendly transfers, refreshable OAuth login, and
+direct-token automation for scripts, CI jobs, and agent-style workflows.`,
 	SilenceUsage:      true,
 	SilenceErrors:     true,
 	PersistentPreRunE: initDbx,

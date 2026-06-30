@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/dbxcli/v3?cache=v3)](https://goreportcard.com/report/github.com/dropbox/dbxcli/v3)
 
 `dbxcli` is a scriptable Dropbox CLI for files, shared links, teams, and
-automation workflows. It is built for humans at the terminal, scripts, CI jobs,
+automation workflows. It is built for humans in the terminal, scripts, CI jobs,
 and agent-style workflows.
 
 ## Why use dbxcli?
@@ -26,6 +26,9 @@ dbxcli get /remote.txt ./remote.txt
 dbxcli share-link create /remote.txt
 ```
 
+On team accounts where `/` is not writable, run `dbxcli ls /` and use a
+writable personal or team folder instead.
+
 For automation, use structured command output and JSON help discovery:
 
 ```sh
@@ -37,14 +40,19 @@ dbxcli put --help --output=json
 Stable JSON error codes and process exit codes are documented in
 [Automation and JSON output](https://github.com/dropbox/dbxcli/blob/master/docs/automation.md).
 
-## JSON contract stability
+## JSON output
 
-`--output=json` uses schema v1 success and error envelopes. Schema v1 keeps
-top-level fields, stable error codes, and result status meanings stable within
-the v1 contract; minor releases may add fields, commands, warnings, and error
-details. Use JSON help for machine-readable command manifests, and use the
+`--output=json` emits stable schema v1 success and error envelopes for
+automation. Use JSON help for machine-readable command manifests:
+
+```sh
+dbxcli --help --output=json
+dbxcli put --help --output=json
+```
+
+See the
 [JSON schema v1 docs](https://github.com/dropbox/dbxcli/blob/master/docs/json-schema/v1/README.md)
-for schemas, command contracts, and examples.
+for schemas, stability policy, command contracts, and examples.
 
 ## Common workflows
 
@@ -115,6 +123,8 @@ folder or a team folder.
 ```sh
 brew install dbxcli
 ```
+
+Homebrew formula: [formulae.brew.sh/formula/dbxcli](https://formulae.brew.sh/formula/dbxcli)
 
 ### Release archives
 

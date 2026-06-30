@@ -23,11 +23,11 @@ Use JSON help to discover whether a command supports structured command output:
 dbxcli put --help --output=json
 ```
 
-JSON help is also the Command Manifest v1 surface for tools and agents. Each
-command manifest includes structured positional arguments, flag enum values and
-conflicts, prompt/sensitive-input metadata, examples, auth modes, best-effort
-Dropbox scopes, stdin/stdout behavior, schema refs, result statuses/kinds, and
-known warning codes.
+JSON help is also the Command Manifest v1 surface for tools and agents. Command
+manifests expose machine-readable metadata such as structured positional
+arguments, flag enum values and conflicts, prompt/sensitive-input metadata,
+examples, auth modes, best-effort Dropbox scopes, stdin/stdout behavior, schema
+refs, result statuses/kinds, and known warning codes when available.
 
 Successful JSON responses use a stable envelope:
 
@@ -88,7 +88,7 @@ Automation should treat the CLI and schemas as the stable interface:
 * Use `error.schema.json` to validate JSON error responses.
 * Prefer schema URLs from a pinned release tag when reproducibility matters.
 
-dbxcli intentionally does not expose a separate machine protocol. Tools should
+dbxcli currently does not expose a separate machine protocol. Tools should
 invoke the CLI, read stdout as JSON in `--output=json` mode, and treat stderr as
 status, progress, warnings, diagnostics, and verbose logs.
 
@@ -129,6 +129,60 @@ dbxcli share-link create /Reports/report.md --output=json
 Use `--output=json` when the caller needs stable statuses, result kinds,
 warnings, or error codes. Use text output when a command is part of a human
 terminal workflow or when the command intentionally writes file bytes to stdout.
+
+Check auth and identity before running a job:
+
+```sh
+dbxcli account --output=json
+```
+
+Use direct token auth for short-lived CI jobs:
+
+```sh
+DBXCLI_ACCESS_TOKEN="$DROPBOX_ACCESS_TOKEN" dbxcli ls --output=json /
+```
+
+Use a dedicated saved-auth file when a job needs refreshable credentials. Store
+the file in a private temp or secret-backed path, not in the repository working
+directory:
+
+```sh
+export DBXCLI_AUTH_FILE="${RUNNER_TEMP:-/tmp}/dbxcli-auth.json"
+dbxcli login
+dbxcli ls /
+```
+
+Do not commit, cache, or upload this file as an artifact; it can contain refresh
+tokens.
+
+Capture JSON output and handle failure by exit code:
+
+```sh
+if ! dbxcli put --if-exists fail --output=json report.md /Reports/report.md >result.json; then
+  jq -r '.error.code + ": " + .error.message' result.json >&2
+  exit 1
+fi
+
+jq -r '.results[] | [.status, .kind] | @tsv' result.json
+```
+
+GitHub Actions example:
+
+This example assumes `dbxcli` is already installed on the runner.
+
+```yaml
+jobs:
+  publish-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Upload report to Dropbox
+        env:
+          DBXCLI_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+        run: |
+          dbxcli account --output=json
+          dbxcli put --if-exists fail --output=json report.md /Reports/report.md
+```
 
 ## Authentication for automation
 
@@ -225,6 +279,10 @@ Stdin uploads are spooled to a temp file before uploading, so disk space up to
 the full input size is required. Stdout downloads are byte-clean: progress,
 diagnostic output, human-facing warnings, and verbose logs go to stderr.
 
+Commands that write file bytes to stdout cannot also write JSON results to
+stdout. `dbxcli get <path> - --output=json` and
+`dbxcli share-link download <url> - --output=json` return `invalid_arguments`.
+
 A bare `-` means stdin/stdout only when it appears as the local operand. Dropbox
 paths named `-` are valid, for example `dbxcli put - /-` and `dbxcli get /- -`.
 To upload a local file literally named `-`, use `./-`.
@@ -245,15 +303,15 @@ exit `0`, including successful commands that return warnings.
 | `5` | Conflict | `path_conflict` |
 | `6` | Rate limited | `rate_limited` |
 | `7` | Validation or usage error | `invalid_arguments`, `unknown_command`, `unknown_flag`, `structured_output_unsupported` |
-| `8` | Partial stdout/output transfer | `partial_transfer` |
+| `8` | Partial stdout transfer | `partial_transfer` |
 
 In JSON mode, inspect both the process exit code and `error.code` for the most
 specific machine-readable failure reason.
 
 ## Shell completion
 
-Shell completion commands intentionally remain text-only because shells expect
-completion scripts or protocol output:
+Completion script/protocol output is text-only because shells expect completion
+scripts or protocol output:
 
 ```sh
 dbxcli completion bash
@@ -261,3 +319,6 @@ dbxcli completion zsh
 dbxcli completion fish
 dbxcli completion powershell
 ```
+
+Passing `--output=json` to completion commands returns
+`structured_output_unsupported`.

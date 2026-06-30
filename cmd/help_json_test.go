@@ -886,7 +886,7 @@ func newJSONHelpTestRoot(t *testing.T) *cobra.Command {
 
 	root := &cobra.Command{
 		Use:               "dbxcli",
-		Short:             "A command line tool for Dropbox users and team admins",
+		Short:             "Scriptable Dropbox CLI for files, shared links, teams, and automation",
 		SilenceUsage:      true,
 		SilenceErrors:     true,
 		PersistentPreRunE: initDbx,
