@@ -1016,6 +1016,11 @@ func TestJSONErrorCodeDoesNotClassifyPlainValidationStrings(t *testing.T) {
 func decodeJSONErrorResponse(t *testing.T, value string) jsonErrorResponse {
 	t.Helper()
 
+	schema := compileJSONSchemaFile(t, "../docs/json-schema/v1/error.schema.json")
+	if err := schema.Validate(decodeJSONValueForSchema(t, []byte(value))); err != nil {
+		t.Fatalf("JSON error response does not validate: %v\noutput: %s", err, value)
+	}
+
 	var got jsonErrorResponse
 	if err := json.Unmarshal([]byte(value), &got); err != nil {
 		t.Fatalf("decode JSON error response: %v\noutput: %s", err, value)
