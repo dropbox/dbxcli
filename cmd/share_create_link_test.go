@@ -757,6 +757,10 @@ func TestSharedLinkCreateReturnsNonAlreadyExistsError(t *testing.T) {
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want original error", err)
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_create" || details["path"] != "/docs" {
+		t.Fatalf("details = %#v, want share_link_create operation and path", details)
+	}
 }
 
 func TestSharedLinkCreateExistingMetadataPrintsURLWithoutList(t *testing.T) {
@@ -1295,6 +1299,17 @@ func TestShareLinkListListsAllLinks(t *testing.T) {
 		"docs\thttps://example.com/docs\n"
 	if got := stdout.String(); got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestShareLinkListRejectsExtraPathWithDetails(t *testing.T) {
+	err := shareLinkList(&cobra.Command{}, []string{"/docs/one.txt", "/docs/two.txt"})
+	if err == nil || !strings.Contains(err.Error(), "at most one `path` argument") {
+		t.Fatalf("error = %v, want extra path error", err)
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_list" || details["argument"] != "path" || details["path"] != "/docs/two.txt" {
+		t.Fatalf("details = %#v, want share_link_list operation, path argument, and extra path", details)
 	}
 }
 

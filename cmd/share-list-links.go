@@ -40,7 +40,7 @@ func shareLinkList(cmd *cobra.Command, args []string) error {
 
 func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jsonWarning) error {
 	if len(args) > 1 {
-		return invalidArgumentsErrorWithDetails("`share-link list` accepts at most one `path` argument", argumentErrorDetails("path"))
+		return invalidArgumentsErrorWithDetails("`share-link list` accepts at most one `path` argument", mergeJSONErrorDetails(operationErrorDetails("share_link_list"), argumentErrorDetails("path"), pathErrorDetails(args[1])))
 	}
 
 	arg := sharing.NewListSharedLinksArg()
@@ -56,7 +56,7 @@ func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jso
 	dbx := newSharedLinkClient(config)
 	links, err := listSharedLinks(dbx, arg)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, shareLinkListErrorDetails(arg.Path))
 	}
 
 	if arg.Path != "" {
@@ -67,7 +67,7 @@ func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jso
 
 	entries, ok := shareLinkJSONMetadataListFromDropbox(links)
 	if !ok {
-		return errors.New("found unknown shared link type")
+		return withJSONErrorDetails(errors.New("found unknown shared link type"), shareLinkListErrorDetails(arg.Path))
 	}
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
@@ -81,6 +81,14 @@ func shareLinkListWithWarnings(cmd *cobra.Command, args []string, warnings []jso
 		shareLinkJSONOperationResults(shareLinkJSONStatusListed, entries),
 		warnings,
 	))
+}
+
+func shareLinkListErrorDetails(path string) map[string]any {
+	details := operationErrorDetails("share_link_list")
+	if path == "" {
+		return details
+	}
+	return mergeJSONErrorDetails(details, pathErrorDetails(path))
 }
 
 func listSharedLinks(dbx sharedLinkClient, arg *sharing.ListSharedLinksArg) ([]sharing.IsSharedLinkMetadata, error) {

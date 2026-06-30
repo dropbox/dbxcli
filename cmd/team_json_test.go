@@ -286,6 +286,48 @@ func TestTeamRemoveMemberJSONOutputsMutationResult(t *testing.T) {
 	}
 }
 
+func TestTeamAddMemberErrorIncludesEmailDetails(t *testing.T) {
+	stubTeamClient(t, &mockTeamClient{
+		membersAddFn: func(arg *team.MembersAddArg) (*team.MembersAddLaunch, error) {
+			return nil, errors.New("add failed")
+		},
+	})
+
+	cmd, stdout := teamTestCmd(t, true)
+	err := addMember(cmd, []string{"new@example.com", "New", "User"})
+	if err == nil {
+		t.Fatal("expected addMember error")
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "team_add_member" || details["email"] != "new@example.com" {
+		t.Fatalf("details = %#v, want team_add_member operation and email", details)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want no success output", got)
+	}
+}
+
+func TestTeamRemoveMemberErrorIncludesEmailDetails(t *testing.T) {
+	stubTeamClient(t, &mockTeamClient{
+		membersRemoveFn: func(arg *team.MembersRemoveArg) (*async.LaunchEmptyResult, error) {
+			return nil, errors.New("remove failed")
+		},
+	})
+
+	cmd, stdout := teamTestCmd(t, true)
+	err := removeMember(cmd, []string{"old@example.com"})
+	if err == nil {
+		t.Fatal("expected removeMember error")
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "team_remove_member" || details["email"] != "old@example.com" {
+		t.Fatalf("details = %#v, want team_remove_member operation and email", details)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("stdout = %q, want no success output", got)
+	}
+}
+
 func TestTeamJSONErrorWritesNoSuccessOutput(t *testing.T) {
 	stubTeamClient(t, &mockTeamClient{
 		getInfoFn: func() (*team.TeamGetInfoResult, error) {

@@ -24,12 +24,20 @@ func TestSearchPathScopeValidation(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for path-scope without leading slash")
 	}
+	details := jsonErrorDetails(err)
+	if details["argument"] != "path-scope" || details["path"] != "no-slash" {
+		t.Fatalf("details = %#v, want path-scope argument and path", details)
+	}
 }
 
 func TestSearchRejectsExtraArgs(t *testing.T) {
 	err := search(searchCmd, []string{"query", "/docs", "extra"})
 	if err == nil || !strings.Contains(err.Error(), "path-scope") {
 		t.Fatalf("error = %v, want extra path-scope error", err)
+	}
+	details := jsonErrorDetails(err)
+	if details["argument"] != "path-scope" || details["path"] != "extra" {
+		t.Fatalf("details = %#v, want extra path-scope argument path", details)
 	}
 }
 

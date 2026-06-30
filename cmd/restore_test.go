@@ -255,8 +255,13 @@ func TestRestoreJSONErrorWritesNoOutput(t *testing.T) {
 	}
 	stubFilesClient(t, mock)
 
-	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err == nil {
+	err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"})
+	if err == nil {
 		t.Fatal("expected restore error")
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "restore" || details["path"] != "/Reports/old.pdf" || details["revision"] != "target-rev" {
+		t.Fatalf("details = %#v, want restore operation, path, and revision", details)
 	}
 	if got := stdout.String(); got != "" {
 		t.Fatalf("stdout = %q, want empty output on error", got)

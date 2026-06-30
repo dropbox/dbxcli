@@ -13,6 +13,7 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	dropboxauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
 
@@ -414,6 +415,169 @@ func TestRenderCommandErrorIncludesDropboxAPISummaryDetails(t *testing.T) {
 	}
 }
 
+func TestRenderCommandErrorIncludesAsMemberForDropboxAPIErrors(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "ls"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+	cmd.Flags().String("as-member", "dbmid:member", "")
+
+	err := fmt.Errorf("get metadata: %w", files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}})
+	renderCommandError(cmd, err)
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Details["member_id"] != "dbmid:member" || got.Error.Details["api_summary"] != "path/not_found/" {
+		t.Fatalf("details = %+v, want member_id and api_summary", got.Error.Details)
+	}
+}
+
+func TestRenderCommandErrorPreservesExplicitMemberIDDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "ls"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+	cmd.Flags().String("as-member", "dbmid:context", "")
+
+	err := withJSONErrorDetails(
+		fmt.Errorf("get metadata: %w", files.GetMetadataAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}}),
+		memberIDErrorDetails("dbmid:explicit"),
+	)
+	renderCommandError(cmd, err)
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Details["member_id"] != "dbmid:explicit" {
+		t.Fatalf("details = %+v, want explicit member_id", got.Error.Details)
+	}
+}
+
+func TestRenderCommandErrorDoesNotIncludeAsMemberForLocalValidation(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "put"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+	cmd.Flags().String("as-member", "dbmid:member", "")
+
+	renderCommandError(cmd, invalidArgumentsErrorWithDetails("missing path", argumentErrorDetails("path")))
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if _, ok := got.Error.Details["member_id"]; ok {
+		t.Fatalf("details = %+v, did not expect member_id for local validation error", got.Error.Details)
+	}
+}
+
+func TestJSONErrorDetailsIncludesSDKAPISummaries(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     error
+		code    string
+		summary string
+	}{
+		{
+			name:    "download not found",
+			err:     fmt.Errorf("download: %w", files.DownloadAPIError{APIError: dropbox.APIError{ErrorSummary: "path/not_found/"}}),
+			code:    jsonErrorCodeNotFound,
+			summary: "path/not_found/",
+		},
+		{
+			name:    "upload conflict pointer",
+			err:     fmt.Errorf("upload: %w", &files.UploadAPIError{APIError: dropbox.APIError{ErrorSummary: "path/conflict/file/"}}),
+			code:    jsonErrorCodePathConflict,
+			summary: "path/conflict/file/",
+		},
+		{
+			name:    "sharing create conflict",
+			err:     fmt.Errorf("share: %w", sharing.CreateSharedLinkWithSettingsAPIError{APIError: dropbox.APIError{ErrorSummary: "shared_link_already_exists/."}}),
+			code:    jsonErrorCodeDropboxAPIError,
+			summary: "shared_link_already_exists/.",
+		},
+		{
+			name:    "sharing modify permission denied",
+			err:     fmt.Errorf("share update: %w", &sharing.ModifySharedLinkSettingsAPIError{APIError: dropbox.APIError{ErrorSummary: "settings_error/access_denied/"}}),
+			code:    jsonErrorCodePermissionDenied,
+			summary: "settings_error/access_denied/",
+		},
+		{
+			name:    "auth token revoke",
+			err:     fmt.Errorf("logout: %w", dropboxauth.TokenRevokeAPIError{APIError: dropbox.APIError{ErrorSummary: "invalid_access_token/."}}),
+			code:    jsonErrorCodeAuthRequired,
+			summary: "invalid_access_token/.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := jsonErrorCode(tt.err); got != tt.code {
+				t.Fatalf("jsonErrorCode = %q, want %q", got, tt.code)
+			}
+			details := jsonErrorDetails(tt.err)
+			if details["api_summary"] != tt.summary {
+				t.Fatalf("details = %+v, want api_summary %q", details, tt.summary)
+			}
+			if _, ok := details["api_endpoint"]; ok {
+				t.Fatalf("details = %+v, did not expect api_endpoint from SDK wrapper alone", details)
+			}
+		})
+	}
+}
+
+func TestRenderCommandErrorIncludesAdditionalContextDetails(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := &cobra.Command{Use: "put"}
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.Flags().String(outputFlag, "json", "")
+
+	rateLimit := dropboxauth.NewRateLimitError(nil)
+	rateLimit.RetryAfter = 12
+	err := withJSONErrorDetails(
+		dropboxauth.RateLimitAPIError{RateLimitError: rateLimit},
+		operationErrorDetails("upload"),
+		urlErrorDetails("https://example.com/link"),
+	)
+	renderCommandError(cmd, err)
+
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	got := decodeJSONErrorResponse(t, stdout.String())
+	if got.Error.Code != jsonErrorCodeRateLimited {
+		t.Fatalf("code = %q, want %q", got.Error.Code, jsonErrorCodeRateLimited)
+	}
+	if got.Error.Details["operation"] != "upload" ||
+		got.Error.Details["url"] != "https://example.com/link" ||
+		got.Error.Details["retry_after_seconds"] != float64(12) {
+		t.Fatalf("details = %+v, want operation/url/retry_after_seconds", got.Error.Details)
+	}
+}
+
+func TestJSONErrorDetailsIncludesJoinedErrorDetails(t *testing.T) {
+	err := errors.Join(
+		partialStdoutError(7),
+		invalidArgumentsErrorWithDetails("missing path", flagErrorDetails("path")),
+	)
+
+	details := jsonErrorDetails(err)
+	if details["bytes_written"] != int64(7) || details["flag"] != "path" {
+		t.Fatalf("details = %+v, want joined error details", details)
+	}
+}
+
 func TestRenderCommandErrorIncludesDropboxAPIEndpointDetails(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -437,6 +601,55 @@ func TestRenderCommandErrorIncludesDropboxAPIEndpointDetails(t *testing.T) {
 	}
 	if got.Error.Details["api_summary"] != `Error in call to API function "files/list_folder": path/not_found/.` {
 		t.Fatalf("details = %+v, want api_summary", got.Error.Details)
+	}
+}
+
+func TestJSONErrorDetailsIncludesDropboxAPIEndpointForCommonMessages(t *testing.T) {
+	tests := []struct {
+		name     string
+		message  string
+		endpoint string
+		code     string
+	}{
+		{
+			name:     "files upload",
+			message:  `Error in call to API function "files/upload": path/conflict/file/.`,
+			endpoint: "files/upload",
+			code:     jsonErrorCodePathConflict,
+		},
+		{
+			name:     "sharing create shared link",
+			message:  `Error in call to API function "sharing/create_shared_link_with_settings": shared_link_already_exists/.`,
+			endpoint: "sharing/create_shared_link_with_settings",
+			code:     jsonErrorCodeDropboxAPIError,
+		},
+		{
+			name:     "auth token revoke",
+			message:  `Error in call to API function "auth/token/revoke": invalid_access_token/.`,
+			endpoint: "auth/token/revoke",
+			code:     jsonErrorCodeAuthRequired,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := errors.New(tt.message)
+			if got := jsonErrorCode(err); got != tt.code {
+				t.Fatalf("jsonErrorCode = %q, want %q", got, tt.code)
+			}
+			details := jsonErrorDetails(err)
+			if details["api_endpoint"] != tt.endpoint || details["api_summary"] != tt.message {
+				t.Fatalf("details = %+v, want endpoint %q and summary %q", details, tt.endpoint, tt.message)
+			}
+		})
+	}
+}
+
+func TestJSONErrorDetailsDoesNotTreatLocalPathAsAPISummary(t *testing.T) {
+	err := pathConflictErrorWithPath("/file", "path exists and is not a folder: %s", "/file")
+	details := jsonErrorDetails(err)
+	if details["api_summary"] != nil {
+		t.Fatalf("details = %+v, did not expect api_summary for local path error", details)
 	}
 }
 

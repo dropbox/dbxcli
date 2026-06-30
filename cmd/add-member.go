@@ -37,7 +37,7 @@ func addMember(cmd *cobra.Command, args []string) (err error) {
 	arg := team.NewMembersAddArg([]*team.MemberAddArg{member})
 	res, err := dbx.MembersAdd(arg)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("team_add_member"), emailErrorDetails(email))
 	}
 	input := teamMemberAddInput{
 		Email:     email,

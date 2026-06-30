@@ -288,6 +288,10 @@ func TestCpJSONErrorUsesCommandStderr(t *testing.T) {
 	if !strings.Contains(stderr.String(), `copy "/src/file.txt" to "/dest/file.txt": path/malformed_path/`) {
 		t.Fatalf("stderr = %q, want copy API error", stderr.String())
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "copy" || details["from_path"] != "/src/file.txt" || details["to_path"] != "/dest/file.txt" {
+		t.Fatalf("details = %#v, want copy from/to paths", details)
+	}
 }
 
 func TestCpCommandDefinesIfExistsFlag(t *testing.T) {

@@ -35,7 +35,7 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 	arg := team.NewMembersRemoveArg(selector)
 	res, err := dbx.MembersRemove(arg)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, operationErrorDetails("team_remove_member"), emailErrorDetails(email))
 	}
 	input := teamMemberRemoveInput{Email: email}
 	return commandOutput(cmd).Render(func(w io.Writer) error {

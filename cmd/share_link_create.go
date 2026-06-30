@@ -57,7 +57,7 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if path == "" {
-		return invalidArgumentsErrorWithDetails("cannot create a shared link for Dropbox root", pathErrorDetails("/"))
+		return invalidArgumentsErrorWithDetails("cannot create a shared link for Dropbox root", mergeJSONErrorDetails(operationErrorDetails("share_link_create"), pathErrorDetails("/")))
 	}
 
 	opts, err := parseShareLinkCreateOptions(cmd)
@@ -71,18 +71,18 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		link, err = existingSharedLink(dbx, path, err)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, operationErrorDetails("share_link_create"), pathErrorDetails(path))
 		}
 		link, err = applyExistingSharedLinkCreateOptions(dbx, link, opts)
 		if err != nil {
-			return err
+			return withJSONErrorDetails(err, operationErrorDetails("share_link_create"), pathErrorDetails(path))
 		}
 		usedExisting = true
 	}
 
 	url, ok := sharedLinkURL(link)
 	if !ok {
-		return errors.New("shared link response did not include a URL")
+		return withJSONErrorDetails(errors.New("shared link response did not include a URL"), operationErrorDetails("share_link_create"), pathErrorDetails(path))
 	}
 
 	out := commandOutput(cmd)
@@ -94,7 +94,7 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 
 	result, ok := shareLinkJSONMetadataFromDropbox(link)
 	if !ok {
-		return errors.New("found unknown shared link type")
+		return withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_create"), pathErrorDetails(path))
 	}
 
 	status := shareLinkJSONStatusCreated
@@ -228,7 +228,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 
 	if opts.disallowDownload {
 		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromCreateOptions(opts), opts.removeExpiration); err != nil {
-			return nil, err
+			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), urlErrorDetails(url))
 		}
 		return link, nil
 	}
@@ -242,7 +242,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 
 		updated, err := dbx.ModifySharedLinkSettings(arg)
 		if err != nil {
-			return nil, err
+			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), urlErrorDetails(url))
 		}
 		link = updated
 	}
@@ -336,7 +336,7 @@ func findExistingSharedLink(dbx sharedLinkClient, requestedPath string) (sharing
 	for {
 		res, err := dbx.ListSharedLinks(arg)
 		if err != nil {
-			return nil, err
+			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), pathErrorDetails(requestedPath))
 		}
 
 		for _, link := range res.Links {

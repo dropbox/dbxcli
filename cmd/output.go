@@ -62,6 +62,11 @@ type codedError struct {
 	details map[string]any
 }
 
+type detailedError struct {
+	err     error
+	details map[string]any
+}
+
 func (e codedError) Error() string {
 	return e.err.Error()
 }
@@ -78,6 +83,18 @@ func (e codedError) JSONErrorDetails() map[string]any {
 	return cloneJSONErrorDetails(e.details)
 }
 
+func (e detailedError) Error() string {
+	return e.err.Error()
+}
+
+func (e detailedError) Unwrap() error {
+	return e.err
+}
+
+func (e detailedError) JSONErrorDetails() map[string]any {
+	return cloneJSONErrorDetails(e.details)
+}
+
 func newCodedError(code string, err error, details ...map[string]any) error {
 	if err == nil {
 		return nil
@@ -87,6 +104,20 @@ func newCodedError(code string, err error, details ...map[string]any) error {
 		err:     err,
 		details: mergeJSONErrorDetails(details...),
 	}
+}
+
+func withJSONErrorDetails(err error, details ...map[string]any) error {
+	if err == nil {
+		return nil
+	}
+	return detailedError{
+		err:     err,
+		details: mergeJSONErrorDetails(details...),
+	}
+}
+
+func commandFailedErrorfWithDetails(format string, details map[string]any, args ...any) error {
+	return newCodedError(jsonErrorCodeCommandFailed, fmt.Errorf(format, args...), details)
 }
 
 func invalidArgumentsErrorWithDetails(message string, details map[string]any) error {
@@ -164,8 +195,35 @@ func flagValueErrorDetails(flag, value string) map[string]any {
 	}
 }
 
+func operationErrorDetails(operation string) map[string]any {
+	return map[string]any{"operation": operation}
+}
+
 func pathErrorDetails(path string) map[string]any {
 	return map[string]any{"path": path}
+}
+
+func revisionErrorDetails(revision string) map[string]any {
+	return map[string]any{"revision": revision}
+}
+
+func emailErrorDetails(email string) map[string]any {
+	return map[string]any{"email": email}
+}
+
+func memberIDErrorDetails(memberID string) map[string]any {
+	return map[string]any{"member_id": memberID}
+}
+
+func relocationErrorDetails(fromPath, toPath string) map[string]any {
+	return map[string]any{
+		"from_path": fromPath,
+		"to_path":   toPath,
+	}
+}
+
+func urlErrorDetails(url string) map[string]any {
+	return map[string]any{"url": url}
 }
 
 func commandOutput(cmd *cobra.Command) *output.Renderer {
@@ -382,13 +440,11 @@ func jsonErrorCode(err error) string {
 func jsonErrorDetails(err error) map[string]any {
 	details := make(map[string]any)
 
-	var detailed jsonDetailedError
-	if errors.As(err, &detailed) {
-		for key, value := range detailed.JSONErrorDetails() {
-			details[key] = value
-		}
-	}
+	collectJSONErrorDetails(err, details)
 
+	if retryAfterSeconds, ok := rateLimitRetryAfterSeconds(err); ok {
+		details["retry_after_seconds"] = retryAfterSeconds
+	}
 	if summary, ok := dropboxAPIErrorSummary(err); ok {
 		details["api_summary"] = summary
 	} else if summary, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
@@ -402,6 +458,79 @@ func jsonErrorDetails(err error) map[string]any {
 		return nil
 	}
 	return details
+}
+
+func jsonErrorDetailsForCommand(cmd *cobra.Command, err error) map[string]any {
+	details := jsonErrorDetails(err)
+	if memberID := commandAsMemberID(cmd); memberID != "" && shouldAttachMemberIDErrorDetails(err) {
+		details = mergeJSONErrorDetails(memberIDErrorDetails(memberID), details)
+	}
+	return details
+}
+
+func collectJSONErrorDetails(err error, details map[string]any) {
+	if err == nil {
+		return
+	}
+	if detailed, ok := err.(jsonDetailedError); ok {
+		for key, value := range detailed.JSONErrorDetails() {
+			details[key] = value
+		}
+	}
+
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, inner := range joined.Unwrap() {
+			collectJSONErrorDetails(inner, details)
+		}
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		collectJSONErrorDetails(wrapped.Unwrap(), details)
+	}
+}
+
+func rateLimitRetryAfterSeconds(err error) (uint64, bool) {
+	var rateLimitErr dropboxauth.RateLimitAPIError
+	if errors.As(err, &rateLimitErr) && rateLimitErr.RateLimitError != nil {
+		return rateLimitErr.RateLimitError.RetryAfter, true
+	}
+
+	var rateLimitErrPtr *dropboxauth.RateLimitAPIError
+	if errors.As(err, &rateLimitErrPtr) && rateLimitErrPtr != nil && rateLimitErrPtr.RateLimitError != nil {
+		return rateLimitErrPtr.RateLimitError.RetryAfter, true
+	}
+	return 0, false
+}
+
+func commandAsMemberID(cmd *cobra.Command) string {
+	if cmd == nil {
+		return ""
+	}
+	value, err := cmd.Flags().GetString("as-member")
+	if err == nil {
+		return value
+	}
+	value, err = cmd.InheritedFlags().GetString("as-member")
+	if err == nil {
+		return value
+	}
+	value, err = cmd.PersistentFlags().GetString("as-member")
+	if err == nil {
+		return value
+	}
+	return ""
+}
+
+func shouldAttachMemberIDErrorDetails(err error) bool {
+	if err == nil {
+		return false
+	}
+	if _, ok := dropboxAPIErrorSummary(err); ok {
+		return true
+	}
+	if _, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
+		return true
+	}
+	return false
 }
 
 func cloneJSONErrorDetails(details map[string]any) map[string]any {
@@ -456,7 +585,10 @@ func dropboxAPIJSONErrorCode(err error) string {
 	}
 
 	if summary, ok := dropboxAPIErrorSummary(err); ok {
-		return dropboxAPIMessageErrorCode(summary)
+		if code := dropboxAPIMessageErrorCode(summary); code != "" {
+			return code
+		}
+		return jsonErrorCodeDropboxAPIError
 	}
 	if summary, ok := dropboxAPISummaryFromMessage(err.Error()); ok {
 		return dropboxAPIMessageErrorCode(summary)
@@ -551,7 +683,7 @@ func dropboxAPISummaryFromMessage(message string) (string, bool) {
 	}
 	if idx := strings.LastIndex(trimmed, ": "); idx >= 0 {
 		tail := strings.TrimSpace(trimmed[idx+2:])
-		if isDropboxAPISummary(tail) {
+		if isDropboxAPISummary(tail) && dropboxAPIMessageErrorCode(tail) != "" {
 			return tail, true
 		}
 	}

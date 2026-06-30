@@ -146,6 +146,10 @@ func TestShareLinkRevokePathRequiresNoURL(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "`--path` cannot be used with a shared link URL") {
 		t.Fatalf("error = %v, want path and URL conflict error", err)
 	}
+	details := jsonErrorDetails(err)
+	if details["flag"] != "path" || details["argument"] != "url" || details["path"] != "/docs/file.txt" {
+		t.Fatalf("details = %#v, want flag, url argument, and path", details)
+	}
 	if called {
 		t.Fatal("shared link API should not be called")
 	}
@@ -191,6 +195,10 @@ func TestShareLinkRevokePathRejectsRoot(t *testing.T) {
 	err := shareLinkRevoke(cmd, nil)
 	if err == nil || !strings.Contains(err.Error(), "cannot revoke shared links for Dropbox root") {
 		t.Fatalf("error = %v, want root path error", err)
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_revoke" || details["path"] != "/" {
+		t.Fatalf("details = %#v, want share_link_revoke operation and root path", details)
 	}
 	if called {
 		t.Fatal("ListSharedLinks should not be called")
@@ -300,6 +308,10 @@ func TestShareLinkRevokePathReturnsErrorWhenNoLinksFound(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), `no direct shared links found for "/docs/file.txt"`) {
 		t.Fatalf("error = %v, want no links found error", err)
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_revoke" || details["path"] != "/docs/file.txt" {
+		t.Fatalf("details = %#v, want share_link_revoke operation and path", details)
+	}
 	if calledRevoke {
 		t.Fatal("RevokeSharedLink should not be called")
 	}
@@ -321,6 +333,10 @@ func TestShareLinkRevokePathReturnsListError(t *testing.T) {
 	err := shareLinkRevoke(cmd, nil)
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error = %v, want list error", err)
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_revoke" || details["path"] != "/docs/file.txt" {
+		t.Fatalf("details = %#v, want share_link_revoke operation and path", details)
 	}
 }
 
@@ -351,6 +367,10 @@ func TestShareLinkRevokePathReturnsRevokeError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "revoke shared link https://example.com/one") {
 		t.Fatalf("error = %v, want failing URL context", err)
+	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "share_link_revoke" || details["url"] != "https://example.com/one" {
+		t.Fatalf("details = %#v, want share_link_revoke URL context", details)
 	}
 }
 

@@ -167,6 +167,10 @@ func TestMvJSONErrorUsesCommandStderr(t *testing.T) {
 	if !strings.Contains(stderr.String(), `move "/src/file.txt" to "/dest/file.txt": path/malformed_path/`) {
 		t.Fatalf("stderr = %q, want move API error", stderr.String())
 	}
+	details := jsonErrorDetails(err)
+	if details["operation"] != "move" || details["from_path"] != "/src/file.txt" || details["to_path"] != "/dest/file.txt" {
+		t.Fatalf("details = %#v, want move from/to paths", details)
+	}
 }
 
 func TestMvCommandDefinesIfExistsFlag(t *testing.T) {
