@@ -37,6 +37,15 @@ dbxcli put --help --output=json
 Stable JSON error codes and process exit codes are documented in
 [Automation and JSON output](https://github.com/dropbox/dbxcli/blob/master/docs/automation.md).
 
+## JSON contract stability
+
+`--output=json` uses schema v1 success and error envelopes. Schema v1 keeps
+top-level fields, stable error codes, and result status meanings stable within
+the v1 contract; minor releases may add fields, commands, warnings, and error
+details. Use JSON help for machine-readable command manifests, and use the
+[JSON schema v1 docs](https://github.com/dropbox/dbxcli/blob/master/docs/json-schema/v1/README.md)
+for schemas, command contracts, and examples.
+
 ## Common workflows
 
 Upload a file:
