@@ -1,0 +1,6 @@
+# Created with packaging/winget/render-manifests.sh.
+PackageIdentifier: Dropbox.dbxcli
+PackageVersion: {{VERSION}}
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.10.0
