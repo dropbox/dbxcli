@@ -178,7 +178,7 @@ func TestShareLinkUpdateSetsExpiration(t *testing.T) {
 			if arg.Settings == nil || arg.Settings.Expires == nil {
 				t.Fatal("expires setting was not sent")
 			}
-			if !arg.Settings.Expires.Equal(expires) {
+			if !time.Time(*arg.Settings.Expires).Equal(expires) {
 				t.Fatalf("expires = %v, want %v", arg.Settings.Expires, expires)
 			}
 			if arg.RemoveExpiration {
@@ -308,7 +308,7 @@ func TestShareLinkUpdateDisallowDownloadCombinesSettingsInOneRawCall(t *testing.
 			if settings == nil || settings.AllowDownload == nil || *settings.AllowDownload {
 				t.Fatalf("settings = %#v, want allow_download=false", settings)
 			}
-			if settings.Expires == nil || !settings.Expires.Equal(expires) {
+			if settings.Expires == nil || !time.Time(*settings.Expires).Equal(expires) {
 				t.Fatalf("expires = %v, want %v", settings.Expires, expires)
 			}
 			if settings.Audience == nil || settings.Audience.Tag != sharing.LinkAudienceTeam {
@@ -485,7 +485,7 @@ func TestShareLinkUpdateRemovePasswordCombinesSettingsInOneRawCall(t *testing.T)
 			if settings.AllowDownload == nil || !*settings.AllowDownload {
 				t.Fatalf("allow_download = %v, want true", settings.AllowDownload)
 			}
-			if settings.Expires == nil || !settings.Expires.Equal(expires) {
+			if settings.Expires == nil || !time.Time(*settings.Expires).Equal(expires) {
 				t.Fatalf("expires = %v, want %v", settings.Expires, expires)
 			}
 			if settings.Audience == nil || settings.Audience.Tag != sharing.LinkAudienceTeam {

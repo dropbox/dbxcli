@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 )
 
@@ -20,8 +21,8 @@ func TestJSONMetadataFromDropboxFile(t *testing.T) {
 		Id:             "id:abc",
 		Rev:            "rev123",
 		Size:           0,
-		ClientModified: clientModified,
-		ServerModified: serverModified,
+		ClientModified: dropbox.DBXTime(clientModified),
+		ServerModified: dropbox.DBXTime(serverModified),
 	}
 
 	got, err := jsonMetadataFromDropbox(metadata)

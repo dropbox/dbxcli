@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 )
 
@@ -40,8 +41,8 @@ func TestGetTimeServer(t *testing.T) {
 	serverTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	clientTime := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 	meta := &files.FileMetadata{
-		ServerModified: serverTime,
-		ClientModified: clientTime,
+		ServerModified: dropbox.DBXTime(serverTime),
+		ClientModified: dropbox.DBXTime(clientTime),
 	}
 
 	got := getTime(meta, listOptions{timeField: "server"})
@@ -59,8 +60,8 @@ func TestGetTimeClient(t *testing.T) {
 	serverTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	clientTime := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 	meta := &files.FileMetadata{
-		ServerModified: serverTime,
-		ClientModified: clientTime,
+		ServerModified: dropbox.DBXTime(serverTime),
+		ClientModified: dropbox.DBXTime(clientTime),
 	}
 
 	got := getTime(meta, listOptions{timeField: "client"})
@@ -103,11 +104,11 @@ func TestSortEntriesByTime(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FileMetadata{
 			Metadata:       files.Metadata{PathDisplay: "/new"},
-			ServerModified: time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC),
+			ServerModified: dropbox.DBXTime(time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)),
 		},
 		&files.FileMetadata{
 			Metadata:       files.Metadata{PathDisplay: "/old"},
-			ServerModified: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			ServerModified: dropbox.DBXTime(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
 		},
 		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/folder"}},
 	}
@@ -169,7 +170,7 @@ func TestFormatFileMetadataWithOptsShort(t *testing.T) {
 		Metadata:       files.Metadata{PathDisplay: "/test.txt"},
 		Rev:            "abc",
 		Size:           4096,
-		ServerModified: ts,
+		ServerModified: dropbox.DBXTime(ts),
 	}
 
 	got := formatFileMetadataWithOpts(meta, listOptions{long: false})
@@ -185,7 +186,7 @@ func TestFormatFileMetadataWithOptsLongShortTime(t *testing.T) {
 		Metadata:       files.Metadata{PathDisplay: "/test.txt"},
 		Rev:            "abc",
 		Size:           4096,
-		ServerModified: ts,
+		ServerModified: dropbox.DBXTime(ts),
 	}
 
 	got := formatFileMetadataWithOpts(meta, listOptions{long: true, timeFormat: "short"})
@@ -204,8 +205,8 @@ func TestFormatFileMetadataWithOptsClientTime(t *testing.T) {
 		Metadata:       files.Metadata{PathDisplay: "/test.txt"},
 		Rev:            "abc",
 		Size:           1024,
-		ServerModified: server,
-		ClientModified: client,
+		ServerModified: dropbox.DBXTime(server),
+		ClientModified: dropbox.DBXTime(client),
 	}
 
 	got := formatFileMetadataWithOpts(meta, listOptions{long: true, timeField: "client", timeFormat: "short"})

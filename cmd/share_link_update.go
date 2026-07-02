@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
@@ -69,7 +70,8 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 
 	settings := sharing.NewSharedLinkSettings()
 	if opts.expires != nil {
-		settings.Expires = opts.expires
+		t := dropbox.DBXTime(*opts.expires)
+		settings.Expires = &t
 	}
 	if opts.allowDownload {
 		settings.AllowDownload = true
@@ -225,7 +227,7 @@ func (opts shareLinkUpdateOptions) usesRawSettings() bool {
 
 func rawSharedLinkSettingsFromUpdateOptions(opts shareLinkUpdateOptions) *rawSharedLinkSettings {
 	settings := &rawSharedLinkSettings{
-		Expires:  opts.expires,
+		Expires:  rawSharedLinkExpires(opts.expires),
 		Audience: opts.audience,
 	}
 	if opts.allowDownload || opts.disallowDownload {

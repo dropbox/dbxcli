@@ -259,7 +259,7 @@ func testFullAccount() *users.FullAccount {
 		nil,
 	)
 	account.ProfilePhotoUrl = "https://dropbox.example/photo"
-	account.Team = users.NewFullTeam("team-id", "Team Name", nil, nil)
+	account.Team = users.NewFullTeam("team-id", "Team Name", nil, nil, nil)
 	account.TeamMemberId = "dbmid:member"
 	return account
 }

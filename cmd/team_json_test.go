@@ -405,7 +405,7 @@ func stubTeamClient(t *testing.T, client teamClient) {
 }
 
 func testTeamMember(memberID, email, displayName string) *team.TeamMemberInfo {
-	now := time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC)
+	now := dropbox.DBXTime(time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC))
 	return &team.TeamMemberInfo{
 		Profile: &team.TeamMemberProfile{
 			MemberProfile: team.MemberProfile{

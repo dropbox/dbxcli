@@ -274,6 +274,9 @@ func (m *mockFilesClient) UnlockFileBatch(arg *files.UnlockFileBatchArg) (*files
 func (m *mockFilesClient) UploadSessionAppend(arg *files.UploadSessionCursor, content io.Reader) error {
 	return nil
 }
+func (m *mockFilesClient) UploadSessionAppendBatch(arg *files.UploadSessionAppendBatchArg, content io.Reader) (*files.UploadSessionAppendBatchResult, error) {
+	return nil, nil
+}
 func (m *mockFilesClient) UploadSessionStartBatch(arg *files.UploadSessionStartBatchArg) (*files.UploadSessionStartBatchResult, error) {
 	return nil, nil
 }

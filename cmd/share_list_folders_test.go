@@ -66,7 +66,7 @@ func TestShareListFoldersJSONOutputsSharedFolders(t *testing.T) {
 			folder.OwnerDisplayNames = []string{"Owner One"}
 			folder.ParentSharedFolderId = "sfid:parent"
 			folder.ParentFolderName = "Parent"
-			folder.TimeInvited = invited
+			folder.TimeInvited = dropbox.DBXTime(invited)
 			folder.AccessInheritance = &sharing.AccessInheritance{Tagged: dropbox.Tagged{Tag: sharing.AccessInheritanceInherit}}
 			return sharing.NewListFoldersResult([]*sharing.SharedFolderMetadata{folder}), nil
 		},

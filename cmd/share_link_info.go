@@ -127,7 +127,7 @@ func renderSharedLinkInfo(out io.Writer, link sharing.IsSharedLinkMetadata) erro
 		_, _ = fmt.Fprintf(w, "ID:\t%s\n", metadata.Id)
 	}
 	if metadata.Expires != nil {
-		_, _ = fmt.Fprintf(w, "Expires:\t%s\n", metadata.Expires.Format(time.RFC3339))
+		_, _ = fmt.Fprintf(w, "Expires:\t%s\n", time.Time(*metadata.Expires).Format(time.RFC3339))
 	}
 	if metadata.LinkPermissions != nil {
 		renderSharedLinkPermissions(w, metadata.LinkPermissions)
@@ -136,7 +136,7 @@ func renderSharedLinkInfo(out io.Writer, link sharing.IsSharedLinkMetadata) erro
 	if file, ok := link.(*sharing.FileLinkMetadata); ok {
 		_, _ = fmt.Fprintf(w, "Revision:\t%s\n", file.Rev)
 		_, _ = fmt.Fprintf(w, "Size:\t%s\n", humanize.IBytes(file.Size))
-		_, _ = fmt.Fprintf(w, "Server Modified:\t%s\n", file.ServerModified.Format(time.RFC3339))
+		_, _ = fmt.Fprintf(w, "Server Modified:\t%s\n", time.Time(file.ServerModified).Format(time.RFC3339))
 	}
 
 	return w.Flush()

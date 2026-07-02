@@ -69,9 +69,10 @@ func TestShareLinkInfoCallsAPIWithURLAndPrintsFileInfo(t *testing.T) {
 
 	link := sharedLinkFile("/docs/report.txt", "https://www.dropbox.com/s/abc123")
 	link.Id = "id:file123"
-	link.Expires = &expires
+	dbxExpires := dropbox.DBXTime(expires)
+	link.Expires = &dbxExpires
 	link.LinkPermissions = permissions
-	link.ServerModified = serverModified
+	link.ServerModified = dropbox.DBXTime(serverModified)
 	link.Rev = "rev123"
 	link.Size = 2048
 

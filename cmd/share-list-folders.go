@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
@@ -132,7 +133,7 @@ func shareFolderJSONMetadataFromDropbox(entry *sharing.SharedFolderMetadata) sha
 		OwnerDisplayNames:    entry.OwnerDisplayNames,
 		ParentSharedFolderID: entry.ParentSharedFolderId,
 		ParentFolderName:     entry.ParentFolderName,
-		TimeInvited:          jsonTime(entry.TimeInvited),
+		TimeInvited:          jsonTime(time.Time(entry.TimeInvited)),
 	}
 	if entry.AccessType != nil {
 		result.AccessType = entry.AccessType.Tag

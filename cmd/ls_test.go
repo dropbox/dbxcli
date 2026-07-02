@@ -111,7 +111,7 @@ func TestFormatFileMetadataLongIncludesFields(t *testing.T) {
 		},
 		Rev:            "rev999",
 		Size:           2048,
-		ServerModified: ts,
+		ServerModified: dropbox.DBXTime(ts),
 	}
 
 	got := formatFileMetadata(meta, true)
@@ -363,7 +363,7 @@ func TestLsOnlyDeletedLimitCountsFilteredEntries(t *testing.T) {
 					Id:  "id:" + arg.Path,
 					Rev: "rev:" + arg.Path,
 				},
-			}), nil
+			}, false), nil
 		},
 	}
 	stubFilesClient(t, mock)
@@ -421,7 +421,7 @@ func TestLsOnlyDeletedLimitTruncatesFilteredPage(t *testing.T) {
 					Id:  "id:" + arg.Path,
 					Rev: "rev:" + arg.Path,
 				},
-			}), nil
+			}, false), nil
 		},
 	}
 	stubFilesClient(t, mock)
@@ -588,7 +588,7 @@ func TestLsJSONDeletedEntryIsStructured(t *testing.T) {
 					Rev:  "rev-removed",
 					Size: 9,
 				},
-			}), nil
+			}, false), nil
 		},
 	}
 	stubFilesClient(t, mock)

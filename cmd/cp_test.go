@@ -207,7 +207,7 @@ func TestCpJSONOutputsRelocationResults(t *testing.T) {
 			return nil, fmt.Errorf("path/not_found/")
 		},
 		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
-			metadata := files.NewFileMetadata("file-copy.txt", "id:file-copy", time.Time{}, time.Time{}, "rev-copy", 42)
+			metadata := files.NewFileMetadata("file-copy.txt", "id:file-copy", dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev-copy", 42)
 			metadata.PathDisplay = arg.ToPath
 			metadata.PathLower = strings.ToLower(arg.ToPath)
 			return files.NewRelocationResult(metadata), nil
@@ -241,7 +241,7 @@ func TestCpJSONMultipleSourcesOutputsMultipleResults(t *testing.T) {
 	stubFilesClient(t, &mockFilesClient{
 		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
 			name := path.Base(arg.ToPath)
-			metadata := files.NewFileMetadata(name, "id:"+name, time.Time{}, time.Time{}, "rev", 1)
+			metadata := files.NewFileMetadata(name, "id:"+name, dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev", 1)
 			metadata.PathDisplay = arg.ToPath
 			metadata.PathLower = strings.ToLower(arg.ToPath)
 			return files.NewRelocationResult(metadata), nil
@@ -585,7 +585,7 @@ func decodeRelocationOutput(t *testing.T, data []byte) relocationOutput {
 }
 
 func relocationTestFileMetadata(pathDisplay string, size uint64) *files.FileMetadata {
-	metadata := files.NewFileMetadata(path.Base(pathDisplay), "id:"+path.Base(pathDisplay), time.Time{}, time.Time{}, "rev", size)
+	metadata := files.NewFileMetadata(path.Base(pathDisplay), "id:"+path.Base(pathDisplay), dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev", size)
 	metadata.PathDisplay = pathDisplay
 	metadata.PathLower = strings.ToLower(pathDisplay)
 	return metadata

@@ -33,8 +33,8 @@ func jsonMetadataFromDropbox(metadata files.IsMetadata) (jsonMetadata, error) {
 			ID:             m.Id,
 			Rev:            m.Rev,
 			Size:           &size,
-			ServerModified: jsonTime(m.ServerModified),
-			ClientModified: jsonTime(m.ClientModified),
+			ServerModified: jsonTime(time.Time(m.ServerModified)),
+			ClientModified: jsonTime(time.Time(m.ClientModified)),
 		}, nil
 	case *files.FolderMetadata:
 		if m == nil {

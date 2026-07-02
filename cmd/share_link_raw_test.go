@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
@@ -30,6 +31,24 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
+}
+
+func TestRawSharedLinkSettingsExpiresUsesDropboxTimeFormat(t *testing.T) {
+	expires := time.Date(2026, 7, 1, 0, 0, 0, 987654321, time.FixedZone("offset", -7*60*60))
+	data, err := json.Marshal(&rawSharedLinkSettings{
+		Expires: rawSharedLinkExpires(&expires),
+	})
+	if err != nil {
+		t.Fatalf("marshal raw settings: %v", err)
+	}
+
+	var settings map[string]string
+	if err := json.Unmarshal(data, &settings); err != nil {
+		t.Fatalf("unmarshal raw settings: %v", err)
+	}
+	if settings["expires"] != "2026-07-01T07:00:00Z" {
+		t.Fatalf("expires = %q, want Dropbox UTC-second timestamp", settings["expires"])
+	}
 }
 
 func TestModifySharedLinkSettingsRawSendsRequirePasswordFalse(t *testing.T) {

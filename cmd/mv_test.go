@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/spf13/cobra"
 )
@@ -86,7 +87,7 @@ func TestMvJSONOutputsRelocationResults(t *testing.T) {
 			return nil, fmt.Errorf("path/not_found/")
 		},
 		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
-			metadata := files.NewFileMetadata("file-moved.txt", "id:file-moved", time.Time{}, time.Time{}, "rev-moved", 64)
+			metadata := files.NewFileMetadata("file-moved.txt", "id:file-moved", dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev-moved", 64)
 			metadata.PathDisplay = arg.ToPath
 			metadata.PathLower = strings.ToLower(arg.ToPath)
 			return files.NewRelocationResult(metadata), nil
@@ -120,7 +121,7 @@ func TestMvJSONMultipleSourcesOutputsMultipleResults(t *testing.T) {
 	stubFilesClient(t, &mockFilesClient{
 		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
 			name := path.Base(arg.ToPath)
-			metadata := files.NewFileMetadata(name, "id:"+name, time.Time{}, time.Time{}, "rev", 1)
+			metadata := files.NewFileMetadata(name, "id:"+name, dropbox.DBXTime(time.Time{}), dropbox.DBXTime(time.Time{}), "rev", 1)
 			metadata.PathDisplay = arg.ToPath
 			metadata.PathLower = strings.ToLower(arg.ToPath)
 			return files.NewRelocationResult(metadata), nil

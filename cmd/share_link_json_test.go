@@ -27,7 +27,7 @@ type shareLinkOperationResultForTest[R any] struct {
 }
 
 func TestShareLinkCreateJSONOutputsLinkMetadata(t *testing.T) {
-	expires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	expires := dropbox.DBXTime(time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC))
 	stubSharedLinkClient(t, &mockSharedLinkClient{
 		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
 			link := sharedLinkFile("/docs/report.txt", "https://example.com/report")
