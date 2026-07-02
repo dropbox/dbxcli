@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: govulncheck ./...
       - run: go vet ./...
       - run: go test ./...
       - run: go build ./...
@@ -34,6 +36,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: govulncheck ./...
       - run: ./build.sh
         env:
           VERSION: ci
