@@ -2,17 +2,37 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.0...HEAD)
+
+## [v3.6.0](https://github.com/dropbox/dbxcli/tree/v3.6.0) (2026-07-02)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...v3.6.0)
 
 **Added:**
 
-- Added Dependabot configuration for Go modules and GitHub Actions dependencies.
-- Added automation documentation with CI, direct-token, saved-auth-file, and JSON error-handling examples.
+- Added `--if-exists fail|skip` to `cp` and `mv` commands.
+- Added `--limit` flag to `ls` and `revs` commands.
+- Added `--recursive` flag to `ls`.
+- Added JSON command manifests with `input_schema` for machine-readable command discovery.
+- Added `commands.schema.json` for per-command success and input validation.
 - Added richer JSON `error.details` fields for operation context, paths, URLs, revisions, email addresses, member IDs, Dropbox API summaries, and retry-after values.
+- Added typed error details schema and deprecated-command warnings in JSON errors.
+- Added Dependabot configuration for Go modules and GitHub Actions dependencies.
+- Added WinGet manifest templates and render script for Windows package manager submissions.
+- Added `govulncheck` and `staticcheck` to CI and release workflows.
+- Added version resolution from `debug.ReadBuildInfo` for `go install` users.
 
 **Changed:**
 
-- Updated root command help and generated command docs to reflect current files, shared-link, team, and automation workflows.
+- Upgraded Dropbox SDK from v6.0.5 to v6.2.0 (migrates `time.Time` fields to `dropbox.DBXTime`).
+- Bumped `actions/checkout` from v6 to v7.
+- Updated Homebrew formula to v3.5.1 with doc installation and test assertions.
+- Updated root command help and generated command docs to reflect current workflows.
+- Replaced subset schema validator with `santhosh-tekuri/jsonschema/v6`.
+
+**Fixed:**
+
+- Fixed `ls --only-deleted --limit` to count filtered entries correctly.
+- Fixed trailing period in `logout` error message (staticcheck finding).
 
 **Infrastructure:**
 
