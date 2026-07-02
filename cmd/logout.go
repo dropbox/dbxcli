@@ -54,7 +54,7 @@ var revokeAccessToken = func(domain string, token string) error {
 // Command logout revokes all saved API tokens and deletes auth.json.
 func logout(cmd *cobra.Command, args []string) error {
 	if os.Getenv(envAccessToken) != "" {
-		return newCodedError(jsonErrorCodeEnvTokenStillActive, errors.New("DBXCLI_ACCESS_TOKEN is set; unset it before running logout."))
+		return newCodedError(jsonErrorCodeEnvTokenStillActive, errors.New("DBXCLI_ACCESS_TOKEN is set; unset it before running logout"))
 	}
 
 	filePath, err := authFilePath()
