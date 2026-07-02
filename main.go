@@ -16,18 +16,43 @@ package main
 
 import (
 	"log"
+	"runtime/debug"
+	"strings"
 
 	"github.com/dropbox/dbxcli/v3/cmd"
 )
 
-var version = "0.1.0"
+const defaultVersion = "dev"
+
+var (
+	version       = defaultVersion
+	readBuildInfo = debug.ReadBuildInfo
+)
 
 func init() {
 	// Log date, time and file information by default
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	cmd.RootCmd.AddCommand(cmd.NewVersionCommand(version))
+	cmd.RootCmd.AddCommand(cmd.NewVersionCommand(resolvedVersion()))
 }
 
 func main() {
 	cmd.Execute()
+}
+
+func resolvedVersion() string {
+	if version != "" && version != defaultVersion {
+		return version
+	}
+
+	info, ok := readBuildInfo()
+	if !ok {
+		return defaultVersion
+	}
+
+	moduleVersion := info.Main.Version
+	if moduleVersion == "" || moduleVersion == "(devel)" {
+		return defaultVersion
+	}
+
+	return strings.TrimPrefix(moduleVersion, "v")
 }
