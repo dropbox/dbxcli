@@ -1118,6 +1118,64 @@ func TestPutTextModeWritesNoStdoutOnSuccess(t *testing.T) {
 	}
 }
 
+func TestDropboxClientModifiedUsesUTCSecondPrecision(t *testing.T) {
+	input := time.Date(2026, 7, 1, 12, 34, 56, 600*1e6, time.FixedZone("source", -7*60*60))
+
+	got := dropboxClientModified(input)
+	if got == nil {
+		t.Fatal("dropboxClientModified returned nil")
+	}
+
+	gotTime := time.Time(*got)
+	want := input.UTC().Round(time.Second)
+	if !gotTime.Equal(want) {
+		t.Fatalf("client modified = %s, want %s", gotTime.Format(time.RFC3339Nano), want.Format(time.RFC3339Nano))
+	}
+	if gotTime.Location() != time.UTC {
+		t.Fatalf("client modified location = %v, want UTC", gotTime.Location())
+	}
+}
+
+func TestPutFileUsesSourceModifiedTime(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "mtime.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	sourceModTime := time.Date(2020, 4, 23, 14, 37, 4, 0, time.FixedZone("source", -7*60*60))
+	if err := os.Chtimes(tmpFile, sourceModTime, sourceModTime); err != nil {
+		t.Fatal(err)
+	}
+
+	var uploadedClientModified *dropbox.DBXTime
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			uploadedClientModified = arg.ClientModified
+			if _, err := io.ReadAll(content); err != nil {
+				t.Fatal(err)
+			}
+			return &files.FileMetadata{}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := putFile(tmpFile, "/mtime.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsOverwrite,
+	}); err != nil {
+		t.Fatalf("putFile error: %v", err)
+	}
+
+	if uploadedClientModified == nil {
+		t.Fatal("ClientModified = nil, want source file modified time")
+	}
+	got := time.Time(*uploadedClientModified)
+	want := sourceModTime.UTC().Round(time.Second)
+	if !got.Equal(want) {
+		t.Fatalf("ClientModified = %s, want %s", got.Format(time.RFC3339Nano), want.Format(time.RFC3339Nano))
+	}
+}
+
 func TestPutFileIfExistsSkipSkipsExistingFile(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "test.txt")
 	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {

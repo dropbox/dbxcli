@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -109,6 +110,50 @@ func TestPutStdin_UploadsContent(t *testing.T) {
 	}
 	if !strings.Contains(string(uploadedContent), content) {
 		t.Errorf("uploaded content = %q, want to contain %q", uploadedContent, content)
+	}
+}
+
+func TestPutStdinSetsClientModified(t *testing.T) {
+	content := "hello from stdin"
+	cmd := testPutCmdWithStdin(strings.NewReader(content))
+
+	start := time.Now().UTC()
+	var uploadedClientModified *dropbox.DBXTime
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, &files.GetMetadataAPIError{}
+		},
+		uploadFn: func(arg *files.UploadArg, r io.Reader) (*files.FileMetadata, error) {
+			uploadedClientModified = arg.ClientModified
+			data, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(data) != content {
+				t.Fatalf("uploaded content = %q, want %q", string(data), content)
+			}
+			return &files.FileMetadata{}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := put(cmd, []string{"-", "/dest.txt"})
+	end := time.Now().UTC()
+	if err != nil {
+		t.Fatalf("put stdin error: %v", err)
+	}
+	if uploadedClientModified == nil {
+		t.Fatal("ClientModified = nil, want stdin spool modified time")
+	}
+
+	got := time.Time(*uploadedClientModified)
+	lower := start.Add(-time.Second)
+	upper := end.Add(time.Second)
+	if got.Before(lower) || got.After(upper) {
+		t.Fatalf("ClientModified = %s, want between %s and %s", got.Format(time.RFC3339Nano), lower.Format(time.RFC3339Nano), upper.Format(time.RFC3339Nano))
+	}
+	if got.Location() != time.UTC {
+		t.Fatalf("ClientModified location = %v, want UTC", got.Location())
 	}
 }
 
