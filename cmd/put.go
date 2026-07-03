@@ -506,6 +506,12 @@ func putFile(src, dst string, opts putOptions) error {
 	return err
 }
 
+// Dropbox upload commit timestamps must be UTC with second precision.
+func dropboxClientModified(value time.Time) *dropbox.DBXTime {
+	ts := dropbox.DBXTime(value.UTC().Round(time.Second))
+	return &ts
+}
+
 func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	ifExists, err := normalizePutIfExists(opts.ifExists)
 	if err != nil {
@@ -537,9 +543,7 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	commitInfo.Mode.Tag = writeModeForIfExists(ifExists)
 	commitInfo.StrictConflict = ifExists != putIfExistsOverwrite
 
-	// The Dropbox API only accepts timestamps in UTC with second precision.
-	ts := dropbox.DBXTime(time.Now().UTC().Round(time.Second))
-	commitInfo.ClientModified = &ts
+	commitInfo.ClientModified = dropboxClientModified(contentsInfo.ModTime())
 
 	if contentsInfo.Size() > singleShotUploadSizeCutoff {
 		metadata, err := uploadChunked(dbx, uploadProgressReader(contents, contentsInfo.Size(), putErrorOutput(opts)), commitInfo, contentsInfo.Size(), opts.workers, opts.chunkSize, opts.debug)
