@@ -13,11 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+    outputs:
+      asset_version: ${{ steps.version.outputs.asset_version }}
+      slsa_subjects_file: ${{ steps.slsa_subjects.outputs.handle }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+      - name: Set release version
+        id: version
+        shell: bash
+        run: echo "asset_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
@@ -25,15 +33,50 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
       - run: go build ./...
+      - run: mkdir -p dist
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/dbxcli_${{ steps.version.outputs.asset_version }}_sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
       - run: ./build.sh
         env:
           VERSION: ${{ github.ref_name }}
       - run: ./packaging/package-release.sh
         env:
           VERSION: ${{ github.ref_name }}
+      - name: Generate SLSA subjects
+        shell: bash
+        run: base64 -w0 dist/SHA256SUMS > dist/SHA256SUMS.base64
+      - name: Upload SLSA subjects
+        id: slsa_subjects
+        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@v2.1.0
+        with:
+          path: dist/SHA256SUMS.base64
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.0
+      - name: Sign checksums
+        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/SHA256SUMS
+            dist/SHA256SUMS.sigstore.json
+            dist/*_sbom.spdx.json
+
+  provenance:
+    needs: release
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects-as-file: ${{ needs.release.outputs.slsa_subjects_file }}
+      upload-assets: true
+      provenance-name: dbxcli_${{ needs.release.outputs.asset_version }}_slsa.intoto.jsonl

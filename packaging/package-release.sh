@@ -86,10 +86,19 @@ else
   checksum_cmd=(shasum -a 256)
 fi
 
-(cd "${dist_dir}" && "${checksum_cmd[@]}" "${archive_names[@]}" > SHA256SUMS)
+checksum_names=("${archive_names[@]}")
+sbom_name="dbxcli_${asset_version}_sbom.spdx.json"
+if [[ -f "${dist_dir}/${sbom_name}" ]]; then
+  checksum_names+=("${sbom_name}")
+fi
+
+(cd "${dist_dir}" && "${checksum_cmd[@]}" "${checksum_names[@]}" > SHA256SUMS)
 
 echo "Created release archives in ${dist_dir}:"
 for archive_name in "${archive_names[@]}"; do
   echo "  ${archive_name}"
+done
+for checksum_name in "${checksum_names[@]:${#archive_names[@]}}"; do
+  echo "  ${checksum_name}"
 done
 echo "  SHA256SUMS"

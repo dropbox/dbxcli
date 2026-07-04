@@ -130,6 +130,16 @@ Use `--output=json` when the caller needs stable statuses, result kinds,
 warnings, or error codes. Use text output when a command is part of a human
 terminal workflow or when the command intentionally writes file bytes to stdout.
 
+Set an explicit network timeout for CI jobs that should fail instead of waiting
+indefinitely on Dropbox network operations:
+
+```sh
+dbxcli --timeout 2m ls --output=json /
+```
+
+`--timeout` uses Go duration units such as `30s`, `2m`, or `1h`. The default
+`0` disables the command deadline.
+
 Check auth and identity before running a job:
 
 ```sh
