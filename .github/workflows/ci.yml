@@ -28,6 +28,16 @@ jobs:
       - run: go test ./...
       - run: go build ./...
 
+  race:
+    name: Race test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - run: go test -race ./...
+
   lint:
     name: Staticcheck
     runs-on: ubuntu-latest
@@ -38,6 +48,17 @@ jobs:
           go-version: "1.25"
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
       - run: staticcheck ./...
+
+  workflow-lint:
+    name: GitHub Actions workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - run: actionlint
 
   release-build:
     name: Release binary build
