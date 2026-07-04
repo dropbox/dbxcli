@@ -142,6 +142,23 @@ tar -xzf dbxcli_X.Y.Z_linux_amd64.tar.gz
 sudo mv dbxcli_X.Y.Z_linux_amd64/dbxcli /usr/local/bin/
 ```
 
+For security-sensitive direct downloads, verify the signed checksum file and
+provenance before installing:
+
+```sh
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS.sigstore.json
+cosign verify-blob SHA256SUMS \
+  --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity "https://github.com/dropbox/dbxcli/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_slsa.intoto.jsonl
+slsa-verifier verify-artifact dbxcli_X.Y.Z_linux_amd64.tar.gz \
+  --provenance-path dbxcli_X.Y.Z_slsa.intoto.jsonl \
+  --source-uri github.com/dropbox/dbxcli \
+  --source-tag vX.Y.Z
+```
+
 Release assets include:
 
 * `dbxcli_X.Y.Z_darwin_amd64.tar.gz`
@@ -152,6 +169,9 @@ Release assets include:
 * `dbxcli_X.Y.Z_openbsd_amd64.tar.gz`
 * `dbxcli_X.Y.Z_windows_amd64.zip`
 * `SHA256SUMS`
+* `SHA256SUMS.sigstore.json`
+* `dbxcli_X.Y.Z_sbom.spdx.json`
+* `dbxcli_X.Y.Z_slsa.intoto.jsonl`
 
 ### Build from source
 
