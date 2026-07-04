@@ -17,11 +17,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func stubFilesClient(t *testing.T, client files.Client) {
+func stubFilesClient(t *testing.T, client filesClient) {
 	t.Helper()
 
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return client }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return client }
 	t.Cleanup(func() { filesNewFunc = origNew })
 }
 

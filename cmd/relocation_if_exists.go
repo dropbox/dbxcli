@@ -46,14 +46,14 @@ func normalizeRelocationIfExists(ifExists string) (string, error) {
 	}
 }
 
-func relocationSkipIfDestinationExists(dbx files.Client, arg *files.RelocationArg, opts relocationOptions) (relocationResult, bool, error) {
+func relocationSkipIfDestinationExists(dbx filesClient, arg *files.RelocationArg, opts relocationOptions) (relocationResult, bool, error) {
 	if opts.ifExists != relocationIfExistsSkip {
 		return relocationResult{}, false, nil
 	}
 	return relocationSkippedResult(dbx, arg)
 }
 
-func relocationSkipAfterDestinationConflict(dbx files.Client, arg *files.RelocationArg, err error, opts relocationOptions) (relocationResult, bool) {
+func relocationSkipAfterDestinationConflict(dbx filesClient, arg *files.RelocationArg, err error, opts relocationOptions) (relocationResult, bool) {
 	if opts.ifExists != relocationIfExistsSkip || !isRelocationDestinationConflict(err) {
 		return relocationResult{}, false
 	}
@@ -65,7 +65,7 @@ func relocationSkipAfterDestinationConflict(dbx files.Client, arg *files.Relocat
 	return result, true
 }
 
-func relocationSkippedResult(dbx files.Client, arg *files.RelocationArg) (relocationResult, bool, error) {
+func relocationSkippedResult(dbx filesClient, arg *files.RelocationArg) (relocationResult, bool, error) {
 	metadata, exists, err := getDestinationMetadata(dbx, arg.ToPath)
 	if err != nil || !exists {
 		return relocationResult{}, false, err

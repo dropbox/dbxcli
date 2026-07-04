@@ -48,19 +48,15 @@ const (
 	putIfExistsFail      = "fail"
 )
 
-var filesNewFunc = func(cfg dropbox.Config) files.Client {
-	return files.New(cfg)
-}
-
 type uploadChunk struct {
 	data   []byte
 	offset uint64
 	close  bool
 }
 
-func uploadOneChunk(dbx files.Client, args *files.UploadSessionAppendArg, data []byte) error {
+func uploadOneChunk(dbx filesClient, args *files.UploadSessionAppendArg, data []byte) error {
 	return retryWithBackoff(func() error {
-		err := dbx.UploadSessionAppendV2(args, bytes.NewReader(data))
+		err := dbx.UploadSessionAppendV2Context(currentContext(), args, bytes.NewReader(data))
 		if uploadChunkAlreadyAccepted(err, args.Cursor.Offset+uint64(len(data))) {
 			return nil
 		}
@@ -93,20 +89,20 @@ func uploadProgressReader(r io.Reader, size int64, errOut io.Writer) *ioprogress
 	}
 }
 
-func uploadSingleShot(dbx files.Client, r io.ReadSeeker, uploadArg *files.UploadArg, size int64, errOut io.Writer) (*files.FileMetadata, error) {
+func uploadSingleShot(dbx filesClient, r io.ReadSeeker, uploadArg *files.UploadArg, size int64, errOut io.Writer) (*files.FileMetadata, error) {
 	var metadata *files.FileMetadata
 	err := retryWithBackoff(func() error {
 		if _, err := r.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
 		var err error
-		metadata, err = dbx.Upload(uploadArg, uploadProgressReader(r, size, errOut))
+		metadata, err = dbx.UploadContext(currentContext(), uploadArg, uploadProgressReader(r, size, errOut))
 		return err
 	})
 	return metadata, err
 }
 
-func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (metadata *files.FileMetadata, err error) {
+func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (metadata *files.FileMetadata, err error) {
 	t0 := time.Now()
 	startArgs := files.NewUploadSessionStartArg()
 	startArgs.SessionType = &files.UploadSessionType{}
@@ -114,7 +110,7 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	var res *files.UploadSessionStartResult
 	err = retryWithBackoff(func() error {
 		var e error
-		res, e = dbx.UploadSessionStart(startArgs, nil)
+		res, e = dbx.UploadSessionStartContext(currentContext(), startArgs, nil)
 		return e
 	})
 	if err != nil {
@@ -193,7 +189,7 @@ func uploadChunked(dbx files.Client, r io.Reader, commitInfo *files.CommitInfo, 
 	finishArgs := files.NewUploadSessionFinishArg(cursor, commitInfo)
 	err = retryWithBackoff(func() error {
 		var e error
-		metadata, e = dbx.UploadSessionFinish(finishArgs, nil)
+		metadata, e = dbx.UploadSessionFinishContext(currentContext(), finishArgs, nil)
 		return e
 	})
 	if debug {
@@ -431,11 +427,11 @@ func reportStdinCleanupFailure(opts putOptions, tmpPath string, err error) {
 	putOutput(opts).Status("error: failed to remove temp file %s: %v; sensitive stdin data may remain on disk", tmpPath, err)
 }
 
-func resolveDestination(dbx files.Client, src, dst string, dstIsDir bool) string {
+func resolveDestination(dbx filesClient, src, dst string, dstIsDir bool) string {
 	if dstIsDir {
 		return path.Join("/", dst, filepath.Base(src))
 	}
-	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(dst))
+	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(dst))
 	if err != nil {
 		return dst
 	}
@@ -576,7 +572,7 @@ func writeModeForIfExists(ifExists string) string {
 	return files.WriteModeAdd
 }
 
-func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
+func checkPutStdinDestination(dbx filesClient, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
 	ifExists, err := normalizePutIfExists(ifExists)
 	if err != nil {
 		return putDestinationUpload, nil, err
@@ -598,7 +594,7 @@ func checkPutStdinDestination(dbx files.Client, dst string, ifExists string) (pu
 	return actionForExistingDestination(dst, ifExists, meta)
 }
 
-func checkPutDestination(dbx files.Client, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
+func checkPutDestination(dbx filesClient, dst string, ifExists string) (putDestinationAction, files.IsMetadata, error) {
 	ifExists, err := normalizePutIfExists(ifExists)
 	if err != nil {
 		return putDestinationUpload, nil, err
@@ -631,8 +627,8 @@ func actionForExistingDestination(dst string, ifExists string, metadata files.Is
 	}
 }
 
-func getDestinationMetadata(dbx files.Client, dst string) (files.IsMetadata, bool, error) {
-	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(dst))
+func getDestinationMetadata(dbx filesClient, dst string) (files.IsMetadata, bool, error) {
+	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(dst))
 	if err != nil {
 		if isGetMetadataNotFoundError(err) {
 			return nil, false, nil
@@ -851,17 +847,17 @@ func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool)
 	return results, warnings, nil
 }
 
-func putDirectory(dbx files.Client, dst string) error {
-	_, err := dbx.CreateFolderV2(files.NewCreateFolderArg(dst))
+func putDirectory(dbx filesClient, dst string) error {
+	_, err := dbx.CreateFolderV2Context(currentContext(), files.NewCreateFolderArg(dst))
 	if err == nil {
 		return nil
 	}
 	return putDirectoryConflictError(dst, err)
 }
 
-func putDirectoryWithResult(dbx files.Client, src, dst string) (putResult, error) {
+func putDirectoryWithResult(dbx filesClient, src, dst string) (putResult, error) {
 	arg := files.NewCreateFolderArg(dst)
-	created, err := dbx.CreateFolderV2(arg)
+	created, err := dbx.CreateFolderV2Context(currentContext(), arg)
 	if err != nil {
 		if conflictErr := putDirectoryConflictError(dst, err); conflictErr != nil {
 			return putResult{}, conflictErr

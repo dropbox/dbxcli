@@ -55,7 +55,7 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	arg := files.NewRestoreArg(path, rev)
 
 	dbx := filesNewFunc(config)
-	metadata, err := dbx.Restore(arg)
+	metadata, err := dbx.RestoreContext(currentContext(), arg)
 	if err != nil {
 		return withJSONErrorDetails(err, restoreErrorDetails(path, rev))
 	}

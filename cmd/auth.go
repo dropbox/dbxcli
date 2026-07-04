@@ -377,7 +377,7 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 	if err != nil {
 		return storedCredential{}, err
 	}
-	token, err := exchangeAuthorizationCode(context.Background(), conf, code, verifier)
+	token, err := exchangeAuthorizationCode(currentContext(), conf, code, verifier)
 	if err != nil {
 		return storedCredential{}, authExchangeFailedErrorfWithDetails("exchange authorization code: %w", map[string]any{
 			"token_type": authTokenTypeName(tokType),
@@ -407,7 +407,7 @@ func refreshStoredCredential(tokType string, domain string, credential storedCre
 		})
 	}
 
-	token, err := refreshOAuthToken(context.Background(), oauthConfigWithAppKey(appKey, domain), credential.oauthToken())
+	token, err := refreshOAuthToken(currentContext(), oauthConfigWithAppKey(appKey, domain), credential.oauthToken())
 	if err != nil {
 		return storedCredential{}, err
 	}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -17,7 +18,17 @@ const (
 	maxBackoff     = 30 * time.Second
 )
 
-var retrySleep = time.Sleep
+var retrySleep = func(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
 
 func isTransientError(err error) bool {
 	if err == nil {
@@ -91,13 +102,23 @@ func retryDelay(err error, backoff time.Duration) (time.Duration, bool) {
 }
 
 func retryWithBackoff(fn func() error) error {
+	return retryWithBackoffContext(currentContext(), fn)
+}
+
+func retryWithBackoffContext(ctx context.Context, fn func() error) error {
 	backoff := initialBackoff
 	var lastErr error
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		lastErr = fn()
 		if lastErr == nil {
 			return nil
+		}
+		if errors.Is(lastErr, context.Canceled) || errors.Is(lastErr, context.DeadlineExceeded) {
+			return lastErr
 		}
 		if !isTransientError(lastErr) {
 			return lastErr
@@ -106,7 +127,9 @@ func retryWithBackoff(fn func() error) error {
 			break
 		}
 		delay, isRateLimit := retryDelay(lastErr, backoff)
-		retrySleep(delay)
+		if err := retrySleep(ctx, delay); err != nil {
+			return err
+		}
 		if !isRateLimit {
 			backoff *= 2
 			if backoff > maxBackoff {

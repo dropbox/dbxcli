@@ -47,8 +47,8 @@ var revokeAccessToken = func(domain string, token string) error {
 		HeaderGenerator: nil,
 		URLGenerator:    nil,
 	}
-	client := auth.New(cfg)
-	return client.TokenRevoke()
+	client := auth.NewContext(cfg)
+	return client.TokenRevokeContext(currentContext())
 }
 
 // Command logout revokes all saved API tokens and deletes auth.json.
@@ -141,6 +141,9 @@ credentials. If DBXCLI_ACCESS_TOKEN is set, unset it before running logout;
 environment-provided tokens are not saved locally and cannot be removed by
 dbxcli.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := initCommandContext(cmd); err != nil {
+			return err
+		}
 		return validateOutputFormat(cmd)
 	},
 	RunE: logout,

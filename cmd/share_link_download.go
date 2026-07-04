@@ -89,7 +89,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	link, err := dbx.GetSharedLinkMetadata(arg)
+	link, err := dbx.GetSharedLinkMetadataContext(currentContext(), arg)
 	if err != nil {
 		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
 	}
@@ -209,7 +209,7 @@ func sharedLinkFolderDownloadTarget(target string, link *sharing.FolderLinkMetad
 	return target, nil
 }
 
-func downloadSharedLinkFolder(filesDbx files.Client, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, rootName, dst string, errOut io.Writer) error {
+func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, rootName, dst string, errOut io.Writer) error {
 	if errOut == nil {
 		errOut = io.Discard
 	}
@@ -289,12 +289,12 @@ func downloadSharedLinkFolder(filesDbx files.Client, dbx sharedLinkClient, arg *
 	return nil
 }
 
-func listSharedLinkFolderEntries(dbx files.Client, arg *sharing.GetSharedLinkMetadataArg, relFolder string) ([]files.IsMetadata, error) {
+func listSharedLinkFolderEntries(dbx filesClient, arg *sharing.GetSharedLinkMetadataArg, relFolder string) ([]files.IsMetadata, error) {
 	listArg := files.NewListFolderArg(sharedLinkAPIPath(relFolder))
 	listArg.SharedLink = files.NewSharedLink(arg.Url)
 	listArg.SharedLink.Password = arg.LinkPassword
 
-	res, err := dbx.ListFolder(listArg)
+	res, err := dbx.ListFolderContext(currentContext(), listArg)
 	if err != nil {
 		return nil, fmt.Errorf("list shared link folder %q: %v", relFolder, err)
 	}
@@ -305,7 +305,7 @@ func listSharedLinkFolderEntries(dbx files.Client, arg *sharing.GetSharedLinkMet
 			return entries, errors.New("list shared link folder has more results but no cursor")
 		}
 		cont := files.NewListFolderContinueArg(res.Cursor)
-		res, err = dbx.ListFolderContinue(cont)
+		res, err = dbx.ListFolderContinueContext(currentContext(), cont)
 		if err != nil {
 			return entries, fmt.Errorf("list shared link folder continue: %v", err)
 		}
@@ -321,7 +321,7 @@ func downloadSharedLinkRelativeFile(dbx sharedLinkClient, baseArg *sharing.GetSh
 	arg.LinkPassword = baseArg.LinkPassword
 
 	return retryWithBackoff(func() error {
-		link, contents, err := dbx.GetSharedLinkFile(arg)
+		link, contents, err := dbx.GetSharedLinkFileContext(currentContext(), arg)
 		if err != nil {
 			return err
 		}
@@ -378,7 +378,7 @@ func downloadSharedLinkToFile(dbx sharedLinkClient, arg *sharing.GetSharedLinkMe
 	var dst string
 	var downloaded sharing.IsSharedLinkMetadata
 	err := retryWithBackoff(func() error {
-		link, contents, err := dbx.GetSharedLinkFile(arg)
+		link, contents, err := dbx.GetSharedLinkFileContext(currentContext(), arg)
 		if err != nil {
 			return err
 		}
@@ -407,7 +407,7 @@ func downloadSharedLinkToStdout(dbx sharedLinkClient, arg *sharing.GetSharedLink
 			return partialStdoutError(bytesWritten)
 		}
 
-		_, contents, err := dbx.GetSharedLinkFile(arg)
+		_, contents, err := dbx.GetSharedLinkFileContext(currentContext(), arg)
 		if err != nil {
 			return err
 		}

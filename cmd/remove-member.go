@@ -33,7 +33,7 @@ func removeMember(cmd *cobra.Command, args []string) (err error) {
 	selector := &team.UserSelectorArg{Email: email}
 	selector.Tag = "email"
 	arg := team.NewMembersRemoveArg(selector)
-	res, err := dbx.MembersRemove(arg)
+	res, err := dbx.MembersRemoveContext(currentContext(), arg)
 	if err != nil {
 		return withJSONErrorDetails(err, operationErrorDetails("team_remove_member"), emailErrorDetails(email))
 	}

@@ -25,7 +25,7 @@ import (
 
 func info(cmd *cobra.Command, args []string) (err error) {
 	dbx := teamNewFunc(config)
-	res, err := dbx.GetInfo()
+	res, err := dbx.GetInfoContext(currentContext())
 	if err != nil {
 		return err
 	}

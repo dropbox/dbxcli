@@ -220,6 +220,20 @@
               "value_kind": "enum"
             },
             {
+              "name": "timeout",
+              "type": "duration",
+              "default": "0s",
+              "usage": "Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)",
+              "inherited": true,
+              "shorthand": "",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "duration"
+            },
+            {
               "name": "verbose",
               "type": "bool",
               "default": "false",
@@ -350,6 +364,15 @@
                 "x-cli-kind": "flag",
                 "x-cli-name": "time-format",
                 "x-value-kind": "enum"
+              },
+              "timeout": {
+                "type": "string",
+                "description": "Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)",
+                "default": "0s",
+                "x-cli-kind": "flag",
+                "x-cli-name": "timeout",
+                "x-value-kind": "duration",
+                "x-inherited": true
               },
               "verbose": {
                 "type": "boolean",

@@ -37,12 +37,12 @@ func relocationDestination(source, destination string, destinationIsFolder bool)
 	return destination
 }
 
-func isRemoteFolder(dbx files.Client, dst string) bool {
+func isRemoteFolder(dbx filesClient, dst string) bool {
 	p, err := validatePath(dst)
 	if err != nil {
 		return false
 	}
-	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(p))
+	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(p))
 	if err != nil {
 		return false
 	}

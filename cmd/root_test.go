@@ -283,6 +283,37 @@ func TestInitDbxSkipsAuthForLocalCommands(t *testing.T) {
 	}
 }
 
+func TestInitCommandContextUsesTimeout(t *testing.T) {
+	t.Cleanup(finishCommandContext)
+
+	cmd := &cobra.Command{Use: "test"}
+	cmd.Flags().Duration("timeout", 50*time.Millisecond, "")
+
+	if err := initCommandContext(cmd); err != nil {
+		t.Fatalf("initCommandContext error: %v", err)
+	}
+
+	deadline, ok := currentContext().Deadline()
+	if !ok {
+		t.Fatal("currentContext deadline missing")
+	}
+	if remaining := time.Until(deadline); remaining <= 0 || remaining > time.Second {
+		t.Fatalf("deadline remaining = %v, want positive timeout near 50ms", remaining)
+	}
+}
+
+func TestInitCommandContextRejectsNegativeTimeout(t *testing.T) {
+	t.Cleanup(finishCommandContext)
+
+	cmd := &cobra.Command{Use: "test"}
+	cmd.Flags().Duration("timeout", -time.Second, "")
+
+	err := initCommandContext(cmd)
+	if err == nil || !strings.Contains(err.Error(), "`--timeout` must be greater than or equal to 0") {
+		t.Fatalf("error = %v, want negative timeout error", err)
+	}
+}
+
 func TestInitDbxValidatesOutputBeforeAuth(t *testing.T) {
 	t.Setenv(envAccessToken, "")
 	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
