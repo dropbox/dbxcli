@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -25,8 +26,8 @@ import (
 )
 
 type sharedFolderClient interface {
-	ListFolders(*sharing.ListFoldersArgs) (*sharing.ListFoldersResult, error)
-	ListFoldersContinue(*sharing.ListFoldersContinueArg) (*sharing.ListFoldersResult, error)
+	ListFoldersContext(context.Context, *sharing.ListFoldersArgs) (*sharing.ListFoldersResult, error)
+	ListFoldersContinueContext(context.Context, *sharing.ListFoldersContinueArg) (*sharing.ListFoldersResult, error)
 }
 
 type shareFolderListInput struct{}
@@ -53,7 +54,7 @@ const (
 )
 
 var newSharedFolderClient = func(cfg dropbox.Config) sharedFolderClient {
-	return sharing.New(cfg)
+	return sharing.NewContext(cfg)
 }
 
 func shareListFolders(cmd *cobra.Command, args []string) (err error) {
@@ -79,7 +80,7 @@ func shareListFolders(cmd *cobra.Command, args []string) (err error) {
 
 func listSharedFolders(dbx sharedFolderClient, arg *sharing.ListFoldersArgs) ([]*sharing.SharedFolderMetadata, error) {
 	var entries []*sharing.SharedFolderMetadata
-	res, err := dbx.ListFolders(arg)
+	res, err := dbx.ListFoldersContext(currentContext(), arg)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func listSharedFolders(dbx sharedFolderClient, arg *sharing.ListFoldersArgs) ([]
 	for len(res.Cursor) > 0 {
 		continueArg := sharing.NewListFoldersContinueArg(res.Cursor)
 
-		res, err = dbx.ListFoldersContinue(continueArg)
+		res, err = dbx.ListFoldersContinueContext(currentContext(), continueArg)
 		if err != nil {
 			return nil, err
 		}

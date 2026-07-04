@@ -123,7 +123,7 @@ func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {
 	}, nil
 }
 
-func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) ([]removeTarget, error) {
+func validateRemoveTargets(dbx filesClient, args []string, opts removeOptions) ([]removeTarget, error) {
 	var targets []removeTarget
 
 	// Validate remove paths before executing removal
@@ -140,7 +140,7 @@ func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) 
 
 		if _, ok := pathMetaData.(*files.FileMetadata); !ok && !opts.allowNonEmptyFolder() {
 			folderArg := files.NewListFolderArg(path)
-			res, err := dbx.ListFolder(folderArg)
+			res, err := dbx.ListFolderContext(currentContext(), folderArg)
 			if err != nil {
 				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(path))
 			}
@@ -154,7 +154,7 @@ func validateRemoveTargets(dbx files.Client, args []string, opts removeOptions) 
 	return targets, nil
 }
 
-func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions) ([]removeResult, error) {
+func removeTargets(dbx filesClient, targets []removeTarget, opts removeOptions) ([]removeResult, error) {
 	results := make([]removeResult, 0, len(targets))
 
 	for _, target := range targets {
@@ -162,11 +162,11 @@ func removeTargets(dbx files.Client, targets []removeTarget, opts removeOptions)
 		metadata := target.metadata
 
 		if opts.permanent {
-			if err := dbx.PermanentlyDelete(arg); err != nil {
+			if err := dbx.PermanentlyDeleteContext(currentContext(), arg); err != nil {
 				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
 			}
 		} else {
-			res, err := dbx.DeleteV2(arg)
+			res, err := dbx.DeleteV2Context(currentContext(), arg)
 			if err != nil {
 				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
 			}

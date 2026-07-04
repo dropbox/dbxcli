@@ -46,12 +46,12 @@ type lsInput struct {
 const lsJSONStatusListed = "listed"
 
 // Sends a get_metadata request for a given path and returns the response
-func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
+func getFileMetadata(c filesClient, path string) (files.IsMetadata, error) {
 	arg := files.NewGetMetadataArg(path)
 
 	arg.IncludeDeleted = true
 
-	res, err := c.GetMetadata(arg)
+	res, err := c.GetMetadataContext(currentContext(), arg)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	res, err := dbx.ListFolder(arg)
+	res, err := dbx.ListFolderContext(currentContext(), arg)
 
 	if err != nil {
 		if !isListFolderNotFolderError(err) {
@@ -184,12 +184,12 @@ func metadataLimitReached(entries []files.IsMetadata, limit uint64) bool {
 	return limit > 0 && uint64(len(entries)) >= limit
 }
 
-func finalizeLsEntries(dbx files.Client, entries []files.IsMetadata, onlyDeleted bool, opts listOptions) ([]files.IsMetadata, error) {
+func finalizeLsEntries(dbx filesClient, entries []files.IsMetadata, onlyDeleted bool, opts listOptions) ([]files.IsMetadata, error) {
 	sortEntries(entries, opts)
 	return prepareLsEntries(dbx, entries, onlyDeleted)
 }
 
-func collectAndPrepareLsEntries(dbx files.Client, res *files.ListFolderResult, limit uint64, onlyDeleted bool, opts listOptions) ([]files.IsMetadata, error) {
+func collectAndPrepareLsEntries(dbx filesClient, res *files.ListFolderResult, limit uint64, onlyDeleted bool, opts listOptions) ([]files.IsMetadata, error) {
 	if onlyDeleted && limit > 0 {
 		entries, err := collectOnlyDeletedEntriesWithLimit(dbx, res, limit)
 		if err != nil {
@@ -203,7 +203,7 @@ func collectAndPrepareLsEntries(dbx files.Client, res *files.ListFolderResult, l
 	entries = appendMetadataWithLimit(entries, res.Entries, limit)
 	for res.HasMore && !metadataLimitReached(entries, limit) {
 		var err error
-		res, err = dbx.ListFolderContinue(files.NewListFolderContinueArg(res.Cursor))
+		res, err = dbx.ListFolderContinueContext(currentContext(), files.NewListFolderContinueArg(res.Cursor))
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func collectAndPrepareLsEntries(dbx files.Client, res *files.ListFolderResult, l
 	return finalizeLsEntries(dbx, entries, onlyDeleted, opts)
 }
 
-func collectOnlyDeletedEntriesWithLimit(dbx files.Client, res *files.ListFolderResult, limit uint64) ([]files.IsMetadata, error) {
+func collectOnlyDeletedEntriesWithLimit(dbx filesClient, res *files.ListFolderResult, limit uint64) ([]files.IsMetadata, error) {
 	var entries []files.IsMetadata
 	for {
 		filtered, err := prepareLsEntries(dbx, res.Entries, true)
@@ -225,7 +225,7 @@ func collectOnlyDeletedEntriesWithLimit(dbx files.Client, res *files.ListFolderR
 			return entries, nil
 		}
 
-		res, err = dbx.ListFolderContinue(files.NewListFolderContinueArg(res.Cursor))
+		res, err = dbx.ListFolderContinueContext(currentContext(), files.NewListFolderContinueArg(res.Cursor))
 		if err != nil {
 			return nil, err
 		}
@@ -238,13 +238,13 @@ func lsRecursive(cmd *cobra.Command) bool {
 	return recursive || recurse
 }
 
-func prepareLsEntries(dbx files.Client, entries []files.IsMetadata, onlyDeleted bool) ([]files.IsMetadata, error) {
+func prepareLsEntries(dbx filesClient, entries []files.IsMetadata, onlyDeleted bool) ([]files.IsMetadata, error) {
 	var filtered []files.IsMetadata
 	for _, entry := range entries {
 		deletedItem, isDeleted := entry.(*files.DeletedMetadata)
 		if isDeleted {
 			revisionArg := files.NewListRevisionsArg(deletedItem.PathLower)
-			res, err := dbx.ListRevisions(revisionArg)
+			res, err := dbx.ListRevisionsContext(currentContext(), revisionArg)
 			if err != nil {
 				if isListRevisionsNotFileError(err) {
 					// Don't treat a "not_file" error as fatal; recover by sending a

@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"context"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -23,25 +24,25 @@ import (
 )
 
 type sharedLinkClient interface {
-	CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
-	CreateSharedLinkWithRawSettings(path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error)
-	GetSharedLinkFile(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error)
-	GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
-	ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
-	ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
-	RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error
-	ModifySharedLinkSettingsRaw(url string, settings *rawSharedLinkSettings, removeExpiration bool) error
+	CreateSharedLinkWithSettingsContext(context.Context, *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error)
+	CreateSharedLinkWithRawSettingsContext(context.Context, string, *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error)
+	GetSharedLinkFileContext(context.Context, *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error)
+	GetSharedLinkMetadataContext(context.Context, *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error)
+	ListSharedLinksContext(context.Context, *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error)
+	ModifySharedLinkSettingsContext(context.Context, *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error)
+	RevokeSharedLinkContext(context.Context, *sharing.RevokeSharedLinkArg) error
+	ModifySharedLinkSettingsRawContext(context.Context, string, *rawSharedLinkSettings, bool) error
 }
 
 type sdkSharedLinkClient struct {
-	sharing.Client
+	sharing.ContextClient
 	cfg dropbox.Config
 }
 
 var newSharedLinkClient = func(cfg dropbox.Config) sharedLinkClient {
 	return &sdkSharedLinkClient{
-		Client: sharing.New(cfg),
-		cfg:    cfg,
+		ContextClient: sharing.NewContext(cfg),
+		cfg:           cfg,
 	}
 }
 

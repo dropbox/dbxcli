@@ -450,7 +450,7 @@ func TestPutFileDestinationTrailingSlash(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	err := put(testPutCmd(), []string{tmpFile, "/folder/"})
@@ -507,7 +507,7 @@ func TestPutRecursive_WalksDirectoryStructure(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	opts := putOptions{chunkSize: 1 << 24, workers: 4}
@@ -563,7 +563,7 @@ func TestPutRecursive_CreatesEmptyDirectories(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	opts := putOptions{chunkSize: 1 << 24, workers: 4}
@@ -611,7 +611,7 @@ func TestPutRecursive_CreatesEmptyRootDirectory(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	opts := putOptions{chunkSize: 1 << 24, workers: 4}
@@ -649,7 +649,7 @@ func TestPutRecursive_SkipsSymlinks(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	opts := putOptions{chunkSize: 1 << 24, workers: 4}

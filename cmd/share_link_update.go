@@ -62,7 +62,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 
 	dbx := newSharedLinkClient(config)
 	if opts.usesRawSettings() {
-		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromUpdateOptions(opts), opts.removeExpiration); err != nil {
+		if err := dbx.ModifySharedLinkSettingsRawContext(currentContext(), url, rawSharedLinkSettingsFromUpdateOptions(opts), opts.removeExpiration); err != nil {
 			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}
 		return renderShareLinkUpdateOutput(cmd, dbx, url, opts, nil)
@@ -88,7 +88,7 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	arg.RemoveExpiration = opts.removeExpiration
 
 	if opts.hasSDKSettings() {
-		link, err := dbx.ModifySharedLinkSettings(arg)
+		link, err := dbx.ModifySharedLinkSettingsContext(currentContext(), arg)
 		if err != nil {
 			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}
@@ -111,7 +111,7 @@ func renderShareLinkUpdateOutput(cmd *cobra.Command, dbx sharedLinkClient, url s
 			arg.LinkPassword = opts.password.password
 		}
 		var err error
-		link, err = dbx.GetSharedLinkMetadata(arg)
+		link, err = dbx.GetSharedLinkMetadataContext(currentContext(), arg)
 		if err != nil {
 			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_update"))
 		}

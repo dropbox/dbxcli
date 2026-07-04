@@ -31,6 +31,7 @@ dbxcli share-link list [path] [flags]
 ```
       --as-member string   Member ID to perform action as
       --output string      Output format: text, json (default "text")
+      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
   -v, --verbose            Enable verbose logging
 ```
 

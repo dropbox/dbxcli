@@ -15,6 +15,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/async"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/team"
@@ -22,13 +24,13 @@ import (
 )
 
 type teamClient interface {
-	GetInfo() (*team.TeamGetInfoResult, error)
-	GroupsList(*team.GroupsListArg) (*team.GroupsListResult, error)
-	GroupsListContinue(*team.GroupsListContinueArg) (*team.GroupsListResult, error)
-	MembersAdd(*team.MembersAddArg) (*team.MembersAddLaunch, error)
-	MembersList(*team.MembersListArg) (*team.MembersListResult, error)
-	MembersListContinue(*team.MembersListContinueArg) (*team.MembersListResult, error)
-	MembersRemove(*team.MembersRemoveArg) (*async.LaunchEmptyResult, error)
+	GetInfoContext(context.Context) (*team.TeamGetInfoResult, error)
+	GroupsListContext(context.Context, *team.GroupsListArg) (*team.GroupsListResult, error)
+	GroupsListContinueContext(context.Context, *team.GroupsListContinueArg) (*team.GroupsListResult, error)
+	MembersAddContext(context.Context, *team.MembersAddArg) (*team.MembersAddLaunch, error)
+	MembersListContext(context.Context, *team.MembersListArg) (*team.MembersListResult, error)
+	MembersListContinueContext(context.Context, *team.MembersListContinueArg) (*team.MembersListResult, error)
+	MembersRemoveContext(context.Context, *team.MembersRemoveArg) (*async.LaunchEmptyResult, error)
 }
 
 type teamInfoInput struct{}
@@ -109,7 +111,7 @@ const (
 )
 
 var teamNewFunc = func(cfg dropbox.Config) teamClient {
-	return team.New(cfg)
+	return team.NewContext(cfg)
 }
 
 func teamInfoOperationOutput(info *team.TeamGetInfoResult) jsonOperationOutput {

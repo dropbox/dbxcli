@@ -181,10 +181,10 @@ func TestAccountAuthContractOmitsSensitiveFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	output := string(encoded)
+	payload := string(encoded)
 	for _, forbidden := range []string{"access_token", "refresh_token", "app_key", "auth.json", ".config"} {
-		if strings.Contains(output, forbidden) {
-			t.Fatalf("account JSON contains %q: %s", forbidden, output)
+		if strings.Contains(payload, forbidden) {
+			t.Fatalf("account JSON contains %q: %s", forbidden, payload)
 		}
 	}
 }

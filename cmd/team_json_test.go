@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -33,11 +34,19 @@ func (m *mockTeamClient) GetInfo() (*team.TeamGetInfoResult, error) {
 	return nil, nil
 }
 
+func (m *mockTeamClient) GetInfoContext(ctx context.Context) (*team.TeamGetInfoResult, error) {
+	return m.GetInfo()
+}
+
 func (m *mockTeamClient) GroupsList(arg *team.GroupsListArg) (*team.GroupsListResult, error) {
 	if m.groupsListFn != nil {
 		return m.groupsListFn(arg)
 	}
 	return team.NewGroupsListResult(nil, "", false), nil
+}
+
+func (m *mockTeamClient) GroupsListContext(ctx context.Context, arg *team.GroupsListArg) (*team.GroupsListResult, error) {
+	return m.GroupsList(arg)
 }
 
 func (m *mockTeamClient) GroupsListContinue(arg *team.GroupsListContinueArg) (*team.GroupsListResult, error) {
@@ -47,11 +56,19 @@ func (m *mockTeamClient) GroupsListContinue(arg *team.GroupsListContinueArg) (*t
 	return team.NewGroupsListResult(nil, "", false), nil
 }
 
+func (m *mockTeamClient) GroupsListContinueContext(ctx context.Context, arg *team.GroupsListContinueArg) (*team.GroupsListResult, error) {
+	return m.GroupsListContinue(arg)
+}
+
 func (m *mockTeamClient) MembersAdd(arg *team.MembersAddArg) (*team.MembersAddLaunch, error) {
 	if m.membersAddFn != nil {
 		return m.membersAddFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockTeamClient) MembersAddContext(ctx context.Context, arg *team.MembersAddArg) (*team.MembersAddLaunch, error) {
+	return m.MembersAdd(arg)
 }
 
 func (m *mockTeamClient) MembersList(arg *team.MembersListArg) (*team.MembersListResult, error) {
@@ -61,6 +78,10 @@ func (m *mockTeamClient) MembersList(arg *team.MembersListArg) (*team.MembersLis
 	return team.NewMembersListResult(nil, "", false), nil
 }
 
+func (m *mockTeamClient) MembersListContext(ctx context.Context, arg *team.MembersListArg) (*team.MembersListResult, error) {
+	return m.MembersList(arg)
+}
+
 func (m *mockTeamClient) MembersListContinue(arg *team.MembersListContinueArg) (*team.MembersListResult, error) {
 	if m.membersListContinueFn != nil {
 		return m.membersListContinueFn(arg)
@@ -68,11 +89,19 @@ func (m *mockTeamClient) MembersListContinue(arg *team.MembersListContinueArg) (
 	return team.NewMembersListResult(nil, "", false), nil
 }
 
+func (m *mockTeamClient) MembersListContinueContext(ctx context.Context, arg *team.MembersListContinueArg) (*team.MembersListResult, error) {
+	return m.MembersListContinue(arg)
+}
+
 func (m *mockTeamClient) MembersRemove(arg *team.MembersRemoveArg) (*async.LaunchEmptyResult, error) {
 	if m.membersRemoveFn != nil {
 		return m.membersRemoveFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockTeamClient) MembersRemoveContext(ctx context.Context, arg *team.MembersRemoveArg) (*async.LaunchEmptyResult, error) {
+	return m.MembersRemove(arg)
 }
 
 type teamOperationOutputForTest[I, R any] struct {

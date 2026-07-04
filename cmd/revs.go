@@ -56,7 +56,7 @@ func revs(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	dbx := filesNewFunc(config)
-	res, err := dbx.ListRevisions(arg)
+	res, err := dbx.ListRevisionsContext(currentContext(), arg)
 	if err != nil {
 		return
 	}

@@ -71,7 +71,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	arg := newSearchV2Arg(args[0], scope, opts)
 
 	dbx := filesNewFunc(config)
-	res, err := dbx.SearchV2(arg)
+	res, err := dbx.SearchV2Context(currentContext(), arg)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 	for res.HasMore && !searchLimitReached(entries, opts.limit) {
 		contArg := files.NewSearchV2ContinueArg(res.Cursor)
-		res, err = dbx.SearchContinueV2(contArg)
+		res, err = dbx.SearchContinueV2Context(currentContext(), contArg)
 		if err != nil {
 			return err
 		}

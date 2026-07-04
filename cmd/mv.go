@@ -75,7 +75,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, arg := range relocationArgs {
-		res, err := dbx.MoveV2(arg)
+		res, err := dbx.MoveV2Context(currentContext(), arg)
 		if err != nil {
 			if result, skipped := relocationSkipAfterDestinationConflict(dbx, arg, err, opts); skipped {
 				if collectResults {

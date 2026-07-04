@@ -46,7 +46,7 @@ const (
 
 func du(cmd *cobra.Command, args []string) (err error) {
 	dbx := usersNewFunc(config)
-	usage, err := dbx.GetSpaceUsage()
+	usage, err := dbx.GetSpaceUsageContext(currentContext())
 	if err != nil {
 		return
 	}

@@ -382,7 +382,7 @@ func TestPutLocalDashFile(t *testing.T) {
 		},
 	}
 	origNew := filesNewFunc
-	filesNewFunc = func(_ dropbox.Config) files.Client { return testClient }
+	filesNewFunc = func(_ dropbox.Config) filesClient { return testClient }
 	defer func() { filesNewFunc = origNew }()
 
 	cmd := testPutCmd()

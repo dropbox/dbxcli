@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -24,11 +25,19 @@ func (m *mockSharedFolderClient) ListFolders(arg *sharing.ListFoldersArgs) (*sha
 	return sharing.NewListFoldersResult(nil), nil
 }
 
+func (m *mockSharedFolderClient) ListFoldersContext(ctx context.Context, arg *sharing.ListFoldersArgs) (*sharing.ListFoldersResult, error) {
+	return m.ListFolders(arg)
+}
+
 func (m *mockSharedFolderClient) ListFoldersContinue(arg *sharing.ListFoldersContinueArg) (*sharing.ListFoldersResult, error) {
 	if m.listFoldersContinueFn != nil {
 		return m.listFoldersContinueFn(arg)
 	}
 	return sharing.NewListFoldersResult(nil), nil
+}
+
+func (m *mockSharedFolderClient) ListFoldersContinueContext(ctx context.Context, arg *sharing.ListFoldersContinueArg) (*sharing.ListFoldersResult, error) {
+	return m.ListFoldersContinue(arg)
 }
 
 func TestShareListFoldersTextUsesCommandOutput(t *testing.T) {

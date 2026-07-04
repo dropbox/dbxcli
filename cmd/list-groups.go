@@ -42,7 +42,7 @@ func listGroups(cmd *cobra.Command, args []string) (err error) {
 
 func listTeamGroups(dbx teamClient, arg *team.GroupsListArg) ([]*team_common.GroupSummary, error) {
 	var groups []*team_common.GroupSummary
-	res, err := dbx.GroupsList(arg)
+	res, err := dbx.GroupsListContext(currentContext(), arg)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func listTeamGroups(dbx teamClient, arg *team.GroupsListArg) ([]*team_common.Gro
 		if res.Cursor == "" {
 			return nil, errors.New("team group list has more results but no cursor")
 		}
-		res, err = dbx.GroupsListContinue(team.NewGroupsListContinueArg(res.Cursor))
+		res, err = dbx.GroupsListContinueContext(currentContext(), team.NewGroupsListContinueArg(res.Cursor))
 		if err != nil {
 			return nil, err
 		}

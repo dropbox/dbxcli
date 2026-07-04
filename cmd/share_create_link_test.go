@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -47,11 +48,19 @@ func (m *mockSharedLinkClient) CreateSharedLinkWithSettings(arg *sharing.CreateS
 	return nil, nil
 }
 
+func (m *mockSharedLinkClient) CreateSharedLinkWithSettingsContext(ctx context.Context, arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+	return m.CreateSharedLinkWithSettings(arg)
+}
+
 func (m *mockSharedLinkClient) CreateSharedLinkWithRawSettings(path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {
 	if m.createSharedLinkWithRawSettingsFn != nil {
 		return m.createSharedLinkWithRawSettingsFn(path, settings)
 	}
 	return nil, nil
+}
+
+func (m *mockSharedLinkClient) CreateSharedLinkWithRawSettingsContext(ctx context.Context, path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {
+	return m.CreateSharedLinkWithRawSettings(path, settings)
 }
 
 func (m *mockSharedLinkClient) GetSharedLinkFile(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
@@ -61,11 +70,19 @@ func (m *mockSharedLinkClient) GetSharedLinkFile(arg *sharing.GetSharedLinkMetad
 	return nil, nil, nil
 }
 
+func (m *mockSharedLinkClient) GetSharedLinkFileContext(ctx context.Context, arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+	return m.GetSharedLinkFile(arg)
+}
+
 func (m *mockSharedLinkClient) GetSharedLinkMetadata(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
 	if m.getSharedLinkMetadataFn != nil {
 		return m.getSharedLinkMetadataFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockSharedLinkClient) GetSharedLinkMetadataContext(ctx context.Context, arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+	return m.GetSharedLinkMetadata(arg)
 }
 
 func (m *mockSharedLinkClient) ListSharedLinks(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
@@ -75,11 +92,19 @@ func (m *mockSharedLinkClient) ListSharedLinks(arg *sharing.ListSharedLinksArg) 
 	return &sharing.ListSharedLinksResult{}, nil
 }
 
+func (m *mockSharedLinkClient) ListSharedLinksContext(ctx context.Context, arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+	return m.ListSharedLinks(arg)
+}
+
 func (m *mockSharedLinkClient) ModifySharedLinkSettings(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
 	if m.modifySharedLinkSettingsFn != nil {
 		return m.modifySharedLinkSettingsFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockSharedLinkClient) ModifySharedLinkSettingsContext(ctx context.Context, arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+	return m.ModifySharedLinkSettings(arg)
 }
 
 func (m *mockSharedLinkClient) RevokeSharedLink(arg *sharing.RevokeSharedLinkArg) error {
@@ -89,11 +114,19 @@ func (m *mockSharedLinkClient) RevokeSharedLink(arg *sharing.RevokeSharedLinkArg
 	return nil
 }
 
+func (m *mockSharedLinkClient) RevokeSharedLinkContext(ctx context.Context, arg *sharing.RevokeSharedLinkArg) error {
+	return m.RevokeSharedLink(arg)
+}
+
 func (m *mockSharedLinkClient) ModifySharedLinkSettingsRaw(url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
 	if m.modifySharedLinkSettingsRawFn != nil {
 		return m.modifySharedLinkSettingsRawFn(url, settings, removeExpiration)
 	}
 	return nil
+}
+
+func (m *mockSharedLinkClient) ModifySharedLinkSettingsRawContext(ctx context.Context, url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
+	return m.ModifySharedLinkSettingsRaw(url, settings, removeExpiration)
 }
 
 func stubSharedLinkClient(t *testing.T, client sharedLinkClient) {

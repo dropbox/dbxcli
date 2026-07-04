@@ -41,7 +41,7 @@ func listMembers(cmd *cobra.Command, args []string) (err error) {
 
 func listTeamMembers(dbx teamClient, arg *team.MembersListArg) ([]*team.TeamMemberInfo, error) {
 	var members []*team.TeamMemberInfo
-	res, err := dbx.MembersList(arg)
+	res, err := dbx.MembersListContext(currentContext(), arg)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func listTeamMembers(dbx teamClient, arg *team.MembersListArg) ([]*team.TeamMemb
 		if res.Cursor == "" {
 			return nil, errors.New("team member list has more results but no cursor")
 		}
-		res, err = dbx.MembersListContinue(team.NewMembersListContinueArg(res.Cursor))
+		res, err = dbx.MembersListContinueContext(currentContext(), team.NewMembersListContinueArg(res.Cursor))
 		if err != nil {
 			return nil, err
 		}

@@ -61,7 +61,7 @@ func shareLinkInfo(cmd *cobra.Command, args []string) error {
 		arg.LinkPassword = opts.password.password
 	}
 
-	link, err := dbx.GetSharedLinkMetadata(arg)
+	link, err := dbx.GetSharedLinkMetadataContext(currentContext(), arg)
 	if err != nil {
 		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_info"))
 	}

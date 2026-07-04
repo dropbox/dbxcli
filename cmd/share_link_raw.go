@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -54,7 +55,7 @@ func rawSharedLinkExpires(value *time.Time) *dropbox.DBXTime {
 	return &t
 }
 
-func (dbx *sdkSharedLinkClient) CreateSharedLinkWithRawSettings(path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {
+func (dbx *sdkSharedLinkClient) CreateSharedLinkWithRawSettingsContext(ctx context.Context, path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {
 	arg := &rawCreateSharedLinkWithSettingsArg{
 		Path:     path,
 		Settings: settings,
@@ -68,7 +69,7 @@ func (dbx *sdkSharedLinkClient) CreateSharedLinkWithRawSettings(path string, set
 		Arg:       arg,
 	}
 
-	resp, respBody, err := executeSharingRawRequest(dbx.cfg, req, parseCreateSharedLinkWithSettingsError)
+	resp, respBody, err := executeSharingRawRequest(ctx, dbx.cfg, req, parseCreateSharedLinkWithSettingsError)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (dbx *sdkSharedLinkClient) CreateSharedLinkWithRawSettings(path string, set
 	return parseSharedLinkMetadata(resp)
 }
 
-func (dbx *sdkSharedLinkClient) ModifySharedLinkSettingsRaw(url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
+func (dbx *sdkSharedLinkClient) ModifySharedLinkSettingsRawContext(ctx context.Context, url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
 	arg := &rawModifySharedLinkSettingsArgs{
 		URL:              url,
 		Settings:         settings,
@@ -94,7 +95,7 @@ func (dbx *sdkSharedLinkClient) ModifySharedLinkSettingsRaw(url string, settings
 		Arg:       arg,
 	}
 
-	_, respBody, err := executeSharingRawRequest(dbx.cfg, req, parseModifySharedLinkSettingsError)
+	_, respBody, err := executeSharingRawRequest(ctx, dbx.cfg, req, parseModifySharedLinkSettingsError)
 	if err != nil {
 		return err
 	}
@@ -105,9 +106,9 @@ func (dbx *sdkSharedLinkClient) ModifySharedLinkSettingsRaw(url string, settings
 	return nil
 }
 
-func executeSharingRawRequest(cfg dropbox.Config, req dropbox.Request, parseError func(error) error) ([]byte, io.ReadCloser, error) {
-	ctx := dropbox.NewContext(cfg)
-	resp, respBody, err := (&ctx).Execute(req, nil)
+func executeSharingRawRequest(ctx context.Context, cfg dropbox.Config, req dropbox.Request, parseError func(error) error) ([]byte, io.ReadCloser, error) {
+	dbx := dropbox.NewContext(cfg)
+	resp, respBody, err := (&dbx).ExecuteContext(ctx, req, nil)
 	if err != nil {
 		return nil, nil, parseError(err)
 	}

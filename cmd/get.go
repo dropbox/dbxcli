@@ -90,7 +90,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	dbx := filesNewFunc(config)
 
-	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
+	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(src))
 	if err != nil {
 		if recursive {
 			return withJSONErrorDetails(fmt.Errorf("get metadata for %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
@@ -204,7 +204,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 
 	dbx := filesNewFunc(config)
 
-	meta, err := dbx.GetMetadata(files.NewGetMetadataArg(src))
+	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(src))
 	if err == nil {
 		if _, ok := meta.(*files.FolderMetadata); ok {
 			return invalidArgumentsErrorfWithDetails("%s is a folder; cannot download folder to stdout", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src)), src)
@@ -214,7 +214,7 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	return withJSONErrorDetails(downloadToStdout(dbx, src, cmd.OutOrStdout()), operationErrorDetails("download"), pathErrorDetails(src))
 }
 
-func getWithClient(dbx files.Client, args []string) (err error) {
+func getWithClient(dbx filesClient, args []string) (err error) {
 	if len(args) == 0 || len(args) > 2 {
 		return invalidArgumentsErrorWithDetails("`get` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
 	}
@@ -235,20 +235,20 @@ func getWithClient(dbx files.Client, args []string) (err error) {
 	return withJSONErrorDetails(downloadFile(dbx, src, dst), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 }
 
-func getRecursive(dbx files.Client, src, dst string) error {
+func getRecursive(dbx filesClient, src, dst string) error {
 	_, err := getRecursiveInternal(dbx, src, dst, nil, getOptions{}, false)
 	return err
 }
 
-func getRecursiveWithResults(dbx files.Client, src, dst string, rootMeta files.IsMetadata, opts getOptions) ([]getResult, error) {
+func getRecursiveWithResults(dbx filesClient, src, dst string, rootMeta files.IsMetadata, opts getOptions) ([]getResult, error) {
 	return getRecursiveInternal(dbx, src, dst, rootMeta, opts, true)
 }
 
-func getRecursiveInternal(dbx files.Client, src, dst string, rootMeta files.IsMetadata, opts getOptions, collectResults bool) ([]getResult, error) {
+func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMetadata, opts getOptions, collectResults bool) ([]getResult, error) {
 	arg := files.NewListFolderArg(src)
 	arg.Recursive = true
 
-	res, err := dbx.ListFolder(arg)
+	res, err := dbx.ListFolderContext(currentContext(), arg)
 	if err != nil {
 		return nil, withJSONErrorDetails(fmt.Errorf("list folder %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
 	}
@@ -257,7 +257,7 @@ func getRecursiveInternal(dbx files.Client, src, dst string, rootMeta files.IsMe
 	entries = append(entries, res.Entries...)
 	for res.HasMore {
 		cont := files.NewListFolderContinueArg(res.Cursor)
-		res, err = dbx.ListFolderContinue(cont)
+		res, err = dbx.ListFolderContinueContext(currentContext(), cont)
 		if err != nil {
 			return nil, withJSONErrorDetails(fmt.Errorf("list folder continue: %v", err), operationErrorDetails("download"), pathErrorDetails(src))
 		}
@@ -369,12 +369,12 @@ func relativeTo(base, full string) (string, error) {
 	return rel, nil
 }
 
-func downloadFile(dbx files.Client, src string, dst string) error {
+func downloadFile(dbx filesClient, src string, dst string) error {
 	_, err := downloadFileWithMetadata(dbx, src, dst, os.Stderr)
 	return err
 }
 
-func downloadFileWithResult(dbx files.Client, src string, dst string, opts getOptions) (getResult, error) {
+func downloadFileWithResult(dbx filesClient, src string, dst string, opts getOptions) (getResult, error) {
 	metadata, err := downloadFileWithMetadata(dbx, src, dst, getErrorOutput(opts))
 	if err != nil {
 		return getResult{}, err
@@ -382,7 +382,7 @@ func downloadFileWithResult(dbx files.Client, src string, dst string, opts getOp
 	return newGetResult(getStatusDownloaded, getKindFile, src, dst, metadata)
 }
 
-func downloadFileWithMetadata(dbx files.Client, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {
+func downloadFileWithMetadata(dbx filesClient, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {
 	arg := files.NewDownloadArg(src)
 	var metadata *files.FileMetadata
 
@@ -434,8 +434,8 @@ func downloadDestinationPath(dst string) (string, error) {
 	return "", fmt.Errorf("too many symlinks resolving %s", dst)
 }
 
-func downloadFileOnce(dbx files.Client, arg *files.DownloadArg, dst string, errOut io.Writer) (*files.FileMetadata, error) {
-	res, contents, err := dbx.Download(arg)
+func downloadFileOnce(dbx filesClient, arg *files.DownloadArg, dst string, errOut io.Writer) (*files.FileMetadata, error) {
+	res, contents, err := dbx.DownloadContext(currentContext(), arg)
 	if err != nil {
 		return nil, err
 	}

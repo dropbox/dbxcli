@@ -94,7 +94,7 @@ func shareLinkListErrorDetails(path string) map[string]any {
 func listSharedLinks(dbx sharedLinkClient, arg *sharing.ListSharedLinksArg) ([]sharing.IsSharedLinkMetadata, error) {
 	var links []sharing.IsSharedLinkMetadata
 	for {
-		res, err := dbx.ListSharedLinks(arg)
+		res, err := dbx.ListSharedLinksContext(currentContext(), arg)
 		if err != nil {
 			return nil, err
 		}

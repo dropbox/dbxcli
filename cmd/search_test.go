@@ -22,7 +22,7 @@ func TestSearchArgValidation(t *testing.T) {
 func TestSearchPathScopeValidation(t *testing.T) {
 	err := search(searchCmd, []string{"query", "no-slash"})
 	if err == nil {
-		t.Error("expected error for path-scope without leading slash")
+		t.Fatal("expected error for path-scope without leading slash")
 	}
 	details := jsonErrorDetails(err)
 	if details["argument"] != "path-scope" || details["path"] != "no-slash" {

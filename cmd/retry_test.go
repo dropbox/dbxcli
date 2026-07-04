@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -17,8 +18,9 @@ func stubRetrySleep(t *testing.T) *[]time.Duration {
 
 	var delays []time.Duration
 	origRetrySleep := retrySleep
-	retrySleep = func(delay time.Duration) {
+	retrySleep = func(ctx context.Context, delay time.Duration) error {
 		delays = append(delays, delay)
+		return nil
 	}
 	t.Cleanup(func() {
 		retrySleep = origRetrySleep
@@ -244,5 +246,30 @@ func TestRetryWithBackoff_ExhaustsRetries(t *testing.T) {
 		if (*delays)[i] != want {
 			t.Errorf("sleep %d = %v, want %v", i, (*delays)[i], want)
 		}
+	}
+}
+
+func TestRetryWithBackoffContextStopsDuringSleep(t *testing.T) {
+	origRetrySleep := retrySleep
+	t.Cleanup(func() {
+		retrySleep = origRetrySleep
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	calls := 0
+	retrySleep = func(ctx context.Context, delay time.Duration) error {
+		cancel()
+		return ctx.Err()
+	}
+
+	err := retryWithBackoffContext(ctx, func() error {
+		calls++
+		return auth.ServerError{APIError: dropbox.APIError{ErrorSummary: "500"}}
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context.Canceled", err)
+	}
+	if calls != 1 {
+		t.Fatalf("calls = %d, want 1", calls)
 	}
 }

@@ -135,7 +135,7 @@ func newShareLinkCreateInput(path string, opts shareLinkCreateOptions) shareLink
 
 func createSharedLink(dbx sharedLinkClient, path string, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
 	if opts.disallowDownload {
-		return dbx.CreateSharedLinkWithRawSettings(path, rawSharedLinkSettingsFromCreateOptions(opts))
+		return dbx.CreateSharedLinkWithRawSettingsContext(currentContext(), path, rawSharedLinkSettingsFromCreateOptions(opts))
 	}
 
 	arg := sharing.NewCreateSharedLinkWithSettingsArg(path)
@@ -143,7 +143,7 @@ func createSharedLink(dbx sharedLinkClient, path string, opts shareLinkCreateOpt
 		arg.Settings = sharing.NewSharedLinkSettings()
 		applySharedLinkCreateSettings(arg.Settings, opts)
 	}
-	return dbx.CreateSharedLinkWithSettings(arg)
+	return dbx.CreateSharedLinkWithSettingsContext(currentContext(), arg)
 }
 
 func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, error) {
@@ -227,7 +227,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 	}
 
 	if opts.disallowDownload {
-		if err := dbx.ModifySharedLinkSettingsRaw(url, rawSharedLinkSettingsFromCreateOptions(opts), opts.removeExpiration); err != nil {
+		if err := dbx.ModifySharedLinkSettingsRawContext(currentContext(), url, rawSharedLinkSettingsFromCreateOptions(opts), opts.removeExpiration); err != nil {
 			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), urlErrorDetails(url))
 		}
 		return link, nil
@@ -240,7 +240,7 @@ func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsS
 		arg := sharing.NewModifySharedLinkSettingsArgs(url, settings)
 		arg.RemoveExpiration = opts.removeExpiration
 
-		updated, err := dbx.ModifySharedLinkSettings(arg)
+		updated, err := dbx.ModifySharedLinkSettingsContext(currentContext(), arg)
 		if err != nil {
 			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), urlErrorDetails(url))
 		}
@@ -335,7 +335,7 @@ func findExistingSharedLink(dbx sharedLinkClient, requestedPath string) (sharing
 	var firstDirect sharing.IsSharedLinkMetadata
 
 	for {
-		res, err := dbx.ListSharedLinks(arg)
+		res, err := dbx.ListSharedLinksContext(currentContext(), arg)
 		if err != nil {
 			return nil, withJSONErrorDetails(err, operationErrorDetails("share_link_create"), pathErrorDetails(requestedPath))
 		}

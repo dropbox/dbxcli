@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/async"
@@ -35,11 +36,19 @@ func (m *mockFilesClient) Download(arg *files.DownloadArg) (*files.FileMetadata,
 	return nil, nil, nil
 }
 
+func (m *mockFilesClient) DownloadContext(ctx context.Context, arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+	return m.Download(arg)
+}
+
 func (m *mockFilesClient) Upload(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
 	if m.uploadFn != nil {
 		return m.uploadFn(arg, content)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) UploadContext(ctx context.Context, arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+	return m.Upload(arg, content)
 }
 
 func (m *mockFilesClient) UploadSessionStart(arg *files.UploadSessionStartArg, content io.Reader) (*files.UploadSessionStartResult, error) {
@@ -49,6 +58,10 @@ func (m *mockFilesClient) UploadSessionStart(arg *files.UploadSessionStartArg, c
 	return nil, nil
 }
 
+func (m *mockFilesClient) UploadSessionStartContext(ctx context.Context, arg *files.UploadSessionStartArg, content io.Reader) (*files.UploadSessionStartResult, error) {
+	return m.UploadSessionStart(arg, content)
+}
+
 func (m *mockFilesClient) UploadSessionAppendV2(arg *files.UploadSessionAppendArg, content io.Reader) error {
 	if m.uploadSessionAppendV2Fn != nil {
 		return m.uploadSessionAppendV2Fn(arg, content)
@@ -56,11 +69,19 @@ func (m *mockFilesClient) UploadSessionAppendV2(arg *files.UploadSessionAppendAr
 	return nil
 }
 
+func (m *mockFilesClient) UploadSessionAppendV2Context(ctx context.Context, arg *files.UploadSessionAppendArg, content io.Reader) error {
+	return m.UploadSessionAppendV2(arg, content)
+}
+
 func (m *mockFilesClient) UploadSessionFinish(arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error) {
 	if m.uploadSessionFinishFn != nil {
 		return m.uploadSessionFinishFn(arg, content)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) UploadSessionFinishContext(ctx context.Context, arg *files.UploadSessionFinishArg, content io.Reader) (*files.FileMetadata, error) {
+	return m.UploadSessionFinish(arg, content)
 }
 
 // Stubs for the rest of the interface
@@ -75,6 +96,10 @@ func (m *mockFilesClient) CopyV2(arg *files.RelocationArg) (*files.RelocationRes
 		return m.copyV2Fn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) CopyV2Context(ctx context.Context, arg *files.RelocationArg) (*files.RelocationResult, error) {
+	return m.CopyV2(arg)
 }
 func (m *mockFilesClient) Copy(arg *files.RelocationArg) (files.IsMetadata, error) {
 	return nil, nil
@@ -103,6 +128,10 @@ func (m *mockFilesClient) CreateFolderV2(arg *files.CreateFolderArg) (*files.Cre
 	}
 	return nil, nil
 }
+
+func (m *mockFilesClient) CreateFolderV2Context(ctx context.Context, arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+	return m.CreateFolderV2(arg)
+}
 func (m *mockFilesClient) CreateFolder(arg *files.CreateFolderArg) (*files.FolderMetadata, error) {
 	return nil, nil
 }
@@ -117,6 +146,10 @@ func (m *mockFilesClient) DeleteV2(arg *files.DeleteArg) (*files.DeleteResult, e
 		return m.deleteV2Fn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) DeleteV2Context(ctx context.Context, arg *files.DeleteArg) (*files.DeleteResult, error) {
+	return m.DeleteV2(arg)
 }
 func (m *mockFilesClient) Delete(arg *files.DeleteArg) (files.IsMetadata, error) { return nil, nil }
 func (m *mockFilesClient) DeleteBatch(arg *files.DeleteBatchArg) (*files.DeleteBatchLaunch, error) {
@@ -139,6 +172,10 @@ func (m *mockFilesClient) GetMetadata(arg *files.GetMetadataArg) (files.IsMetada
 		return m.getMetadataFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) GetMetadataContext(ctx context.Context, arg *files.GetMetadataArg) (files.IsMetadata, error) {
+	return m.GetMetadata(arg)
 }
 func (m *mockFilesClient) GetPreview(arg *files.PreviewArg) (*files.FileMetadata, io.ReadCloser, error) {
 	return nil, nil, nil
@@ -164,11 +201,19 @@ func (m *mockFilesClient) ListFolder(arg *files.ListFolderArg) (*files.ListFolde
 	}
 	return nil, nil
 }
+
+func (m *mockFilesClient) ListFolderContext(ctx context.Context, arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+	return m.ListFolder(arg)
+}
 func (m *mockFilesClient) ListFolderContinue(arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
 	if m.listFolderContinueFn != nil {
 		return m.listFolderContinueFn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) ListFolderContinueContext(ctx context.Context, arg *files.ListFolderContinueArg) (*files.ListFolderResult, error) {
+	return m.ListFolderContinue(arg)
 }
 func (m *mockFilesClient) ListFolderGetLatestCursor(arg *files.ListFolderArg) (*files.ListFolderGetLatestCursorResult, error) {
 	return nil, nil
@@ -182,6 +227,10 @@ func (m *mockFilesClient) ListRevisions(arg *files.ListRevisionsArg) (*files.Lis
 	}
 	return nil, nil
 }
+
+func (m *mockFilesClient) ListRevisionsContext(ctx context.Context, arg *files.ListRevisionsArg) (*files.ListRevisionsResult, error) {
+	return m.ListRevisions(arg)
+}
 func (m *mockFilesClient) LockFileBatch(arg *files.LockFileBatchArg) (*files.LockFileBatchResult, error) {
 	return nil, nil
 }
@@ -190,6 +239,10 @@ func (m *mockFilesClient) MoveV2(arg *files.RelocationArg) (*files.RelocationRes
 		return m.moveV2Fn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) MoveV2Context(ctx context.Context, arg *files.RelocationArg) (*files.RelocationResult, error) {
+	return m.MoveV2(arg)
 }
 func (m *mockFilesClient) Move(arg *files.RelocationArg) (files.IsMetadata, error) {
 	return nil, nil
@@ -218,6 +271,10 @@ func (m *mockFilesClient) PermanentlyDelete(arg *files.DeleteArg) error {
 	}
 	return nil
 }
+
+func (m *mockFilesClient) PermanentlyDeleteContext(ctx context.Context, arg *files.DeleteArg) error {
+	return m.PermanentlyDelete(arg)
+}
 func (m *mockFilesClient) PropertiesAdd(arg *file_properties.AddPropertiesArg) error {
 	return nil
 }
@@ -242,6 +299,10 @@ func (m *mockFilesClient) Restore(arg *files.RestoreArg) (*files.FileMetadata, e
 	}
 	return nil, nil
 }
+
+func (m *mockFilesClient) RestoreContext(ctx context.Context, arg *files.RestoreArg) (*files.FileMetadata, error) {
+	return m.Restore(arg)
+}
 func (m *mockFilesClient) SaveUrl(arg *files.SaveUrlArg) (*files.SaveUrlResult, error) {
 	return nil, nil
 }
@@ -257,11 +318,19 @@ func (m *mockFilesClient) SearchV2(arg *files.SearchV2Arg) (*files.SearchV2Resul
 	}
 	return nil, nil
 }
+
+func (m *mockFilesClient) SearchV2Context(ctx context.Context, arg *files.SearchV2Arg) (*files.SearchV2Result, error) {
+	return m.SearchV2(arg)
+}
 func (m *mockFilesClient) SearchContinueV2(arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error) {
 	if m.searchContinueV2Fn != nil {
 		return m.searchContinueV2Fn(arg)
 	}
 	return nil, nil
+}
+
+func (m *mockFilesClient) SearchContinueV2Context(ctx context.Context, arg *files.SearchV2ContinueArg) (*files.SearchV2Result, error) {
+	return m.SearchContinueV2(arg)
 }
 func (m *mockFilesClient) TagsAdd(arg *files.AddTagArg) error { return nil }
 func (m *mockFilesClient) TagsGet(arg *files.GetTagsArg) (*files.GetTagsResult, error) {

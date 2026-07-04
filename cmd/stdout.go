@@ -28,7 +28,7 @@ func (e partialTransferError) JSONErrorDetails() map[string]any {
 	return map[string]any{"bytes_written": e.bytesWritten}
 }
 
-func downloadToStdout(dbx files.Client, src string, w io.Writer) error {
+func downloadToStdout(dbx filesClient, src string, w io.Writer) error {
 	ignoreBrokenPipeSignal()
 
 	arg := files.NewDownloadArg(src)
@@ -39,7 +39,7 @@ func downloadToStdout(dbx files.Client, src string, w io.Writer) error {
 			return partialStdoutError(bytesWritten)
 		}
 
-		_, contents, err := dbx.Download(arg)
+		_, contents, err := dbx.DownloadContext(currentContext(), arg)
 		if err != nil {
 			return err
 		}

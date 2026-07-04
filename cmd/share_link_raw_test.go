@@ -76,7 +76,7 @@ func TestModifySharedLinkSettingsRawSendsRequirePasswordFalse(t *testing.T) {
 	}
 
 	requirePassword := false
-	if err := dbx.ModifySharedLinkSettingsRaw("https://example.com/link", &rawSharedLinkSettings{
+	if err := dbx.ModifySharedLinkSettingsRawContext(currentContext(), "https://example.com/link", &rawSharedLinkSettings{
 		RequirePassword: &requirePassword,
 	}, false); err != nil {
 		t.Fatalf("ModifySharedLinkSettingsRaw error: %v", err)
@@ -123,7 +123,7 @@ func TestCreateSharedLinkWithRawSettingsSendsAllowDownloadFalse(t *testing.T) {
 	}
 
 	allowDownload := false
-	link, err := dbx.CreateSharedLinkWithRawSettings("/file.txt", &rawSharedLinkSettings{
+	link, err := dbx.CreateSharedLinkWithRawSettingsContext(currentContext(), "/file.txt", &rawSharedLinkSettings{
 		AllowDownload: &allowDownload,
 	})
 	if err != nil {
@@ -175,7 +175,7 @@ func TestModifySharedLinkSettingsRawSendsAllowDownloadFalse(t *testing.T) {
 	}
 
 	allowDownload := false
-	if err := dbx.ModifySharedLinkSettingsRaw("https://example.com/link", &rawSharedLinkSettings{
+	if err := dbx.ModifySharedLinkSettingsRawContext(currentContext(), "https://example.com/link", &rawSharedLinkSettings{
 		AllowDownload: &allowDownload,
 	}, false); err != nil {
 		t.Fatalf("ModifySharedLinkSettingsRaw error: %v", err)

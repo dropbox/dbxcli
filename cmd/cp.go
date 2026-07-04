@@ -76,7 +76,7 @@ func cp(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, arg := range relocationArgs {
-		res, err := dbx.CopyV2(arg)
+		res, err := dbx.CopyV2Context(currentContext(), arg)
 		if err != nil {
 			if result, skipped := relocationSkipAfterDestinationConflict(dbx, arg, err, opts); skipped {
 				if collectResults {

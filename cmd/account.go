@@ -149,7 +149,7 @@ func account(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
 		// If no arguments are provided get the current user's account
-		res, err := dbx.GetCurrentAccount()
+		res, err := dbx.GetCurrentAccountContext(currentContext())
 		if err != nil {
 			return err
 		}
@@ -161,7 +161,7 @@ func account(cmd *cobra.Command, args []string) error {
 
 	// Otherwise look up an account with the provided ID
 	arg := users.NewGetAccountArg(args[0])
-	res, err := dbx.GetAccount(arg)
+	res, err := dbx.GetAccountContext(currentContext(), arg)
 	if err != nil {
 		return err
 	}

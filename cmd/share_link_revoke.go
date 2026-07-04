@@ -61,7 +61,7 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewRevokeSharedLinkArg(url)
-	if err := dbx.RevokeSharedLink(arg); err != nil {
+	if err := dbx.RevokeSharedLinkContext(currentContext(), arg); err != nil {
 		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
 	}
 
@@ -142,7 +142,7 @@ func revokeSharedLinksForPath(cmd *cobra.Command, path string) ([]shareLinkRevok
 		if !ok {
 			return nil, withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 		}
-		if err := dbx.RevokeSharedLink(sharing.NewRevokeSharedLinkArg(url)); err != nil {
+		if err := dbx.RevokeSharedLinkContext(currentContext(), sharing.NewRevokeSharedLinkArg(url)); err != nil {
 			return nil, withJSONErrorDetails(fmt.Errorf("revoke shared link %s: %w", url, err), urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
 		}
 		revoked = append(revoked, shareLinkRevokeResult{

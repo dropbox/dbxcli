@@ -15,15 +15,18 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -51,6 +54,62 @@ var (
 )
 
 var config dropbox.Config
+var commandContext context.Context = context.Background()
+var commandContextCancel context.CancelFunc
+
+func currentContext() context.Context {
+	if commandContext == nil {
+		return context.Background()
+	}
+	return commandContext
+}
+
+func initCommandContext(cmd *cobra.Command) error {
+	finishCommandContext()
+
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	timeout, err := commandTimeout(cmd)
+	if err != nil {
+		return err
+	}
+	if timeout < 0 {
+		return invalidArgumentsErrorWithDetails("`--timeout` must be greater than or equal to 0", flagErrorDetails("timeout"))
+	}
+	if timeout > 0 {
+		ctx, commandContextCancel = context.WithTimeout(ctx, timeout)
+		cmd.SetContext(ctx)
+	}
+	commandContext = ctx
+	return nil
+}
+
+func commandTimeout(cmd *cobra.Command) (time.Duration, error) {
+	for _, flags := range []interface {
+		Lookup(string) *pflag.Flag
+		GetDuration(string) (time.Duration, error)
+	}{
+		cmd.Flags(),
+		cmd.InheritedFlags(),
+		cmd.PersistentFlags(),
+	} {
+		if flags.Lookup("timeout") != nil {
+			return flags.GetDuration("timeout")
+		}
+	}
+	return 0, nil
+}
+
+func finishCommandContext() {
+	if commandContextCancel != nil {
+		commandContextCancel()
+		commandContextCancel = nil
+	}
+	commandContext = context.Background()
+}
 
 func commandSkipsAuth(cmd *cobra.Command) bool {
 	for c := cmd; c != nil; c = c.Parent() {
@@ -147,6 +206,10 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	currentAuthContext = nil
 
+	if err := initCommandContext(cmd); err != nil {
+		return err
+	}
+
 	if commandIsJSONHelp(cmd) {
 		return nil
 	}
@@ -196,7 +259,7 @@ func withRootNamespace(cfg dropbox.Config, tokType string) dropbox.Config {
 		return cfg
 	}
 
-	account, err := usersNewFunc(cfg).GetCurrentAccount()
+	account, err := usersNewFunc(cfg).GetCurrentAccountContext(currentContext())
 	if err != nil {
 		cfg.LogInfo("Warning: could not auto-detect root namespace (%v); team folders may not be accessible", err)
 		return cfg
@@ -252,6 +315,7 @@ func Execute() {
 		restoreDeprecatedCommands = temporarilyClearDeprecatedCommands(RootCmd)
 	}
 	defer restoreDeprecatedCommands()
+	defer finishCommandContext()
 
 	cmd, err := RootCmd.ExecuteC()
 	if err != nil {
@@ -269,6 +333,7 @@ func loadOAuthCredentialsFromEnv() {
 func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	RootCmd.PersistentFlags().String(outputFlag, "text", "Output format: text, json")
+	RootCmd.PersistentFlags().Duration("timeout", 0, "Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")

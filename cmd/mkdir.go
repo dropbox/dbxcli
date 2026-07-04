@@ -56,7 +56,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 	parents, _ := cmd.Flags().GetBool("parents")
 
 	dbx := filesNewFunc(config)
-	created, err := dbx.CreateFolderV2(arg)
+	created, err := dbx.CreateFolderV2Context(currentContext(), arg)
 	var metadata *files.FolderMetadata
 	status := mkdirStatusCreated
 	if err != nil {
@@ -105,8 +105,8 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 	return renderJSONOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)})
 }
 
-func existingFolderMetadata(dbx files.Client, dst string) (*files.FolderMetadata, error) {
-	metadata, err := dbx.GetMetadata(files.NewGetMetadataArg(dst))
+func existingFolderMetadata(dbx filesClient, dst string) (*files.FolderMetadata, error) {
+	metadata, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(dst))
 	if err != nil {
 		return nil, err
 	}
