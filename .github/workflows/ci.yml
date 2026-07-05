@@ -22,6 +22,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
       - run: go vet ./...
@@ -36,18 +37,21 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - run: go test -race ./...
 
   lint:
-    name: Staticcheck
+    name: golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
-      - run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
-      - run: staticcheck ./...
+          cache-dependency-path: go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
 
   workflow-lint:
     name: GitHub Actions workflow lint
@@ -57,6 +61,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - run: actionlint
 
@@ -68,6 +73,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
       - run: ./build.sh
@@ -83,6 +89,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - run: go run ./tools/gen-docs
       - run: go run ./tools/gen-json-schemas
       - run: git diff --exit-code docs/commands
@@ -98,6 +105,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache-dependency-path: go.sum
       - name: Build Windows binary
         shell: pwsh
         run: |

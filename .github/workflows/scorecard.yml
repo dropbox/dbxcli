@@ -1,0 +1,30 @@
+name: Scorecard
+
+on:
+  schedule:
+    - cron: "17 8 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scorecard:
+    name: OSSF Scorecard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@v2.4.3
+        with:
+          results_file: scorecard-results.json
+          results_format: json
+          publish_results: false
+      - name: Upload Scorecard results
+        uses: actions/upload-artifact@v5
+        with:
+          name: scorecard-results
+          path: scorecard-results.json
+          retention-days: 14

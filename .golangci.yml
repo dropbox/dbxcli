@@ -1,0 +1,15 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - ineffassign
+    - staticcheck
+    - unused
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

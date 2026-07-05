@@ -139,7 +139,7 @@ func commandMetadataSection(command *cobra.Command) []byte {
 	manifest := cmd.CommandManifestFor(command)
 	var buf bytes.Buffer
 	buf.WriteString("### Command metadata\n\n")
-	buf.WriteString(fmt.Sprintf("* Structured JSON output: %s\n", yesNo(manifest.SupportsStructuredOutput)))
+	fmt.Fprintf(&buf, "* Structured JSON output: %s\n", yesNo(manifest.SupportsStructuredOutput))
 	buf.WriteString("* JSON help manifest: yes\n")
 	buf.WriteString("* Manifest version: `" + manifest.ManifestVersion + "`\n")
 	buf.WriteString("* Auth modes: " + markdownValueList(manifest.AuthModes) + "\n")
@@ -178,7 +178,7 @@ func commandMetadataSection(command *cobra.Command) []byte {
 			if len(arg.EnumValues) > 0 {
 				enumValues = "; values: " + markdownValueList(arg.EnumValues)
 			}
-			buf.WriteString(fmt.Sprintf("`%s` (%s, %s%s%s%s)", arg.Name, requirement, arg.ValueKind, variadic, streamDash, enumValues))
+			fmt.Fprintf(&buf, "`%s` (%s, %s%s%s%s)", arg.Name, requirement, arg.ValueKind, variadic, streamDash, enumValues)
 		}
 		buf.WriteString("\n")
 	}
@@ -211,7 +211,7 @@ func commandMetadataSection(command *cobra.Command) []byte {
 	if note, ok := stdinStdoutNotes[relativeCommandPath(command)]; ok {
 		buf.WriteString("* Stdin/stdout behavior: " + note + "\n")
 	} else if manifest.StdinStdout.ReadsStdin || manifest.StdinStdout.WritesBinaryStdout {
-		buf.WriteString(fmt.Sprintf("* Stdin/stdout behavior: reads_stdin=%t, writes_binary_stdout=%t\n", manifest.StdinStdout.ReadsStdin, manifest.StdinStdout.WritesBinaryStdout))
+		fmt.Fprintf(&buf, "* Stdin/stdout behavior: reads_stdin=%t, writes_binary_stdout=%t\n", manifest.StdinStdout.ReadsStdin, manifest.StdinStdout.WritesBinaryStdout)
 	}
 
 	if level := manifest.DestructiveLevel; level != destructiveLevelNone {

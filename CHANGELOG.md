@@ -4,6 +4,13 @@
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.0...HEAD)
 
+**Infrastructure:**
+
+- Added scheduled/manual OSSF Scorecard scanning without public Scorecard API publishing.
+- Added scheduled/manual non-blocking Markdown link checks for README and docs.
+- Replaced standalone Staticcheck workflow steps with a narrow `golangci-lint` configuration.
+- Added explicit `go.sum` cache dependency paths for `actions/setup-go`.
+
 ## [v3.6.0](https://github.com/dropbox/dbxcli/tree/v3.6.0) (2026-07-02)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...v3.6.0)
 
