@@ -7,7 +7,6 @@
 **Infrastructure:**
 
 - Added scheduled/manual OSSF Scorecard scanning without public Scorecard API publishing.
-- Added scheduled/manual non-blocking Markdown link checks for README and docs.
 - Replaced standalone Staticcheck workflow steps with a narrow `golangci-lint` configuration.
 - Added explicit `go.sum` cache dependency paths for `actions/setup-go`.
 
