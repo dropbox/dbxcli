@@ -159,6 +159,7 @@ func restoreOAuthCredentials(t *testing.T) {
 	origReadAppKey := readAppKey
 	origReadAppCredentials := readAppCredentials
 	origGenerateOAuthVerifier := generateOAuthVerifier
+	origGenerateOAuthState := generateOAuthState
 	origRefreshOAuthToken := refreshOAuthToken
 	t.Cleanup(func() {
 		personalAppKey = origPersonalAppKey
@@ -167,6 +168,7 @@ func restoreOAuthCredentials(t *testing.T) {
 		readAppKey = origReadAppKey
 		readAppCredentials = origReadAppCredentials
 		generateOAuthVerifier = origGenerateOAuthVerifier
+		generateOAuthState = origGenerateOAuthState
 		refreshOAuthToken = origRefreshOAuthToken
 	})
 }
@@ -674,8 +676,12 @@ func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	})
 
 	const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+	const state = "test-oauth-state"
 	generateOAuthVerifier = func() string {
 		return verifier
+	}
+	generateOAuthState = func() string {
+		return state
 	}
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
@@ -701,6 +707,9 @@ func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	}
 	if !strings.Contains(out, "token_access_type=offline") {
 		t.Fatalf("expected offline token access type in auth URL, got %q", out)
+	}
+	if !strings.Contains(out, "state=test-oauth-state") {
+		t.Fatalf("expected generated OAuth state in auth URL, got %q", out)
 	}
 	if !strings.Contains(out, "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM") {
 		t.Fatalf("expected PKCE code challenge in auth URL, got %q", out)

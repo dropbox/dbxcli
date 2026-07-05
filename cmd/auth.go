@@ -96,6 +96,7 @@ var readAuthorizationCode = func() (string, error) {
 }
 
 var generateOAuthVerifier = oauth2.GenerateVerifier
+var generateOAuthState = oauth2.GenerateVerifier
 
 var exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
 	return conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
@@ -363,7 +364,8 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 
 	conf := oauthConfig(tokType, domain)
 	verifier := generateOAuthVerifier()
-	authCodeURL := conf.AuthCodeURL("state",
+	state := generateOAuthState()
+	authCodeURL := conf.AuthCodeURL(state,
 		oauth2.S256ChallengeOption(verifier),
 		oauth2.SetAuthURLParam(tokenAccessTypeParam, tokenAccessTypeOffline),
 	)
