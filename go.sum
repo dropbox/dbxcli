@@ -2,8 +2,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.6 h1:XJtiaUW6dEEqVuZiMTn1ldk455QWwEIsMIJlo
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
-github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.2.0 h1:xCIhThQX/5GAV5dtOShaK/Sb5Y05LAtbVuVXJSOos9w=
-github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.2.0/go.mod h1:D7aEhXjUiLSj1u7Hem6WmS15Vk/0lxcsDZP/sZFeqQ4=
+github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.3.0 h1:VhU21dV7Y76CgH2SXU5bcRJTNBS+Iw1ZhEK2MYfQ/xM=
+github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.3.0/go.mod h1:D7aEhXjUiLSj1u7Hem6WmS15Vk/0lxcsDZP/sZFeqQ4=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
