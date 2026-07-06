@@ -22,7 +22,7 @@
 - Added scheduled/manual OSSF Scorecard scanning without public Scorecard API publishing.
 - Replaced standalone Staticcheck workflow steps with a narrow `golangci-lint` configuration.
 - Added explicit `go.sum` cache dependency paths for `actions/setup-go`.
-- Added SBOM, Cosign signatures, and SLSA provenance to release artifacts.
+- Added SBOM generation and Cosign signatures to release artifacts.
 - Added race detector, workflow linting, and CodeQL security scanning to CI.
 - Hardened CI workflows with explicit read-only permissions.
 - Generate a non-constant OAuth2 `state` value to resolve the CodeQL `go/constant-oauth2-state` alert.

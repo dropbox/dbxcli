@@ -16,7 +16,6 @@ jobs:
       id-token: write
     outputs:
       asset_version: ${{ steps.version.outputs.asset_version }}
-      slsa_subjects_file: ${{ steps.slsa_subjects.outputs.handle }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -50,14 +49,6 @@ jobs:
       - run: ./packaging/package-release.sh
         env:
           VERSION: ${{ github.ref_name }}
-      - name: Generate SLSA subjects
-        shell: bash
-        run: base64 -w0 dist/SHA256SUMS > dist/SHA256SUMS.base64
-      - name: Upload SLSA subjects
-        id: slsa_subjects
-        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@v2.1.0
-        with:
-          path: dist/SHA256SUMS.base64
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.1.0
       - name: Sign checksums
@@ -70,15 +61,3 @@ jobs:
             dist/SHA256SUMS
             dist/SHA256SUMS.sigstore.json
             dist/*_sbom.spdx.json
-
-  provenance:
-    needs: release
-    permissions:
-      actions: read
-      contents: write
-      id-token: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-    with:
-      base64-subjects-as-file: ${{ needs.release.outputs.slsa_subjects_file }}
-      upload-assets: true
-      provenance-name: dbxcli_${{ needs.release.outputs.asset_version }}_slsa.intoto.jsonl
