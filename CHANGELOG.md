@@ -2,13 +2,30 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.0...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.1...HEAD)
+
+## [v3.6.1](https://github.com/dropbox/dbxcli/tree/v3.6.1) (2026-07-05)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.0...v3.6.1)
+
+**Added:**
+
+- Added a global `--timeout` flag to bound Dropbox network operations (e.g. `--timeout 30s`; `0` disables).
+- Threaded `context.Context` through all Dropbox API calls so operations respect cancellation and deadlines.
+
+**Changed:**
+
+- `put` now preserves the source file's modification time as `ClientModified` instead of the upload time (stdin uploads use the spool file mtime).
+- The retry loop now respects context cancellation during backoff and never retries context errors.
 
 **Infrastructure:**
 
 - Added scheduled/manual OSSF Scorecard scanning without public Scorecard API publishing.
 - Replaced standalone Staticcheck workflow steps with a narrow `golangci-lint` configuration.
 - Added explicit `go.sum` cache dependency paths for `actions/setup-go`.
+- Added SBOM, Cosign signatures, and SLSA provenance to release artifacts.
+- Added race detector, workflow linting, and CodeQL security scanning to CI.
+- Hardened CI workflows with explicit read-only permissions.
+- Generate a non-constant OAuth2 `state` value to resolve the CodeQL `go/constant-oauth2-state` alert.
 
 ## [v3.6.0](https://github.com/dropbox/dbxcli/tree/v3.6.0) (2026-07-02)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.5.1...v3.6.0)
