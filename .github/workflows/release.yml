@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
     outputs:
       asset_version: ${{ steps.version.outputs.asset_version }}
     steps:
@@ -35,29 +34,15 @@ jobs:
       - run: go test ./...
       - run: go build ./...
       - run: mkdir -p dist
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          path: .
-          format: spdx-json
-          output-file: dist/dbxcli_${{ steps.version.outputs.asset_version }}_sbom.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
       - run: ./build.sh
         env:
           VERSION: ${{ github.ref_name }}
       - run: ./packaging/package-release.sh
         env:
           VERSION: ${{ github.ref_name }}
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.1.0
-      - name: Sign checksums
-        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/SHA256SUMS
-            dist/SHA256SUMS.sigstore.json
-            dist/*_sbom.spdx.json
