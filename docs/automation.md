@@ -3,8 +3,20 @@
 `dbxcli` supports text output for humans, structured JSON command output for
 scripts, and JSON help for machine-readable command discovery.
 
-Command results and JSON errors are written to stdout. Status, progress,
-human-facing warnings, diagnostics, and verbose logs are written to stderr.
+In JSON mode, command result and error envelopes are written to stdout. The
+`warnings` field contains machine-actionable warning objects. Human-facing
+warnings, progress, diagnostics, and verbose logs are written to stderr.
+
+## Which interface should I use?
+
+For ordinary shell scripts and CI jobs running supported commands, use
+`--output=json`, check the process exit code, and inspect `ok`, `error.code`,
+`results[].status`, and `results[].kind`. You do not need to validate schemas
+before invoking basic commands.
+
+For wrappers, agents, and other tools that need to discover commands or
+validate inputs before invoking the CLI, use JSON help manifests and
+`input_schema`.
 
 ## JSON command output
 
@@ -17,17 +29,12 @@ dbxcli account --output=json
 dbxcli logout --output=json
 ```
 
-Use JSON help to discover whether a command supports structured command output:
+To check programmatically whether a command supports structured command output,
+use JSON help:
 
 ```sh
 dbxcli put --help --output=json
 ```
-
-JSON help is also the Command Manifest v1 surface for tools and agents. Command
-manifests expose machine-readable metadata such as structured positional
-arguments, flag enum values and conflicts, prompt/sensitive-input metadata,
-examples, auth modes, best-effort Dropbox scopes, stdin/stdout behavior, schema
-refs, result statuses/kinds, and known warning codes when available.
 
 Successful JSON responses use a stable envelope:
 
@@ -71,15 +78,11 @@ a non-zero status:
 }
 ```
 
-The full JSON command catalog, stable error codes, and schemas live in
-[json-schema/v1](json-schema/v1/README.md).
-Use `commands.schema.json` from that directory when a caller needs
-command-specific success validation for `input`, `results`, primitive field
-types, statuses, kinds, and warning codes.
+## Schema-first tool integration
 
-## Schema-first automation
-
-Automation should treat the CLI and schemas as the stable interface:
+Wrappers, agents, and other tools can treat the CLI and schemas as the stable
+interface when they need command discovery or input validation before invoking
+`dbxcli`:
 
 * Use `dbxcli --help --output=json` for command discovery.
 * Use each manifest's `input_schema` to validate arguments and flags before
@@ -88,9 +91,14 @@ Automation should treat the CLI and schemas as the stable interface:
 * Use `error.schema.json` to validate JSON error responses.
 * Prefer schema URLs from a pinned release tag when reproducibility matters.
 
+The full JSON command catalog, stable error codes, and schemas live in
+[json-schema/v1](json-schema/v1/README.md). Use `commands.schema.json` when a
+caller needs command-specific success validation for `input`, `results`,
+primitive field types, statuses, kinds, and warning codes.
+
 dbxcli currently does not expose a separate machine protocol. Tools should
 invoke the CLI, read stdout as JSON in `--output=json` mode, and treat stderr as
-status, progress, warnings, diagnostics, and verbose logs.
+status, progress, human-facing warnings, diagnostics, and verbose logs.
 
 ## JSON help manifest
 
@@ -109,6 +117,10 @@ Use JSON help to discover command paths, structured args, flags, generated
 input schemas, aliases, known auth modes, known destructive levels,
 stdin/stdout behavior, schema refs, and whether normal structured command
 output is supported.
+
+In each JSON help result, check `results[].result.supports_structured_output`.
+If it is false, JSON help is still available, but normal command execution with
+`--output=json` may return `structured_output_unsupported`.
 
 Each manifest result includes `input_schema`, a JSON Schema object for the
 command's CLI inputs. It uses JSON-friendly names such as `if_exists`, includes
@@ -139,6 +151,25 @@ dbxcli --timeout 2m ls --output=json /
 
 `--timeout` uses Go duration units such as `30s`, `2m`, or `1h`. The default
 `0` disables the command deadline.
+
+If a runner must reach Dropbox through a corporate or local proxy, set the
+standard proxy environment variables before invoking `dbxcli`:
+
+```sh
+export HTTPS_PROXY=http://proxy.company.example:8080
+export NO_PROXY=localhost,127.0.0.1,.company.example
+dbxcli ls --output=json /
+```
+
+`dbxcli` uses Go's standard HTTP proxy behavior, so `HTTPS_PROXY`,
+`HTTP_PROXY`, and `NO_PROXY` apply to Dropbox API requests and OAuth token
+exchange/refresh requests made by the CLI.
+Lowercase forms such as `https_proxy` and `no_proxy` are also supported by Go's
+HTTP stack.
+
+The browser authorization step in `dbxcli login` is outside `dbxcli`; configure
+the browser or operating-system proxy separately if that page also needs a
+proxy.
 
 Check auth and identity before running a job:
 
@@ -185,7 +216,7 @@ jobs:
   publish-report:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Upload report to Dropbox
         env:
           DBXCLI_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
@@ -208,10 +239,11 @@ Use `dbxcli login` to save refreshable credentials:
 dbxcli login
 ```
 
-Use `dbxcli account --output=json` as an auth and identity check. The account
-result includes `result.auth`:
+Use `dbxcli account --output=json` as an auth and identity check. In the JSON
+envelope, auth metadata appears at `results[0].result.auth`. The examples below
+show only the relevant `result` fragment.
 
-`result.auth` example:
+`result` fragment example:
 
 ```json
 {
@@ -223,7 +255,7 @@ result includes `result.auth`:
 }
 ```
 
-Stable auth fields:
+Stable fields inside `results[0].result.auth`:
 
 * `result.auth.source`: `saved` or `env`
 * `result.auth.refreshable`: boolean
@@ -238,7 +270,7 @@ DBXCLI_ACCESS_TOKEN=sl.xxxxxx dbxcli ls --output=json /
 This token is used directly and is not saved or refreshed. If it expires, the
 command fails and you must provide a fresh token.
 
-`result.auth` example:
+`result` fragment example:
 
 ```json
 {
@@ -257,7 +289,7 @@ DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli login
 DBXCLI_AUTH_FILE=/path/to/auth.json dbxcli ls /
 ```
 
-`result.auth` example:
+`result` fragment example:
 
 ```json
 {
