@@ -23,7 +23,7 @@ jobs:
           results_format: json
           publish_results: false
       - name: Upload Scorecard results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: scorecard-results
           path: scorecard-results.json
