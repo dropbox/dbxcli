@@ -1,6 +1,8 @@
 # `dbxcli`: Dropbox from the command line
 
 [![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
+[![Scorecard](https://github.com/dropbox/dbxcli/actions/workflows/scorecard.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/scorecard.yml)
+[![CodeQL](https://github.com/dropbox/dbxcli/actions/workflows/codeql.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/codeql.yml)
 
 `dbxcli` is a scriptable Dropbox CLI for files, shared links, teams, and
 automation workflows. It is built for humans in the terminal, scripts, CI jobs,
@@ -36,13 +38,18 @@ dbxcli --help --output=json
 dbxcli put --help --output=json
 ```
 
-Stable JSON error codes and process exit codes are documented in
+Stable JSON envelopes, error codes, and process exit codes are documented in
 [Automation and JSON output](https://github.com/dropbox/dbxcli/blob/master/docs/automation.md).
 
 ## JSON output
 
-`--output=json` emits stable schema v1 success and error envelopes for
-automation. Use JSON help for machine-readable command manifests:
+For commands that support structured execution output, `--output=json` runs the
+command and emits stable schema v1 success and error envelopes for automation.
+
+JSON help is the machine-readable command-discovery surface. Use it to discover
+command paths, arguments, flags, aliases, input schemas, auth behavior,
+stdin/stdout behavior, schema references, and whether structured command
+execution output is supported:
 
 ```sh
 dbxcli --help --output=json
@@ -99,6 +106,59 @@ Some team accounts may not have a writable Dropbox root namespace. Run
 `dbxcli ls /` first, then upload under a writable folder, such as your personal
 folder or a team folder.
 
+### Proxy configuration
+
+`dbxcli` uses Go's standard HTTP proxy behavior, so `HTTPS_PROXY`,
+`HTTP_PROXY`, and `NO_PROXY` apply to Dropbox API requests and OAuth token
+exchange/refresh requests made by the CLI.
+
+For Dropbox API and OAuth requests, set `HTTPS_PROXY`:
+
+```sh
+HTTPS_PROXY=http://127.0.0.1:8080 dbxcli ls /
+```
+
+For a shell session:
+
+```sh
+export HTTPS_PROXY=http://proxy.company.example:8080
+export NO_PROXY=localhost,127.0.0.1,.company.example
+dbxcli login
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:HTTPS_PROXY = "http://127.0.0.1:8080"
+dbxcli login
+```
+
+On Windows cmd:
+
+```bat
+set HTTPS_PROXY=http://127.0.0.1:8080
+dbxcli login
+```
+
+`HTTP_PROXY` is also honored for plain HTTP requests. Use `NO_PROXY` to bypass
+the proxy for local or internal hosts. Lowercase forms such as `https_proxy`
+and `no_proxy` are also supported by Go's HTTP stack.
+
+If your proxy requires basic authentication, include credentials in the proxy
+URL:
+
+```sh
+HTTPS_PROXY=http://user:password@proxy.company.example:8080 dbxcli ls /
+```
+
+URL-encode special characters in proxy usernames or passwords. Be careful with
+proxy credentials in environment variables, shell history, CI logs, and process
+listings.
+
+The browser authorization step in `dbxcli login` is outside `dbxcli`; configure
+your browser or operating-system proxy separately if that page also needs a
+proxy.
+
 ## Features
 
 * File operations: `ls`, `cp`, `mkdir`, `mv`, `rm`, `put`, and `get`
@@ -111,7 +171,7 @@ folder or a team folder.
 * OAuth login with refreshable saved credentials
 * Direct token automation with `DBXCLI_ACCESS_TOKEN`
 * Alternate saved-credential files with `DBXCLI_AUTH_FILE`
-* Structured JSON success and error envelopes for migrated commands
+* Structured JSON success and error envelopes for supported commands
 * JSON help manifests for machine-readable command discovery
 * Team administration commands and member-scoped access with `--as-member`
 
@@ -141,23 +201,6 @@ tar -xzf dbxcli_X.Y.Z_linux_amd64.tar.gz
 sudo mv dbxcli_X.Y.Z_linux_amd64/dbxcli /usr/local/bin/
 ```
 
-For security-sensitive direct downloads, verify the signed checksum file and
-provenance before installing:
-
-```sh
-curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/SHA256SUMS.sigstore.json
-cosign verify-blob SHA256SUMS \
-  --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity "https://github.com/dropbox/dbxcli/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
-
-curl -LO https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_slsa.intoto.jsonl
-slsa-verifier verify-artifact dbxcli_X.Y.Z_linux_amd64.tar.gz \
-  --provenance-path dbxcli_X.Y.Z_slsa.intoto.jsonl \
-  --source-uri github.com/dropbox/dbxcli \
-  --source-tag vX.Y.Z
-```
-
 Release assets include:
 
 * `dbxcli_X.Y.Z_darwin_amd64.tar.gz`
@@ -168,9 +211,6 @@ Release assets include:
 * `dbxcli_X.Y.Z_openbsd_amd64.tar.gz`
 * `dbxcli_X.Y.Z_windows_amd64.zip`
 * `SHA256SUMS`
-* `SHA256SUMS.sigstore.json`
-* `dbxcli_X.Y.Z_sbom.spdx.json`
-* `dbxcli_X.Y.Z_slsa.intoto.jsonl`
 
 ### Build from source
 
@@ -231,7 +271,7 @@ stay in sync with the CLI.
 * If you are submitting a non-trivial change, please fill out the
   [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/)
   first.
-* Open a [pull request](https://help.github.com/articles/using-pull-requests/)
+* Open a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
   with a clear description of the change.
 * Include tests or manual validation details when relevant.
 

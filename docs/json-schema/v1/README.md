@@ -117,10 +117,10 @@ directly relevant path and `from_path`/`to_path` for relocation-style source
 and destination context. Add a new key such as `target` or `local_path` only
 when the existing keys would be ambiguous.
 
-Command results and JSON errors are written to stdout. Status, progress,
-human-facing warnings, diagnostics, and verbose logs are written to stderr.
-In JSON mode, error responses are written to stdout and the process exits with
-a non-zero status.
+In JSON mode, command result and error envelopes are written to stdout. The
+`warnings` field contains machine-actionable warning objects. Human-facing
+warnings, progress, diagnostics, and verbose logs are written to stderr. Error
+responses exit with a non-zero status.
 
 Commands that intentionally do not support structured command-result JSON yet
 include `login` and `completion`. Their help output is still

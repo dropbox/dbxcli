@@ -12,7 +12,7 @@ standard JSON envelope with `ok`, `schema_version`, `command`, `input`,
 link or target type, such as `file`, `folder`, or `shared_link`.
 
 In text mode, `share-link create` prints only the shared-link URL to stdout.
-Status, warnings, diagnostics, and verbose logs go to stderr.
+Status, human-facing warnings, diagnostics, and verbose logs go to stderr.
 
 ```sh
 url="$(dbxcli share-link create /file.txt)"
