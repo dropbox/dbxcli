@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -105,13 +104,6 @@ func TestLoginUsesAppKeyFlag(t *testing.T) {
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not be used when app key flag is set")
 		return appCredentials{}, nil
@@ -119,15 +111,7 @@ func TestLoginUsesAppKeyFlag(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != "flag-key" {
-			t.Fatalf("expected flag app key, got %q", conf.ClientID)
-		}
-		if conf.ClientSecret != "" {
-			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
-		}
-		return &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"}, nil
-	}
+	stubOAuthFlowToken(t, "flag-key", &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"})
 
 	cmd := newLoginTestCommand()
 	if err := cmd.Flags().Set("app-key", "flag-key"); err != nil {
@@ -157,13 +141,6 @@ func TestLoginAppKeyFlagUsesBundledDefaultKey(t *testing.T) {
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("full app credential prompt should not be used when app key flag is set")
 		return appCredentials{}, nil
@@ -171,15 +148,7 @@ func TestLoginAppKeyFlagUsesBundledDefaultKey(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != "flag-key" {
-			t.Fatalf("expected flag app key, got %q", conf.ClientID)
-		}
-		if conf.ClientSecret != "" {
-			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
-		}
-		return &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"}, nil
-	}
+	stubOAuthFlowToken(t, "flag-key", &oauth2.Token{AccessToken: "flag-token", RefreshToken: "refresh-token"})
 
 	cmd := newLoginTestCommand()
 	if err := cmd.Flags().Set("app-key", "flag-key"); err != nil {
