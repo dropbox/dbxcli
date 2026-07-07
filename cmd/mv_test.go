@@ -232,6 +232,68 @@ func TestMvIfExistsFailCallsMove(t *testing.T) {
 	}
 }
 
+func TestMvIfExistsAutorenameSetsAutorenameFlag(t *testing.T) {
+	var moved []*files.RelocationArg
+	stubFilesClient(t, &mockFilesClient{
+		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			moved = append(moved, arg)
+			return files.NewRelocationResult(relocationTestFileMetadata("/dest/file (1).txt", 1)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsAutorename); err != nil {
+		t.Fatal(err)
+	}
+	if err := mv(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("mv error: %v", err)
+	}
+	if len(moved) != 1 {
+		t.Fatalf("moved = %d, want 1", len(moved))
+	}
+	if !moved[0].Autorename {
+		t.Fatal("MoveV2 arg Autorename = false, want true")
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusAutorenamed {
+		t.Fatalf("status = %q, want autorenamed", got.Results[0].Status)
+	}
+	if got.Results[0].Result.PathDisplay != "/dest/file (1).txt" {
+		t.Fatalf("path_display = %q, want /dest/file (1).txt", got.Results[0].Result.PathDisplay)
+	}
+}
+
+func TestMvIfExistsAutorenameCaseOnlyPathKeepsMovedStatus(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		moveV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return files.NewRelocationResult(relocationTestFileMetadata("/Dest/File.txt", 1)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsAutorename); err != nil {
+		t.Fatal(err)
+	}
+	if err := mv(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("mv error: %v", err)
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusMoved {
+		t.Fatalf("status = %q, want moved", got.Results[0].Status)
+	}
+	if got.Results[0].Result.PathDisplay != "/Dest/File.txt" {
+		t.Fatalf("path_display = %q, want /Dest/File.txt", got.Results[0].Result.PathDisplay)
+	}
+}
+
 func TestMvIfExistsSkipExistingDestinationDoesNotMove(t *testing.T) {
 	var moved bool
 	stubFilesClient(t, &mockFilesClient{

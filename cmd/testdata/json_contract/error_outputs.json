@@ -68,7 +68,7 @@
     "schema_version": "1",
     "command": "put",
     "error": {
-      "message": "invalid --if-exists \"replace\" (use overwrite, skip, or fail)",
+      "message": "invalid --if-exists \"replace\" (use overwrite, skip, autorename, or fail)",
       "code": "invalid_arguments",
       "details": {
         "flag": "if-exists",

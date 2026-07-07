@@ -12,7 +12,7 @@ dbxcli cp [flags] <source> [more sources] <target>
 
 ```
   -h, --help               help for cp
-      --if-exists string   What to do when the destination exists: fail or skip (default "fail")
+      --if-exists string   What to do when the destination exists: fail, skip, or autorename (default "fail")
 ```
 
 ### Options inherited from parent commands
@@ -32,8 +32,8 @@ dbxcli cp [flags] <source> [more sources] <target>
 * Auth modes: `personal`, `team-access`
 * Dropbox scopes: `files.content.write`, `files.metadata.read`
 * Arguments: `source` (required, dropbox_path, variadic), `target` (required, dropbox_path)
-* Flag metadata: `--if-exists` (values: `fail`, `skip`), `--output` (values: `json`, `text`)
-* Result statuses: `copied`, `skipped`
+* Flag metadata: `--if-exists` (values: `autorename`, `fail`, `skip`), `--output` (values: `json`, `text`)
+* Result statuses: `autorenamed`, `copied`, `skipped`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/cp`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_cp`

@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -398,10 +397,6 @@ func sharedLinkPathLower(link sharing.IsSharedLinkMetadata) (string, bool) {
 
 func nonEmptyString(value string) (string, bool) {
 	return value, value != ""
-}
-
-func sameDropboxPath(a string, b string) bool {
-	return strings.EqualFold(cleanDropboxPath(a), cleanDropboxPath(b))
 }
 
 func shareLinkExpiresFlag(cmd *cobra.Command) (*time.Time, error) {

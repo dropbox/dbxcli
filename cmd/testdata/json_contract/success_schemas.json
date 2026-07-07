@@ -416,6 +416,7 @@
       "result_input": "relocation_input",
       "result": "metadata",
       "statuses": [
+        "autorenamed",
         "copied",
         "skipped"
       ],
@@ -526,6 +527,7 @@
       "result_input": "relocation_input",
       "result": "metadata",
       "statuses": [
+        "autorenamed",
         "moved",
         "skipped"
       ],
@@ -543,6 +545,7 @@
       "result_input": "put_result_input",
       "result": "metadata",
       "statuses": [
+        "autorenamed",
         "created",
         "existing",
         "skipped",

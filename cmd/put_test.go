@@ -709,7 +709,7 @@ func TestPutIfExistsValidation(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected invalid --if-exists error")
 	}
-	if !bytes.Contains([]byte(err.Error()), []byte("overwrite, skip, or fail")) {
+	if !bytes.Contains([]byte(err.Error()), []byte("overwrite, skip, autorename, or fail")) {
 		t.Errorf("error = %q, want valid option list", err.Error())
 	}
 }
@@ -1312,6 +1312,105 @@ func TestPutFileIfExistsOverwriteUsesOverwriteMode(t *testing.T) {
 	}
 	if strictConflict {
 		t.Error("strict conflict = true, want false for overwrite")
+	}
+}
+
+func TestPutFileIfExistsAutorenameSetsAutorenameAndReportsRenamed(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	metadataCalls := 0
+	var mode string
+	var autorename bool
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			metadataCalls++
+			return &files.FileMetadata{}, nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			mode = arg.Mode.Tag
+			autorename = arg.Autorename
+			return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/existing (1).txt"}}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	result, err := putFileWithResult(tmpFile, "/existing.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsAutorename,
+	})
+	if err != nil {
+		t.Fatalf("putFileWithResult error: %v", err)
+	}
+	if metadataCalls != 0 {
+		t.Errorf("metadata calls = %d, want 0 for autorename", metadataCalls)
+	}
+	if mode != files.WriteModeAdd {
+		t.Errorf("write mode = %q, want %q", mode, files.WriteModeAdd)
+	}
+	if !autorename {
+		t.Error("upload arg Autorename = false, want true")
+	}
+	if result.Status != putStatusAutorenamed {
+		t.Errorf("status = %q, want %q", result.Status, putStatusAutorenamed)
+	}
+}
+
+func TestPutFileIfExistsAutorenameNoConflictReportsUploaded(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			return &files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/new.txt"}}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	result, err := putFileWithResult(tmpFile, "/new.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsAutorename,
+	})
+	if err != nil {
+		t.Fatalf("putFileWithResult error: %v", err)
+	}
+	if result.Status != putStatusUploaded {
+		t.Errorf("status = %q, want %q", result.Status, putStatusUploaded)
+	}
+}
+
+func TestPutFileIfExistsAutorenameCaseOnlyPathReportsUploaded(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			return &files.FileMetadata{Metadata: files.Metadata{
+				PathDisplay: "/Reports/New.txt",
+				PathLower:   "/reports/new.txt",
+			}}, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	result, err := putFileWithResult(tmpFile, "/reports/new.txt", putOptions{
+		chunkSize: 1 << 24,
+		workers:   4,
+		ifExists:  putIfExistsAutorename,
+	})
+	if err != nil {
+		t.Fatalf("putFileWithResult error: %v", err)
+	}
+	if result.Status != putStatusUploaded {
+		t.Errorf("status = %q, want %q", result.Status, putStatusUploaded)
 	}
 }
 

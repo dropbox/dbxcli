@@ -277,12 +277,12 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	}
 	assertJSONHelpArg(t, put.Args, "source", true, "local_path", true)
 	assertJSONHelpArg(t, put.Args, "target", false, "dropbox_path", false)
-	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "fail"})
+	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "fail", "autorename"})
 	if !put.StdinStdout.ReadsStdin || put.StdinStdout.WritesBinaryStdout {
 		t.Fatalf("put stdin_stdout = %+v, want stdin only", put.StdinStdout)
 	}
 	assertStringSliceEqual(t, "put warning codes", put.WarningCodes, []string{jsonWarningCodeSkippedSymlink})
-	assertStringSliceEqual(t, "put result statuses", put.ResultStatuses, []string{"created", "existing", "skipped", "uploaded"})
+	assertStringSliceEqual(t, "put result statuses", put.ResultStatuses, []string{"autorenamed", "created", "existing", "skipped", "uploaded"})
 	assertStringSliceEqual(t, "put result kinds", put.ResultKinds, []string{"file", "folder"})
 	assertStringSliceEqual(t, "put scopes", put.DropboxScopes, []string{"files.content.write", "files.metadata.read"})
 	if put.ScopeAccuracy != commandManifestScopeAccuracyBestEffort {
@@ -308,7 +308,7 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	}
 	assertJSONHelpInputProperty(t, put.InputSchema, "target", "string", "arg", "target", "dropbox_path")
 	ifExists := assertJSONHelpInputProperty(t, put.InputSchema, "if_exists", "string", "flag", "if-exists", "enum")
-	assertStringSliceEqual(t, "put input_schema if_exists enum", ifExists.Enum, []string{"fail", "overwrite", "skip"})
+	assertStringSliceEqual(t, "put input_schema if_exists enum", ifExists.Enum, []string{"autorename", "fail", "overwrite", "skip"})
 	if ifExists.Default != "overwrite" {
 		t.Fatalf("put if_exists default = %#v, want overwrite", ifExists.Default)
 	}
@@ -337,7 +337,7 @@ func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
 	if !jsonHelpArgByName(t, cp.Args, "source").Variadic {
 		t.Fatal("cp source variadic = false, want true")
 	}
-	assertStringSliceEqual(t, "cp --if-exists enum", jsonHelpFlagByName(t, cp.Flags, "if-exists").EnumValues, []string{"fail", "skip"})
+	assertStringSliceEqual(t, "cp --if-exists enum", jsonHelpFlagByName(t, cp.Flags, "if-exists").EnumValues, []string{"fail", "skip", "autorename"})
 	assertStringSliceEqual(t, "cp input_schema required", cp.InputSchema.Required, []string{"source", "target"})
 	source := assertJSONHelpInputProperty(t, cp.InputSchema, "source", "array", "arg", "source", "dropbox_path")
 	if source.Items == nil || source.Items.Type != "string" {
@@ -348,7 +348,7 @@ func TestJSONHelpManifestV1SelectedCommandMetadata(t *testing.T) {
 	}
 	assertJSONHelpInputProperty(t, cp.InputSchema, "target", "string", "arg", "target", "dropbox_path")
 	cpIfExists := assertJSONHelpInputProperty(t, cp.InputSchema, "if_exists", "string", "flag", "if-exists", "enum")
-	assertStringSliceEqual(t, "cp input_schema if_exists enum", cpIfExists.Enum, []string{"fail", "skip"})
+	assertStringSliceEqual(t, "cp input_schema if_exists enum", cpIfExists.Enum, []string{"autorename", "fail", "skip"})
 
 	create := jsonCommandManifestFor(shareLinkCreateCmd)
 	assertStringSliceEqual(t, "share-link create audience enum", jsonHelpFlagByName(t, create.Flags, "audience").EnumValues, []string{"public", "team", "members", "no-one"})

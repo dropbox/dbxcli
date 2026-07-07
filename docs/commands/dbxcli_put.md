@@ -37,7 +37,7 @@ dbxcli put [flags] <source> [<target>]
   -c, --chunksize int      Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB (default 16777216)
   -d, --debug              Print debug timing
   -h, --help               help for put
-      --if-exists string   What to do when the destination file exists: overwrite, skip, or fail (default "overwrite")
+      --if-exists string   What to do when the destination file exists: overwrite, skip, autorename, or fail (default "overwrite")
   -r, --recursive          Recursively upload directories
   -w, --workers int        Number of concurrent upload workers for chunked large-file uploads (default 4)
 ```
@@ -59,9 +59,9 @@ dbxcli put [flags] <source> [<target>]
 * Auth modes: `personal`, `team-access`
 * Dropbox scopes: `files.content.write`, `files.metadata.read`
 * Arguments: `source` (required, local_path, `-` stream operand), `target` (optional, dropbox_path)
-* Flag metadata: `--if-exists` (values: `fail`, `overwrite`, `skip`), `--output` (values: `json`, `text`)
+* Flag metadata: `--if-exists` (values: `autorename`, `fail`, `overwrite`, `skip`), `--output` (values: `json`, `text`)
 * Stdin/stdout behavior: Use `-` as the local source to upload from stdin; stdin is spooled to a temporary file before upload.
-* Result statuses: `created`, `existing`, `skipped`, `uploaded`
+* Result statuses: `autorenamed`, `created`, `existing`, `skipped`, `uploaded`
 * Result kinds: `file`, `folder`
 * Warning codes: `skipped_symlink`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/put`

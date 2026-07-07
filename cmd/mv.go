@@ -58,6 +58,7 @@ func mv(cmd *cobra.Command, args []string) error {
 			mvErrors = append(mvErrors, fmt.Errorf("Error validating move for %s to %s: %v", argument, dst, err))
 			mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
+			arg.Autorename = opts.ifExists == relocationIfExistsAutorename
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				mvErrors = append(mvErrors, fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err))
@@ -96,7 +97,7 @@ func mv(cmd *cobra.Command, args []string) error {
 				mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
-			results = append(results, relocationOperationResult(relocationJSONStatusMoved, result))
+			results = append(results, relocationOperationResult(relocationSuccessStatus(relocationJSONStatusMoved, arg, result, opts), result))
 		}
 	}
 
@@ -123,5 +124,5 @@ var mvCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(mvCmd)
 	enableStructuredOutput(mvCmd)
-	mvCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail or skip")
+	mvCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail, skip, or autorename")
 }

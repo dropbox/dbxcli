@@ -14,9 +14,25 @@
 
 package cmd
 
+import "strings"
+
 func metadataDisplayPath(inputPath, metadataPath string) string {
 	if metadataPath != "" {
 		return metadataPath
 	}
 	return inputPath
+}
+
+func sameDropboxPath(a string, b string) bool {
+	return strings.EqualFold(cleanDropboxPath(a), cleanDropboxPath(b))
+}
+
+func sameDropboxMetadataPath(pathDisplay, pathLower, requested string) bool {
+	if pathLower != "" {
+		return sameDropboxPath(pathLower, requested)
+	}
+	if pathDisplay != "" {
+		return sameDropboxPath(pathDisplay, requested)
+	}
+	return true
 }
