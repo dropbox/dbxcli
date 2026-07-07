@@ -3,9 +3,10 @@ package cmd
 import "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
 const (
-	relocationJSONStatusCopied  = "copied"
-	relocationJSONStatusMoved   = "moved"
-	relocationJSONStatusSkipped = "skipped"
+	relocationJSONStatusCopied      = "copied"
+	relocationJSONStatusMoved       = "moved"
+	relocationJSONStatusSkipped     = "skipped"
+	relocationJSONStatusAutorenamed = "autorenamed"
 )
 
 type relocationInput struct {
@@ -44,4 +45,14 @@ func newRelocationResultFromMetadata(arg *files.RelocationArg, metadata files.Is
 
 func relocationOperationResult(status string, result relocationResult) jsonOperationResult {
 	return newJSONOperationResult(status, result.Result.Type, result.Input, result.Result)
+}
+
+// relocationSuccessStatus returns the JSON status for a successful copy/move.
+// When --if-exists=autorename caused the server to pick a different path than
+// requested, it reports "autorenamed"; otherwise it keeps baseStatus.
+func relocationSuccessStatus(baseStatus string, arg *files.RelocationArg, result relocationResult, opts relocationOptions) string {
+	if opts.ifExists == relocationIfExistsAutorename && !sameDropboxMetadataPath(result.Result.PathDisplay, result.Result.PathLower, arg.ToPath) {
+		return relocationJSONStatusAutorenamed
+	}
+	return baseStatus
 }

@@ -1814,6 +1814,7 @@
       "properties": {
         "if_exists": {
           "enum": [
+            "autorename",
             "fail",
             "overwrite",
             "skip"
@@ -1960,6 +1961,7 @@
         },
         "status": {
           "enum": [
+            "autorenamed",
             "copied",
             "skipped"
           ]
@@ -2166,6 +2168,7 @@
         },
         "status": {
           "enum": [
+            "autorenamed",
             "moved",
             "skipped"
           ]
@@ -2196,6 +2199,7 @@
         },
         "status": {
           "enum": [
+            "autorenamed",
             "created",
             "existing",
             "skipped",

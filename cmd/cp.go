@@ -59,6 +59,7 @@ func cp(cmd *cobra.Command, args []string) error {
 			cpErrors = append(cpErrors, relocationError)
 			cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
+			arg.Autorename = opts.ifExists == relocationIfExistsAutorename
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				cpErrors = append(cpErrors, fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err))
@@ -97,7 +98,7 @@ func cp(cmd *cobra.Command, args []string) error {
 				cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
 				continue
 			}
-			results = append(results, relocationOperationResult(relocationJSONStatusCopied, result))
+			results = append(results, relocationOperationResult(relocationSuccessStatus(relocationJSONStatusCopied, arg, result, opts), result))
 		}
 	}
 
@@ -125,5 +126,5 @@ var cpCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(cpCmd)
 	enableStructuredOutput(cpCmd)
-	cpCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail or skip")
+	cpCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail, skip, or autorename")
 }

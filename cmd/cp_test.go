@@ -352,6 +352,96 @@ func TestCpIfExistsFailCallsCopy(t *testing.T) {
 	}
 }
 
+func TestCpIfExistsAutorenameSetsAutorenameFlag(t *testing.T) {
+	var copied []*files.RelocationArg
+	stubFilesClient(t, &mockFilesClient{
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			copied = append(copied, arg)
+			metadata := relocationTestFileMetadata("/dest/file (1).txt", 1)
+			return files.NewRelocationResult(metadata), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsAutorename); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	if len(copied) != 1 {
+		t.Fatalf("copied = %d, want 1", len(copied))
+	}
+	if !copied[0].Autorename {
+		t.Fatal("CopyV2 arg Autorename = false, want true")
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusAutorenamed {
+		t.Fatalf("status = %q, want autorenamed", got.Results[0].Status)
+	}
+	if got.Results[0].Result.PathDisplay != "/dest/file (1).txt" {
+		t.Fatalf("path_display = %q, want /dest/file (1).txt", got.Results[0].Result.PathDisplay)
+	}
+}
+
+func TestCpIfExistsAutorenameNoConflictKeepsCopiedStatus(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return files.NewRelocationResult(relocationTestFileMetadata(arg.ToPath, 1)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsAutorename); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusCopied {
+		t.Fatalf("status = %q, want copied", got.Results[0].Status)
+	}
+}
+
+func TestCpIfExistsAutorenameCaseOnlyPathKeepsCopiedStatus(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			return files.NewRelocationResult(relocationTestFileMetadata("/Dest/File.txt", 1)), nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("if-exists", relocationIfExistsAutorename); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Status != relocationJSONStatusCopied {
+		t.Fatalf("status = %q, want copied", got.Results[0].Status)
+	}
+	if got.Results[0].Result.PathDisplay != "/Dest/File.txt" {
+		t.Fatalf("path_display = %q, want /Dest/File.txt", got.Results[0].Result.PathDisplay)
+	}
+}
+
 func TestCpIfExistsSkipExistingDestinationDoesNotCopy(t *testing.T) {
 	var copied bool
 	stubFilesClient(t, &mockFilesClient{

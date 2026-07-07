@@ -164,7 +164,7 @@ proxy.
 * File operations: `ls`, `cp`, `mkdir`, `mv`, `rm`, `put`, and `get`
 * Recursive upload and download with `put -r` and `get -r`
 * Pipe-friendly transfers with stdin upload and stdout download
-* Conflict control with `put --if-exists overwrite|skip|fail` and `cp`/`mv --if-exists fail|skip`
+* Conflict control with `put --if-exists overwrite|skip|autorename|fail` and `cp`/`mv --if-exists fail|skip|autorename`
 * Shared-link creation, listing, inspection, update, revoke, and download
 * Search, file revisions, restore, flexible sorting, and time formatting
 * Chunked uploads for large files and paginated listing for large directories

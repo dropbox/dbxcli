@@ -43,9 +43,10 @@ const (
 	// conservative 128 MiB max that is also a multiple of 4 MiB.
 	putMaxChunkSize int64 = 128 * (1 << 20)
 
-	putIfExistsOverwrite = "overwrite"
-	putIfExistsSkip      = "skip"
-	putIfExistsFail      = "fail"
+	putIfExistsOverwrite  = "overwrite"
+	putIfExistsSkip       = "skip"
+	putIfExistsFail       = "fail"
+	putIfExistsAutorename = "autorename"
 )
 
 type uploadChunk struct {
@@ -208,10 +209,11 @@ type putOptions struct {
 }
 
 const (
-	putStatusUploaded = "uploaded"
-	putStatusSkipped  = "skipped"
-	putStatusCreated  = "created"
-	putStatusExisting = "existing"
+	putStatusUploaded    = "uploaded"
+	putStatusSkipped     = "skipped"
+	putStatusCreated     = "created"
+	putStatusExisting    = "existing"
+	putStatusAutorenamed = "autorenamed"
 
 	putKindFile   = "file"
 	putKindFolder = "folder"
@@ -490,10 +492,10 @@ func normalizePutIfExists(ifExists string) (string, error) {
 		return putIfExistsOverwrite, nil
 	}
 	switch ifExists {
-	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsFail:
+	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsFail, putIfExistsAutorename:
 		return ifExists, nil
 	default:
-		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, or fail)", flagValueErrorDetails("if-exists", ifExists), ifExists)
+		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, autorename, or fail)", flagValueErrorDetails("if-exists", ifExists), ifExists)
 	}
 }
 
@@ -538,6 +540,7 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	commitInfo := files.NewCommitInfo(dst)
 	commitInfo.Mode.Tag = writeModeForIfExists(ifExists)
 	commitInfo.StrictConflict = ifExists != putIfExistsOverwrite
+	commitInfo.Autorename = ifExists == putIfExistsAutorename
 
 	commitInfo.ClientModified = dropboxClientModified(contentsInfo.ModTime())
 
@@ -550,7 +553,7 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 		if err != nil {
 			return putResult{}, err
 		}
-		return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata)
+		return newPutResult(putUploadStatus(ifExists, dst, metadata), putKindFile, src, dst, metadata)
 	}
 
 	uploadArg := &files.UploadArg{CommitInfo: *commitInfo}
@@ -562,7 +565,17 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 	if err != nil {
 		return putResult{}, err
 	}
-	return newPutResult(putStatusUploaded, putKindFile, src, dst, metadata)
+	return newPutResult(putUploadStatus(ifExists, dst, metadata), putKindFile, src, dst, metadata)
+}
+
+// putUploadStatus reports "autorenamed" when --if-exists=autorename caused the
+// server to store the file under a different path than requested; otherwise it
+// reports the normal "uploaded" status.
+func putUploadStatus(ifExists, dst string, metadata *files.FileMetadata) string {
+	if ifExists == putIfExistsAutorename && metadata != nil && !sameDropboxMetadataPath(metadata.PathDisplay, metadata.PathLower, dst) {
+		return putStatusAutorenamed
+	}
+	return putStatusUploaded
 }
 
 func writeModeForIfExists(ifExists string) string {
@@ -580,7 +593,7 @@ func checkPutStdinDestination(dbx filesClient, dst string, ifExists string) (put
 
 	meta, exists, err := getDestinationMetadata(dbx, dst)
 	if err != nil {
-		if ifExists == putIfExistsOverwrite {
+		if ifExists == putIfExistsOverwrite || ifExists == putIfExistsAutorename {
 			return putDestinationUpload, nil, nil
 		}
 		return putDestinationUpload, nil, err
@@ -599,7 +612,7 @@ func checkPutDestination(dbx filesClient, dst string, ifExists string) (putDesti
 	if err != nil {
 		return putDestinationUpload, nil, err
 	}
-	if ifExists == putIfExistsOverwrite {
+	if ifExists == putIfExistsOverwrite || ifExists == putIfExistsAutorename {
 		return putDestinationUpload, nil, nil
 	}
 
@@ -919,5 +932,5 @@ func init() {
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers for chunked large-file uploads")
 	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB")
 	putCmd.Flags().BoolP("debug", "d", false, "Print debug timing")
-	putCmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, or fail")
+	putCmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, autorename, or fail")
 }

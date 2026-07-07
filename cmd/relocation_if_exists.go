@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	relocationIfExistsFail = "fail"
-	relocationIfExistsSkip = "skip"
+	relocationIfExistsFail       = "fail"
+	relocationIfExistsSkip       = "skip"
+	relocationIfExistsAutorename = "autorename"
 )
 
 type relocationOptions struct {
@@ -41,8 +42,10 @@ func normalizeRelocationIfExists(ifExists string) (string, error) {
 		return relocationIfExistsFail, nil
 	case relocationIfExistsSkip:
 		return relocationIfExistsSkip, nil
+	case relocationIfExistsAutorename:
+		return relocationIfExistsAutorename, nil
 	default:
-		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use fail or skip)", flagValueErrorDetails("if-exists", ifExists), ifExists)
+		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use fail, skip, or autorename)", flagValueErrorDetails("if-exists", ifExists), ifExists)
 	}
 }
 
