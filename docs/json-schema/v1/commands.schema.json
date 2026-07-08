@@ -1736,6 +1736,9 @@
     "mkdir_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "parents": {
           "type": "boolean"
         },
@@ -2141,7 +2144,8 @@
         "status": {
           "enum": [
             "created",
-            "existing"
+            "existing",
+            "planned"
           ]
         }
       },

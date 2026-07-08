@@ -54,6 +54,32 @@ func TestMkdirQuietByDefault(t *testing.T) {
 	}
 }
 
+func TestMkdirDryRunTextOutputSnapshot(t *testing.T) {
+	cmd, stdout := testMkdirCmd(t)
+	setMkdirDryRun(t, cmd)
+
+	mock := &mockFilesClient{
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			t.Fatalf("CreateFolderV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatalf("GetMetadata called during dry-run: %v", arg)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := mkdir(cmd, []string{"/Projects"}); err != nil {
+		t.Fatalf("mkdir error: %v", err)
+	}
+
+	const want = "Would create directory /Projects\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
 func TestMkdirJSONOutputsCreatedFolder(t *testing.T) {
 	cmd, stdout := testMkdirCmd(t)
 	setMkdirOutputJSON(t, cmd)
@@ -95,6 +121,76 @@ func TestMkdirJSONOutputsCreatedFolder(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), `"rev"`) || strings.Contains(stdout.String(), `"size"`) {
 		t.Fatalf("folder JSON output = %s, want no file-only fields", stdout.String())
+	}
+}
+
+func TestMkdirJSONDryRunOutputsPlannedResult(t *testing.T) {
+	cmd, stdout := testMkdirCmd(t)
+	setMkdirOutputJSON(t, cmd)
+	setMkdirDryRun(t, cmd)
+
+	mock := &mockFilesClient{
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			t.Fatalf("CreateFolderV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatalf("GetMetadata called during dry-run: %v", arg)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := mkdir(cmd, []string{"/Projects"}); err != nil {
+		t.Fatalf("mkdir error: %v", err)
+	}
+
+	got := decodeMkdirOutput(t, stdout)
+	if got.Input.Path != "/Projects" || got.Input.Parents || !got.Input.DryRun {
+		t.Fatalf("input = %#v, want path /Projects, parents false, dry_run true", got.Input)
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != mkdirKindFolder {
+		t.Fatalf("status/kind = %s/%s, want planned/folder", result.Status, result.Kind)
+	}
+	if result.Input.Path != "/Projects" || result.Input.Parents || !result.Input.DryRun {
+		t.Fatalf("result input = %#v, want path /Projects, parents false, dry_run true", result.Input)
+	}
+	if result.Result.Type != "folder" {
+		t.Fatalf("result type = %q, want folder", result.Result.Type)
+	}
+	if result.Result.PathDisplay != "/Projects" || result.Result.PathLower != "/projects" {
+		t.Fatalf("path_display/path_lower = %q/%q, want /Projects//projects", result.Result.PathDisplay, result.Result.PathLower)
+	}
+	if result.Result.ID != "" {
+		t.Fatalf("id = %q, want empty for planned metadata", result.Result.ID)
+	}
+}
+
+func TestMkdirJSONDryRunOutputSnapshot(t *testing.T) {
+	cmd, stdout := testMkdirCmd(t)
+	setMkdirOutputJSON(t, cmd)
+	setMkdirDryRun(t, cmd)
+
+	mock := &mockFilesClient{
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			t.Fatalf("CreateFolderV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatalf("GetMetadata called during dry-run: %v", arg)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := mkdir(cmd, []string{"/Projects"}); err != nil {
+		t.Fatalf("mkdir error: %v", err)
+	}
+
+	const want = "{\"ok\":true,\"schema_version\":\"1\",\"command\":\"mkdir\",\"input\":{\"path\":\"/Projects\",\"parents\":false,\"dry_run\":true},\"results\":[{\"status\":\"planned\",\"kind\":\"folder\",\"input\":{\"path\":\"/Projects\",\"parents\":false,\"dry_run\":true},\"result\":{\"type\":\"folder\",\"path_display\":\"/Projects\",\"path_lower\":\"/projects\"}}],\"warnings\":[]}\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %s, want %s", got, want)
 	}
 }
 
@@ -259,6 +355,7 @@ func testMkdirCmd(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	cmd := &cobra.Command{Use: "mkdir"}
 	cmd.SetOut(&stdout)
 	cmd.Flags().BoolP("parents", "p", false, "")
+	addDryRunFlag(cmd)
 	cmd.Flags().String(outputFlag, "text", "")
 	return cmd, &stdout
 }
@@ -275,6 +372,14 @@ func setMkdirParents(t *testing.T, cmd *cobra.Command) {
 	t.Helper()
 
 	if err := cmd.Flags().Set("parents", "true"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func setMkdirDryRun(t *testing.T, cmd *cobra.Command) {
+	t.Helper()
+
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
 		t.Fatal(err)
 	}
 }

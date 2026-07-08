@@ -164,7 +164,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 	"mkdir": {
 		Args:          []jsonCommandArg{commandArg("directory", true, false, "dropbox_path", "Dropbox directory path to create")},
 		Examples:      []jsonCommandExample{{Description: "Create a Dropbox folder", Command: "dbxcli mkdir /Reports"}},
-		Flags:         map[string]jsonCommandFlagMetadata{"parents": {ValueKind: "boolean"}},
+		Flags:         map[string]jsonCommandFlagMetadata{dryRunFlagName: {ValueKind: "boolean"}, "parents": {ValueKind: "boolean"}},
 		DropboxScopes: []string{"files.content.write"},
 		Known:         true,
 	},
@@ -348,7 +348,7 @@ var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"help":                {Statuses: []string{"described"}, Kinds: []string{"command"}},
 	"logout":              {Statuses: []string{"already_logged_out", "logged_out"}, Kinds: []string{"auth"}, Warnings: []string{jsonWarningCodeTokenRevokeFailed}},
 	"ls":                  {Statuses: []string{"listed"}, Kinds: []string{"deleted", "file", "folder"}},
-	"mkdir":               {Statuses: []string{"created", "existing"}, Kinds: []string{"folder"}},
+	"mkdir":               {Statuses: []string{"created", "existing", jsonStatusPlanned}, Kinds: []string{"folder"}},
 	"mv":                  {Statuses: []string{"autorenamed", "moved", "skipped"}, Kinds: []string{"deleted", "file", "folder"}},
 	"put":                 {Statuses: []string{"autorenamed", "created", "existing", "skipped", "uploaded"}, Kinds: []string{"file", "folder"}, Warnings: []string{jsonWarningCodeSkippedSymlink}},
 	"restore":             {Statuses: []string{"restored"}, Kinds: []string{"file"}},

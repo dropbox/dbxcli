@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"errors"
+	"io"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -25,6 +26,12 @@ import (
 type mkdirInput struct {
 	Path    string `json:"path"`
 	Parents bool   `json:"parents"`
+	DryRun  bool   `json:"dry_run,omitempty"`
+}
+
+type mkdirOptions struct {
+	parents bool
+	dryRun  bool
 }
 
 const (
@@ -51,16 +58,28 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
+	opts, err := parseMkdirOptions(cmd)
+	if err != nil {
+		return err
+	}
+
+	if opts.dryRun {
+		result, err := newPlannedMkdirResult(dst, opts)
+		if err != nil {
+			return err
+		}
+		return commandOutput(cmd).Render(func(w io.Writer) error {
+			return writeDryRunLine(w, "create directory", result.displayPath())
+		}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)}, nil))
+	}
+
 	arg := files.NewCreateFolderArg(dst)
-
-	parents, _ := cmd.Flags().GetBool("parents")
-
 	dbx := filesNewFunc(config)
 	created, err := dbx.CreateFolderV2Context(currentContext(), arg)
 	var metadata *files.FolderMetadata
 	status := mkdirStatusCreated
 	if err != nil {
-		if !parents {
+		if !opts.parents {
 			return err
 		}
 
@@ -98,11 +117,28 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 		metadata = created.Metadata
 	}
 
-	result, err := newMkdirResult(status, dst, parents, metadata)
+	result, err := newMkdirResult(status, dst, opts, metadata)
 	if err != nil {
 		return err
 	}
 	return renderJSONOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)})
+}
+
+func parseMkdirOptions(cmd *cobra.Command) (mkdirOptions, error) {
+	parents, err := cmd.Flags().GetBool("parents")
+	if err != nil {
+		return mkdirOptions{}, err
+	}
+
+	dryRun, err := dryRunEnabled(cmd)
+	if err != nil {
+		return mkdirOptions{}, err
+	}
+
+	return mkdirOptions{
+		parents: parents,
+		dryRun:  dryRun,
+	}, nil
 }
 
 func existingFolderMetadata(dbx filesClient, dst string) (*files.FolderMetadata, error) {
@@ -117,7 +153,7 @@ func existingFolderMetadata(dbx filesClient, dst string) (*files.FolderMetadata,
 	return folder, nil
 }
 
-func newMkdirResult(status, path string, parents bool, metadata *files.FolderMetadata) (mkdirResult, error) {
+func newMkdirResult(status, path string, opts mkdirOptions, metadata *files.FolderMetadata) (mkdirResult, error) {
 	result, err := jsonMetadataFromDropbox(metadata)
 	if err != nil {
 		return mkdirResult{}, err
@@ -129,14 +165,28 @@ func newMkdirResult(status, path string, parents bool, metadata *files.FolderMet
 		Kind:   mkdirKindFolder,
 		Input: mkdirInput{
 			Path:    path,
-			Parents: parents,
+			Parents: opts.parents,
+			DryRun:  opts.dryRun,
 		},
 		Result: result,
 	}, nil
 }
 
+func newPlannedMkdirResult(path string, opts mkdirOptions) (mkdirResult, error) {
+	return newMkdirResult(mkdirStatusCreated, path, opts, &files.FolderMetadata{
+		Metadata: files.Metadata{
+			PathDisplay: path,
+			PathLower:   strings.ToLower(path),
+		},
+	})
+}
+
 func mkdirOperationResult(result mkdirResult) jsonOperationResult {
-	return newJSONOperationResult(result.Status, result.Kind, result.Input, result.Result)
+	return newJSONOperationResult(plannedStatus(result.Input.DryRun, result.Status), result.Kind, result.Input, result.Result)
+}
+
+func (r mkdirResult) displayPath() string {
+	return dryRunDisplayPath(r.Result, r.Input.Path)
 }
 
 func createFolderConflictTag(err error) (string, bool) {
@@ -178,5 +228,6 @@ var mkdirCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(mkdirCmd)
 	mkdirCmd.Flags().BoolP("parents", "p", false, "No error if existing, create parent directories as needed")
+	addDryRunFlag(mkdirCmd)
 	enableStructuredOutput(mkdirCmd)
 }

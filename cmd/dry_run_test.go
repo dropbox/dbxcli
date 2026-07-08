@@ -79,3 +79,12 @@ func TestWriteDryRunLine(t *testing.T) {
 		t.Fatalf("writeDryRunLine permanent output = %q, want %q", got, want)
 	}
 }
+
+func TestDryRunDisplayPath(t *testing.T) {
+	if got, want := dryRunDisplayPath(jsonMetadata{PathDisplay: "/Display.txt"}, "/fallback.txt"), "/Display.txt"; got != want {
+		t.Fatalf("dryRunDisplayPath with display path = %q, want %q", got, want)
+	}
+	if got, want := dryRunDisplayPath(jsonMetadata{}, "/fallback.txt"), "/fallback.txt"; got != want {
+		t.Fatalf("dryRunDisplayPath fallback = %q, want %q", got, want)
+	}
+}

@@ -180,6 +180,7 @@
       "type"
     ],
     "mkdir_input": [
+      "dry_run",
       "parents",
       "path"
     ],
@@ -514,7 +515,8 @@
       "result": "metadata",
       "statuses": [
         "created",
-        "existing"
+        "existing",
+        "planned"
       ],
       "kinds": [
         "folder"

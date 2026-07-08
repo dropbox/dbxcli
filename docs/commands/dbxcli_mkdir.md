@@ -11,6 +11,7 @@ dbxcli mkdir [flags] <directory>
 ### Options
 
 ```
+      --dry-run   Preview intended writes without making changes
   -h, --help      help for mkdir
   -p, --parents   No error if existing, create parent directories as needed
 ```
@@ -33,7 +34,7 @@ dbxcli mkdir [flags] <directory>
 * Dropbox scopes: `files.content.write`
 * Arguments: `directory` (required, dropbox_path)
 * Flag metadata: `--output` (values: `json`, `text`)
-* Result statuses: `created`, `existing`
+* Result statuses: `created`, `existing`, `planned`
 * Result kinds: `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/mkdir`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_mkdir`
