@@ -24,7 +24,7 @@ func parseRelocationOptions(cmd *cobra.Command) (relocationOptions, error) {
 		return relocationOptions{}, err
 	}
 	dryRun := false
-	// cp shares relocation parsing but does not register --dry-run yet.
+	// Some tests and callers use relocation parsing without registering --dry-run.
 	if cmd != nil && cmd.Flags().Lookup(dryRunFlagName) != nil {
 		dryRun, err = dryRunEnabled(cmd)
 		if err != nil {

@@ -113,7 +113,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 			commandArg("target", true, false, "dropbox_path", "Dropbox destination path"),
 		},
 		Examples:      []jsonCommandExample{{Description: "Copy a Dropbox file", Command: "dbxcli cp /from.txt /to.txt"}},
-		Flags:         map[string]jsonCommandFlagMetadata{"if-exists": {EnumValues: []string{"fail", "skip", "autorename"}, ValueKind: "enum"}},
+		Flags:         map[string]jsonCommandFlagMetadata{dryRunFlagName: {ValueKind: "boolean"}, "if-exists": {EnumValues: []string{"fail", "skip", "autorename"}, ValueKind: "enum"}},
 		DropboxScopes: []string{"files.content.write", "files.metadata.read"},
 		Known:         true,
 	},
@@ -342,7 +342,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 
 var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"account":             {Statuses: []string{"found"}, Kinds: []string{"account"}},
-	"cp":                  {Statuses: []string{"autorenamed", "copied", "skipped"}, Kinds: []string{"deleted", "file", "folder"}},
+	"cp":                  {Statuses: []string{"autorenamed", "copied", "skipped", jsonStatusPlanned}, Kinds: []string{"deleted", "file", "folder"}},
 	"du":                  {Statuses: []string{"reported"}, Kinds: []string{"space_usage"}},
 	"get":                 {Statuses: []string{"created", "downloaded", "existing"}, Kinds: []string{"file", "folder"}},
 	"help":                {Statuses: []string{"described"}, Kinds: []string{"command"}},

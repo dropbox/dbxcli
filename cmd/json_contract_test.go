@@ -1086,7 +1086,7 @@ func jsonContractDefinitions() map[string][]string {
 func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 	return map[string]jsonGoldenCommandSchema{
 		"account":           operationSchema("account_input", schemaRef("account_input"), "account", []string{accountJSONStatusFound}, []string{accountKindAccount}, nil),
-		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusCopied, relocationJSONStatusSkipped}, metadataKinds(), nil),
+		"cp":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusCopied, relocationJSONStatusSkipped, jsonStatusPlanned}, metadataKinds(), nil),
 		"du":                operationSchema("empty", schemaRef("empty"), "du_output", []string{duJSONStatusReported}, []string{duKindSpaceUsage}, nil),
 		"get":               operationSchema("get_input", schemaRef("get_result_input"), "metadata", []string{getStatusCreated, getStatusDownloaded, getStatusExisting}, []string{getKindFile, getKindFolder}, nil),
 		"help":              operationSchema("help_input", schemaRef("empty"), "command_manifest", []string{jsonHelpStatusDescribed}, []string{jsonHelpKindCommand}, nil),

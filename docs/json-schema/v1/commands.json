@@ -421,6 +421,7 @@
       "statuses": [
         "autorenamed",
         "copied",
+        "planned",
         "skipped"
       ],
       "kinds": [

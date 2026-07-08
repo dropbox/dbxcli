@@ -237,6 +237,163 @@ func TestCpJSONOutputsRelocationResults(t *testing.T) {
 	}
 }
 
+func TestCpDryRunTextOutputSnapshot(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			switch arg.Path {
+			case "/dest/file-copy.txt":
+				return nil, relocationTestGetMetadataNotFoundError()
+			case "/src/file.txt":
+				return relocationTestFileMetadata("/src/file.txt", 42), nil
+			default:
+				t.Fatalf("unexpected GetMetadata path during dry-run: %q", arg.Path)
+				return nil, nil
+			}
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			t.Fatalf("CopyV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTextTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file-copy.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	const want = "Would copy /src/file.txt to /dest/file-copy.txt\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestCpJSONDryRunOutputsPlannedResult(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			switch arg.Path {
+			case "/dest/file-copy.txt":
+				return nil, relocationTestGetMetadataNotFoundError()
+			case "/src/file.txt":
+				return relocationTestFileMetadata("/src/file.txt", 42), nil
+			default:
+				t.Fatalf("unexpected GetMetadata path during dry-run: %q", arg.Path)
+				return nil, nil
+			}
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			t.Fatalf("CopyV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest/file-copy.txt"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != "file" {
+		t.Fatalf("status/kind = %s/%s, want planned/file", result.Status, result.Kind)
+	}
+	if result.Input.FromPath != "/src/file.txt" || result.Input.ToPath != "/dest/file-copy.txt" || !result.Input.DryRun {
+		t.Fatalf("input = %#v, want source, destination, dry_run true", result.Input)
+	}
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/dest/file-copy.txt" || result.Result.PathLower != "/dest/file-copy.txt" {
+		t.Fatalf("result = %#v, want planned destination file metadata", result.Result)
+	}
+	if result.Result.Size == nil || *result.Result.Size != 42 {
+		t.Fatalf("size = %#v, want 42", result.Result.Size)
+	}
+}
+
+func TestCpDryRunMultipleSourcesOutputsPlansWithoutCopying(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			switch arg.Path {
+			case "/src/a.txt", "/src/b.txt":
+				return relocationTestFileMetadata(arg.Path, 1), nil
+			default:
+				t.Fatalf("unexpected GetMetadata path during dry-run: %q", arg.Path)
+				return nil, nil
+			}
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			t.Fatalf("CopyV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTextTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/a.txt", "/src/b.txt", "/dest"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	const want = "Would copy /src/a.txt to /dest/a.txt\nWould copy /src/b.txt to /dest/b.txt\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestCpDryRunSingleSourceExistingDestinationFolder(t *testing.T) {
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			switch arg.Path {
+			case "/dest":
+				return mkdirFolderMetadata("/dest"), nil
+			case "/src/file.txt":
+				return relocationTestFileMetadata("/src/file.txt", 42), nil
+			default:
+				t.Fatalf("unexpected GetMetadata path during dry-run: %q", arg.Path)
+				return nil, nil
+			}
+		},
+		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
+			t.Fatalf("CopyV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newRelocationTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cp(cmd, []string{"/src/file.txt", "/dest"}); err != nil {
+		t.Fatalf("cp error: %v", err)
+	}
+
+	got := decodeRelocationOutput(t, stdout.Bytes())
+	if len(got.Results) != 1 {
+		t.Fatalf("results = %d, want 1", len(got.Results))
+	}
+	if got.Results[0].Input.ToPath != "/dest/file.txt" {
+		t.Fatalf("to_path = %q, want /dest/file.txt", got.Results[0].Input.ToPath)
+	}
+	if got.Results[0].Result.PathDisplay != "/dest/file.txt" {
+		t.Fatalf("path_display = %q, want /dest/file.txt", got.Results[0].Result.PathDisplay)
+	}
+}
+
 func TestCpJSONMultipleSourcesOutputsMultipleResults(t *testing.T) {
 	stubFilesClient(t, &mockFilesClient{
 		copyV2Fn: func(arg *files.RelocationArg) (*files.RelocationResult, error) {
@@ -301,6 +458,9 @@ func TestCpCommandDefinesIfExistsFlag(t *testing.T) {
 	}
 	if flag.DefValue != relocationIfExistsFail {
 		t.Fatalf("--if-exists default = %q, want %q", flag.DefValue, relocationIfExistsFail)
+	}
+	if cpCmd.Flags().Lookup(dryRunFlagName) == nil {
+		t.Fatalf("cp should define --%s", dryRunFlagName)
 	}
 }
 
