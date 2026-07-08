@@ -52,6 +52,11 @@ func writeDryRunLine(w io.Writer, verb, path string) error {
 	return err
 }
 
+func writeDryRunRelocationLine(w io.Writer, verb, fromPath, toPath string) error {
+	_, err := fmt.Fprintf(w, "Would %s %s to %s\n", verb, fromPath, toPath)
+	return err
+}
+
 func dryRunDisplayPath(metadata jsonMetadata, fallback string) string {
 	if metadata.PathDisplay != "" {
 		return metadata.PathDisplay

@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
@@ -45,6 +46,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	var mvErrors []error
 	var mvErrorDetails []map[string]any
 	var relocationArgs []*files.RelocationArg
+	var plannedResults []relocationResult
 	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
@@ -59,6 +61,19 @@ func mv(cmd *cobra.Command, args []string) error {
 			mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
 			arg.Autorename = opts.ifExists == relocationIfExistsAutorename
+			if opts.dryRun {
+				result, err := plannedMoveResult(dbx, arg)
+				if err != nil {
+					mvErrors = append(mvErrors, fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err))
+					mvErrorDetails = append(mvErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
+					continue
+				}
+				plannedResults = append(plannedResults, result)
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusMoved, result))
+				}
+				continue
+			}
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				mvErrors = append(mvErrors, fmt.Errorf("move %q to %q: %v", arg.FromPath, arg.ToPath, err))
@@ -108,10 +123,33 @@ func mv(cmd *cobra.Command, args []string) error {
 		return relocationAggregateError("mv", "move", len(mvErrors), mvErrorDetails)
 	}
 
+	if opts.dryRun {
+		return commandOutput(cmd).Render(func(w io.Writer) error {
+			return renderPlannedMoveResults(w, plannedResults)
+		}, newJSONCommandOperationOutput(cmd, nil, results, nil))
+	}
+
 	if !collectResults {
 		return nil
 	}
 	return renderJSONOperationOutput(cmd, nil, results)
+}
+
+func plannedMoveResult(dbx filesClient, arg *files.RelocationArg) (relocationResult, error) {
+	metadata, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(arg.FromPath))
+	if err != nil {
+		return relocationResult{}, err
+	}
+	return newPlannedRelocationResult(arg, metadata)
+}
+
+func renderPlannedMoveResults(w io.Writer, results []relocationResult) error {
+	for _, result := range results {
+		if err := writeDryRunRelocationLine(w, "move", result.Input.FromPath, result.Input.ToPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // mvCmd represents the mv command
@@ -124,5 +162,6 @@ var mvCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(mvCmd)
 	enableStructuredOutput(mvCmd)
+	addDryRunFlag(mvCmd)
 	mvCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail, skip, or autorename")
 }

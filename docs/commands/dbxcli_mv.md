@@ -11,6 +11,7 @@ dbxcli mv [flags] <source> [more sources] <target>
 ### Options
 
 ```
+      --dry-run            Preview intended writes without making changes
   -h, --help               help for mv
       --if-exists string   What to do when the destination exists: fail, skip, or autorename (default "fail")
 ```
@@ -33,7 +34,7 @@ dbxcli mv [flags] <source> [more sources] <target>
 * Dropbox scopes: `files.content.write`, `files.metadata.read`
 * Arguments: `source` (required, dropbox_path, variadic), `target` (required, dropbox_path)
 * Flag metadata: `--if-exists` (values: `autorename`, `fail`, `skip`), `--output` (values: `json`, `text`)
-* Result statuses: `autorenamed`, `moved`, `skipped`
+* Result statuses: `autorenamed`, `moved`, `planned`, `skipped`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/mv`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_mv`

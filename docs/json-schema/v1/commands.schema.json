@@ -1865,6 +1865,9 @@
     "relocation_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "from_path": {
           "type": "string"
         },
@@ -2177,6 +2180,7 @@
           "enum": [
             "autorenamed",
             "moved",
+            "planned",
             "skipped"
           ]
         }
