@@ -213,6 +213,7 @@
       "to_path"
     ],
     "remove_input": [
+      "dry_run",
       "force",
       "path",
       "permanent",
@@ -595,7 +596,8 @@
       "result": "metadata",
       "statuses": [
         "deleted",
-        "permanently_deleted"
+        "permanently_deleted",
+        "planned"
       ],
       "kinds": [
         "deleted",

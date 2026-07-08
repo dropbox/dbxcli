@@ -1878,6 +1878,9 @@
     "remove_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "force": {
           "type": "boolean"
         },
@@ -2290,7 +2293,8 @@
         "status": {
           "enum": [
             "deleted",
-            "permanently_deleted"
+            "permanently_deleted",
+            "planned"
           ]
         }
       },

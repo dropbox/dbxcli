@@ -1097,7 +1097,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusAutorenamed, putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
 		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),
-		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted}, metadataKinds(), nil),
+		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted, jsonStatusPlanned}, metadataKinds(), nil),
 		"search":            operationSchema("search_input", schemaRef("empty"), "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),
 		"share list folder": operationSchema("empty", schemaRef("empty"), "share_folder", []string{shareFolderJSONStatusListed}, []string{shareFolderJSONKindFolder}, nil),
 		"share list link":   operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), []string{jsonWarningCodeDeprecatedCommand}),
