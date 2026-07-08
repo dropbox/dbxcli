@@ -15,6 +15,7 @@ const (
 
 type relocationOptions struct {
 	ifExists string
+	dryRun   bool
 }
 
 func parseRelocationOptions(cmd *cobra.Command) (relocationOptions, error) {
@@ -22,7 +23,15 @@ func parseRelocationOptions(cmd *cobra.Command) (relocationOptions, error) {
 	if err != nil {
 		return relocationOptions{}, err
 	}
-	return relocationOptions{ifExists: ifExists}, nil
+	dryRun := false
+	// cp shares relocation parsing but does not register --dry-run yet.
+	if cmd != nil && cmd.Flags().Lookup(dryRunFlagName) != nil {
+		dryRun, err = dryRunEnabled(cmd)
+		if err != nil {
+			return relocationOptions{}, err
+		}
+	}
+	return relocationOptions{ifExists: ifExists, dryRun: dryRun}, nil
 }
 
 func parseRelocationIfExists(cmd *cobra.Command) (string, error) {

@@ -1093,7 +1093,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"ls":                operationSchema("ls_input", schemaRef("empty"), "metadata", []string{lsJSONStatusListed}, metadataKinds(), nil),
 		"logout":            operationSchema("empty", schemaRef("empty"), "logout_result", []string{logoutStatusAlreadyLoggedOut, logoutStatusLoggedOut}, []string{logoutKindAuth}, []string{jsonWarningCodeTokenRevokeFailed}),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting, jsonStatusPlanned}, []string{mkdirKindFolder}, nil),
-		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusMoved, relocationJSONStatusSkipped}, metadataKinds(), nil),
+		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusMoved, relocationJSONStatusSkipped, jsonStatusPlanned}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusAutorenamed, putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
 		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),

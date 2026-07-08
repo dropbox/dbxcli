@@ -80,6 +80,16 @@ func TestWriteDryRunLine(t *testing.T) {
 	}
 }
 
+func TestWriteDryRunRelocationLine(t *testing.T) {
+	var stdout bytes.Buffer
+	if err := writeDryRunRelocationLine(&stdout, "move", "/from.txt", "/to.txt"); err != nil {
+		t.Fatalf("writeDryRunRelocationLine error: %v", err)
+	}
+	if got, want := stdout.String(), "Would move /from.txt to /to.txt\n"; got != want {
+		t.Fatalf("writeDryRunRelocationLine output = %q, want %q", got, want)
+	}
+}
+
 func TestDryRunDisplayPath(t *testing.T) {
 	if got, want := dryRunDisplayPath(jsonMetadata{PathDisplay: "/Display.txt"}, "/fallback.txt"), "/Display.txt"; got != want {
 		t.Fatalf("dryRunDisplayPath with display path = %q, want %q", got, want)

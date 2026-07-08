@@ -210,6 +210,7 @@
       "target"
     ],
     "relocation_input": [
+      "dry_run",
       "from_path",
       "to_path"
     ],
@@ -532,6 +533,7 @@
       "statuses": [
         "autorenamed",
         "moved",
+        "planned",
         "skipped"
       ],
       "kinds": [

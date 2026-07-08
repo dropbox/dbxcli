@@ -628,9 +628,24 @@ func newRelocationTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Flags().String(outputFlag, string(output.FormatText), "")
 	cmd.Flags().String("if-exists", relocationIfExistsFail, "")
+	addDryRunFlag(cmd)
 	if err := cmd.Flags().Set(outputFlag, string(output.FormatJSON)); err != nil {
 		panic(err)
 	}
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	if stderr != nil {
+		cmd.SetErr(stderr)
+	}
+	return cmd
+}
+
+func newRelocationTextTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Flags().String(outputFlag, string(output.FormatText), "")
+	cmd.Flags().String("if-exists", relocationIfExistsFail, "")
+	addDryRunFlag(cmd)
 	if stdout != nil {
 		cmd.SetOut(stdout)
 	}

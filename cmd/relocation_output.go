@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+import (
+	"strings"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+)
 
 const (
 	relocationJSONStatusCopied      = "copied"
@@ -12,6 +16,7 @@ const (
 type relocationInput struct {
 	FromPath string `json:"from_path"`
 	ToPath   string `json:"to_path"`
+	DryRun   bool   `json:"dry_run,omitempty"`
 }
 
 type relocationResult struct {
@@ -43,8 +48,26 @@ func newRelocationResultFromMetadata(arg *files.RelocationArg, metadata files.Is
 	}, nil
 }
 
+func newPlannedRelocationResult(arg *files.RelocationArg, metadata files.IsMetadata) (relocationResult, error) {
+	result, err := jsonMetadataFromDropbox(metadata)
+	if err != nil {
+		return relocationResult{}, err
+	}
+	result.PathDisplay = arg.ToPath
+	result.PathLower = strings.ToLower(arg.ToPath)
+
+	return relocationResult{
+		Input: relocationInput{
+			FromPath: arg.FromPath,
+			ToPath:   arg.ToPath,
+			DryRun:   true,
+		},
+		Result: result,
+	}, nil
+}
+
 func relocationOperationResult(status string, result relocationResult) jsonOperationResult {
-	return newJSONOperationResult(status, result.Result.Type, result.Input, result.Result)
+	return newJSONOperationResult(plannedStatus(result.Input.DryRun, status), result.Result.Type, result.Input, result.Result)
 }
 
 // relocationSuccessStatus returns the JSON status for a successful copy/move.
