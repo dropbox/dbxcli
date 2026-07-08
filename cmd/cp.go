@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
@@ -45,6 +46,7 @@ func cp(cmd *cobra.Command, args []string) error {
 	var cpErrors []error
 	var cpErrorDetails []map[string]any
 	var relocationArgs []*files.RelocationArg
+	var plannedResults []relocationResult
 	var results []jsonOperationResult
 	collectResults := commandOutputFormat(cmd) == output.FormatJSON
 
@@ -60,6 +62,19 @@ func cp(cmd *cobra.Command, args []string) error {
 			cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(argument, dst))
 		} else {
 			arg.Autorename = opts.ifExists == relocationIfExistsAutorename
+			if opts.dryRun {
+				result, err := plannedRelocationResult(dbx, arg)
+				if err != nil {
+					cpErrors = append(cpErrors, fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err))
+					cpErrorDetails = append(cpErrorDetails, relocationFailureDetails(arg.FromPath, arg.ToPath))
+					continue
+				}
+				plannedResults = append(plannedResults, result)
+				if collectResults {
+					results = append(results, relocationOperationResult(relocationJSONStatusCopied, result))
+				}
+				continue
+			}
 			result, skipped, err := relocationSkipIfDestinationExists(dbx, arg, opts)
 			if err != nil {
 				cpErrors = append(cpErrors, fmt.Errorf("copy %q to %q: %v", arg.FromPath, arg.ToPath, err))
@@ -109,6 +124,12 @@ func cp(cmd *cobra.Command, args []string) error {
 		return relocationAggregateError("cp", "copy", len(cpErrors), cpErrorDetails)
 	}
 
+	if opts.dryRun {
+		return commandOutput(cmd).Render(func(w io.Writer) error {
+			return renderPlannedRelocationResults(w, "copy", plannedResults)
+		}, newJSONCommandOperationOutput(cmd, nil, results, nil))
+	}
+
 	if !collectResults {
 		return nil
 	}
@@ -126,5 +147,6 @@ var cpCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(cpCmd)
 	enableStructuredOutput(cpCmd)
+	addDryRunFlag(cpCmd)
 	cpCmd.Flags().String("if-exists", relocationIfExistsFail, "What to do when the destination exists: fail, skip, or autorename")
 }

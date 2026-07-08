@@ -66,6 +66,14 @@ func newPlannedRelocationResult(arg *files.RelocationArg, metadata files.IsMetad
 	}, nil
 }
 
+func plannedRelocationResult(dbx filesClient, arg *files.RelocationArg) (relocationResult, error) {
+	metadata, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(arg.FromPath))
+	if err != nil {
+		return relocationResult{}, err
+	}
+	return newPlannedRelocationResult(arg, metadata)
+}
+
 func relocationOperationResult(status string, result relocationResult) jsonOperationResult {
 	return newJSONOperationResult(plannedStatus(result.Input.DryRun, status), result.Result.Type, result.Input, result.Result)
 }

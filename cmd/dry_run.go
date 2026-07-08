@@ -57,6 +57,15 @@ func writeDryRunRelocationLine(w io.Writer, verb, fromPath, toPath string) error
 	return err
 }
 
+func renderPlannedRelocationResults(w io.Writer, verb string, results []relocationResult) error {
+	for _, result := range results {
+		if err := writeDryRunRelocationLine(w, verb, result.Input.FromPath, result.Input.ToPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func dryRunDisplayPath(metadata jsonMetadata, fallback string) string {
 	if metadata.PathDisplay != "" {
 		return metadata.PathDisplay

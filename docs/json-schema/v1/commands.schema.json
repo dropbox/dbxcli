@@ -1972,6 +1972,7 @@
           "enum": [
             "autorenamed",
             "copied",
+            "planned",
             "skipped"
           ]
         }
