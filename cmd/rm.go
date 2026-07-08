@@ -249,10 +249,7 @@ func renderRemoveResults(w io.Writer, results []removeResult) error {
 }
 
 func (r removeResult) displayPath() string {
-	if r.Result.PathDisplay != "" {
-		return r.Result.PathDisplay
-	}
-	return r.Input.Path
+	return dryRunDisplayPath(r.Result, r.Input.Path)
 }
 
 func (o removeOptions) allowNonEmptyFolder() bool {

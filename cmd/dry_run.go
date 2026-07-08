@@ -30,7 +30,7 @@ const (
 // Command implementations should keep their validate/plan/execute flow local
 // until at least two commands need the same execution driver.
 func addDryRunFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool(dryRunFlagName, false, "Show what would be done without making changes")
+	cmd.Flags().Bool(dryRunFlagName, false, "Preview intended writes without making changes")
 }
 
 func dryRunEnabled(cmd *cobra.Command) (bool, error) {
@@ -50,4 +50,11 @@ func plannedStatus(dryRun bool, realStatus string) string {
 func writeDryRunLine(w io.Writer, verb, path string) error {
 	_, err := fmt.Fprintf(w, "Would %s %s\n", verb, path)
 	return err
+}
+
+func dryRunDisplayPath(metadata jsonMetadata, fallback string) string {
+	if metadata.PathDisplay != "" {
+		return metadata.PathDisplay
+	}
+	return fallback
 }

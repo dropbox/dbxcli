@@ -11,7 +11,7 @@ dbxcli rm [flags] <file>
 ### Options
 
 ```
-      --dry-run     Show what would be done without making changes
+      --dry-run     Preview intended writes without making changes
   -f, --force       Allow removing non-empty folders; same as --recursive
   -h, --help        help for rm
       --permanent   Permanently delete instead of moving to Dropbox trash
