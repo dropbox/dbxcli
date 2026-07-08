@@ -11,6 +11,7 @@ dbxcli rm [flags] <file>
 ### Options
 
 ```
+      --dry-run     Show what would be done without making changes
   -f, --force       Allow removing non-empty folders; same as --recursive
   -h, --help        help for rm
       --permanent   Permanently delete instead of moving to Dropbox trash
@@ -36,7 +37,7 @@ dbxcli rm [flags] <file>
 * Arguments: `file` (required, dropbox_path, variadic)
 * Flag metadata: `--output` (values: `json`, `text`)
 * Destructive behavior: `delete`
-* Result statuses: `deleted`, `permanently_deleted`
+* Result statuses: `deleted`, `permanently_deleted`, `planned`
 * Result kinds: `deleted`, `file`, `folder`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/rm`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_rm`

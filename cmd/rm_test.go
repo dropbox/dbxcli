@@ -21,6 +21,7 @@ func testRmCmd(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	cmd.Flags().BoolP("force", "f", false, "")
 	cmd.Flags().BoolP("recursive", "r", false, "")
 	cmd.Flags().Bool("permanent", false, "")
+	addDryRunFlag(cmd)
 	cmd.Flags().BoolP("verbose", "v", false, "")
 	cmd.Flags().String(outputFlag, "text", "")
 	return cmd, &stdout
@@ -70,6 +71,17 @@ type removeOutput struct {
 	Input    map[string]any `json:"input"`
 	Results  []removeResult `json:"results"`
 	Warnings []jsonWarning  `json:"warnings"`
+}
+
+type removeOperationOutput struct {
+	Input   map[string]any `json:"input"`
+	Results []struct {
+		Status string       `json:"status"`
+		Kind   string       `json:"kind"`
+		Input  removeInput  `json:"input"`
+		Result jsonMetadata `json:"result"`
+	} `json:"results"`
+	Warnings []jsonWarning `json:"warnings"`
 }
 
 func decodeRemoveOutput(t *testing.T, stdout *bytes.Buffer) removeOutput {
@@ -288,6 +300,98 @@ func TestRmPermanentCallsPermanentlyDelete(t *testing.T) {
 	}
 }
 
+func TestRmDryRunTextOutputSnapshot(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmFlag(t, cmd, dryRunFlagName)
+	file := rmFileMetadata("/File.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			t.Fatalf("ListFolder called for file: %v", arg)
+			return nil, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			t.Fatalf("DeleteV2 called for dry-run: %v", arg)
+			return nil, nil
+		},
+		permanentlyDeleteFn: func(arg *files.DeleteArg) error {
+			t.Fatalf("PermanentlyDelete called for dry-run: %v", arg)
+			return nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+	if got, want := stdout.String(), "Would delete /File.txt\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestRmDryRunPermanentPrintsPlanWithoutDeleting(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmFlag(t, cmd, dryRunFlagName)
+	setRmFlag(t, cmd, "permanent")
+	file := rmFileMetadata("/File.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			t.Fatalf("DeleteV2 called for dry-run permanent delete: %v", arg)
+			return nil, nil
+		},
+		permanentlyDeleteFn: func(arg *files.DeleteArg) error {
+			t.Fatalf("PermanentlyDelete called for dry-run: %v", arg)
+			return nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+	if got, want := stdout.String(), "Would permanently delete /File.txt\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestRmDryRunStillValidatesNonEmptyFolder(t *testing.T) {
+	cmd, _ := testRmCmd(t)
+	setRmFlag(t, cmd, dryRunFlagName)
+	deleteCalled := false
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return rmFolderMetadata("/folder"), nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return rmNonEmptyFolderResult(), nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			deleteCalled = true
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := rm(cmd, []string{"/folder"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if !strings.Contains(err.Error(), "--recursive") || !strings.Contains(err.Error(), "--force") {
+		t.Fatalf("error = %q, want recursive and force guidance", err.Error())
+	}
+	if deleteCalled {
+		t.Fatal("delete called after dry-run validation failure")
+	}
+}
+
 func TestRmPermanentRecursiveDeletesNonEmptyFolder(t *testing.T) {
 	cmd, _ := testRmCmd(t)
 	setRmFlag(t, cmd, "permanent")
@@ -391,6 +495,7 @@ func TestRmVerboseUsesInheritedFlag(t *testing.T) {
 	cmd.Flags().BoolP("force", "f", false, "")
 	cmd.Flags().BoolP("recursive", "r", false, "")
 	cmd.Flags().Bool("permanent", false, "")
+	addDryRunFlag(cmd)
 	root.AddCommand(cmd)
 	root.SetArgs([]string{"rm", "--verbose", "/file.txt"})
 
@@ -566,6 +671,87 @@ func TestRmJSONPermanentUsesValidatedMetadata(t *testing.T) {
 	}
 	if result.Result.Rev != "validated-rev" {
 		t.Fatalf("rev = %q, want validated-rev", result.Result.Rev)
+	}
+}
+
+func TestRmJSONDryRunOutputsPlannedResult(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	setRmFlag(t, cmd, dryRunFlagName)
+	file := rmFileMetadata("/File.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			t.Fatalf("DeleteV2 called for dry-run: %v", arg)
+			return nil, nil
+		},
+		permanentlyDeleteFn: func(arg *files.DeleteArg) error {
+			t.Fatalf("PermanentlyDelete called for dry-run: %v", arg)
+			return nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+
+	var got removeOperationOutput
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode JSON output: %v\noutput: %s", err, stdout.String())
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned {
+		t.Fatalf("status = %q, want %q", result.Status, jsonStatusPlanned)
+	}
+	if result.Kind != "file" {
+		t.Fatalf("kind = %q, want file", result.Kind)
+	}
+	if result.Input.Path != "/File.txt" || !result.Input.DryRun {
+		t.Fatalf("input = %+v, want path /File.txt and dry_run true", result.Input)
+	}
+	if result.Input.Permanent || result.Input.Recursive || result.Input.Force {
+		t.Fatalf("input flags = %+v, want only dry_run true", result.Input)
+	}
+	if result.Result.PathDisplay != "/File.txt" {
+		t.Fatalf("path_display = %q, want /File.txt", result.Result.PathDisplay)
+	}
+}
+
+func TestRmJSONDryRunOutputSnapshot(t *testing.T) {
+	cmd, stdout := testRmCmd(t)
+	setRmOutputJSON(t, cmd)
+	setRmFlag(t, cmd, dryRunFlagName)
+	file := rmFileMetadata("/File.txt")
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return file, nil
+		},
+		deleteV2Fn: func(arg *files.DeleteArg) (*files.DeleteResult, error) {
+			t.Fatalf("DeleteV2 called for dry-run: %v", arg)
+			return nil, nil
+		},
+		permanentlyDeleteFn: func(arg *files.DeleteArg) error {
+			t.Fatalf("PermanentlyDelete called for dry-run: %v", arg)
+			return nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := rm(cmd, []string{"/File.txt"}); err != nil {
+		t.Fatalf("rm error: %v", err)
+	}
+
+	want := `{"ok":true,"schema_version":"1","command":"rm","input":{},"results":[{"status":"planned","kind":"file","input":{"path":"/File.txt","permanent":false,"recursive":false,"force":false,"dry_run":true},"result":{"type":"file","path_display":"/File.txt","path_lower":"/file.txt","id":"id:file","rev":"rev","size":123}}],"warnings":[]}` + "\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
 	}
 }
 

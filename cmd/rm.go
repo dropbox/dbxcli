@@ -27,6 +27,7 @@ type removeOptions struct {
 	force     bool
 	recursive bool
 	permanent bool
+	dryRun    bool
 	verbose   bool
 }
 
@@ -40,6 +41,7 @@ type removeInput struct {
 	Permanent bool   `json:"permanent"`
 	Recursive bool   `json:"recursive"`
 	Force     bool   `json:"force"`
+	DryRun    bool   `json:"dry_run,omitempty"`
 }
 
 type removeResult struct {
@@ -75,7 +77,7 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 
 	return commandOutput(cmd).Render(func(w io.Writer) error {
-		if !opts.verbose {
+		if !opts.dryRun && !opts.verbose {
 			return nil
 		}
 		return renderRemoveResults(w, results)
@@ -92,9 +94,9 @@ func removeOperationResults(results []removeResult) []jsonOperationResult {
 
 func removeJSONStatus(result removeResult) string {
 	if result.Input.Permanent {
-		return removeJSONStatusPermanentlyDeleted
+		return plannedStatus(result.Input.DryRun, removeJSONStatusPermanentlyDeleted)
 	}
-	return removeJSONStatusDeleted
+	return plannedStatus(result.Input.DryRun, removeJSONStatusDeleted)
 }
 
 func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {
@@ -113,12 +115,18 @@ func parseRemoveOptions(cmd *cobra.Command) (removeOptions, error) {
 		return removeOptions{}, err
 	}
 
+	dryRun, err := dryRunEnabled(cmd)
+	if err != nil {
+		return removeOptions{}, err
+	}
+
 	verbose, _ := cmd.Flags().GetBool("verbose")
 
 	return removeOptions{
 		force:     force,
 		recursive: recursive,
 		permanent: permanent,
+		dryRun:    dryRun,
 		verbose:   verbose,
 	}, nil
 }
@@ -161,17 +169,19 @@ func removeTargets(dbx filesClient, targets []removeTarget, opts removeOptions) 
 		arg := files.NewDeleteArg(target.path)
 		metadata := target.metadata
 
-		if opts.permanent {
-			if err := dbx.PermanentlyDeleteContext(currentContext(), arg); err != nil {
-				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
-			}
-		} else {
-			res, err := dbx.DeleteV2Context(currentContext(), arg)
-			if err != nil {
-				return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
-			}
-			if res != nil && res.Metadata != nil {
-				metadata = res.Metadata
+		if !opts.dryRun {
+			if opts.permanent {
+				if err := dbx.PermanentlyDeleteContext(currentContext(), arg); err != nil {
+					return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
+				}
+			} else {
+				res, err := dbx.DeleteV2Context(currentContext(), arg)
+				if err != nil {
+					return nil, withJSONErrorDetails(err, operationErrorDetails(removeOperation(opts)), pathErrorDetails(target.path))
+				}
+				if res != nil && res.Metadata != nil {
+					metadata = res.Metadata
+				}
 			}
 		}
 
@@ -196,6 +206,7 @@ func newRemoveResult(path string, metadata files.IsMetadata, opts removeOptions)
 			Permanent: opts.permanent,
 			Recursive: opts.recursive,
 			Force:     opts.force,
+			DryRun:    opts.dryRun,
 		},
 		Result: result,
 	}, nil
@@ -212,6 +223,18 @@ func removeMetadataFromDropbox(path string, metadata files.IsMetadata) (jsonMeta
 
 func renderRemoveResults(w io.Writer, results []removeResult) error {
 	for _, result := range results {
+		if result.Input.DryRun {
+			if result.Input.Permanent {
+				if err := writeDryRunLine(w, "permanently delete", result.displayPath()); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := writeDryRunLine(w, "delete", result.displayPath()); err != nil {
+				return err
+			}
+			continue
+		}
 		if result.Input.Permanent {
 			if _, err := fmt.Fprintf(w, "Permanently deleted %s\n", result.displayPath()); err != nil {
 				return err
@@ -257,4 +280,5 @@ func init() {
 	rmCmd.Flags().BoolP("force", "f", false, "Allow removing non-empty folders; same as --recursive")
 	rmCmd.Flags().BoolP("recursive", "r", false, "Recursively remove folders")
 	rmCmd.Flags().Bool("permanent", false, "Permanently delete instead of moving to Dropbox trash")
+	addDryRunFlag(rmCmd)
 }
