@@ -277,12 +277,15 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	}
 	assertJSONHelpArg(t, put.Args, "source", true, "local_path", true)
 	assertJSONHelpArg(t, put.Args, "target", false, "dropbox_path", false)
+	if jsonHelpFlagByName(t, put.Flags, dryRunFlagName).ValueKind != "boolean" {
+		t.Fatalf("put --%s value_kind = %q, want boolean", dryRunFlagName, jsonHelpFlagByName(t, put.Flags, dryRunFlagName).ValueKind)
+	}
 	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "fail", "autorename"})
 	if !put.StdinStdout.ReadsStdin || put.StdinStdout.WritesBinaryStdout {
 		t.Fatalf("put stdin_stdout = %+v, want stdin only", put.StdinStdout)
 	}
 	assertStringSliceEqual(t, "put warning codes", put.WarningCodes, []string{jsonWarningCodeSkippedSymlink})
-	assertStringSliceEqual(t, "put result statuses", put.ResultStatuses, []string{"autorenamed", "created", "existing", "skipped", "uploaded"})
+	assertStringSliceEqual(t, "put result statuses", put.ResultStatuses, []string{"autorenamed", "created", "existing", "skipped", "uploaded", jsonStatusPlanned})
 	assertStringSliceEqual(t, "put result kinds", put.ResultKinds, []string{"file", "folder"})
 	assertStringSliceEqual(t, "put scopes", put.DropboxScopes, []string{"files.content.write", "files.metadata.read"})
 	if put.ScopeAccuracy != commandManifestScopeAccuracyBestEffort {

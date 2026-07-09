@@ -199,6 +199,7 @@
       "status"
     ],
     "put_input": [
+      "dry_run",
       "if_exists",
       "recursive",
       "source",
@@ -206,6 +207,7 @@
       "target"
     ],
     "put_result_input": [
+      "dry_run",
       "source",
       "target"
     ],
@@ -555,6 +557,7 @@
         "autorenamed",
         "created",
         "existing",
+        "planned",
         "skipped",
         "uploaded"
       ],

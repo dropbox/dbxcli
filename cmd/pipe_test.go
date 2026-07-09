@@ -183,6 +183,71 @@ func TestPutStdinIfExistsSkipDoesNotReadStdin(t *testing.T) {
 	}
 }
 
+func TestPutStdinDryRunDoesNotReadStdin(t *testing.T) {
+	cmd := testPutCmdWithStdin(failReadReader{t: t})
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			t.Fatalf("GetMetadata called during stdin dry-run: %v", arg)
+			return nil, nil
+		},
+		uploadFn: func(arg *files.UploadArg, r io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during stdin dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	if err := put(cmd, []string{"-", "/stdin.txt"}); err != nil {
+		t.Fatalf("put stdin dry-run error: %v", err)
+	}
+
+	const want = "Would upload - to /stdin.txt\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestPutStdinJSONDryRunOutputsPlannedResult(t *testing.T) {
+	cmd := testPutCmdWithStdin(failReadReader{t: t})
+	cmd.Flags().String(outputFlag, "text", "")
+	if err := cmd.Flags().Set(outputFlag, "json"); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	stubFilesClient(t, &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, r io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during stdin dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	if err := put(cmd, []string{"-", "/stdin.txt"}); err != nil {
+		t.Fatalf("put stdin dry-run error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Source != "-" || got.Input.Target != "/stdin.txt" || !got.Input.Stdin || !got.Input.DryRun {
+		t.Fatalf("input = %+v, want stdin dry-run", got.Input)
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != putKindFile || !result.Input.DryRun {
+		t.Fatalf("result = %+v, want planned file dry-run", result)
+	}
+	if result.Result == nil || result.Result.PathDisplay != "/stdin.txt" {
+		t.Fatalf("metadata = %+v, want planned stdin target metadata", result.Result)
+	}
+}
+
 func TestPutStdin_UploadsToDashPath(t *testing.T) {
 	content := "dash path"
 	cmd := testPutCmdWithStdin(strings.NewReader(content))

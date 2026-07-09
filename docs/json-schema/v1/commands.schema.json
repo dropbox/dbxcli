@@ -1815,6 +1815,9 @@
     "put_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "if_exists": {
           "enum": [
             "autorename",
@@ -1849,6 +1852,9 @@
     "put_result_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "source": {
           "type": "string"
         },
@@ -2217,6 +2223,7 @@
             "autorenamed",
             "created",
             "existing",
+            "planned",
             "skipped",
             "uploaded"
           ]
