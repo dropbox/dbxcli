@@ -739,8 +739,8 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"mv": newJSONOperationOutput(nil, []jsonOperationResult{
 			newJSONOperationResult(relocationJSONStatusMoved, "file", relocationInput{FromPath: "/Reports/copy.pdf", ToPath: "/Reports/moved.pdf"}, sampleJSONFileMetadata("/Reports/moved.pdf")),
 		}, nil),
-		"put": newJSONOperationOutput(putCommandInput{Source: "README.md", Target: "/README.md", Recursive: true, IfExists: putIfExistsOverwrite, Stdin: false}, []jsonOperationResult{
-			newJSONOperationResult(putStatusUploaded, putKindFile, putResultInput{Source: "README.md", Target: "/README.md"}, sampleJSONFileMetadata("/README.md")),
+		"put": newJSONOperationOutput(putCommandInput{Source: "README.md", Target: "/README.md", Recursive: true, IfExists: putIfExistsOverwrite, Stdin: false, DryRun: false}, []jsonOperationResult{
+			newJSONOperationResult(putStatusUploaded, putKindFile, putResultInput{Source: "README.md", Target: "/README.md", DryRun: false}, sampleJSONFileMetadata("/README.md")),
 		}, []jsonWarning{{Code: jsonWarningCodeSkippedSymlink, Message: "skipped symlink", Path: "docs/link"}}),
 		"restore": newJSONOperationOutput(restoreInput{Path: "/Reports/old.pdf", Revision: "015f"}, []jsonOperationResult{
 			newJSONOperationResult(restoreStatusRestored, restoreKindFile, restoreInput{Path: "/Reports/old.pdf", Revision: "015f"}, file),
@@ -1094,7 +1094,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"logout":            operationSchema("empty", schemaRef("empty"), "logout_result", []string{logoutStatusAlreadyLoggedOut, logoutStatusLoggedOut}, []string{logoutKindAuth}, []string{jsonWarningCodeTokenRevokeFailed}),
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting, jsonStatusPlanned}, []string{mkdirKindFolder}, nil),
 		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusMoved, relocationJSONStatusSkipped, jsonStatusPlanned}, metadataKinds(), nil),
-		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusAutorenamed, putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
+		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusAutorenamed, putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded, jsonStatusPlanned}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
 		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored, jsonStatusPlanned}, []string{restoreKindFile}, nil),
 		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),
 		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted, jsonStatusPlanned}, metadataKinds(), nil),

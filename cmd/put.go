@@ -204,6 +204,7 @@ type putOptions struct {
 	workers   int
 	debug     bool
 	ifExists  string
+	dryRun    bool
 	output    *output.Renderer
 	errOut    io.Writer
 }
@@ -225,11 +226,13 @@ type putCommandInput struct {
 	Recursive bool   `json:"recursive"`
 	IfExists  string `json:"if_exists"`
 	Stdin     bool   `json:"stdin"`
+	DryRun    bool   `json:"dry_run,omitempty"`
 }
 
 type putResultInput struct {
 	Source string `json:"source"`
 	Target string `json:"target"`
+	DryRun bool   `json:"dry_run,omitempty"`
 }
 
 type putResult struct {
@@ -280,7 +283,7 @@ func putOperationResults(results []putResult) []jsonOperationResult {
 		if result.Result != nil {
 			metadata = result.Result
 		}
-		operationResults = append(operationResults, newJSONOperationResult(result.Status, result.Kind, result.Input, metadata))
+		operationResults = append(operationResults, newJSONOperationResult(plannedStatus(result.Input.DryRun, result.Status), result.Kind, result.Input, metadata))
 	}
 	return operationResults
 }
@@ -328,6 +331,20 @@ func put(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if srcInfo.IsDir() {
+		if opts.dryRun {
+			results, warnings, err := plannedPutRecursiveResults(src, dst)
+			if err != nil {
+				return withJSONErrorDetails(err, operationErrorDetails("upload"), relocationErrorDetails(src, dst))
+			}
+			return renderPlannedPutResults(cmd, putCommandInput{
+				Source:    src,
+				Target:    dst,
+				Recursive: true,
+				IfExists:  opts.ifExists,
+				Stdin:     false,
+				DryRun:    true,
+			}, results, warnings)
+		}
 		if commandOutputFormat(cmd) == output.FormatText {
 			return withJSONErrorDetails(putRecursive(src, dst, opts), operationErrorDetails("upload"), relocationErrorDetails(src, dst))
 		}
@@ -341,7 +358,20 @@ func put(cmd *cobra.Command, args []string) (err error) {
 			Recursive: true,
 			IfExists:  opts.ifExists,
 			Stdin:     false,
+			DryRun:    false,
 		}, results, warnings)
+	}
+
+	if opts.dryRun {
+		result := plannedPutFileResult(src, dst)
+		return renderPlannedPutResults(cmd, putCommandInput{
+			Source:    src,
+			Target:    dst,
+			Recursive: false,
+			IfExists:  opts.ifExists,
+			Stdin:     false,
+			DryRun:    true,
+		}, []putResult{result}, nil)
 	}
 
 	result, err := putFileWithResult(src, dst, opts)
@@ -354,6 +384,7 @@ func put(cmd *cobra.Command, args []string) (err error) {
 		Recursive: false,
 		IfExists:  opts.ifExists,
 		Stdin:     false,
+		DryRun:    false,
 	}, []putResult{result})
 }
 
@@ -375,6 +406,18 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		return err
 	}
 
+	if opts.dryRun {
+		result := plannedPutFileResult("-", dstPath)
+		return renderPlannedPutResults(cmd, putCommandInput{
+			Source:    "-",
+			Target:    dstPath,
+			Recursive: false,
+			IfExists:  opts.ifExists,
+			Stdin:     true,
+			DryRun:    true,
+		}, []putResult{result}, nil)
+	}
+
 	dbx := filesNewFunc(config)
 	action, existingMetadata, err := checkPutStdinDestination(dbx, dstPath, opts.ifExists)
 	if err != nil {
@@ -392,6 +435,7 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 			Recursive: false,
 			IfExists:  opts.ifExists,
 			Stdin:     true,
+			DryRun:    false,
 		}, []putResult{result})
 	}
 
@@ -422,6 +466,7 @@ func putStdin(cmd *cobra.Command, args []string, opts putOptions, recursive bool
 		Recursive: false,
 		IfExists:  opts.ifExists,
 		Stdin:     true,
+		DryRun:    false,
 	}, []putResult{result})
 }
 
@@ -469,11 +514,16 @@ func parsePutOptions(cmd *cobra.Command) (putOptions, error) {
 	if err != nil {
 		return putOptions{}, err
 	}
+	dryRun, err := dryRunEnabled(cmd)
+	if err != nil {
+		return putOptions{}, err
+	}
 	return putOptions{
 		chunkSize: chunkSize,
 		workers:   workers,
 		debug:     debug,
 		ifExists:  ifExists,
+		dryRun:    dryRun,
 		output:    commandOutput(cmd),
 		errOut:    cmd.ErrOrStderr(),
 	}, nil
@@ -744,6 +794,122 @@ func putRecursiveWithResults(src, dst string, opts putOptions) ([]putResult, []j
 	return putRecursiveInternal(src, dst, opts, true)
 }
 
+func plannedPutFileResult(src, dst string) putResult {
+	metadata := plannedMetadata(putKindFile, dst)
+	return putResult{
+		Status: putStatusUploaded,
+		Kind:   putKindFile,
+		Input: putResultInput{
+			Source: src,
+			Target: dst,
+			DryRun: true,
+		},
+		Result: &metadata,
+	}
+}
+
+func plannedPutFolderResult(src, dst string) putResult {
+	metadata := plannedMetadata(putKindFolder, dst)
+	return putResult{
+		Status: putStatusCreated,
+		Kind:   putKindFolder,
+		Input: putResultInput{
+			Source: src,
+			Target: dst,
+			DryRun: true,
+		},
+		Result: &metadata,
+	}
+}
+
+func renderPlannedPutResults(cmd *cobra.Command, input putCommandInput, results []putResult, warnings []jsonWarning) error {
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		for _, result := range results {
+			if result.Kind == putKindFolder {
+				if err := writeDryRunLine(w, "create directory", result.Input.Target); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := writeDryRunRelocationLine(w, "upload", result.Input.Source, result.Input.Target); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, newJSONCommandOperationOutput(cmd, input, putOperationResults(results), warnings))
+}
+
+// Keep traversal semantics aligned with putRecursiveInternal. Dry-run walks the
+// same local tree but plans results instead of creating Dropbox writes.
+func plannedPutRecursiveResults(src, dst string) ([]putResult, []jsonWarning, error) {
+	src = filepath.Clean(src)
+	var results []putResult
+	var warnings []jsonWarning
+	dirsWithFiles := make(map[string]bool)
+
+	err := filepath.WalkDir(src, func(filePath string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !d.Type().IsRegular() {
+			if d.Type()&os.ModeSymlink != 0 {
+				warnings = append(warnings, jsonWarning{
+					Code:    jsonWarningCodeSkippedSymlink,
+					Message: "skipped symlink during recursive upload",
+					Path:    filePath,
+				})
+			}
+			return nil
+		}
+
+		relPath, err := filepath.Rel(src, filePath)
+		if err != nil {
+			return err
+		}
+		dirsWithFiles[filepath.Dir(filePath)] = true
+		remotePath := path.Join(dst, filepath.ToSlash(relPath))
+		results = append(results, plannedPutFileResult(filePath, remotePath))
+		return nil
+	})
+	if err != nil {
+		return nil, nil, withJSONErrorDetails(err, operationErrorDetails("upload"), pathErrorDetails(src))
+	}
+
+	results = append(results, plannedPutFolderResult(src, dst))
+
+	err = filepath.WalkDir(src, func(dirPath string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		if dirsWithFiles[dirPath] {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(src, dirPath)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+
+		remotePath := path.Join(dst, filepath.ToSlash(relPath))
+		results = append(results, plannedPutFolderResult(dirPath, remotePath))
+		return nil
+	})
+	if err != nil {
+		return nil, nil, withJSONErrorDetails(err, operationErrorDetails("upload"), pathErrorDetails(src))
+	}
+
+	return results, warnings, nil
+}
+
 func putRecursiveInternal(src, dst string, opts putOptions, collectResults bool) ([]putResult, []jsonWarning, error) {
 	src = filepath.Clean(src)
 	var results []putResult
@@ -928,6 +1094,7 @@ var putCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(putCmd)
 	enableStructuredOutput(putCmd)
+	addDryRunFlag(putCmd)
 	putCmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers for chunked large-file uploads")
 	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB")

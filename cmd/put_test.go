@@ -241,6 +241,7 @@ func testConfig() dropbox.Config {
 
 func testPutCmd() *cobra.Command {
 	cmd := &cobra.Command{}
+	addDryRunFlag(cmd)
 	cmd.Flags().BoolP("recursive", "r", false, "Recursively upload directories")
 	cmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers to use")
 	cmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size to use (should be multiple of 4MiB)")
@@ -767,6 +768,135 @@ func TestPutJSONSingleFileOutputsUploadedResult(t *testing.T) {
 	}
 }
 
+func TestPutDryRunTextOutputSnapshot(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != "/uploaded.txt" {
+				t.Fatalf("GetMetadata path during dry-run = %q, want /uploaded.txt", arg.Path)
+			}
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := testPutCmd()
+	cmd.SetOut(&stdout)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := put(cmd, []string{tmpFile, "/uploaded.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	want := fmt.Sprintf("Would upload %s to /uploaded.txt\n", tmpFile)
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestPutJSONDryRunOutputsPlannedResult(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != "/uploaded.txt" {
+				t.Fatalf("GetMetadata path during dry-run = %q, want /uploaded.txt", arg.Path)
+			}
+			return nil, getMetadataNotFoundError()
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := put(cmd, []string{tmpFile, "/uploaded.txt"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Source != tmpFile || got.Input.Target != "/uploaded.txt" || !got.Input.DryRun {
+		t.Fatalf("input = %+v, want source, target, dry_run true", got.Input)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != putKindFile {
+		t.Fatalf("result status/kind = %s/%s, want planned/file", result.Status, result.Kind)
+	}
+	if result.Input.Source != tmpFile || result.Input.Target != "/uploaded.txt" || !result.Input.DryRun {
+		t.Fatalf("result input = %+v, want source, target, dry_run true", result.Input)
+	}
+	if result.Result == nil || result.Result.Type != "file" || result.Result.PathDisplay != "/uploaded.txt" || result.Result.PathLower != "/uploaded.txt" {
+		t.Fatalf("metadata = %+v, want planned file metadata", result.Result)
+	}
+	if result.Result.Size != nil {
+		t.Fatalf("size = %v, want omitted planned size", *result.Result.Size)
+	}
+}
+
+func TestPutJSONDryRunExistingDestinationFolderUsesResolvedPath(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "test.txt")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stubFilesClient(t, &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != "/folder" {
+				t.Fatalf("GetMetadata path during dry-run = %q, want /folder", arg.Path)
+			}
+			return putFolderMetadata("/folder"), nil
+		},
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := put(cmd, []string{tmpFile, "/folder"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if got.Input.Target != "/folder/test.txt" {
+		t.Fatalf("target = %q, want /folder/test.txt", got.Input.Target)
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Input.Target != "/folder/test.txt" {
+		t.Fatalf("result = %+v, want planned upload to /folder/test.txt", result)
+	}
+	if result.Result == nil || result.Result.PathDisplay != "/folder/test.txt" {
+		t.Fatalf("metadata = %+v, want planned /folder/test.txt metadata", result.Result)
+	}
+}
+
 func TestPutJSONDefaultTargetUsesComputedPath(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "local.txt")
 	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
@@ -976,6 +1106,64 @@ func TestPutJSONRecursiveOutputsDirectoryAndFileResults(t *testing.T) {
 	}
 	if !json.Valid(stdout.Bytes()) {
 		t.Fatalf("stdout is not valid JSON: %s", stdout.String())
+	}
+}
+
+func TestPutJSONDryRunRecursiveOutputsPlannedResults(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "empty"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("file"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stubFilesClient(t, &mockFilesClient{
+		uploadFn: func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error) {
+			t.Fatalf("Upload called during dry-run: %v", arg)
+			return nil, nil
+		},
+		createFolderV2Fn: func(arg *files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			t.Fatalf("CreateFolderV2 called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := testPutJSONCmd(&stdout, nil)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := put(cmd, []string{dir, "/remote"}); err != nil {
+		t.Fatalf("put error: %v", err)
+	}
+
+	got := decodePutOutput(t, &stdout)
+	if !got.Input.Recursive || !got.Input.DryRun || got.Input.Source != dir || got.Input.Target != "/remote" {
+		t.Fatalf("input = %+v, want recursive dry-run", got.Input)
+	}
+	want := map[string]string{
+		"/remote/file.txt": putKindFile,
+		"/remote":          putKindFolder,
+		"/remote/empty":    putKindFolder,
+	}
+	if len(got.Results) != len(want) {
+		t.Fatalf("results len = %d, want %d: %+v", len(got.Results), len(want), got.Results)
+	}
+	for _, result := range got.Results {
+		wantKind, ok := want[result.Input.Target]
+		if !ok {
+			t.Fatalf("unexpected result target %q", result.Input.Target)
+		}
+		if result.Status != jsonStatusPlanned || result.Kind != wantKind || !result.Input.DryRun {
+			t.Fatalf("result = %+v, want planned %s dry-run", result, wantKind)
+		}
+		if result.Result == nil || result.Result.PathDisplay != result.Input.Target {
+			t.Fatalf("metadata = %+v, want planned target metadata", result.Result)
+		}
 	}
 }
 
