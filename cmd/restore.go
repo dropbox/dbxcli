@@ -26,6 +26,7 @@ import (
 type restoreInput struct {
 	Path     string `json:"path"`
 	Revision string `json:"revision"`
+	DryRun   bool   `json:"dry_run,omitempty"`
 }
 
 const (
@@ -40,6 +41,10 @@ type restoreResult struct {
 	Result jsonMetadata `json:"result"`
 }
 
+type restoreOptions struct {
+	dryRun bool
+}
+
 func restore(cmd *cobra.Command, args []string) (err error) {
 	if len(args) != 2 {
 		return invalidArgumentsErrorWithDetails("`restore` requires `target-path` and `revision` arguments", argumentsErrorDetails("target-path", "revision"))
@@ -52,6 +57,17 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 
 	rev := args[1]
 
+	opts, err := parseRestoreOptions(cmd)
+	if err != nil {
+		return err
+	}
+	if opts.dryRun {
+		result := newPlannedRestoreResult(path, rev, opts)
+		return commandOutput(cmd).Render(func(w io.Writer) error {
+			return renderPlannedRestoreResult(w, result)
+		}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
+	}
+
 	arg := files.NewRestoreArg(path, rev)
 
 	dbx := filesNewFunc(config)
@@ -61,7 +77,7 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
-	result, err := newRestoreResult(path, rev, metadata)
+	result, err := newRestoreResult(path, rev, opts, metadata)
 	if err != nil {
 		return withJSONErrorDetails(err, restoreErrorDetails(path, rev))
 	}
@@ -74,11 +90,19 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
 }
 
+func parseRestoreOptions(cmd *cobra.Command) (restoreOptions, error) {
+	dryRun, err := dryRunEnabled(cmd)
+	if err != nil {
+		return restoreOptions{}, err
+	}
+	return restoreOptions{dryRun: dryRun}, nil
+}
+
 func restoreErrorDetails(path, revision string) map[string]any {
 	return mergeJSONErrorDetails(operationErrorDetails("restore"), pathErrorDetails(path), revisionErrorDetails(revision))
 }
 
-func newRestoreResult(path, revision string, metadata *files.FileMetadata) (restoreResult, error) {
+func newRestoreResult(path, revision string, opts restoreOptions, metadata *files.FileMetadata) (restoreResult, error) {
 	result, err := restoreMetadataFromDropbox(path, metadata)
 	if err != nil {
 		return restoreResult{}, err
@@ -89,13 +113,29 @@ func newRestoreResult(path, revision string, metadata *files.FileMetadata) (rest
 		Input: restoreInput{
 			Path:     path,
 			Revision: revision,
+			DryRun:   opts.dryRun,
 		},
 		Result: result,
 	}, nil
 }
 
+func newPlannedRestoreResult(path, revision string, opts restoreOptions) restoreResult {
+	result := plannedMetadata(restoreKindFile, path)
+	result.Rev = revision
+	return restoreResult{
+		Status: restoreStatusRestored,
+		Kind:   restoreKindFile,
+		Input: restoreInput{
+			Path:     path,
+			Revision: revision,
+			DryRun:   opts.dryRun,
+		},
+		Result: result,
+	}
+}
+
 func restoreOperationResult(result restoreResult) jsonOperationResult {
-	return newJSONOperationResult(result.Status, result.Kind, result.Input, result.Result)
+	return newJSONOperationResult(plannedStatus(result.Input.DryRun, result.Status), result.Kind, result.Input, result.Result)
 }
 
 func restoreMetadataFromDropbox(path string, metadata *files.FileMetadata) (jsonMetadata, error) {
@@ -131,6 +171,11 @@ func renderRestoreResult(w io.Writer, result restoreResult) error {
 	return err
 }
 
+func renderPlannedRestoreResult(w io.Writer, result restoreResult) error {
+	path := dryRunDisplayPath(result.Result, result.Input.Path)
+	return writeDryRunLine(w, "restore", fmt.Sprintf("%s to revision %s", path, result.Input.Revision))
+}
+
 func restoreResultServerModified(result restoreResult) string {
 	if result.Result.ServerModified != nil {
 		return *result.Result.ServerModified
@@ -154,4 +199,5 @@ Use "dbxcli revs <target-path>" to list available revisions.`,
 func init() {
 	RootCmd.AddCommand(restoreCmd)
 	enableStructuredOutput(restoreCmd)
+	addDryRunFlag(restoreCmd)
 }

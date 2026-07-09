@@ -98,3 +98,13 @@ func TestDryRunDisplayPath(t *testing.T) {
 		t.Fatalf("dryRunDisplayPath fallback = %q, want %q", got, want)
 	}
 }
+
+func TestPlannedMetadata(t *testing.T) {
+	got := plannedMetadata("file", "/Reports/Old.PDF")
+	if got.Type != "file" || got.PathDisplay != "/Reports/Old.PDF" || got.PathLower != "/reports/old.pdf" {
+		t.Fatalf("plannedMetadata = %#v, want file metadata with display and lower paths", got)
+	}
+	if got.Size != nil || got.ServerModified != nil || got.ClientModified != nil {
+		t.Fatalf("plannedMetadata = %#v, want unknown metadata omitted", got)
+	}
+}

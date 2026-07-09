@@ -222,6 +222,7 @@
       "recursive"
     ],
     "restore_input": [
+      "dry_run",
       "path",
       "revision"
     ],
@@ -572,6 +573,7 @@
       "result_input": "restore_input",
       "result": "metadata",
       "statuses": [
+        "planned",
         "restored"
       ],
       "kinds": [

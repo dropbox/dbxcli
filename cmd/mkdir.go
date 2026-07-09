@@ -64,10 +64,7 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if opts.dryRun {
-		result, err := newPlannedMkdirResult(dst, opts)
-		if err != nil {
-			return err
-		}
+		result := newPlannedMkdirResult(dst, opts)
 		return commandOutput(cmd).Render(func(w io.Writer) error {
 			return writeDryRunLine(w, "create directory", result.displayPath())
 		}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)}, nil))
@@ -172,13 +169,17 @@ func newMkdirResult(status, path string, opts mkdirOptions, metadata *files.Fold
 	}, nil
 }
 
-func newPlannedMkdirResult(path string, opts mkdirOptions) (mkdirResult, error) {
-	return newMkdirResult(mkdirStatusCreated, path, opts, &files.FolderMetadata{
-		Metadata: files.Metadata{
-			PathDisplay: path,
-			PathLower:   strings.ToLower(path),
+func newPlannedMkdirResult(path string, opts mkdirOptions) mkdirResult {
+	return mkdirResult{
+		Status: mkdirStatusCreated,
+		Kind:   mkdirKindFolder,
+		Input: mkdirInput{
+			Path:    path,
+			Parents: opts.parents,
+			DryRun:  opts.dryRun,
 		},
-	})
+		Result: plannedMetadata(mkdirKindFolder, path),
+	}
 }
 
 func mkdirOperationResult(result mkdirResult) jsonOperationResult {

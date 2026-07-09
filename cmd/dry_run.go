@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -64,6 +65,14 @@ func renderPlannedRelocationResults(w io.Writer, verb string, results []relocati
 		}
 	}
 	return nil
+}
+
+func plannedMetadata(kind, path string) jsonMetadata {
+	return jsonMetadata{
+		Type:        kind,
+		PathDisplay: path,
+		PathLower:   strings.ToLower(path),
+	}
 }
 
 func dryRunDisplayPath(metadata jsonMetadata, fallback string) string {
