@@ -22,6 +22,7 @@ dbxcli share-link revoke [url] [flags]
 ### Options
 
 ```
+      --dry-run       Preview intended writes without making changes
   -h, --help          help for revoke
       --path string   Revoke direct shared links for a Dropbox path
 ```
@@ -44,7 +45,7 @@ dbxcli share-link revoke [url] [flags]
 * Dropbox scopes: `sharing.read`, `sharing.write`
 * Arguments: `url` (optional, url)
 * Flag metadata: `--output` (values: `json`, `text`)
-* Result statuses: `revoked`
+* Result statuses: `planned`, `revoked`
 * Result kinds: `file`, `folder`, `link`, `shared_link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link revoke`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20revoke`

@@ -17,18 +17,25 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
 )
 
 type shareLinkRevokeOptions struct {
-	path string
+	path   string
+	dryRun bool
 }
 
 type shareLinkRevokeInput struct {
-	URL  string `json:"url,omitempty"`
-	Path string `json:"path,omitempty"`
+	URL    string `json:"url,omitempty"`
+	Path   string `json:"path,omitempty"`
+	DryRun bool   `json:"dry_run,omitempty"`
+}
+
+type shareLinkRevokeResultInput struct {
+	DryRun bool `json:"dry_run,omitempty"`
 }
 
 type shareLinkRevokeResult struct {
@@ -43,11 +50,11 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 	}
 
 	if opts.path != "" {
-		revoked, err := revokeSharedLinksForPath(cmd, opts.path)
+		revoked, err := revokeSharedLinksForPath(cmd, opts.path, opts.dryRun)
 		if err != nil {
 			return err
 		}
-		return renderJSONOperationOutput(cmd, shareLinkRevokeInput{Path: opts.path}, shareLinkRevokeOperationResults(revoked))
+		return renderShareLinkRevokeOutput(cmd, shareLinkRevokeInput{Path: opts.path, DryRun: opts.dryRun}, shareLinkRevokeOperationResults(revoked, opts.dryRun))
 	}
 
 	if len(args) != 1 {
@@ -59,6 +66,12 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 		return invalidArgumentsErrorWithDetails("`share-link revoke` requires a non-empty URL", mergeJSONErrorDetails(argumentErrorDetails("url"), urlErrorDetails(url)))
 	}
 
+	input := shareLinkRevokeInput{URL: url, DryRun: opts.dryRun}
+	results := []shareLinkRevokeResult{{URL: url}}
+	if opts.dryRun {
+		return renderShareLinkRevokeOutput(cmd, input, shareLinkRevokeOperationResults(results, true))
+	}
+
 	dbx := newSharedLinkClient(config)
 	arg := sharing.NewRevokeSharedLinkArg(url)
 	if err := dbx.RevokeSharedLinkContext(currentContext(), arg); err != nil {
@@ -66,27 +79,31 @@ func shareLinkRevoke(cmd *cobra.Command, args []string) error {
 	}
 
 	commandVerboseStatus(cmd, "Revoked shared link %s", url)
-	return renderJSONOperationOutput(
-		cmd,
-		shareLinkRevokeInput{URL: url},
-		shareLinkRevokeOperationResults([]shareLinkRevokeResult{{URL: url}}),
-	)
+	return renderShareLinkRevokeOutput(cmd, input, shareLinkRevokeOperationResults(results, false))
 }
 
-func shareLinkRevokeOperationResults(revoked []shareLinkRevokeResult) []jsonOperationResult {
+func shareLinkRevokeOperationResults(revoked []shareLinkRevokeResult, dryRun bool) []jsonOperationResult {
 	results := make([]jsonOperationResult, 0, len(revoked))
 	for _, result := range revoked {
 		kind := shareLinkJSONKindSharedLink
 		if result.Link != nil {
 			kind = result.Link.Type
 		}
-		results = append(results, newJSONOperationResult(shareLinkJSONStatusRevoked, kind, nil, result))
+		results = append(results, newJSONOperationResult(plannedStatus(dryRun, shareLinkJSONStatusRevoked), kind, shareLinkRevokeResultInput{DryRun: dryRun}, result))
 	}
 	return results
 }
 
 func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRevokeOptions, error) {
 	var opts shareLinkRevokeOptions
+
+	if cmd.Flags().Lookup(dryRunFlagName) != nil {
+		dryRun, err := dryRunEnabled(cmd)
+		if err != nil {
+			return opts, err
+		}
+		opts.dryRun = dryRun
+	}
 
 	if !localFlagChanged(cmd, "path") {
 		return opts, nil
@@ -118,7 +135,7 @@ func parseShareLinkRevokeOptions(cmd *cobra.Command, args []string) (shareLinkRe
 	return opts, nil
 }
 
-func revokeSharedLinksForPath(cmd *cobra.Command, path string) ([]shareLinkRevokeResult, error) {
+func revokeSharedLinksForPath(cmd *cobra.Command, path string, dryRun bool) ([]shareLinkRevokeResult, error) {
 	arg := sharing.NewListSharedLinksArg()
 	arg.Path = path
 	arg.DirectOnly = true
@@ -142,8 +159,10 @@ func revokeSharedLinksForPath(cmd *cobra.Command, path string) ([]shareLinkRevok
 		if !ok {
 			return nil, withJSONErrorDetails(errors.New("found unknown shared link type"), operationErrorDetails("share_link_revoke"), pathErrorDetails(path))
 		}
-		if err := dbx.RevokeSharedLinkContext(currentContext(), sharing.NewRevokeSharedLinkArg(url)); err != nil {
-			return nil, withJSONErrorDetails(fmt.Errorf("revoke shared link %s: %w", url, err), urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
+		if !dryRun {
+			if err := dbx.RevokeSharedLinkContext(currentContext(), sharing.NewRevokeSharedLinkArg(url)); err != nil {
+				return nil, withJSONErrorDetails(fmt.Errorf("revoke shared link %s: %w", url, err), urlErrorDetails(url), operationErrorDetails("share_link_revoke"))
+			}
 		}
 		revoked = append(revoked, shareLinkRevokeResult{
 			URL:  url,
@@ -151,8 +170,28 @@ func revokeSharedLinksForPath(cmd *cobra.Command, path string) ([]shareLinkRevok
 		})
 	}
 
-	commandVerboseStatus(cmd, "Revoked %d shared links for %s", len(links), path)
+	if !dryRun {
+		commandVerboseStatus(cmd, "Revoked %d shared links for %s", len(links), path)
+	}
 	return revoked, nil
+}
+
+func renderShareLinkRevokeOutput(cmd *cobra.Command, input shareLinkRevokeInput, results []jsonOperationResult) error {
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		if !input.DryRun {
+			return nil
+		}
+		for _, result := range results {
+			revoked, ok := result.Result.(shareLinkRevokeResult)
+			if !ok {
+				continue
+			}
+			if err := writeDryRunLine(w, "revoke shared link", revoked.URL); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, newJSONCommandOperationOutput(cmd, input, results, nil))
 }
 
 var shareLinkRevokeCmd = &cobra.Command{
@@ -166,6 +205,7 @@ var shareLinkRevokeCmd = &cobra.Command{
 
 func init() {
 	shareLinkRevokeCmd.Flags().String("path", "", "Revoke direct shared links for a Dropbox path")
+	addDryRunFlag(shareLinkRevokeCmd)
 	shareLinkCmd.AddCommand(shareLinkRevokeCmd)
 	enableStructuredOutput(shareLinkRevokeCmd)
 }

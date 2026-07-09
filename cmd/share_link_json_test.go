@@ -298,6 +298,49 @@ func TestShareLinkRevokeJSONOutputsRevokedURL(t *testing.T) {
 	}
 }
 
+func TestShareLinkRevokeJSONDryRunOutputsPlannedURL(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		revokeSharedLinkFn: func(arg *sharing.RevokeSharedLinkArg) error {
+			t.Fatalf("RevokeSharedLink called during dry-run: %v", arg)
+			return nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkRevokeTestCommand(&stdout, nil)
+	setShareLinkOutputJSON(t, cmd)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkRevoke(cmd, []string{"https://example.com/report"}); err != nil {
+		t.Fatalf("shareLinkRevoke error: %v", err)
+	}
+
+	var got struct {
+		Input   shareLinkRevokeInput `json:"input"`
+		Results []struct {
+			Status string                     `json:"status"`
+			Kind   string                     `json:"kind"`
+			Input  shareLinkRevokeResultInput `json:"input"`
+			Result shareLinkRevokeResult      `json:"result"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode output: %v\n%s", err, stdout.String())
+	}
+	if got.Input.URL != "https://example.com/report" || !got.Input.DryRun {
+		t.Fatalf("input = %+v, want dry-run URL", got.Input)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != shareLinkJSONKindSharedLink || !result.Input.DryRun || result.Result.URL != "https://example.com/report" {
+		t.Fatalf("result = %+v, want planned shared link revoke", result)
+	}
+}
+
 func TestShareLinkDownloadJSONOutputsTargetAndMetadata(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "report.txt")

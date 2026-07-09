@@ -323,8 +323,12 @@
       "resolved_visibility"
     ],
     "share_link_revoke_input": [
+      "dry_run",
       "path",
       "url"
+    ],
+    "share_link_revoke_result_input": [
+      "dry_run"
     ],
     "share_link_revoke_result": [
       "link",
@@ -733,9 +737,10 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_revoke_input",
-      "result_input": "empty",
+      "result_input": "share_link_revoke_result_input",
       "result": "share_link_revoke_result",
       "statuses": [
+        "planned",
         "revoked"
       ],
       "kinds": [
