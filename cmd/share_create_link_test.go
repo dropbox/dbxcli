@@ -212,6 +212,49 @@ func TestSharedLinkCreatePrintsURLAndUsesDefaultSettings(t *testing.T) {
 	}
 }
 
+func TestSharedLinkCreateDryRunDoesNotCallAPI(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		createSharedLinkWithSettingsFn: func(arg *sharing.CreateSharedLinkWithSettingsArg) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("CreateSharedLinkWithSettings called during dry-run: %v", arg)
+			return nil, nil
+		},
+		createSharedLinkWithRawSettingsFn: func(path string, settings *rawSharedLinkSettings) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("CreateSharedLinkWithRawSettings called during dry-run: %s %#v", path, settings)
+			return nil, nil
+		},
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			t.Fatalf("ListSharedLinks called during dry-run: %v", arg)
+			return nil, nil
+		},
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("ModifySharedLinkSettings called during dry-run: %v", arg)
+			return nil, nil
+		},
+		modifySharedLinkSettingsRawFn: func(url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
+			t.Fatalf("ModifySharedLinkSettingsRaw called during dry-run: %s %#v removeExpiration=%t", url, settings, removeExpiration)
+			return nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkCreateTestCommand(&stdout)
+	if err := cmd.Flags().Set("audience", "team"); err != nil {
+		t.Fatalf("set audience: %v", err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkCreate(cmd, []string{"/file.txt"}); err != nil {
+		t.Fatalf("shareLinkCreate error: %v", err)
+	}
+
+	const want = "Would create shared link /file.txt\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
 func TestSharedLinkCreateWithExpiresSetsExpiration(t *testing.T) {
 	wantExpires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	mock := &mockSharedLinkClient{
@@ -1283,6 +1326,9 @@ func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
 	if shareLinkCreateCmd.Flags().Lookup("password-file") == nil {
 		t.Fatal("share-link create should define --password-file")
 	}
+	if shareLinkCreateCmd.Flags().Lookup(dryRunFlagName) == nil {
+		t.Fatalf("share-link create should define --%s", dryRunFlagName)
+	}
 
 	cmd, _, err = RootCmd.Find([]string{"share", "list", "link"})
 	if err != nil {
@@ -1297,6 +1343,22 @@ func TestShareLinkCreateDoesNotBreakShareListLinkCommand(t *testing.T) {
 	if !strings.Contains(shareListLinksCmd.Deprecated, "share-link list") {
 		t.Fatalf("deprecation message = %q, want share-link list replacement", shareListLinksCmd.Deprecated)
 	}
+}
+
+func newShareLinkCreateTestCommand(stdout *bytes.Buffer) *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("access", "", "")
+	cmd.Flags().String("audience", "", "")
+	cmd.Flags().Bool("allow-download", false, "")
+	cmd.Flags().Bool("disallow-download", false, "")
+	cmd.Flags().String("expires", "", "")
+	cmd.Flags().Bool("remove-expiration", false, "")
+	addSharedLinkPasswordFlags(cmd)
+	addDryRunFlag(cmd)
+	if stdout != nil {
+		cmd.SetOut(stdout)
+	}
+	return cmd
 }
 
 func TestShareLinkListListsAllLinks(t *testing.T) {

@@ -760,8 +760,8 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"share list link": newJSONOperationOutput(shareLinkListInput{Path: "/Reports/old.pdf", DirectOnly: true}, []jsonOperationResult{
 			shareLinkJSONOperationResult(shareLinkJSONStatusListed, sharedLink),
 		}, []jsonWarning{{Code: jsonWarningCodeDeprecatedCommand, Message: "use `dbxcli share-link list` instead"}}),
-		"share-link create": newJSONOperationOutput(shareLinkCreateInput{Path: "/Reports/old.pdf", Access: "max", Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true}, []jsonOperationResult{
-			shareLinkJSONOperationResult(shareLinkJSONStatusCreated, sharedLink),
+		"share-link create": newJSONOperationOutput(shareLinkCreateInput{Path: "/Reports/old.pdf", Access: "max", Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true, DryRun: false}, []jsonOperationResult{
+			shareLinkCreateOperationResult(shareLinkJSONStatusCreated, sharedLink, shareLinkCreateOptions{dryRun: false}),
 		}, nil),
 		"share-link download": newJSONOperationOutput(shareLinkDownloadInput{URL: sharedLink.URL, Target: "old.pdf", Path: "/old.pdf", Recursive: false, Password: true}, []jsonOperationResult{
 			newJSONOperationResult(shareLinkJSONStatusDownloaded, sharedLink.Type, nil, shareLinkDownloadResult{Target: "old.pdf", Link: sharedLink}),
@@ -1063,6 +1063,7 @@ func jsonContractDefinitions() map[string][]string {
 		"search_input":                   jsonFieldNames[searchInput](),
 		"share_folder":                   jsonFieldNames[shareFolderJSONMetadata](),
 		"share_link_create_input":        jsonFieldNames[shareLinkCreateInput](),
+		"share_link_create_result_input": jsonFieldNames[shareLinkCreateResultInput](),
 		"share_link_download_input":      jsonFieldNames[shareLinkDownloadInput](),
 		"share_link_download_result":     jsonFieldNames[shareLinkDownloadResult](),
 		"share_link_info_input":          jsonFieldNames[shareLinkInfoInput](),
@@ -1103,7 +1104,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"search":            operationSchema("search_input", schemaRef("empty"), "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),
 		"share list folder": operationSchema("empty", schemaRef("empty"), "share_folder", []string{shareFolderJSONStatusListed}, []string{shareFolderJSONKindFolder}, nil),
 		"share list link":   operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), []string{jsonWarningCodeDeprecatedCommand}),
-		"share-link create": operationSchema("share_link_create_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusCreated, shareLinkJSONStatusExisting}, shareLinkKinds(), nil),
+		"share-link create": operationSchema("share_link_create_input", schemaRef("share_link_create_result_input"), "share_link_metadata", []string{shareLinkJSONStatusCreated, shareLinkJSONStatusExisting, jsonStatusPlanned}, shareLinkKinds(), nil),
 		"share-link download": operationSchema(
 			"share_link_download_input",
 			schemaRef("empty"),

@@ -2418,7 +2418,7 @@
       "additionalProperties": false,
       "properties": {
         "input": {
-          "$ref": "#/$defs/empty"
+          "$ref": "#/$defs/share_link_create_result_input"
         },
         "kind": {
           "enum": [
@@ -2433,7 +2433,8 @@
         "status": {
           "enum": [
             "created",
-            "existing"
+            "existing",
+            "planned"
           ]
         }
       },
@@ -2938,6 +2939,9 @@
         "disallow_download": {
           "type": "boolean"
         },
+        "dry_run": {
+          "type": "boolean"
+        },
         "expires": {
           "format": "date-time",
           "type": "string"
@@ -2955,6 +2959,15 @@
       "required": [
         "path"
       ],
+      "type": "object"
+    },
+    "share_link_create_result_input": {
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        }
+      },
       "type": "object"
     },
     "share_link_download_input": {
