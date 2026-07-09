@@ -31,6 +31,7 @@ dbxcli share-link create <path> [flags]
       --allow-download         Allow downloads from the shared link
       --audience string        Set shared link audience: public, team, members, or no-one
       --disallow-download      Disallow downloads from the shared link
+      --dry-run                Preview intended writes without making changes
       --expires string         Set shared link expiration time as an RFC3339 timestamp
   -h, --help                   help for create
       --password string        Password for password-protected shared links
@@ -57,7 +58,7 @@ dbxcli share-link create <path> [flags]
 * Dropbox scopes: `sharing.read`, `sharing.write`
 * Arguments: `path` (required, dropbox_path)
 * Flag metadata: `--access` (values: `editor`, `max`, `viewer`), `--allow-download` (conflicts: `disallow-download`), `--audience` (values: `members`, `no-one`, `public`, `team`), `--disallow-download` (conflicts: `allow-download`), `--expires` (conflicts: `remove-expiration`), `--output` (values: `json`, `text`), `--password` (conflicts: `password-file`, `password-prompt`; sensitive), `--password-file` (conflicts: `password`, `password-prompt`), `--password-prompt` (conflicts: `password`, `password-file`; may prompt), `--remove-expiration` (conflicts: `expires`)
-* Result statuses: `created`, `existing`
+* Result statuses: `created`, `existing`, `planned`
 * Result kinds: `file`, `folder`, `link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link create`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20create`

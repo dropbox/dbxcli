@@ -255,7 +255,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 	"share-link create": {
 		Args:          []jsonCommandArg{commandArg("path", true, false, "dropbox_path", "Dropbox path to share")},
 		Examples:      []jsonCommandExample{{Description: "Create a shared link", Command: "dbxcli share-link create /Reports/report.pdf"}},
-		Flags:         mergeCommandFlagMetadata(mergeCommandFlagMetadata(sharedLinkSettingsFlagMetadata, sharedLinkPasswordFlagMetadata), map[string]jsonCommandFlagMetadata{"access": {EnumValues: []string{"viewer", "editor", "max"}, ValueKind: "enum"}}),
+		Flags:         mergeCommandFlagMetadata(mergeCommandFlagMetadata(sharedLinkSettingsFlagMetadata, sharedLinkPasswordFlagMetadata), map[string]jsonCommandFlagMetadata{dryRunFlagName: {ValueKind: "boolean"}, "access": {EnumValues: []string{"viewer", "editor", "max"}, ValueKind: "enum"}}),
 		DropboxScopes: []string{"sharing.write", "sharing.read"},
 		Known:         true,
 	},
@@ -360,7 +360,7 @@ var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"search":              {Statuses: []string{"found"}, Kinds: []string{"deleted", "file", "folder"}},
 	"share list folder":   {Statuses: []string{"listed"}, Kinds: []string{"shared_folder"}},
 	"share list link":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}, Warnings: []string{jsonWarningCodeDeprecatedCommand}},
-	"share-link create":   {Statuses: []string{"created", "existing"}, Kinds: []string{"file", "folder", "link"}},
+	"share-link create":   {Statuses: []string{"created", "existing", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link"}},
 	"share-link download": {Statuses: []string{"downloaded"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link info":     {Statuses: []string{"found"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link list":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}},

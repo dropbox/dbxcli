@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -33,6 +34,7 @@ type shareLinkCreateOptions struct {
 	access           *sharing.RequestedLinkAccessLevel
 	audience         *sharing.LinkAudience
 	password         sharedLinkPasswordOptions
+	dryRun           bool
 }
 
 type shareLinkCreateInput struct {
@@ -44,6 +46,11 @@ type shareLinkCreateInput struct {
 	AllowDownload    bool   `json:"allow_download,omitempty"`
 	DisallowDownload bool   `json:"disallow_download,omitempty"`
 	Password         bool   `json:"password,omitempty"`
+	DryRun           bool   `json:"dry_run,omitempty"`
+}
+
+type shareLinkCreateResultInput struct {
+	DryRun bool `json:"dry_run,omitempty"`
 }
 
 func shareLinkCreate(cmd *cobra.Command, args []string) error {
@@ -62,6 +69,10 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	opts, err := parseShareLinkCreateOptions(cmd)
 	if err != nil {
 		return err
+	}
+
+	if opts.dryRun {
+		return renderShareLinkCreateDryRunOutput(cmd, path, opts)
 	}
 
 	dbx := newSharedLinkClient(config)
@@ -107,7 +118,7 @@ func shareLinkCreate(cmd *cobra.Command, args []string) error {
 	}, newJSONCommandOperationOutput(
 		cmd,
 		newShareLinkCreateInput(path, opts),
-		[]jsonOperationResult{shareLinkJSONOperationResult(status, result)},
+		[]jsonOperationResult{shareLinkCreateOperationResult(status, result, opts)},
 		nil,
 	))
 }
@@ -119,6 +130,7 @@ func newShareLinkCreateInput(path string, opts shareLinkCreateOptions) shareLink
 		AllowDownload:    opts.allowDownload,
 		DisallowDownload: opts.disallowDownload,
 		Password:         opts.password.set,
+		DryRun:           opts.dryRun,
 	}
 	if opts.access != nil {
 		input.Access = opts.access.Tag
@@ -201,6 +213,13 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 		return opts, err
 	}
 	opts.password = password
+	if cmd.Flags().Lookup(dryRunFlagName) != nil {
+		dryRun, err := dryRunEnabled(cmd)
+		if err != nil {
+			return opts, err
+		}
+		opts.dryRun = dryRun
+	}
 
 	if opts.expires != nil && opts.removeExpiration {
 		return opts, invalidArgumentsErrorWithDetails("`--expires` and `--remove-expiration` cannot be used together", flagsErrorDetails("expires", "remove-expiration"))
@@ -210,6 +229,30 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 	}
 
 	return opts, nil
+}
+
+func shareLinkCreateOperationResult(status string, metadata shareLinkJSONMetadata, opts shareLinkCreateOptions) jsonOperationResult {
+	return newJSONOperationResult(plannedStatus(opts.dryRun, status), metadata.Type, shareLinkCreateResultInput{DryRun: opts.dryRun}, metadata)
+}
+
+func plannedShareLinkCreateMetadata(path string) shareLinkJSONMetadata {
+	return shareLinkJSONMetadata{
+		Type:      shareLinkJSONKindLink,
+		URL:       "",
+		PathLower: strings.ToLower(path),
+	}
+}
+
+func renderShareLinkCreateDryRunOutput(cmd *cobra.Command, path string, opts shareLinkCreateOptions) error {
+	result := plannedShareLinkCreateMetadata(path)
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return writeDryRunLine(w, "create shared link", path)
+	}, newJSONCommandOperationOutput(
+		cmd,
+		newShareLinkCreateInput(path, opts),
+		[]jsonOperationResult{shareLinkCreateOperationResult(shareLinkJSONStatusCreated, result, opts)},
+		nil,
+	))
 }
 
 func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsSharedLinkMetadata, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {
@@ -477,6 +520,7 @@ func init() {
 	shareLinkCreateCmd.Flags().String("expires", "", "Set shared link expiration time as an RFC3339 timestamp")
 	shareLinkCreateCmd.Flags().Bool("remove-expiration", false, "Remove expiration when returning an existing shared link")
 	addSharedLinkPasswordFlags(shareLinkCreateCmd)
+	addDryRunFlag(shareLinkCreateCmd)
 	shareLinkCmd.AddCommand(shareLinkCreateCmd)
 	enableStructuredOutput(shareLinkCreateCmd)
 }

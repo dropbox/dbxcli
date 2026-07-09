@@ -267,10 +267,14 @@
       "allow_download",
       "audience",
       "disallow_download",
+      "dry_run",
       "expires",
       "password",
       "path",
       "remove_expiration"
+    ],
+    "share_link_create_result_input": [
+      "dry_run"
     ],
     "share_link_download_input": [
       "password",
@@ -676,11 +680,12 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_create_input",
-      "result_input": "empty",
+      "result_input": "share_link_create_result_input",
       "result": "share_link_metadata",
       "statuses": [
         "created",
-        "existing"
+        "existing",
+        "planned"
       ],
       "kinds": [
         "file",
