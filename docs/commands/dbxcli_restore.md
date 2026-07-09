@@ -25,7 +25,8 @@ dbxcli restore [flags] <target-path> <revision>
 ### Options
 
 ```
-  -h, --help   help for restore
+      --dry-run   Preview intended writes without making changes
+  -h, --help      help for restore
 ```
 
 ### Options inherited from parent commands
@@ -46,7 +47,7 @@ dbxcli restore [flags] <target-path> <revision>
 * Dropbox scopes: `files.content.write`, `files.metadata.read`
 * Arguments: `target-path` (required, dropbox_path), `revision` (required, revision)
 * Flag metadata: `--output` (values: `json`, `text`)
-* Result statuses: `restored`
+* Result statuses: `planned`, `restored`
 * Result kinds: `file`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/restore`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_restore`

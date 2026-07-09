@@ -1095,7 +1095,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"mkdir":             operationSchema("mkdir_input", schemaRef("mkdir_input"), "metadata", []string{mkdirStatusCreated, mkdirStatusExisting, jsonStatusPlanned}, []string{mkdirKindFolder}, nil),
 		"mv":                operationSchema("empty", schemaRef("relocation_input"), "metadata", []string{relocationJSONStatusAutorenamed, relocationJSONStatusMoved, relocationJSONStatusSkipped, jsonStatusPlanned}, metadataKinds(), nil),
 		"put":               operationSchema("put_input", schemaRef("put_result_input"), "metadata", []string{putStatusAutorenamed, putStatusCreated, putStatusExisting, putStatusSkipped, putStatusUploaded}, []string{putKindFile, putKindFolder}, []string{jsonWarningCodeSkippedSymlink}),
-		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored}, []string{restoreKindFile}, nil),
+		"restore":           operationSchema("restore_input", schemaRef("restore_input"), "metadata", []string{restoreStatusRestored, jsonStatusPlanned}, []string{restoreKindFile}, nil),
 		"revs":              operationSchema("revs_input", schemaRef("empty"), "metadata", []string{revsJSONStatusRevision}, []string{"file"}, nil),
 		"rm":                operationSchema("empty", schemaRef("remove_input"), "metadata", []string{removeJSONStatusDeleted, removeJSONStatusPermanentlyDeleted, jsonStatusPlanned}, metadataKinds(), nil),
 		"search":            operationSchema("search_input", schemaRef("empty"), "metadata", []string{searchJSONStatusFound}, metadataKinds(), nil),

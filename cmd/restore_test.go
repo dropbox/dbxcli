@@ -101,7 +101,7 @@ func TestRestoreVerbosePrintsRevisionAndServerModifiedTime(t *testing.T) {
 func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	clientModified := time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC)
 	serverModified := time.Date(2026, 6, 17, 12, 30, 0, 0, time.UTC)
-	result, err := newRestoreResult("/Reports/old.pdf", "target-rev", &files.FileMetadata{
+	result, err := newRestoreResult("/Reports/old.pdf", "target-rev", restoreOptions{}, &files.FileMetadata{
 		Metadata: files.Metadata{
 			PathDisplay: "/Reports/old.pdf",
 			PathLower:   "/reports/old.pdf",
@@ -134,6 +134,67 @@ func TestNewRestoreResultKeepsInputAndMetadata(t *testing.T) {
 	}
 	if result.Result.ClientModified == nil || *result.Result.ClientModified != "2026-06-16T10:00:00Z" {
 		t.Fatalf("client modified = %v, want 2026-06-16T10:00:00Z", result.Result.ClientModified)
+	}
+}
+
+func TestRestoreDryRunTextOutputSnapshot(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+	stubFilesClient(t, &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			t.Fatalf("Restore called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err != nil {
+		t.Fatalf("restore error: %v", err)
+	}
+
+	const want = "Would restore /Reports/old.pdf to revision target-rev\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestRestoreJSONDryRunOutputsPlannedResult(t *testing.T) {
+	cmd, stdout := testRestoreCmd()
+	setRestoreOutputJSON(t, cmd)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+	stubFilesClient(t, &mockFilesClient{
+		restoreFn: func(arg *files.RestoreArg) (*files.FileMetadata, error) {
+			t.Fatalf("Restore called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	if err := restore(cmd, []string{"/Reports/old.pdf", "target-rev"}); err != nil {
+		t.Fatalf("restore error: %v", err)
+	}
+
+	got := decodeRestoreOutput(t, stdout)
+	if got.Input.Path != "/Reports/old.pdf" || got.Input.Revision != "target-rev" || !got.Input.DryRun {
+		t.Fatalf("input = %#v, want path, revision, dry_run true", got.Input)
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != restoreKindFile {
+		t.Fatalf("status/kind = %s/%s, want planned/file", result.Status, result.Kind)
+	}
+	if result.Input.Path != "/Reports/old.pdf" || result.Input.Revision != "target-rev" || !result.Input.DryRun {
+		t.Fatalf("result input = %#v, want path, revision, dry_run true", result.Input)
+	}
+	if result.Result.Type != "file" || result.Result.PathDisplay != "/Reports/old.pdf" || result.Result.PathLower != "/reports/old.pdf" {
+		t.Fatalf("metadata = %#v, want planned target file metadata", result.Result)
+	}
+	if result.Result.Rev != "target-rev" {
+		t.Fatalf("rev = %q, want target-rev", result.Result.Rev)
+	}
+	if result.Result.Size != nil {
+		t.Fatalf("size = %v, want omitted planned size", *result.Result.Size)
 	}
 }
 
@@ -275,12 +336,19 @@ func TestRestoreCommandSupportsStructuredOutput(t *testing.T) {
 	}
 }
 
+func TestRestoreCommandDefinesDryRunFlag(t *testing.T) {
+	if restoreCmd.Flags().Lookup(dryRunFlagName) == nil {
+		t.Fatalf("restore should define --%s", dryRunFlagName)
+	}
+}
+
 func testRestoreCmd() (*cobra.Command, *bytes.Buffer) {
 	var stdout bytes.Buffer
 	cmd := &cobra.Command{Use: "restore"}
 	cmd.SetOut(&stdout)
 	cmd.Flags().BoolP("verbose", "v", false, "")
 	cmd.Flags().String(outputFlag, "text", "")
+	addDryRunFlag(cmd)
 	return cmd, &stdout
 }
 

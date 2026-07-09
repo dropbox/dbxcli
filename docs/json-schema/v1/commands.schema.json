@@ -1911,6 +1911,9 @@
     "restore_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "path": {
           "type": "string"
         },
@@ -2243,6 +2246,7 @@
         },
         "status": {
           "enum": [
+            "planned",
             "restored"
           ]
         }
