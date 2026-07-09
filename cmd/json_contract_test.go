@@ -775,8 +775,8 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"share-link revoke": newJSONOperationOutput(shareLinkRevokeInput{Path: "/Reports/old.pdf", DryRun: false}, []jsonOperationResult{
 			newJSONOperationResult(shareLinkJSONStatusRevoked, sharedLink.Type, shareLinkRevokeResultInput{DryRun: false}, shareLinkRevokeResult{URL: sharedLink.URL, Link: &sharedLink}),
 		}, nil),
-		"share-link update": newJSONOperationOutput(shareLinkUpdateInput{URL: sharedLink.URL, Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true, RemovePassword: false}, []jsonOperationResult{
-			shareLinkJSONOperationResult(shareLinkJSONStatusUpdated, sharedLink),
+		"share-link update": newJSONOperationOutput(shareLinkUpdateInput{URL: sharedLink.URL, Audience: "public", Expires: "2026-07-01T00:00:00Z", RemoveExpiration: false, AllowDownload: true, DisallowDownload: false, Password: true, RemovePassword: false, DryRun: false}, []jsonOperationResult{
+			shareLinkUpdateOperationResult(shareLinkJSONStatusUpdated, sharedLink, shareLinkUpdateOptions{dryRun: false}),
 		}, nil),
 		"team add-member": newJSONOperationOutput(teamMemberAddInput{Email: "ada@example.com", FirstName: "Ada", LastName: "Lovelace"}, []jsonOperationResult{
 			newJSONOperationResult(teamJSONStatusAdded, teamJSONKindTeamMember, teamMemberAddInput{Email: "ada@example.com", FirstName: "Ada", LastName: "Lovelace"}, teamMemberMutationJSON{
@@ -1073,6 +1073,7 @@ func jsonContractDefinitions() map[string][]string {
 		"share_link_revoke_result_input": jsonFieldNames[shareLinkRevokeResultInput](),
 		"share_link_revoke_result":       jsonFieldNames[shareLinkRevokeResult](),
 		"share_link_update_input":        jsonFieldNames[shareLinkUpdateInput](),
+		"share_link_update_result_input": jsonFieldNames[shareLinkUpdateResultInput](),
 		"team_group":                     jsonFieldNames[teamGroupJSON](),
 		"team_info":                      jsonFieldNames[teamInfoJSON](),
 		"team_member":                    jsonFieldNames[teamMemberJSON](),
@@ -1114,7 +1115,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 		"share-link info":    operationSchema("share_link_info_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusFound}, shareLinkKinds(), nil),
 		"share-link list":    operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), nil),
 		"share-link revoke":  operationSchema("share_link_revoke_input", schemaRef("share_link_revoke_result_input"), "share_link_revoke_result", []string{shareLinkJSONStatusRevoked, jsonStatusPlanned}, append(shareLinkKinds(), shareLinkJSONKindSharedLink), nil),
-		"share-link update":  operationSchema("share_link_update_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusUpdated}, shareLinkKinds(), nil),
+		"share-link update":  operationSchema("share_link_update_input", schemaRef("share_link_update_result_input"), "share_link_metadata", []string{shareLinkJSONStatusUpdated, jsonStatusPlanned}, shareLinkKinds(), nil),
 		"team add-member":    operationSchema("team_member_add_input", schemaRef("team_member_add_input"), "team_member_mutation", []string{teamJSONStatusAdded, teamJSONStatusCompleted, teamJSONStatusStarted}, []string{teamJSONKindTeamMember}, nil),
 		"team info":          operationSchema("empty", schemaRef("empty"), "team_info", []string{teamJSONStatusFound}, []string{teamJSONKindTeam}, nil),
 		"team list-groups":   operationSchema("empty", schemaRef("empty"), "team_group", []string{teamJSONStatusListed}, []string{teamJSONKindTeamGroup}, nil),

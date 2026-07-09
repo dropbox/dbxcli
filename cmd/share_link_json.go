@@ -48,6 +48,7 @@ const (
 	shareLinkJSONStatusRevoked    = "revoked"
 	shareLinkJSONStatusUpdated    = "updated"
 
+	shareLinkJSONKindLink       = "link"
 	shareLinkJSONKindSharedLink = "shared_link"
 )
 

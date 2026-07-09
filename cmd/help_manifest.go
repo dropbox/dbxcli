@@ -297,6 +297,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 		Args:     []jsonCommandArg{commandArg("url", true, false, "url", "Shared link URL")},
 		Examples: []jsonCommandExample{{Description: "Set a shared link audience", Command: "dbxcli share-link update https://www.dropbox.com/s/example/file.txt --audience team"}},
 		Flags: mergeCommandFlagMetadata(mergeCommandFlagMetadata(sharedLinkSettingsFlagMetadata, sharedLinkPasswordFlagMetadata), map[string]jsonCommandFlagMetadata{
+			dryRunFlagName:    {ValueKind: "boolean"},
 			"password":        {Conflicts: []string{"password-file", "password-prompt", "remove-password"}, Sensitive: true, ValueKind: "secret"},
 			"password-file":   {Conflicts: []string{"password", "password-prompt", "remove-password"}, ValueKind: "local_file"},
 			"password-prompt": {Conflicts: []string{"password", "password-file", "remove-password"}, MayPrompt: true, ValueKind: "boolean"},
@@ -364,7 +365,7 @@ var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"share-link info":     {Statuses: []string{"found"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link list":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link revoke":   {Statuses: []string{"revoked", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link", "shared_link"}},
-	"share-link update":   {Statuses: []string{"updated"}, Kinds: []string{"file", "folder", "link"}},
+	"share-link update":   {Statuses: []string{"updated", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link"}},
 	"team add-member":     {Statuses: []string{"added", "completed", "started"}, Kinds: []string{"team_member"}},
 	"team info":           {Statuses: []string{"found"}, Kinds: []string{"team"}},
 	"team list-groups":    {Statuses: []string{"listed"}, Kinds: []string{"team_group"}},

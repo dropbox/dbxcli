@@ -289,6 +289,41 @@ func TestShareLinkUpdateDisallowsDownload(t *testing.T) {
 	}
 }
 
+func TestShareLinkUpdateDryRunDoesNotCallAPI(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("ModifySharedLinkSettings called during dry-run: %v", arg)
+			return nil, nil
+		},
+		modifySharedLinkSettingsRawFn: func(url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
+			t.Fatalf("ModifySharedLinkSettingsRaw called during dry-run: %s %#v removeExpiration=%t", url, settings, removeExpiration)
+			return nil
+		},
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("GetSharedLinkMetadata called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkUpdateTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("disallow-download", "true"); err != nil {
+		t.Fatalf("set disallow-download: %v", err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/link"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+
+	const want = "Would update shared link https://example.com/link\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
 func TestShareLinkUpdateDisallowDownloadCombinesSettingsInOneRawCall(t *testing.T) {
 	expires := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	var rawCalls int
@@ -651,6 +686,9 @@ func TestShareLinkUpdateCommandIsRegistered(t *testing.T) {
 	if shareLinkUpdateCmd.Flags().Lookup("disallow-download") == nil {
 		t.Fatal("share-link update should define --disallow-download")
 	}
+	if shareLinkUpdateCmd.Flags().Lookup(dryRunFlagName) == nil {
+		t.Fatalf("share-link update should define --%s", dryRunFlagName)
+	}
 }
 
 func newShareLinkUpdateTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
@@ -662,6 +700,7 @@ func newShareLinkUpdateTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command 
 	cmd.Flags().Bool("disallow-download", false, "")
 	addSharedLinkPasswordFlags(cmd)
 	cmd.Flags().Bool("remove-password", false, "")
+	addDryRunFlag(cmd)
 	cmd.Flags().Bool("verbose", false, "")
 	if stdout != nil {
 		cmd.SetOut(stdout)
