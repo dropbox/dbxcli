@@ -84,6 +84,30 @@ func TestShareLinkRevokeCallsAPIWithURL(t *testing.T) {
 	}
 }
 
+func TestShareLinkRevokeDryRunURLDoesNotCallAPI(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		revokeSharedLinkFn: func(arg *sharing.RevokeSharedLinkArg) error {
+			t.Fatalf("RevokeSharedLink called during dry-run: %v", arg)
+			return nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkRevokeTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkRevoke(cmd, []string{"https://www.dropbox.com/s/abc123"}); err != nil {
+		t.Fatalf("shareLinkRevoke error: %v", err)
+	}
+
+	const want = "Would revoke shared link https://www.dropbox.com/s/abc123\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
 func TestShareLinkRevokeVerboseWritesStatusToStderr(t *testing.T) {
 	stubSharedLinkClient(t, &mockSharedLinkClient{
 		revokeSharedLinkFn: func(arg *sharing.RevokeSharedLinkArg) error {
@@ -245,6 +269,46 @@ func TestShareLinkRevokePathListsDirectLinksAndRevokesAll(t *testing.T) {
 	}
 	if stdout.String() != "" {
 		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
+func TestShareLinkRevokePathDryRunListsDirectLinksWithoutRevoking(t *testing.T) {
+	var listArg *sharing.ListSharedLinksArg
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		listSharedLinksFn: func(arg *sharing.ListSharedLinksArg) (*sharing.ListSharedLinksResult, error) {
+			listArg = arg
+			return sharing.NewListSharedLinksResult([]sharing.IsSharedLinkMetadata{
+				sharedLinkFile("/docs/file.txt", "https://example.com/one"),
+				sharedLinkFile("/docs/file.txt", "https://example.com/two"),
+			}, false), nil
+		},
+		revokeSharedLinkFn: func(arg *sharing.RevokeSharedLinkArg) error {
+			t.Fatalf("RevokeSharedLink called during dry-run: %v", arg)
+			return nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkRevokeTestCommand(&stdout, nil)
+	if err := cmd.Flags().Set("path", "/docs/file.txt"); err != nil {
+		t.Fatalf("set path: %v", err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkRevoke(cmd, nil); err != nil {
+		t.Fatalf("shareLinkRevoke error: %v", err)
+	}
+	if listArg == nil {
+		t.Fatal("expected ListSharedLinks to be called")
+	}
+	if listArg.Path != "/docs/file.txt" || !listArg.DirectOnly {
+		t.Fatalf("ListSharedLinks arg = %#v, want direct /docs/file.txt", listArg)
+	}
+	const want = "Would revoke shared link https://example.com/one\nWould revoke shared link https://example.com/two\n"
+	if got := stdout.String(); got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
 	}
 }
 
@@ -419,6 +483,9 @@ func TestShareLinkRevokeDoesNotBreakOtherCommands(t *testing.T) {
 	if shareLinkRevokeCmd.Flags().Lookup("path") == nil {
 		t.Fatal("share-link revoke should define --path")
 	}
+	if shareLinkRevokeCmd.Flags().Lookup(dryRunFlagName) == nil {
+		t.Fatalf("share-link revoke should define --%s", dryRunFlagName)
+	}
 	if shareLinkRevokeCmd.Use != "revoke [url]" {
 		t.Fatalf("share-link revoke use = %q, want optional URL", shareLinkRevokeCmd.Use)
 	}
@@ -443,6 +510,7 @@ func TestShareLinkRevokeDoesNotBreakOtherCommands(t *testing.T) {
 func newShareLinkRevokeTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Flags().String("path", "", "")
+	addDryRunFlag(cmd)
 	cmd.Flags().Bool("verbose", false, "")
 	if stdout != nil {
 		cmd.SetOut(stdout)

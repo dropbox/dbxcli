@@ -2539,7 +2539,7 @@
       "additionalProperties": false,
       "properties": {
         "input": {
-          "$ref": "#/$defs/empty"
+          "$ref": "#/$defs/share_link_revoke_result_input"
         },
         "kind": {
           "enum": [
@@ -2554,6 +2554,7 @@
         },
         "status": {
           "enum": [
+            "planned",
             "revoked"
           ]
         }
@@ -3142,6 +3143,9 @@
     "share_link_revoke_input": {
       "additionalProperties": false,
       "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
         "path": {
           "type": "string"
         },
@@ -3164,6 +3168,15 @@
       "required": [
         "url"
       ],
+      "type": "object"
+    },
+    "share_link_revoke_result_input": {
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        }
+      },
       "type": "object"
     },
     "share_link_update_input": {

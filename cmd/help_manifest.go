@@ -289,7 +289,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 	"share-link revoke": {
 		Args:          []jsonCommandArg{commandArg("url", false, false, "url", "Shared link URL; omit when using --path")},
 		Examples:      []jsonCommandExample{{Description: "Revoke a shared link", Command: "dbxcli share-link revoke https://www.dropbox.com/s/example/file.txt"}},
-		Flags:         map[string]jsonCommandFlagMetadata{"path": {ValueKind: "dropbox_path"}},
+		Flags:         map[string]jsonCommandFlagMetadata{dryRunFlagName: {ValueKind: "boolean"}, "path": {ValueKind: "dropbox_path"}},
 		DropboxScopes: []string{"sharing.write", "sharing.read"},
 		Known:         true,
 	},
@@ -363,7 +363,7 @@ var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"share-link download": {Statuses: []string{"downloaded"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link info":     {Statuses: []string{"found"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link list":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}},
-	"share-link revoke":   {Statuses: []string{"revoked"}, Kinds: []string{"file", "folder", "link", "shared_link"}},
+	"share-link revoke":   {Statuses: []string{"revoked", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link", "shared_link"}},
 	"share-link update":   {Statuses: []string{"updated"}, Kinds: []string{"file", "folder", "link"}},
 	"team add-member":     {Statuses: []string{"added", "completed", "started"}, Kinds: []string{"team_member"}},
 	"team info":           {Statuses: []string{"found"}, Kinds: []string{"team"}},
