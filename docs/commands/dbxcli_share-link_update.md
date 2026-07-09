@@ -29,6 +29,7 @@ dbxcli share-link update <url> [flags]
       --allow-download         Allow downloads from the shared link
       --audience string        Set shared link audience: public, team, members, or no-one
       --disallow-download      Disallow downloads from the shared link
+      --dry-run                Preview intended writes without making changes
       --expires string         Set shared link expiration time as an RFC3339 timestamp
   -h, --help                   help for update
       --password string        Password for password-protected shared links
@@ -56,7 +57,7 @@ dbxcli share-link update <url> [flags]
 * Dropbox scopes: `sharing.read`, `sharing.write`
 * Arguments: `url` (required, url)
 * Flag metadata: `--allow-download` (conflicts: `disallow-download`), `--audience` (values: `members`, `no-one`, `public`, `team`), `--disallow-download` (conflicts: `allow-download`), `--expires` (conflicts: `remove-expiration`), `--output` (values: `json`, `text`), `--password` (conflicts: `password-file`, `password-prompt`, `remove-password`; sensitive), `--password-file` (conflicts: `password`, `password-prompt`, `remove-password`), `--password-prompt` (conflicts: `password`, `password-file`, `remove-password`; may prompt), `--remove-expiration` (conflicts: `expires`), `--remove-password` (conflicts: `password`, `password-file`, `password-prompt`)
-* Result statuses: `updated`
+* Result statuses: `planned`, `updated`
 * Result kinds: `file`, `folder`, `link`
 * JSON contract: `docs/json-schema/v1/commands.json#/commands/share-link update`
 * JSON success schema: `docs/json-schema/v1/commands.schema.json#/$defs/command_share_2dlink_20update`

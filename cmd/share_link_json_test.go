@@ -274,6 +274,63 @@ func TestShareLinkUpdateJSONOutputsUpdatedMetadata(t *testing.T) {
 	}
 }
 
+func TestShareLinkUpdateJSONDryRunOutputsPlannedUpdate(t *testing.T) {
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		modifySharedLinkSettingsFn: func(arg *sharing.ModifySharedLinkSettingsArgs) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("ModifySharedLinkSettings called during dry-run: %v", arg)
+			return nil, nil
+		},
+		modifySharedLinkSettingsRawFn: func(url string, settings *rawSharedLinkSettings, removeExpiration bool) error {
+			t.Fatalf("ModifySharedLinkSettingsRaw called during dry-run: %s %#v removeExpiration=%t", url, settings, removeExpiration)
+			return nil
+		},
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			t.Fatalf("GetSharedLinkMetadata called during dry-run: %v", arg)
+			return nil, nil
+		},
+	})
+
+	var stdout bytes.Buffer
+	cmd := newShareLinkUpdateTestCommand(&stdout, nil)
+	setShareLinkOutputJSON(t, cmd)
+	if err := cmd.Flags().Set("audience", "team"); err != nil {
+		t.Fatalf("set audience: %v", err)
+	}
+	if err := cmd.Flags().Set(dryRunFlagName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shareLinkUpdate(cmd, []string{"https://example.com/report"}); err != nil {
+		t.Fatalf("shareLinkUpdate error: %v", err)
+	}
+
+	var got struct {
+		Input   shareLinkUpdateInput `json:"input"`
+		Results []struct {
+			Status string                     `json:"status"`
+			Kind   string                     `json:"kind"`
+			Input  shareLinkUpdateResultInput `json:"input"`
+			Result shareLinkJSONMetadata      `json:"result"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode output: %v\n%s", err, stdout.String())
+	}
+	if got.Input.URL != "https://example.com/report" || got.Input.Audience != "team" || !got.Input.DryRun {
+		t.Fatalf("input = %+v, want team dry-run update", got.Input)
+	}
+	if len(got.Results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(got.Results))
+	}
+	result := got.Results[0]
+	if result.Status != jsonStatusPlanned || result.Kind != shareLinkJSONKindLink || !result.Input.DryRun {
+		t.Fatalf("result = %+v, want planned link update", result)
+	}
+	if result.Result.Type != shareLinkJSONKindLink || result.Result.URL != "https://example.com/report" {
+		t.Fatalf("result metadata = %+v, want planned link URL", result.Result)
+	}
+}
+
 func TestShareLinkRevokeJSONOutputsRevokedURL(t *testing.T) {
 	stubSharedLinkClient(t, &mockSharedLinkClient{
 		revokeSharedLinkFn: func(arg *sharing.RevokeSharedLinkArg) error {

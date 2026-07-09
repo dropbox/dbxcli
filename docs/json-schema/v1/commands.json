@@ -338,11 +338,15 @@
       "allow_download",
       "audience",
       "disallow_download",
+      "dry_run",
       "expires",
       "password",
       "remove_expiration",
       "remove_password",
       "url"
+    ],
+    "share_link_update_result_input": [
+      "dry_run"
     ],
     "team_group": [
       "group_external_id",
@@ -755,9 +759,10 @@
       "top_level": "operation_output",
       "result_wrapper": "operation_result",
       "input": "share_link_update_input",
-      "result_input": "empty",
+      "result_input": "share_link_update_result_input",
       "result": "share_link_metadata",
       "statuses": [
+        "planned",
         "updated"
       ],
       "kinds": [

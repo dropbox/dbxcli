@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"errors"
+	"io"
 	"time"
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
@@ -32,6 +33,7 @@ type shareLinkUpdateOptions struct {
 	audience         *sharing.LinkAudience
 	password         sharedLinkPasswordOptions
 	removePassword   bool
+	dryRun           bool
 }
 
 type shareLinkUpdateInput struct {
@@ -43,6 +45,11 @@ type shareLinkUpdateInput struct {
 	DisallowDownload bool   `json:"disallow_download,omitempty"`
 	Password         bool   `json:"password,omitempty"`
 	RemovePassword   bool   `json:"remove_password,omitempty"`
+	DryRun           bool   `json:"dry_run,omitempty"`
+}
+
+type shareLinkUpdateResultInput struct {
+	DryRun bool `json:"dry_run,omitempty"`
 }
 
 func shareLinkUpdate(cmd *cobra.Command, args []string) error {
@@ -58,6 +65,10 @@ func shareLinkUpdate(cmd *cobra.Command, args []string) error {
 	opts, err := parseShareLinkUpdateOptions(cmd)
 	if err != nil {
 		return err
+	}
+
+	if opts.dryRun {
+		return renderShareLinkUpdateDryRunOutput(cmd, url, opts)
 	}
 
 	dbx := newSharedLinkClient(config)
@@ -125,7 +136,7 @@ func renderShareLinkUpdateOutput(cmd *cobra.Command, dbx sharedLinkClient, url s
 	return renderJSONOperationOutput(
 		cmd,
 		newShareLinkUpdateInput(url, opts),
-		[]jsonOperationResult{shareLinkJSONOperationResult(shareLinkJSONStatusUpdated, result)},
+		[]jsonOperationResult{shareLinkUpdateOperationResult(shareLinkJSONStatusUpdated, result, opts)},
 	)
 }
 
@@ -137,6 +148,7 @@ func newShareLinkUpdateInput(url string, opts shareLinkUpdateOptions) shareLinkU
 		DisallowDownload: opts.disallowDownload,
 		Password:         opts.password.set,
 		RemovePassword:   opts.removePassword,
+		DryRun:           opts.dryRun,
 	}
 	if opts.audience != nil {
 		input.Audience = opts.audience.Tag
@@ -169,6 +181,13 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	removePassword, err := localBoolFlag(cmd, "remove-password")
 	if err != nil {
 		return shareLinkUpdateOptions{}, err
+	}
+	var dryRun bool
+	if cmd.Flags().Lookup(dryRunFlagName) != nil {
+		dryRun, err = dryRunEnabled(cmd)
+		if err != nil {
+			return shareLinkUpdateOptions{}, err
+		}
 	}
 
 	if expiresChanged && removeExpiration {
@@ -214,6 +233,7 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 		audience:         audience,
 		password:         password,
 		removePassword:   removePassword,
+		dryRun:           dryRun,
 	}, nil
 }
 
@@ -246,6 +266,29 @@ func rawSharedLinkSettingsFromUpdateOptions(opts shareLinkUpdateOptions) *rawSha
 	return settings
 }
 
+func shareLinkUpdateOperationResult(status string, metadata shareLinkJSONMetadata, opts shareLinkUpdateOptions) jsonOperationResult {
+	return newJSONOperationResult(plannedStatus(opts.dryRun, status), metadata.Type, shareLinkUpdateResultInput{DryRun: opts.dryRun}, metadata)
+}
+
+func plannedShareLinkUpdateMetadata(url string) shareLinkJSONMetadata {
+	return shareLinkJSONMetadata{
+		Type: shareLinkJSONKindLink,
+		URL:  url,
+	}
+}
+
+func renderShareLinkUpdateDryRunOutput(cmd *cobra.Command, url string, opts shareLinkUpdateOptions) error {
+	result := plannedShareLinkUpdateMetadata(url)
+	return commandOutput(cmd).Render(func(w io.Writer) error {
+		return writeDryRunLine(w, "update shared link", url)
+	}, newJSONCommandOperationOutput(
+		cmd,
+		newShareLinkUpdateInput(url, opts),
+		[]jsonOperationResult{shareLinkUpdateOperationResult(shareLinkJSONStatusUpdated, result, opts)},
+		nil,
+	))
+}
+
 var shareLinkUpdateCmd = &cobra.Command{
 	Use:   "update <url>",
 	Short: "Update shared link settings",
@@ -267,6 +310,7 @@ func init() {
 	shareLinkUpdateCmd.Flags().Bool("disallow-download", false, "Disallow downloads from the shared link")
 	addSharedLinkPasswordFlags(shareLinkUpdateCmd)
 	shareLinkUpdateCmd.Flags().Bool("remove-password", false, "Remove the shared link password")
+	addDryRunFlag(shareLinkUpdateCmd)
 	shareLinkCmd.AddCommand(shareLinkUpdateCmd)
 	enableStructuredOutput(shareLinkUpdateCmd)
 }
