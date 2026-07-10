@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -97,6 +99,61 @@ func TestDryRunDisplayPath(t *testing.T) {
 	if got, want := dryRunDisplayPath(jsonMetadata{}, "/fallback.txt"), "/fallback.txt"; got != want {
 		t.Fatalf("dryRunDisplayPath fallback = %q, want %q", got, want)
 	}
+}
+
+func TestRenderOperationTextUsesClosure(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := renderOperationTestCommand(&stdout, "text")
+
+	results := []jsonOperationResult{newJSONOperationResult(jsonStatusPlanned, "folder", nil, plannedMetadata("folder", "/Projects"))}
+	err := renderOperation(cmd, nil, results, nil, func(w io.Writer) error {
+		return writeDryRunLine(w, "create directory", "/Projects")
+	})
+	if err != nil {
+		t.Fatalf("renderOperation error: %v", err)
+	}
+
+	if got, want := stdout.String(), "Would create directory /Projects\n"; got != want {
+		t.Fatalf("text output = %q, want %q", got, want)
+	}
+}
+
+func TestRenderOperationJSONRendersEnvelopeAndSkipsClosure(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := renderOperationTestCommand(&stdout, "json")
+
+	input := mkdirInput{Path: "/Projects", DryRun: true}
+	results := []jsonOperationResult{newJSONOperationResult(jsonStatusPlanned, "folder", input, plannedMetadata("folder", "/Projects"))}
+	warnings := []jsonWarning{{Code: jsonWarningCodeSkippedSymlink, Message: "skipped symlink", Path: "/link"}}
+
+	err := renderOperation(cmd, input, results, warnings, func(w io.Writer) error {
+		t.Fatalf("text closure called in JSON mode")
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("renderOperation error: %v", err)
+	}
+
+	var got jsonOperationOutput
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("decode output: %v (raw %s)", err, stdout.String())
+	}
+	if !got.OK || got.SchemaVersion != jsonSchemaVersion || got.Command != "render-op" {
+		t.Fatalf("envelope = %+v, want ok/schema_version/command populated", got)
+	}
+	if len(got.Results) != 1 || got.Results[0].Status != jsonStatusPlanned || got.Results[0].Kind != "folder" {
+		t.Fatalf("results = %+v, want one planned folder result", got.Results)
+	}
+	if len(got.Warnings) != 1 || got.Warnings[0].Code != jsonWarningCodeSkippedSymlink {
+		t.Fatalf("warnings = %+v, want skipped_symlink passthrough", got.Warnings)
+	}
+}
+
+func renderOperationTestCommand(stdout *bytes.Buffer, format string) *cobra.Command {
+	cmd := &cobra.Command{Use: "render-op"}
+	cmd.SetOut(stdout)
+	cmd.Flags().String(outputFlag, format, "")
+	return cmd
 }
 
 func TestPlannedMetadata(t *testing.T) {
