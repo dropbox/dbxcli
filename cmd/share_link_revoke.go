@@ -177,7 +177,7 @@ func revokeSharedLinksForPath(cmd *cobra.Command, path string, dryRun bool) ([]s
 }
 
 func renderShareLinkRevokeOutput(cmd *cobra.Command, input shareLinkRevokeInput, results []jsonOperationResult) error {
-	return commandOutput(cmd).Render(func(w io.Writer) error {
+	return renderOperation(cmd, input, results, nil, func(w io.Writer) error {
 		if !input.DryRun {
 			return nil
 		}
@@ -191,7 +191,7 @@ func renderShareLinkRevokeOutput(cmd *cobra.Command, input shareLinkRevokeInput,
 			}
 		}
 		return nil
-	}, newJSONCommandOperationOutput(cmd, input, results, nil))
+	})
 }
 
 var shareLinkRevokeCmd = &cobra.Command{
