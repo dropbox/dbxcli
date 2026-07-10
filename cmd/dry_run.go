@@ -48,6 +48,14 @@ func plannedStatus(dryRun bool, realStatus string) string {
 	return realStatus
 }
 
+// renderOperation renders a command's operation output through the shared
+// command output writer: the text closure produces the human-readable form and
+// the JSON form is the standard operation envelope. Dry-run branches use this
+// to avoid duplicating the commandOutput/newJSONCommandOperationOutput glue.
+func renderOperation(cmd *cobra.Command, input any, results []jsonOperationResult, warnings []jsonWarning, text func(io.Writer) error) error {
+	return commandOutput(cmd).Render(text, newJSONCommandOperationOutput(cmd, input, results, warnings))
+}
+
 func writeDryRunLine(w io.Writer, verb, path string) error {
 	_, err := fmt.Fprintf(w, "Would %s %s\n", verb, path)
 	return err
