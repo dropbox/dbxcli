@@ -823,7 +823,7 @@ func plannedPutFolderResult(src, dst string) putResult {
 }
 
 func renderPlannedPutResults(cmd *cobra.Command, input putCommandInput, results []putResult, warnings []jsonWarning) error {
-	return commandOutput(cmd).Render(func(w io.Writer) error {
+	return renderOperation(cmd, input, putOperationResults(results), warnings, func(w io.Writer) error {
 		for _, result := range results {
 			if result.Kind == putKindFolder {
 				if err := writeDryRunLine(w, "create directory", result.Input.Target); err != nil {
@@ -836,7 +836,7 @@ func renderPlannedPutResults(cmd *cobra.Command, input putCommandInput, results 
 			}
 		}
 		return nil
-	}, newJSONCommandOperationOutput(cmd, input, putOperationResults(results), warnings))
+	})
 }
 
 // Keep traversal semantics aligned with putRecursiveInternal. Dry-run walks the
