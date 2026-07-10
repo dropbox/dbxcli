@@ -245,14 +245,15 @@ func plannedShareLinkCreateMetadata(path string) shareLinkJSONMetadata {
 
 func renderShareLinkCreateDryRunOutput(cmd *cobra.Command, path string, opts shareLinkCreateOptions) error {
 	result := plannedShareLinkCreateMetadata(path)
-	return commandOutput(cmd).Render(func(w io.Writer) error {
-		return writeDryRunLine(w, "create shared link", path)
-	}, newJSONCommandOperationOutput(
+	return renderOperation(
 		cmd,
 		newShareLinkCreateInput(path, opts),
 		[]jsonOperationResult{shareLinkCreateOperationResult(shareLinkJSONStatusCreated, result, opts)},
 		nil,
-	))
+		func(w io.Writer) error {
+			return writeDryRunLine(w, "create shared link", path)
+		},
+	)
 }
 
 func applyExistingSharedLinkCreateOptions(dbx sharedLinkClient, link sharing.IsSharedLinkMetadata, opts shareLinkCreateOptions) (sharing.IsSharedLinkMetadata, error) {

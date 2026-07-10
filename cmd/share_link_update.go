@@ -279,14 +279,15 @@ func plannedShareLinkUpdateMetadata(url string) shareLinkJSONMetadata {
 
 func renderShareLinkUpdateDryRunOutput(cmd *cobra.Command, url string, opts shareLinkUpdateOptions) error {
 	result := plannedShareLinkUpdateMetadata(url)
-	return commandOutput(cmd).Render(func(w io.Writer) error {
-		return writeDryRunLine(w, "update shared link", url)
-	}, newJSONCommandOperationOutput(
+	return renderOperation(
 		cmd,
 		newShareLinkUpdateInput(url, opts),
 		[]jsonOperationResult{shareLinkUpdateOperationResult(shareLinkJSONStatusUpdated, result, opts)},
 		nil,
-	))
+		func(w io.Writer) error {
+			return writeDryRunLine(w, "update shared link", url)
+		},
+	)
 }
 
 var shareLinkUpdateCmd = &cobra.Command{
