@@ -23,13 +23,10 @@ func parseRelocationOptions(cmd *cobra.Command) (relocationOptions, error) {
 	if err != nil {
 		return relocationOptions{}, err
 	}
-	dryRun := false
 	// Some tests and callers use relocation parsing without registering --dry-run.
-	if cmd != nil && cmd.Flags().Lookup(dryRunFlagName) != nil {
-		dryRun, err = dryRunEnabled(cmd)
-		if err != nil {
-			return relocationOptions{}, err
-		}
+	dryRun, err := dryRunOptionalEnabled(cmd)
+	if err != nil {
+		return relocationOptions{}, err
 	}
 	return relocationOptions{ifExists: ifExists, dryRun: dryRun}, nil
 }

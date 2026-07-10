@@ -38,6 +38,16 @@ func dryRunEnabled(cmd *cobra.Command) (bool, error) {
 	return cmd.Flags().GetBool(dryRunFlagName)
 }
 
+// dryRunOptionalEnabled returns the dry-run flag state, or false when the flag
+// is not registered. Option parsers shared with callers that do not register
+// --dry-run use this instead of dryRunEnabled to avoid a missing-flag error.
+func dryRunOptionalEnabled(cmd *cobra.Command) (bool, error) {
+	if cmd == nil || cmd.Flags().Lookup(dryRunFlagName) == nil {
+		return false, nil
+	}
+	return dryRunEnabled(cmd)
+}
+
 // Dry-run JSON results use status "planned" and include dry_run=true in the
 // result input. They do not preserve the real mutation status, because no
 // mutation happened.
