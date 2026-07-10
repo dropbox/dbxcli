@@ -156,9 +156,9 @@ func runRelocation(cmd *cobra.Command, args []string, spec relocationSpec) error
 	}
 
 	if opts.dryRun {
-		return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderOperation(cmd, nil, results, nil, func(w io.Writer) error {
 			return renderPlannedRelocationResults(w, spec.verb, plannedResults)
-		}, newJSONCommandOperationOutput(cmd, nil, results, nil))
+		})
 	}
 
 	if !collectResults {
