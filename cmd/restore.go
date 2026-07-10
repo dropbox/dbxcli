@@ -63,9 +63,9 @@ func restore(cmd *cobra.Command, args []string) (err error) {
 	}
 	if opts.dryRun {
 		result := newPlannedRestoreResult(path, rev, opts)
-		return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderOperation(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil, func(w io.Writer) error {
 			return renderPlannedRestoreResult(w, result)
-		}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{restoreOperationResult(result)}, nil))
+		})
 	}
 
 	arg := files.NewRestoreArg(path, rev)

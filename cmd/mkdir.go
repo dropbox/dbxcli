@@ -65,9 +65,9 @@ func mkdir(cmd *cobra.Command, args []string) (err error) {
 
 	if opts.dryRun {
 		result := newPlannedMkdirResult(dst, opts)
-		return commandOutput(cmd).Render(func(w io.Writer) error {
+		return renderOperation(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)}, nil, func(w io.Writer) error {
 			return writeDryRunLine(w, "create directory", result.displayPath())
-		}, newJSONCommandOperationOutput(cmd, result.Input, []jsonOperationResult{mkdirOperationResult(result)}, nil))
+		})
 	}
 
 	arg := files.NewCreateFolderArg(dst)
