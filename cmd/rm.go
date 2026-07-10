@@ -76,12 +76,12 @@ func rm(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return commandOutput(cmd).Render(func(w io.Writer) error {
+	return renderOperation(cmd, nil, removeOperationResults(results), nil, func(w io.Writer) error {
 		if !opts.dryRun && !opts.verbose {
 			return nil
 		}
 		return renderRemoveResults(w, results)
-	}, newJSONCommandOperationOutput(cmd, nil, removeOperationResults(results), nil))
+	})
 }
 
 func removeOperationResults(results []removeResult) []jsonOperationResult {
