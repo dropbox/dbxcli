@@ -213,13 +213,11 @@ func parseShareLinkCreateOptions(cmd *cobra.Command) (shareLinkCreateOptions, er
 		return opts, err
 	}
 	opts.password = password
-	if cmd.Flags().Lookup(dryRunFlagName) != nil {
-		dryRun, err := dryRunEnabled(cmd)
-		if err != nil {
-			return opts, err
-		}
-		opts.dryRun = dryRun
+	dryRun, err := dryRunOptionalEnabled(cmd)
+	if err != nil {
+		return opts, err
 	}
+	opts.dryRun = dryRun
 
 	if opts.expires != nil && opts.removeExpiration {
 		return opts, invalidArgumentsErrorWithDetails("`--expires` and `--remove-expiration` cannot be used together", flagsErrorDetails("expires", "remove-expiration"))

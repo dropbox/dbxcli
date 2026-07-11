@@ -182,12 +182,9 @@ func parseShareLinkUpdateOptions(cmd *cobra.Command) (shareLinkUpdateOptions, er
 	if err != nil {
 		return shareLinkUpdateOptions{}, err
 	}
-	var dryRun bool
-	if cmd.Flags().Lookup(dryRunFlagName) != nil {
-		dryRun, err = dryRunEnabled(cmd)
-		if err != nil {
-			return shareLinkUpdateOptions{}, err
-		}
+	dryRun, err := dryRunOptionalEnabled(cmd)
+	if err != nil {
+		return shareLinkUpdateOptions{}, err
 	}
 
 	if expiresChanged && removeExpiration {
