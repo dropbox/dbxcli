@@ -15,6 +15,7 @@ jobs:
       contents: write
     outputs:
       asset_version: ${{ steps.version.outputs.asset_version }}
+      windows_archive: ${{ steps.version.outputs.windows_archive }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -24,7 +25,10 @@ jobs:
       - name: Set release version
         id: version
         shell: bash
-        run: echo "asset_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          asset_version="${GITHUB_REF_NAME#v}"
+          echo "asset_version=${asset_version}" >> "$GITHUB_OUTPUT"
+          echo "windows_archive=dbxcli_${asset_version}_windows_amd64.zip" >> "$GITHUB_OUTPUT"
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
       - uses: golangci/golangci-lint-action@v9
@@ -40,9 +44,48 @@ jobs:
       - run: ./packaging/package-release.sh
         env:
           VERSION: ${{ github.ref_name }}
+      - name: Verify Windows release archive
+        run: test -f "dist/${{ steps.version.outputs.windows_archive }}"
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/SHA256SUMS
+
+  winget:
+    name: Submit WinGet update
+    needs: release
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.release.outputs.asset_version }}
+      INSTALLER_URL: https://github.com/dropbox/dbxcli/releases/download/v${{ needs.release.outputs.asset_version }}/${{ needs.release.outputs.windows_archive }}
+      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "9.0.x"
+      - name: Download WingetCreate
+        shell: pwsh
+        run: |
+          $url = "https://github.com/microsoft/winget-create/releases/download/v1.12.8.0/wingetcreate.exe"
+          Invoke-WebRequest -Uri $url -OutFile wingetcreate.exe
+
+          $expected = "8bd738851b524885410112678e3771b341c5c716de60fbbecb88ab0a363ed85d"
+          $actual = (Get-FileHash .\wingetcreate.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "WingetCreate checksum mismatch: expected $expected, got $actual"
+          }
+      - name: Submit WinGet manifest
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINGET_CREATE_GITHUB_TOKEN)) {
+            throw "The WINGET_CREATE_GITHUB_TOKEN repository secret is not configured"
+          }
+
+          .\wingetcreate.exe update Dropbox.dbxcli `
+            --urls "$env:INSTALLER_URL|x64" `
+            --version $env:VERSION `
+            --release-notes-url "https://github.com/dropbox/dbxcli/releases/tag/v$env:VERSION" `
+            --submit `
+            --no-open
