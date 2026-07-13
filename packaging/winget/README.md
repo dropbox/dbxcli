@@ -15,6 +15,20 @@ https://github.com/dropbox/dbxcli/releases/download/vX.Y.Z/dbxcli_X.Y.Z_windows_
 The generated manifest is for a portable zip package. It installs the nested
 `dbxcli.exe` binary and exposes `dbxcli` as the portable command alias.
 
+## Automatic release updates
+
+The release workflow submits a WinGet update after publishing the GitHub
+Release assets. It uses Microsoft's WingetCreate tool to open a pull request in
+`microsoft/winget-pkgs`; Microsoft validation and review still apply.
+
+Configure an Actions repository secret named `WINGET_CREATE_GITHUB_TOKEN`
+before publishing a release. The secret must contain a GitHub personal access
+token (classic) with the `public_repo` scope. WingetCreate does not support
+fine-grained personal access tokens.
+
+WingetCreate is pinned and checksum-verified in the release workflow. Update
+both its release URL and expected SHA-256 digest when upgrading the tool.
+
 ## Generate manifests
 
 Run the normal release packaging first so `dist/SHA256SUMS` exists:
@@ -48,7 +62,7 @@ This creates files under:
 /path/to/winget-pkgs/manifests/d/Dropbox/dbxcli/X.Y.Z/
 ```
 
-## Validate and submit
+## Manual validation and submission
 
 From the `winget-pkgs` checkout:
 
@@ -60,5 +74,8 @@ winget install --manifest .\manifests\d\Dropbox\dbxcli\X.Y.Z
 Open a pull request against `microsoft/winget-pkgs` after local validation
 passes.
 
-Do not add `winget install Dropbox.dbxcli` to the main README until the package
-has been accepted into the public WinGet source.
+The package is available from the public WinGet source as `Dropbox.dbxcli`:
+
+```powershell
+winget install --exact --id Dropbox.dbxcli
+```
