@@ -185,6 +185,14 @@ brew install dbxcli
 
 Homebrew formula: [formulae.brew.sh/formula/dbxcli](https://formulae.brew.sh/formula/dbxcli)
 
+### WinGet
+
+```powershell
+winget install --exact --id Dropbox.dbxcli
+```
+
+WinGet manifest: [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs/tree/master/manifests/d/Dropbox/dbxcli)
+
 ### Release archives
 
 Download the archive for your platform from the
