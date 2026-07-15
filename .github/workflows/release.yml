@@ -60,7 +60,6 @@ jobs:
     env:
       VERSION: ${{ needs.release.outputs.asset_version }}
       INSTALLER_URL: https://github.com/dropbox/dbxcli/releases/download/v${{ needs.release.outputs.asset_version }}/${{ needs.release.outputs.windows_archive }}
-      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
     steps:
       - uses: actions/setup-dotnet@v5
         with:
@@ -78,6 +77,8 @@ jobs:
           }
       - name: Submit WinGet manifest
         shell: pwsh
+        env:
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:WINGET_CREATE_GITHUB_TOKEN)) {
             throw "The WINGET_CREATE_GITHUB_TOKEN repository secret is not configured"
