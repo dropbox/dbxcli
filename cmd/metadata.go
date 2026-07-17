@@ -14,7 +14,11 @@
 
 package cmd
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+)
 
 func metadataDisplayPath(inputPath, metadataPath string) string {
 	if metadataPath != "" {
@@ -35,4 +39,38 @@ func sameDropboxMetadataPath(pathDisplay, pathLower, requested string) bool {
 		return sameDropboxPath(pathDisplay, requested)
 	}
 	return true
+}
+
+func baseMetadata(metadata files.IsMetadata) *files.Metadata {
+	switch entry := metadata.(type) {
+	case *files.Metadata:
+		return entry
+	case *files.FileMetadata:
+		if entry != nil {
+			return &entry.Metadata
+		}
+	case *files.FolderMetadata:
+		if entry != nil {
+			return &entry.Metadata
+		}
+	case *files.DeletedMetadata:
+		if entry != nil {
+			return &entry.Metadata
+		}
+	}
+	return nil
+}
+
+func metadataName(metadata files.IsMetadata) string {
+	if base := baseMetadata(metadata); base != nil {
+		return base.Name
+	}
+	return ""
+}
+
+func metadataPathDisplay(metadata files.IsMetadata) string {
+	if base := baseMetadata(metadata); base != nil {
+		return base.PathDisplay
+	}
+	return ""
 }

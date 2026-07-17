@@ -7,6 +7,8 @@ Download a file or folder
 ### Synopsis
 
 Download a file or folder from Dropbox.
+  - Source may be a Dropbox path, file ID (id:), revision (rev:), or
+    namespace-relative path (ns:).
   - Use --recursive (-r) to download entire directories.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
@@ -20,6 +22,7 @@ dbxcli get [flags] <source> [<target>]
 
 ```
   dbxcli get /remote/file.txt ./local-file.txt
+  dbxcli get rev:a1c10ce0dd78 ./historical-file.txt
   dbxcli get -r /remote/folder ./local-folder
   dbxcli get /backups/src.tgz - | tar tz
   dbxcli get /file.txt - > local-copy.txt

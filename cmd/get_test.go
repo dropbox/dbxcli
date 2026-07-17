@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -107,12 +108,16 @@ func TestGetArgValidation(t *testing.T) {
 
 func TestGetDstDefaultsToBasename(t *testing.T) {
 	tmpDir := t.TempDir()
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmpDir)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	content := "downloaded content"
 	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     uint64(len(content)),
+			}, nil
+		},
 		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
 			if arg.Path != "/some/path/file.txt" {
 				t.Errorf("download path = %q, want %q", arg.Path, "/some/path/file.txt")
@@ -124,8 +129,9 @@ func TestGetDstDefaultsToBasename(t *testing.T) {
 			return meta, io.NopCloser(strings.NewReader(content)), nil
 		},
 	}
+	stubFilesClient(t, mock)
 
-	err := getWithClient(mock, []string{"/some/path/file.txt"})
+	err := get(testGetCmd(), []string{"/some/path/file.txt"})
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -143,6 +149,12 @@ func TestGetDstAppendsToDirectory(t *testing.T) {
 
 	content := "pdf content"
 	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{PathDisplay: arg.Path},
+				Size:     uint64(len(content)),
+			}, nil
+		},
 		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
 			if arg.Path != "/remote/doc.pdf" {
 				t.Errorf("download path = %q, want %q", arg.Path, "/remote/doc.pdf")
@@ -154,8 +166,9 @@ func TestGetDstAppendsToDirectory(t *testing.T) {
 			return meta, io.NopCloser(strings.NewReader(content)), nil
 		},
 	}
+	stubFilesClient(t, mock)
 
-	err := getWithClient(mock, []string{"/remote/doc.pdf", tmpDir})
+	err := get(testGetCmd(), []string{"/remote/doc.pdf", tmpDir})
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -591,6 +604,159 @@ func TestGetFileCommandDownloadsAfterMetadata(t *testing.T) {
 	}
 }
 
+func TestGetDropboxReferencesPassThroughUnchanged(t *testing.T) {
+	tests := []struct {
+		name      string
+		reference string
+	}{
+		{name: "revision", reference: "rev:opaque-revision"},
+		{name: "file id", reference: "id:opaque-id"},
+		{name: "namespace path", reference: "ns:123/remote/file.txt"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := filepath.Join(t.TempDir(), "file.txt")
+			var metadataPath, downloadPath string
+			mock := &mockFilesClient{
+				getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+					metadataPath = arg.Path
+					return getTestFileMetadata("/remote/file.txt", 4), nil
+				},
+				downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+					downloadPath = arg.Path
+					return getTestFileMetadata("/remote/file.txt", 4), io.NopCloser(strings.NewReader("data")), nil
+				},
+			}
+			stubFilesClient(t, mock)
+
+			cmd := testGetCmd()
+			if err := get(cmd, []string{tt.reference, dst}); err != nil {
+				t.Fatalf("get error: %v", err)
+			}
+			if metadataPath != tt.reference {
+				t.Fatalf("metadata path = %q, want %q", metadataPath, tt.reference)
+			}
+			if downloadPath != tt.reference {
+				t.Fatalf("download path = %q, want %q", downloadPath, tt.reference)
+			}
+		})
+	}
+}
+
+func TestGetDropboxReferenceDefaultTargetUsesMetadataName(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Chdir(tmpDir)
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{Name: "historical.txt", PathDisplay: "/remote/historical.txt"},
+				Size:     4,
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			if arg.Path != "rev:opaque-revision" {
+				t.Fatalf("download path = %q, want rev:opaque-revision", arg.Path)
+			}
+			return &files.FileMetadata{
+				Metadata: files.Metadata{Name: "historical.txt", PathDisplay: "/remote/historical.txt"},
+				Size:     4,
+			}, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := testGetCmd()
+	if err := get(cmd, []string{"rev:opaque-revision"}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(tmpDir, "historical.txt"))
+	if err != nil {
+		t.Fatalf("read downloaded file: %v", err)
+	}
+	if string(content) != "data" {
+		t.Fatalf("downloaded file = %q, want data", content)
+	}
+}
+
+func TestGetDropboxReferenceDirectoryTargetRequiresMetadataName(t *testing.T) {
+	dst := t.TempDir()
+	downloadCalled := false
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return nil, errors.New("metadata unavailable")
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			downloadCalled = true
+			return nil, nil, errors.New("unexpected download")
+		},
+	}
+	stubFilesClient(t, mock)
+
+	err := get(testGetCmd(), []string{"rev:opaque-revision", dst})
+	if err == nil || !strings.Contains(err.Error(), "metadata unavailable") {
+		t.Fatalf("error = %v, want metadata error", err)
+	}
+	if downloadCalled {
+		t.Fatal("download called without a metadata-derived filename")
+	}
+}
+
+func TestGetRecursiveDropboxReferenceUsesMetadataPathForLayout(t *testing.T) {
+	dst := filepath.Join(t.TempDir(), "output")
+	const reference = "id:opaque-folder-id"
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != reference {
+				t.Fatalf("metadata path = %q, want %q", arg.Path, reference)
+			}
+			return &files.FolderMetadata{
+				Metadata: files.Metadata{Name: "folder", PathDisplay: "/remote/folder"},
+			}, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			if arg.Path != reference {
+				t.Fatalf("list path = %q, want %q", arg.Path, reference)
+			}
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FileMetadata{
+						Metadata: files.Metadata{Name: "file.txt", PathDisplay: "/remote/folder/file.txt"},
+						Size:     4,
+					},
+				},
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			if arg.Path != "/remote/folder/file.txt" {
+				t.Fatalf("download path = %q, want /remote/folder/file.txt", arg.Path)
+			}
+			return &files.FileMetadata{
+				Metadata: files.Metadata{Name: "file.txt", PathDisplay: arg.Path},
+				Size:     4,
+			}, io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := testGetCmd()
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatalf("set recursive flag: %v", err)
+	}
+	if err := get(cmd, []string{reference, dst}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(dst, "file.txt"))
+	if err != nil {
+		t.Fatalf("read downloaded file: %v", err)
+	}
+	if string(content) != "data" {
+		t.Fatalf("downloaded file = %q, want data", content)
+	}
+}
+
 func TestGetJSONFileOutputsDownloadedResult(t *testing.T) {
 	tmpDir := t.TempDir()
 	dst := filepath.Join(tmpDir, "file.txt")
@@ -647,14 +813,7 @@ func TestGetJSONFileOutputsDownloadedResult(t *testing.T) {
 
 func TestGetJSONDefaultTargetUsesBasename(t *testing.T) {
 	tmpDir := t.TempDir()
-	origDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	if err := os.Chdir(tmpDir); err != nil {
-		t.Fatalf("chdir temp dir: %v", err)
-	}
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	mock := &mockFilesClient{
 		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {

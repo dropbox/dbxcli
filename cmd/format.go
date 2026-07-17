@@ -80,15 +80,7 @@ func compareLess(a, b files.IsMetadata, opts listOptions) bool {
 }
 
 func entryPath(e files.IsMetadata) string {
-	switch f := e.(type) {
-	case *files.FileMetadata:
-		return f.PathDisplay
-	case *files.FolderMetadata:
-		return f.PathDisplay
-	case *files.DeletedMetadata:
-		return f.PathDisplay
-	}
-	return ""
+	return metadataPathDisplay(e)
 }
 
 func entrySize(e files.IsMetadata) uint64 {
