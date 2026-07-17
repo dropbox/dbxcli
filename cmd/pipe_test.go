@@ -585,9 +585,7 @@ func TestGetStdout_RejectsRecursive(t *testing.T) {
 
 func TestGetStdout_NoLocalFilesCreated(t *testing.T) {
 	tmpDir := t.TempDir()
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmpDir)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	content := "file data"
 	mock := &mockFilesClient{

@@ -124,10 +124,13 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 	},
 	"get": {
 		Args: []jsonCommandArg{
-			commandArg("source", true, false, "dropbox_path", "Dropbox file or folder path"),
+			commandArg("source", true, false, "dropbox_path", "Dropbox path, file ID, revision, or namespace-relative path"),
 			streamCommandArg("target", false, false, "local_path", "Local destination path, or - for stdout"),
 		},
-		Examples:      []jsonCommandExample{{Description: "Download a file", Command: "dbxcli get /remote.txt ./remote.txt"}},
+		Examples: []jsonCommandExample{
+			{Description: "Download a file", Command: "dbxcli get /remote.txt ./remote.txt"},
+			{Description: "Download a file revision", Command: "dbxcli get rev:a1c10ce0dd78 ./historical.txt"},
+		},
 		Flags:         map[string]jsonCommandFlagMetadata{"recursive": {ValueKind: "boolean"}},
 		DropboxScopes: []string{"files.content.read", "files.metadata.read"},
 		StdinStdout:   jsonCommandStdinStdout{WritesBinaryStdout: true},

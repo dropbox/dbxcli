@@ -68,12 +68,13 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		return invalidArgumentsErrorWithDetails("`get` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
 	}
 
-	src, err := validatePath(args[0])
-	if err != nil {
-		return
-	}
+	srcRef := newDropboxReference(args[0])
+	src := srcRef.String()
 
-	dst := path.Base(src)
+	dst := ""
+	if srcRef.isPath() {
+		dst = path.Base(src)
+	}
 	if len(args) == 2 {
 		dst = args[1]
 	}
@@ -92,11 +93,15 @@ func get(cmd *cobra.Command, args []string) (err error) {
 
 	meta, err := dbx.GetMetadataContext(currentContext(), files.NewGetMetadataArg(src))
 	if err != nil {
-		if recursive {
-			return withJSONErrorDetails(fmt.Errorf("get metadata for %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
+		metadataErr := withJSONErrorDetails(fmt.Errorf("get metadata for %s: %v", src, err), operationErrorDetails("download"), pathErrorDetails(src))
+		if recursive || dst == "" {
+			return metadataErr
 		}
 		// For non-recursive, fall through to download (will fail with proper error)
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
+			if !srcRef.isPath() {
+				return metadataErr
+			}
 			dst = filepath.Join(dst, path.Base(src))
 		}
 		result, err := downloadFileWithResult(dbx, src, dst, opts)
@@ -111,15 +116,26 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		}, []getResult{result})
 	}
 
+	sourceName := path.Base(src)
+	if !srcRef.isPath() {
+		sourceName = metadataName(meta)
+		if sourceName == "" {
+			return withJSONErrorDetails(fmt.Errorf("get metadata for %s did not include a name", src), operationErrorDetails("download"), pathErrorDetails(src))
+		}
+		if dst == "" {
+			dst = sourceName
+		}
+	}
+
 	if _, ok := meta.(*files.FolderMetadata); ok {
 		if !recursive {
 			return invalidArgumentsErrorfWithDetails("%s is a folder (use --recursive to download folders)", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src)), src)
 		}
 		if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
-			dst = filepath.Join(dst, path.Base(src))
+			dst = filepath.Join(dst, sourceName)
 		}
 		if commandOutputFormat(cmd) == output.FormatText {
-			return withJSONErrorDetails(getRecursive(dbx, src, dst), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
+			return withJSONErrorDetails(getRecursiveWithRootMetadata(dbx, src, dst, meta), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
 		results, err := getRecursiveWithResults(dbx, src, dst, meta, opts)
 		if err != nil {
@@ -134,7 +150,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
-		dst = filepath.Join(dst, path.Base(src))
+		dst = filepath.Join(dst, sourceName)
 	}
 
 	result, err := downloadFileWithResult(dbx, src, dst, opts)
@@ -214,29 +230,13 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 	return withJSONErrorDetails(downloadToStdout(dbx, src, cmd.OutOrStdout()), operationErrorDetails("download"), pathErrorDetails(src))
 }
 
-func getWithClient(dbx filesClient, args []string) (err error) {
-	if len(args) == 0 || len(args) > 2 {
-		return invalidArgumentsErrorWithDetails("`get` requires `src` and/or `dst` arguments", argumentsErrorDetails("src", "dst"))
-	}
-
-	src, err := validatePath(args[0])
-	if err != nil {
-		return
-	}
-
-	dst := path.Base(src)
-	if len(args) == 2 {
-		dst = args[1]
-	}
-	if f, err := os.Stat(dst); err == nil && f.IsDir() {
-		dst = filepath.Join(dst, path.Base(src))
-	}
-
-	return withJSONErrorDetails(downloadFile(dbx, src, dst), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
-}
-
 func getRecursive(dbx filesClient, src, dst string) error {
 	_, err := getRecursiveInternal(dbx, src, dst, nil, getOptions{}, false)
+	return err
+}
+
+func getRecursiveWithRootMetadata(dbx filesClient, src, dst string, rootMeta files.IsMetadata) error {
+	_, err := getRecursiveInternal(dbx, src, dst, rootMeta, getOptions{}, false)
 	return err
 }
 
@@ -265,6 +265,10 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 	}
 
 	var results []getResult
+	rootPath := src
+	if metadataPath := metadataPathDisplay(rootMeta); metadataPath != "" {
+		rootPath = metadataPath
+	}
 
 	if collectResults {
 		result, err := ensureLocalDirectoryResult(src, dst, rootMeta)
@@ -283,7 +287,7 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 	for _, entry := range entries {
 		switch f := entry.(type) {
 		case *files.FolderMetadata:
-			relPath, err := relativeTo(src, f.PathDisplay)
+			relPath, err := relativeTo(rootPath, f.PathDisplay)
 			if err != nil {
 				downloadErrors = append(downloadErrors, err)
 				continue
@@ -305,7 +309,7 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 				}
 			}
 		case *files.FileMetadata:
-			relPath, err := relativeTo(src, f.PathDisplay)
+			relPath, err := relativeTo(rootPath, f.PathDisplay)
 			if err != nil {
 				downloadErrors = append(downloadErrors, err)
 				continue
@@ -493,11 +497,14 @@ var getCmd = &cobra.Command{
 	Use:   "get [flags] <source> [<target>]",
 	Short: "Download a file or folder",
 	Long: `Download a file or folder from Dropbox.
+  - Source may be a Dropbox path, file ID (id:), revision (rev:), or
+    namespace-relative path (ns:).
   - Use --recursive (-r) to download entire directories.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
 `,
 	Example: `  dbxcli get /remote/file.txt ./local-file.txt
+  dbxcli get rev:a1c10ce0dd78 ./historical-file.txt
   dbxcli get -r /remote/folder ./local-folder
   dbxcli get /backups/src.tgz - | tar tz
   dbxcli get /file.txt - > local-copy.txt`,
