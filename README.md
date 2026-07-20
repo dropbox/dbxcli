@@ -3,6 +3,7 @@
 [![CI](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/ci.yml)
 [![Scorecard](https://github.com/dropbox/dbxcli/actions/workflows/scorecard.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/scorecard.yml)
 [![CodeQL](https://github.com/dropbox/dbxcli/actions/workflows/codeql.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/codeql.yml)
+[![Release](https://github.com/dropbox/dbxcli/actions/workflows/release.yml/badge.svg)](https://github.com/dropbox/dbxcli/actions/workflows/release.yml)
 
 `dbxcli` is a scriptable Dropbox CLI for files, shared links, teams, and
 automation workflows. It is built for humans in the terminal, scripts, CI jobs,
@@ -264,26 +265,22 @@ dbxcli --help --output=json
 dbxcli put --help --output=json
 ```
 
-## Deeper documentation
+## Documentation
 
 * [Automation and JSON output](https://github.com/dropbox/dbxcli/blob/master/docs/automation.md)
 * [Sharing workflows](https://github.com/dropbox/dbxcli/blob/master/docs/sharing.md)
 * [JSON schema v1](https://github.com/dropbox/dbxcli/blob/master/docs/json-schema/v1/README.md)
 * [Release history](https://github.com/dropbox/dbxcli/blob/master/CHANGELOG.md)
+* [Contributing](https://github.com/dropbox/dbxcli/blob/master/CONTRIBUTING.md)
 
 Generated Cobra command docs live under `docs/commands/`, and CI verifies they
 stay in sync with the CLI.
 
 ## Contributing
 
-* If you are submitting a non-trivial change, please fill out the
-  [Dropbox Contributor License Agreement](https://opensource.dropbox.com/cla/)
-  first.
-* Open a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
-  with a clear description of the change.
-* Include tests or manual validation details when relevant.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, pull request guidelines, and the Dropbox Contributor License Agreement.
 
 ## Useful resources
 
-* [Go SDK documentation](https://pkg.go.dev/github.com/dropbox/dropbox-sdk-go-unofficial)
+* [Dropbox Go SDK](https://pkg.go.dev/github.com/dropbox/dropbox-sdk-go-unofficial)
 * [Dropbox API documentation](https://www.dropbox.com/developers/documentation/http/documentation)
