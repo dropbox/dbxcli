@@ -17,7 +17,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run Scorecard
-        uses: ossf/scorecard-action@v2.4.3
+        uses: ossf/scorecard-action@v2.4.4
         with:
           results_file: scorecard-results.json
           results_format: json
