@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -699,6 +700,39 @@ func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	}
 	if !strings.Contains(out, "code_challenge_method=S256") {
 		t.Fatalf("expected PKCE S256 method in auth URL, got %q", out)
+	}
+}
+
+func TestNewOAuthPKCEFlowUsesOfflinePKCEOptions(t *testing.T) {
+	const (
+		appKey   = "test-app-key"
+		state    = "test-oauth-state"
+		verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+	)
+
+	flow, err := newOAuthPKCEFlow(appKey, "", state, verifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authURL, err := url.Parse(flow.AuthCodeURL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := authURL.Query()
+	if got := query.Get("client_id"); got != appKey {
+		t.Errorf("expected client_id %q, got %q", appKey, got)
+	}
+	if got := query.Get("state"); got != state {
+		t.Errorf("expected state %q, got %q", state, got)
+	}
+	if got := query.Get("token_access_type"); got != "offline" {
+		t.Errorf("expected token_access_type offline, got %q", got)
+	}
+	if got := query.Get("code_challenge_method"); got != "S256" {
+		t.Errorf("expected code_challenge_method S256, got %q", got)
+	}
+	if got := query.Get("code_challenge"); got == "" {
+		t.Error("expected non-empty PKCE code_challenge")
 	}
 }
 
