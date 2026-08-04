@@ -159,6 +159,7 @@ func restoreOAuthCredentials(t *testing.T) {
 	origTeamManageAppKey := teamManageAppKey
 	origReadAppKey := readAppKey
 	origReadAppCredentials := readAppCredentials
+	origReadAuthorizationCode := readAuthorizationCode
 	origGenerateOAuthVerifier := generateOAuthVerifier
 	origGenerateOAuthState := generateOAuthState
 	origNewOAuthPKCEFlow := newOAuthPKCEFlow
@@ -170,6 +171,7 @@ func restoreOAuthCredentials(t *testing.T) {
 		teamManageAppKey = origTeamManageAppKey
 		readAppKey = origReadAppKey
 		readAppCredentials = origReadAppCredentials
+		readAuthorizationCode = origReadAuthorizationCode
 		generateOAuthVerifier = origGenerateOAuthVerifier
 		generateOAuthState = origGenerateOAuthState
 		newOAuthPKCEFlow = origNewOAuthPKCEFlow

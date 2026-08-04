@@ -19,8 +19,7 @@
 
 **Changed:**
 
-- Upgraded Dropbox SDK to v6.4.0 and migrated PKCE OAuth and refresh-token
-  protocol helpers to the SDK.
+- Migrated PKCE OAuth and refresh-token protocol helpers to the Dropbox SDK.
 
 **Infrastructure:**
 
