@@ -2,7 +2,51 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.1...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.1...HEAD)
+
+## [v3.7.1](https://github.com/dropbox/dbxcli/tree/v3.7.1) (2026-08-04)
+
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.0...v3.7.1)
+
+**Added:**
+
+- Added support for Dropbox references in `get`, allowing files to be downloaded by revision (`rev:`), file ID (`id:`), or namespace-relative path (`ns:`).
+
+**Changed:**
+
+- Updated the Dropbox Go SDK to v6.4.0.
+- Migrated PKCE OAuth and refresh-token protocol helpers to the Dropbox SDK.
+
+**Infrastructure:**
+
+- Updated the CodeQL GitHub Action to v4.37.4.
+- Updated the OSSF Scorecard GitHub Action to v2.4.4.
+
+## [v3.7.0](https://github.com/dropbox/dbxcli/tree/v3.7.0) (2026-07-16)
+
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.1...v3.7.0)
+
+**Added:**
+
+- Added `--dry-run` to `rm`, `mkdir`, `cp`, `mv`, `put`, `restore`, and `share-link create`, `update`, and `revoke`.
+- Added `--if-exists=autorename` to `cp`, `mv`, and `put`.
+- Added cross-command dry-run contract tests.
+- Added shared dry-run flag and guard handling.
+- Automated WinGet manifest updates during releases.
+
+**Changed:**
+
+- Migrated dry-run implementations to the shared `renderOperation` helper.
+- Extracted a shared relocation driver for `mv` and `cp`.
+- Updated the CI Go version to 1.25.12.
+- Updated `actions/upload-artifact` from v5 to v7.
+- Updated `golang.org/x/term`.
+- Updated the Dropbox Go SDK dependency.
+
+**Infrastructure:**
+
+- Documented proxy support and refined JSON automation documentation.
+- Scoped the WinGet submission token to the manifest submission step.
 
 ## [v3.6.1](https://github.com/dropbox/dbxcli/tree/v3.6.1) (2026-07-05)
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.0...v3.6.1)
