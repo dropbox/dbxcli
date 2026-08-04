@@ -23,18 +23,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	dropboxoauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/oauth"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/oauth2"
 )
 
 const (
-	configFileName         = "auth.json"
-	envAccessToken         = "DBXCLI_ACCESS_TOKEN"
-	envAuthFile            = "DBXCLI_AUTH_FILE"
-	tokenAccessTypeParam   = "token_access_type"
-	tokenAccessTypeOffline = "offline"
-	tokenRefreshWindow     = 5 * time.Minute
+	configFileName     = "auth.json"
+	envAccessToken     = "DBXCLI_ACCESS_TOKEN"
+	envAuthFile        = "DBXCLI_AUTH_FILE"
+	tokenRefreshWindow = 5 * time.Minute
 
 	authSourceEnv   = "env"
 	authSourceSaved = "saved"
@@ -65,6 +63,11 @@ type authContext struct {
 	Source      string
 	Refreshable bool
 	AuthFile    string
+}
+
+type oauthFlow interface {
+	AuthCodeURL() string
+	Exchange(context.Context, string) (*oauth2.Token, error)
 }
 
 var currentAuthContext *authContext
@@ -98,29 +101,29 @@ var readAuthorizationCode = func() (string, error) {
 var generateOAuthVerifier = oauth2.GenerateVerifier
 var generateOAuthState = oauth2.GenerateVerifier
 
-var exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-	return conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+func createOAuthPKCEFlow(
+	appKey string,
+	domain string,
+	state string,
+	verifier string,
+) (oauthFlow, error) {
+	return dropboxoauth.NewPKCEFlow(
+		appKey,
+		dropboxoauth.WithDomain(domain),
+		dropboxoauth.WithState(state),
+		dropboxoauth.WithVerifier(verifier),
+		dropboxoauth.WithTokenAccessType(dropboxoauth.TokenAccessTypeOffline),
+	)
 }
 
-var refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
-	expired := *token
-	expired.Expiry = time.Now().Add(-time.Second)
-	return conf.TokenSource(ctx, &expired).Token()
+var newOAuthPKCEFlow = createOAuthPKCEFlow
+
+var exchangeAuthorizationCode = func(ctx context.Context, flow oauthFlow, code string) (*oauth2.Token, error) {
+	return flow.Exchange(ctx, code)
 }
 
-func oauthConfig(tokenType string, domain string) *oauth2.Config {
-	appKey := oauthCredentials(tokenType)
-	return oauthConfigWithAppKey(appKey, domain)
-}
-
-func oauthConfigWithAppKey(appKey string, domain string) *oauth2.Config {
-	endpoint := dropbox.OAuthEndpoint(domain)
-	endpoint.AuthStyle = oauth2.AuthStyleInParams
-
-	return &oauth2.Config{
-		ClientID: appKey,
-		Endpoint: endpoint,
-	}
+var refreshOAuthToken = func(ctx context.Context, appKey string, domain string, token *oauth2.Token) (*oauth2.Token, error) {
+	return dropboxoauth.Refresh(ctx, appKey, token, dropboxoauth.WithDomain(domain))
 }
 
 func (c *storedCredential) UnmarshalJSON(b []byte) error {
@@ -362,15 +365,15 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 		return storedCredential{}, err
 	}
 
-	conf := oauthConfig(tokType, domain)
+	appKey := oauthCredentials(tokType)
 	verifier := generateOAuthVerifier()
 	state := generateOAuthState()
-	authCodeURL := conf.AuthCodeURL(state,
-		oauth2.S256ChallengeOption(verifier),
-		oauth2.SetAuthURLParam(tokenAccessTypeParam, tokenAccessTypeOffline),
-	)
+	flow, err := newOAuthPKCEFlow(appKey, domain, state, verifier)
+	if err != nil {
+		return storedCredential{}, err
+	}
 
-	fmt.Printf("1. Go to %v\n", authCodeURL)
+	fmt.Printf("1. Go to %v\n", flow.AuthCodeURL())
 	fmt.Printf("2. Click \"Allow\" (you might have to log in first).\n")
 	fmt.Printf("3. Copy the authorization code.\n")
 	fmt.Printf("Enter the authorization code here: ")
@@ -379,7 +382,7 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 	if err != nil {
 		return storedCredential{}, err
 	}
-	token, err := exchangeAuthorizationCode(currentContext(), conf, code, verifier)
+	token, err := exchangeAuthorizationCode(currentContext(), flow, code)
 	if err != nil {
 		return storedCredential{}, authExchangeFailedErrorfWithDetails("exchange authorization code: %w", map[string]any{
 			"token_type": authTokenTypeName(tokType),
@@ -395,7 +398,7 @@ func requestAccessCredential(tokType string, domain string) (storedCredential, e
 			"token_type": authTokenTypeName(tokType),
 		})
 	}
-	return storedCredentialFromOAuthToken(token, conf.ClientID), nil
+	return storedCredentialFromOAuthToken(token, appKey), nil
 }
 
 func refreshStoredCredential(tokType string, domain string, credential storedCredential) (storedCredential, error) {
@@ -409,7 +412,7 @@ func refreshStoredCredential(tokType string, domain string, credential storedCre
 		})
 	}
 
-	token, err := refreshOAuthToken(currentContext(), oauthConfigWithAppKey(appKey, domain), credential.oauthToken())
+	token, err := refreshOAuthToken(currentContext(), appKey, domain, credential.oauthToken())
 	if err != nil {
 		return storedCredential{}, err
 	}

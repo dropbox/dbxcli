@@ -17,6 +17,10 @@
 - `put` now preserves the source file's modification time as `ClientModified` instead of the upload time (stdin uploads use the spool file mtime).
 - The retry loop now respects context cancellation during backoff and never retries context errors.
 
+**Changed:**
+
+- Migrated PKCE OAuth and refresh-token protocol helpers to the Dropbox SDK.
+
 **Infrastructure:**
 
 - Added scheduled/manual OSSF Scorecard scanning without public Scorecard API publishing.

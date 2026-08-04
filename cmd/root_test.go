@@ -548,7 +548,7 @@ func TestInitDbxAccessTokenEnvBypassesRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
+	refreshOAuthToken = func(ctx context.Context, appKey string, domain string, token *oauth2.Token) (*oauth2.Token, error) {
 		t.Fatal("refresh should not run when DBXCLI_ACCESS_TOKEN is set")
 		return nil, nil
 	}

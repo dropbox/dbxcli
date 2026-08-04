@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -158,8 +159,11 @@ func restoreOAuthCredentials(t *testing.T) {
 	origTeamManageAppKey := teamManageAppKey
 	origReadAppKey := readAppKey
 	origReadAppCredentials := readAppCredentials
+	origReadAuthorizationCode := readAuthorizationCode
 	origGenerateOAuthVerifier := generateOAuthVerifier
 	origGenerateOAuthState := generateOAuthState
+	origNewOAuthPKCEFlow := newOAuthPKCEFlow
+	origExchangeAuthorizationCode := exchangeAuthorizationCode
 	origRefreshOAuthToken := refreshOAuthToken
 	t.Cleanup(func() {
 		personalAppKey = origPersonalAppKey
@@ -167,10 +171,26 @@ func restoreOAuthCredentials(t *testing.T) {
 		teamManageAppKey = origTeamManageAppKey
 		readAppKey = origReadAppKey
 		readAppCredentials = origReadAppCredentials
+		readAuthorizationCode = origReadAuthorizationCode
 		generateOAuthVerifier = origGenerateOAuthVerifier
 		generateOAuthState = origGenerateOAuthState
+		newOAuthPKCEFlow = origNewOAuthPKCEFlow
+		exchangeAuthorizationCode = origExchangeAuthorizationCode
 		refreshOAuthToken = origRefreshOAuthToken
 	})
+}
+
+type testOAuthFlow struct {
+	authCodeURL string
+	exchange    func(context.Context, string) (*oauth2.Token, error)
+}
+
+func (f testOAuthFlow) AuthCodeURL() string {
+	return f.authCodeURL
+}
+
+func (f testOAuthFlow) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
+	return f.exchange(ctx, code)
 }
 
 func mockOAuthAppCredentials(t *testing.T) {
@@ -191,28 +211,42 @@ func mockAuthorization(t *testing.T, code string, accessToken string) {
 
 	mockOAuthAppCredentials(t)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAuthorizationCode = func() (string, error) {
 		return code, nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, gotCode string, verifier string) (*oauth2.Token, error) {
-		if gotCode != code {
-			t.Fatalf("expected authorization code %q, got %q", code, gotCode)
-		}
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
 		if verifier == "" {
 			t.Fatal("expected PKCE verifier")
 		}
-		return &oauth2.Token{
-			AccessToken:  accessToken,
-			RefreshToken: "refresh-token",
-			TokenType:    "Bearer",
-			Expiry:       time.Now().Add(time.Hour),
+		return testOAuthFlow{
+			authCodeURL: "https://example.com/oauth",
+			exchange: func(ctx context.Context, gotCode string) (*oauth2.Token, error) {
+				if gotCode != code {
+					t.Fatalf("expected authorization code %q, got %q", code, gotCode)
+				}
+				return &oauth2.Token{
+					AccessToken:  accessToken,
+					RefreshToken: "refresh-token",
+					TokenType:    "Bearer",
+					Expiry:       time.Now().Add(time.Hour),
+				}, nil
+			},
+		}, nil
+	}
+}
+
+func stubOAuthFlowToken(t *testing.T, wantAppKey string, token *oauth2.Token) {
+	t.Helper()
+
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+		if appKey != wantAppKey {
+			t.Fatalf("expected app key %q, got %q", wantAppKey, appKey)
+		}
+		return testOAuthFlow{
+			authCodeURL: "https://example.com/oauth",
+			exchange: func(ctx context.Context, code string) (*oauth2.Token, error) {
+				return token, nil
+			},
 		}, nil
 	}
 }
@@ -224,18 +258,13 @@ func TestGetAccessTokenUsesExistingToken(t *testing.T) {
 	}
 	t.Setenv(envAuthFile, authFile)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
+	restoreOAuthCredentials(t)
 	readAuthorizationCode = func() (string, error) {
 		t.Fatal("authorization prompt should not be used for existing token")
 		return "", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		t.Fatal("authorization exchange should not be used for existing token")
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+		t.Fatal("authorization flow should not be created for existing token")
 		return nil, nil
 	}
 
@@ -303,9 +332,9 @@ func TestGetAccessTokenRefreshesExpiredCredential(t *testing.T) {
 
 	restoreOAuthCredentials(t)
 	refreshExpiry := time.Now().Add(time.Hour).UTC()
-	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
-		if conf.ClientID != "stored-app-key" {
-			t.Fatalf("expected stored app key for refresh, got %q", conf.ClientID)
+	refreshOAuthToken = func(ctx context.Context, appKey string, domain string, token *oauth2.Token) (*oauth2.Token, error) {
+		if appKey != "stored-app-key" {
+			t.Fatalf("expected stored app key for refresh, got %q", appKey)
 		}
 		if token.RefreshToken != "old-refresh" {
 			t.Fatalf("expected old refresh token, got %q", token.RefreshToken)
@@ -365,7 +394,7 @@ func TestGetAccessTokenRefreshFailureLeavesAuthFileUnchanged(t *testing.T) {
 	t.Setenv(envAuthFile, authFile)
 
 	restoreOAuthCredentials(t)
-	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
+	refreshOAuthToken = func(ctx context.Context, appKey string, domain string, token *oauth2.Token) (*oauth2.Token, error) {
 		return nil, errors.New("refresh failed")
 	}
 
@@ -409,7 +438,7 @@ func TestGetAccessTokenRefreshWithoutAppKeyReturnsAppKeyRequired(t *testing.T) {
 
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenPersonal, "")
-	refreshOAuthToken = func(ctx context.Context, conf *oauth2.Config, token *oauth2.Token) (*oauth2.Token, error) {
+	refreshOAuthToken = func(ctx context.Context, appKey string, domain string, token *oauth2.Token) (*oauth2.Token, error) {
 		t.Fatal("refresh should not run without an app key")
 		return nil, nil
 	}
@@ -433,13 +462,6 @@ func TestGetAccessTokenMissingTokenWithDefaultPersonalCredentialsReturnsLoginErr
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not run for command lazy auth")
 		return appCredentials{}, nil
@@ -448,8 +470,8 @@ func TestGetAccessTokenMissingTokenWithDefaultPersonalCredentialsReturnsLoginErr
 		t.Fatal("authorization prompt should not run when app credentials are missing")
 		return "", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		t.Fatal("authorization exchange should not run when app credentials are missing")
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+		t.Fatal("authorization flow should not run when app credentials are missing")
 		return nil, nil
 	}
 
@@ -475,13 +497,6 @@ func TestGetAccessTokenMissingTokenWithConfiguredAppKeyReturnsLoginError(t *test
 	authFile := filepath.Join(t.TempDir(), "auth.json")
 	t.Setenv(envAuthFile, authFile)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not run for command lazy auth")
 		return appCredentials{}, nil
@@ -490,8 +505,8 @@ func TestGetAccessTokenMissingTokenWithConfiguredAppKeyReturnsLoginError(t *test
 		t.Fatal("authorization prompt should not run for command lazy auth")
 		return "", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		t.Fatal("authorization exchange should not run for command lazy auth")
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+		t.Fatal("authorization flow should not run for command lazy auth")
 		return nil, nil
 	}
 
@@ -537,7 +552,7 @@ func TestRequestAccessTokenRejectsEmptyToken(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
+	exchangeAuthorizationCode = func(ctx context.Context, flow oauthFlow, code string) (*oauth2.Token, error) {
 		return &oauth2.Token{}, nil
 	}
 
@@ -561,7 +576,7 @@ func TestRequestAccessTokenRejectsMissingRefreshToken(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
+	exchangeAuthorizationCode = func(ctx context.Context, flow oauthFlow, code string) (*oauth2.Token, error) {
 		return &oauth2.Token{AccessToken: "access-token"}, nil
 	}
 
@@ -585,7 +600,7 @@ func TestRequestAccessTokenReturnsReadError(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "", errors.New("read failed")
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
+	exchangeAuthorizationCode = func(ctx context.Context, flow oauthFlow, code string) (*oauth2.Token, error) {
 		t.Fatal("authorization exchange should not run when reading code fails")
 		return nil, nil
 	}
@@ -599,13 +614,6 @@ func TestRequestAccessTokenUsesDefaultTeamManageAppKey(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenTeamManage, defaultTeamManageAppKey)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not be used for the default team manage app key")
 		return appCredentials{}, nil
@@ -613,15 +621,7 @@ func TestRequestAccessTokenUsesDefaultTeamManageAppKey(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != defaultTeamManageAppKey {
-			t.Fatalf("expected default team manage app key, got %q", conf.ClientID)
-		}
-		if conf.ClientSecret != "" {
-			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
-		}
-		return &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}, nil
-	}
+	stubOAuthFlowToken(t, defaultTeamManageAppKey, &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)})
 
 	token, err := requestAccessToken(tokenTeamManage, "")
 	if err != nil {
@@ -636,13 +636,6 @@ func TestRequestAccessTokenUsesDefaultPersonalAppKey(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenPersonal, defaultPersonalAppKey)
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not be used for the default personal app key")
 		return appCredentials{}, nil
@@ -650,15 +643,7 @@ func TestRequestAccessTokenUsesDefaultPersonalAppKey(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != defaultPersonalAppKey {
-			t.Fatalf("expected default personal app key, got %q", conf.ClientID)
-		}
-		if conf.ClientSecret != "" {
-			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
-		}
-		return &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}, nil
-	}
+	stubOAuthFlowToken(t, defaultPersonalAppKey, &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)})
 
 	if _, err := requestAccessToken(tokenPersonal, ""); err != nil {
 		t.Fatal(err)
@@ -667,13 +652,6 @@ func TestRequestAccessTokenUsesDefaultPersonalAppKey(t *testing.T) {
 
 func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	mockOAuthAppCredentials(t)
-
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
 
 	const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 	const state = "test-oauth-state"
@@ -686,15 +664,23 @@ func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, gotVerifier string) (*oauth2.Token, error) {
+	newOAuthPKCEFlow = func(appKey string, domain string, gotState string, gotVerifier string) (oauthFlow, error) {
+		if gotState != state {
+			t.Fatalf("expected state %q, got %q", state, gotState)
+		}
 		if gotVerifier != verifier {
 			t.Fatalf("expected verifier %q, got %q", verifier, gotVerifier)
 		}
-		return &oauth2.Token{
-			AccessToken:  "access-token",
-			RefreshToken: "refresh-token",
-			TokenType:    "Bearer",
-			Expiry:       time.Now().Add(time.Hour),
+		return testOAuthFlow{
+			authCodeURL: "https://example.com/oauth?token_access_type=offline&state=test-oauth-state&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256",
+			exchange: func(ctx context.Context, code string) (*oauth2.Token, error) {
+				return &oauth2.Token{
+					AccessToken:  "access-token",
+					RefreshToken: "refresh-token",
+					TokenType:    "Bearer",
+					Expiry:       time.Now().Add(time.Hour),
+				}, nil
+			},
 		}, nil
 	}
 
@@ -716,6 +702,39 @@ func TestRequestAccessTokenUsesPKCEOfflineAuthURL(t *testing.T) {
 	}
 	if !strings.Contains(out, "code_challenge_method=S256") {
 		t.Fatalf("expected PKCE S256 method in auth URL, got %q", out)
+	}
+}
+
+func TestNewOAuthPKCEFlowUsesOfflinePKCEOptions(t *testing.T) {
+	const (
+		appKey   = "test-app-key"
+		state    = "test-oauth-state"
+		verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+	)
+
+	flow, err := createOAuthPKCEFlow(appKey, "", state, verifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authURL, err := url.Parse(flow.AuthCodeURL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := authURL.Query()
+	if got := query.Get("client_id"); got != appKey {
+		t.Errorf("expected client_id %q, got %q", appKey, got)
+	}
+	if got := query.Get("state"); got != state {
+		t.Errorf("expected state %q, got %q", state, got)
+	}
+	if got := query.Get("token_access_type"); got != "offline" {
+		t.Errorf("expected token_access_type offline, got %q", got)
+	}
+	if got := query.Get("code_challenge_method"); got != "S256" {
+		t.Errorf("expected code_challenge_method S256, got %q", got)
+	}
+	if got := query.Get("code_challenge"); got == "" {
+		t.Error("expected non-empty PKCE code_challenge")
 	}
 }
 
@@ -747,13 +766,6 @@ func TestRequestAccessTokenUsesConfiguredAppCredentials(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenPersonal, "configured-key")
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		t.Fatal("app credential prompt should not be used")
 		return appCredentials{}, nil
@@ -761,15 +773,7 @@ func TestRequestAccessTokenUsesConfiguredAppCredentials(t *testing.T) {
 	readAuthorizationCode = func() (string, error) {
 		return "auth-code", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		if conf.ClientID != "configured-key" {
-			t.Fatalf("expected configured app key, got %q", conf.ClientID)
-		}
-		if conf.ClientSecret != "" {
-			t.Fatalf("expected no client secret for PKCE, got %q", conf.ClientSecret)
-		}
-		return &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}, nil
-	}
+	stubOAuthFlowToken(t, "configured-key", &oauth2.Token{AccessToken: "access-token", RefreshToken: "refresh-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)})
 
 	if _, err := requestAccessToken(tokenPersonal, ""); err != nil {
 		t.Fatal(err)
@@ -780,13 +784,6 @@ func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 	restoreOAuthCredentials(t)
 	setOAuthCredentials(tokenTeamManage, "")
 
-	origReadAuthorizationCode := readAuthorizationCode
-	origExchangeAuthorizationCode := exchangeAuthorizationCode
-	t.Cleanup(func() {
-		readAuthorizationCode = origReadAuthorizationCode
-		exchangeAuthorizationCode = origExchangeAuthorizationCode
-	})
-
 	readAppCredentials = func(tokType string) (appCredentials, error) {
 		return appCredentials{Key: " "}, nil
 	}
@@ -794,8 +791,8 @@ func TestRequestAccessTokenRejectsEmptyAppCredentials(t *testing.T) {
 		t.Fatal("authorization code prompt should not run when app credentials are invalid")
 		return "", nil
 	}
-	exchangeAuthorizationCode = func(ctx context.Context, conf *oauth2.Config, code string, verifier string) (*oauth2.Token, error) {
-		t.Fatal("authorization exchange should not run when app credentials are invalid")
+	newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+		t.Fatal("authorization flow should not run when app credentials are invalid")
 		return nil, nil
 	}
 
