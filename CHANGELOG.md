@@ -2,7 +2,7 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.6.1...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.1...HEAD)
 
 ## [v3.7.1](https://github.com/dropbox/dbxcli/tree/v3.7.1) (2026-08-04)
 
