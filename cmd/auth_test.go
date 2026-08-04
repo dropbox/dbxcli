@@ -710,7 +710,7 @@ func TestNewOAuthPKCEFlowUsesOfflinePKCEOptions(t *testing.T) {
 		verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 	)
 
-	flow, err := newOAuthPKCEFlow(appKey, "", state, verifier)
+	flow, err := createOAuthPKCEFlow(appKey, "", state, verifier)
 	if err != nil {
 		t.Fatal(err)
 	}

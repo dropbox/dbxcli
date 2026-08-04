@@ -101,7 +101,12 @@ var readAuthorizationCode = func() (string, error) {
 var generateOAuthVerifier = oauth2.GenerateVerifier
 var generateOAuthState = oauth2.GenerateVerifier
 
-var newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier string) (oauthFlow, error) {
+func createOAuthPKCEFlow(
+	appKey string,
+	domain string,
+	state string,
+	verifier string,
+) (oauthFlow, error) {
 	return dropboxoauth.NewPKCEFlow(
 		appKey,
 		dropboxoauth.WithDomain(domain),
@@ -110,6 +115,8 @@ var newOAuthPKCEFlow = func(appKey string, domain string, state string, verifier
 		dropboxoauth.WithTokenAccessType(dropboxoauth.TokenAccessTypeOffline),
 	)
 }
+
+var newOAuthPKCEFlow = createOAuthPKCEFlow
 
 var exchangeAuthorizationCode = func(ctx context.Context, flow oauthFlow, code string) (*oauth2.Token, error) {
 	return flow.Exchange(ctx, code)
