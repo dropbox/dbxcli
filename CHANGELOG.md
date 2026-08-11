@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.1...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.2...HEAD)
+
+## [v3.7.2](https://github.com/dropbox/dbxcli/tree/v3.7.2) (2026-08-11)
+
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.1...v3.7.2)
+
+**Added:**
+
+- Added support for exporting Dropbox Paper `.paper` files with `get`, including file targets, directory targets, recursive downloads, and stdout.
+
+**Changed:**
+
+- Updated the Dropbox Go SDK to v6.6.0.
 
 ## [v3.7.1](https://github.com/dropbox/dbxcli/tree/v3.7.1) (2026-08-04)
 
