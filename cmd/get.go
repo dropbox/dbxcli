@@ -75,7 +75,9 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	if srcRef.isPath() {
 		dst = path.Base(src)
 	}
-	if len(args) == 2 {
+
+	dstExplicit := len(args) == 2
+	if dstExplicit {
 		dst = args[1]
 	}
 
@@ -104,7 +106,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 			}
 			dst = filepath.Join(dst, path.Base(src))
 		}
-		result, err := downloadFileWithResult(dbx, src, dst, opts)
+		result, err := downloadFileWithResult(dbx, src, dst, nil, true, opts)
 		if err != nil {
 			return withJSONErrorDetails(err, operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
@@ -149,17 +151,23 @@ func get(cmd *cobra.Command, args []string) (err error) {
 		}, results)
 	}
 
+	dstFilenameExplicit := dstExplicit
 	if f, statErr := os.Stat(dst); statErr == nil && f.IsDir() {
 		dst = filepath.Join(dst, sourceName)
+		dstFilenameExplicit = false
 	}
 
-	result, err := downloadFileWithResult(dbx, src, dst, opts)
+	fileMeta, ok := meta.(*files.FileMetadata)
+	if !ok {
+		return fmt.Errorf("unexpected metadata type for %s", src)
+	}
+	result, err := downloadFileWithResult(dbx, src, dst, fileMeta, dstFilenameExplicit, opts)
 	if err != nil {
 		return withJSONErrorDetails(err, operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 	}
 	return renderGetResults(cmd, getCommandInput{
 		Source:    src,
-		Target:    dst,
+		Target:    result.Input.Target,
 		Recursive: false,
 		Stdout:    false,
 	}, []getResult{result})
@@ -227,7 +235,8 @@ func getStdout(cmd *cobra.Command, src string, recursive bool) error {
 		}
 	}
 
-	return withJSONErrorDetails(downloadToStdout(dbx, src, cmd.OutOrStdout()), operationErrorDetails("download"), pathErrorDetails(src))
+	fileMeta, _ := meta.(*files.FileMetadata)
+	return withJSONErrorDetails(downloadToStdoutWithMetadata(dbx, src, fileMeta, cmd.OutOrStdout()), operationErrorDetails("download"), pathErrorDetails(src))
 }
 
 func getRecursive(dbx filesClient, src, dst string) error {
@@ -321,16 +330,22 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 			}
 			fmt.Fprintf(getErrorOutput(opts), "Downloading %s -> %s\n", f.PathDisplay, localPath)
 			if collectResults {
-				result, err := downloadFileWithResult(dbx, f.PathDisplay, localPath, opts)
+				result, err := downloadFileWithResult(dbx, f.PathDisplay, localPath, f, false, opts)
 				if err != nil {
-					downloadErrors = append(downloadErrors, fmt.Errorf("%s: %w", f.PathDisplay, err))
+					downloadErrors = append(
+						downloadErrors,
+						fmt.Errorf("%s: %w", f.PathDisplay, err),
+					)
 					continue
 				}
 				results = append(results, result)
 				continue
 			}
-			if err := downloadFile(dbx, f.PathDisplay, localPath); err != nil {
-				downloadErrors = append(downloadErrors, fmt.Errorf("%s: %w", f.PathDisplay, err))
+			if _, _, err := downloadFileWithMetadata(dbx, f.PathDisplay, localPath, f, false, getErrorOutput(opts)); err != nil {
+				downloadErrors = append(
+					downloadErrors,
+					fmt.Errorf("%s: %w", f.PathDisplay, err),
+				)
 			}
 		}
 	}
@@ -374,34 +389,54 @@ func relativeTo(base, full string) (string, error) {
 }
 
 func downloadFile(dbx filesClient, src string, dst string) error {
-	_, err := downloadFileWithMetadata(dbx, src, dst, os.Stderr)
+	_, _, err := downloadFileWithMetadata(dbx, src, dst, nil, false, os.Stderr)
 	return err
 }
 
-func downloadFileWithResult(dbx filesClient, src string, dst string, opts getOptions) (getResult, error) {
-	metadata, err := downloadFileWithMetadata(dbx, src, dst, getErrorOutput(opts))
+func downloadFileWithResult(
+	dbx filesClient,
+	src string,
+	dst string,
+	metadata *files.FileMetadata,
+	dstExplicit bool,
+	opts getOptions,
+) (getResult, error) {
+	metadata, actualDst, err := downloadFileWithMetadata(dbx, src, dst, metadata, dstExplicit, getErrorOutput(opts))
 	if err != nil {
 		return getResult{}, err
 	}
-	return newGetResult(getStatusDownloaded, getKindFile, src, dst, metadata)
+	return newGetResult(getStatusDownloaded, getKindFile, src, actualDst, metadata)
 }
 
-func downloadFileWithMetadata(dbx filesClient, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {
-	arg := files.NewDownloadArg(src)
-	var metadata *files.FileMetadata
+func downloadFileWithMetadata(
+	dbx filesClient,
+	src string,
+	dst string,
+	metadata *files.FileMetadata,
+	dstExplicit bool,
+	errOut io.Writer,
+) (*files.FileMetadata, string, error) {
+	var result *files.FileMetadata
+	actualDst := dst
 
 	err := retryWithBackoff(func() error {
 		var err error
-		metadata, err = downloadFileOnce(dbx, arg, dst, errOut)
+		if isExportOnlyFile(metadata) {
+			result, actualDst, err = exportFileToPath(dbx, src, dst, dstExplicit)
+		} else {
+			arg := files.NewDownloadArg(src)
+			result, err = downloadFileOnce(dbx, arg, dst, errOut)
+		}
 		return err
 	})
-	return metadata, err
+
+	return result, actualDst, err
 }
 
 func createDownloadTemp(dst string) (*os.File, string, error) {
 	dir := filepath.Dir(dst)
 	base := filepath.Base(dst)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		tmp := filepath.Join(dir, fmt.Sprintf(".%s.tmp-%d-%d", base, os.Getpid(), time.Now().UnixNano()+int64(i)))
 		f, err := os.OpenFile(tmp, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 		if errors.Is(err, os.ErrExist) {
@@ -413,7 +448,7 @@ func createDownloadTemp(dst string) (*os.File, string, error) {
 }
 
 func downloadDestinationPath(dst string) (string, error) {
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		info, err := os.Lstat(dst)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -485,11 +520,73 @@ func downloadFileOnce(dbx filesClient, arg *files.DownloadArg, dst string, errOu
 	return res, nil
 }
 
+func exportFile(
+	dbx filesClient,
+	src string,
+) (*files.ExportResult, io.ReadCloser, error) {
+	return dbx.ExportContext(
+		currentContext(),
+		files.NewExportArg(src),
+	)
+}
+
+func exportFileToPath(dbx filesClient, src string, dst string, dstExplicit bool) (*files.FileMetadata, string, error) {
+	res, contents, err := exportFile(dbx, src)
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() { _ = contents.Close() }()
+
+	if !dstExplicit {
+		dst = filepath.Join(filepath.Dir(dst), res.ExportMetadata.Name)
+	}
+
+	finalDst, err := downloadDestinationPath(dst)
+	if err != nil {
+		return nil, "", err
+	}
+
+	f, tmp, err := createDownloadTemp(finalDst)
+	if err != nil {
+		return nil, "", err
+	}
+
+	removeTemp := true
+	defer func() {
+		if removeTemp {
+			_ = os.Remove(tmp)
+		}
+	}()
+
+	_, copyErr := io.Copy(f, contents)
+	closeErr := f.Close()
+
+	if copyErr != nil {
+		return nil, "", copyErr
+	}
+	if closeErr != nil {
+		return nil, "", closeErr
+	}
+
+	if err := os.Rename(tmp, finalDst); err != nil {
+		return nil, "", err
+	}
+
+	removeTemp = false
+	return res.FileMetadata, dst, nil
+}
+
 func downloadMetadataSize(metadata *files.FileMetadata) int64 {
 	if metadata == nil {
 		return 0
 	}
 	return int64(metadata.Size)
+}
+
+func isExportOnlyFile(metadata *files.FileMetadata) bool {
+	return metadata != nil &&
+		metadata.ExportInfo != nil &&
+		metadata.ExportInfo.ExportAs != ""
 }
 
 // getCmd represents the get command

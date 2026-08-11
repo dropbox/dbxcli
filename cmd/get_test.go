@@ -930,6 +930,54 @@ func TestGetTextStdoutTargetWritesOnlyFileBytes(t *testing.T) {
 	}
 }
 
+func TestGetStdoutExportOnlyFileUsesExport(t *testing.T) {
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{
+					Name:        "doc.paper",
+					PathDisplay: arg.Path,
+				},
+				ExportInfo: &files.ExportInfo{
+					ExportAs: "html",
+				},
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			t.Fatal("DownloadContext should not be called")
+			return nil, nil, nil
+		},
+		exportFn: func(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error) {
+			if arg.Path != "/doc.paper" {
+				t.Fatalf("export path = %q, want /doc.paper", arg.Path)
+			}
+			return &files.ExportResult{
+				ExportMetadata: &files.ExportMetadata{
+					Name: "doc.html",
+					Size: uint64(len("paper stdout")),
+				},
+				FileMetadata: &files.FileMetadata{
+					Metadata: files.Metadata{
+						Name:        "doc.paper",
+						PathDisplay: "/doc.paper",
+					},
+				},
+			}, io.NopCloser(strings.NewReader("paper stdout")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	var stdout bytes.Buffer
+	cmd := testGetCmd()
+	cmd.SetOut(&stdout)
+	if err := get(cmd, []string{"/doc.paper", "-"}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+	if stdout.String() != "paper stdout" {
+		t.Fatalf("stdout = %q, want paper stdout", stdout.String())
+	}
+}
+
 func TestGetJSONRecursiveOutputsDirectoryAndFileResults(t *testing.T) {
 	tmpDir := t.TempDir()
 	dst := filepath.Join(tmpDir, "out")
@@ -1115,5 +1163,225 @@ func TestRelativeToRejectsSiblingPrefix(t *testing.T) {
 	_, err := relativeTo("/remote", "/remote2/file.txt")
 	if err == nil {
 		t.Fatal("expected error for sibling path with shared prefix")
+	}
+}
+
+func TestIsExportOnlyFile(t *testing.T) {
+	tests := []struct {
+		name     string
+		metadata *files.FileMetadata
+		want     bool
+	}{
+		{
+			name:     "nil metadata",
+			metadata: nil,
+			want:     false,
+		},
+		{
+			name:     "normal file",
+			metadata: &files.FileMetadata{},
+			want:     false,
+		},
+		{
+			name: "exportable file",
+			metadata: &files.FileMetadata{
+				ExportInfo: &files.ExportInfo{
+					ExportAs: "markdown",
+				},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isExportOnlyFile(tt.metadata); got != tt.want {
+				t.Fatalf("isExportOnlyFile() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetExportOnlyFileUsesExport(t *testing.T) {
+	tmp := t.TempDir()
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(oldWD) }()
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{
+					Name:        "test.paper",
+					PathDisplay: "/test.paper",
+				},
+				ExportInfo: &files.ExportInfo{
+					ExportAs: "html",
+				},
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			t.Fatal("DownloadContext should not be called")
+			return nil, nil, nil
+		},
+		exportFn: func(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error) {
+			if arg.Path != "/test.paper" {
+				t.Fatalf("export path = %q, want /test.paper", arg.Path)
+			}
+			return &files.ExportResult{
+				ExportMetadata: &files.ExportMetadata{
+					Name: "test.html",
+					Size: uint64(len("paper content")),
+				},
+				FileMetadata: &files.FileMetadata{
+					Metadata: files.Metadata{
+						Name: "test.paper",
+					},
+				},
+			}, io.NopCloser(strings.NewReader("paper content")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := get(testGetCmd(), []string{"/test.paper"}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	data, err := os.ReadFile("test.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(data), "paper content"; got != want {
+		t.Fatalf("content = %q, want %q", got, want)
+	}
+}
+
+func TestGetExportOnlyFileDirectoryTargetUsesExportName(t *testing.T) {
+	tmp := t.TempDir()
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FileMetadata{
+				Metadata: files.Metadata{
+					Name:        "test.paper",
+					PathDisplay: "/test.paper",
+				},
+				ExportInfo: &files.ExportInfo{
+					ExportAs: "html",
+				},
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			t.Fatal("DownloadContext should not be called")
+			return nil, nil, nil
+		},
+		exportFn: func(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error) {
+			return &files.ExportResult{
+				ExportMetadata: &files.ExportMetadata{
+					Name: "test.html",
+					Size: uint64(len("paper content")),
+				},
+				FileMetadata: &files.FileMetadata{
+					Metadata: files.Metadata{
+						Name:        "test.paper",
+						PathDisplay: "/test.paper",
+					},
+				},
+			}, io.NopCloser(strings.NewReader("paper content")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := get(testGetCmd(), []string{"/test.paper", tmp}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(tmp, "test.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(data), "paper content"; got != want {
+		t.Fatalf("content = %q, want %q", got, want)
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "test.paper")); !os.IsNotExist(err) {
+		t.Fatalf("test.paper exists or stat failed with non-not-exist error: %v", err)
+	}
+}
+
+func TestGetRecursiveExportOnlyFileUsesExportName(t *testing.T) {
+	dst := filepath.Join(t.TempDir(), "out")
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			return &files.FolderMetadata{
+				Metadata: files.Metadata{
+					Name:        "remote",
+					PathDisplay: "/remote",
+				},
+			}, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{
+				Entries: []files.IsMetadata{
+					&files.FolderMetadata{
+						Metadata: files.Metadata{
+							Name:        "sub",
+							PathDisplay: "/remote/sub",
+						},
+					},
+					&files.FileMetadata{
+						Metadata: files.Metadata{
+							Name:        "doc.paper",
+							PathDisplay: "/remote/sub/doc.paper",
+						},
+						ExportInfo: &files.ExportInfo{
+							ExportAs: "html",
+						},
+					},
+				},
+			}, nil
+		},
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			t.Fatal("DownloadContext should not be called")
+			return nil, nil, nil
+		},
+		exportFn: func(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error) {
+			if arg.Path != "/remote/sub/doc.paper" {
+				t.Fatalf("export path = %q, want /remote/sub/doc.paper", arg.Path)
+			}
+			return &files.ExportResult{
+				ExportMetadata: &files.ExportMetadata{
+					Name: "doc.html",
+					Size: uint64(len("recursive paper")),
+				},
+				FileMetadata: &files.FileMetadata{
+					Metadata: files.Metadata{
+						Name:        "doc.paper",
+						PathDisplay: "/remote/sub/doc.paper",
+					},
+				},
+			}, io.NopCloser(strings.NewReader("recursive paper")), nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	cmd := testGetCmd()
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := get(cmd, []string{"/remote", dst}); err != nil {
+		t.Fatalf("get error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dst, "sub", "doc.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(data), "recursive paper"; got != want {
+		t.Fatalf("content = %q, want %q", got, want)
+	}
+	if _, err := os.Stat(filepath.Join(dst, "sub", "doc.paper")); !os.IsNotExist(err) {
+		t.Fatalf("doc.paper exists or stat failed with non-not-exist error: %v", err)
 	}
 }

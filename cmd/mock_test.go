@@ -11,6 +11,7 @@ import (
 
 type mockFilesClient struct {
 	downloadFn              func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error)
+	exportFn                func(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error)
 	uploadFn                func(arg *files.UploadArg, content io.Reader) (*files.FileMetadata, error)
 	uploadSessionStartFn    func(arg *files.UploadSessionStartArg, content io.Reader) (*files.UploadSessionStartResult, error)
 	uploadSessionAppendV2Fn func(arg *files.UploadSessionAppendArg, content io.Reader) error
@@ -162,8 +163,19 @@ func (m *mockFilesClient) DownloadZip(arg *files.DownloadZipArg) (*files.Downloa
 	return nil, nil, nil
 }
 func (m *mockFilesClient) Export(arg *files.ExportArg) (*files.ExportResult, io.ReadCloser, error) {
+	if m.exportFn != nil {
+		return m.exportFn(arg)
+	}
 	return nil, nil, nil
 }
+
+func (m *mockFilesClient) ExportContext(
+	ctx context.Context,
+	arg *files.ExportArg,
+) (*files.ExportResult, io.ReadCloser, error) {
+	return m.Export(arg)
+}
+
 func (m *mockFilesClient) GetFileLockBatch(arg *files.LockFileBatchArg) (*files.LockFileBatchResult, error) {
 	return nil, nil
 }

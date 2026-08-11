@@ -29,6 +29,10 @@ func (e partialTransferError) JSONErrorDetails() map[string]any {
 }
 
 func downloadToStdout(dbx filesClient, src string, w io.Writer) error {
+	return downloadToStdoutWithMetadata(dbx, src, nil, w)
+}
+
+func downloadToStdoutWithMetadata(dbx filesClient, src string, metadata *files.FileMetadata, w io.Writer) error {
 	ignoreBrokenPipeSignal()
 
 	arg := files.NewDownloadArg(src)
@@ -39,7 +43,7 @@ func downloadToStdout(dbx filesClient, src string, w io.Writer) error {
 			return partialStdoutError(bytesWritten)
 		}
 
-		_, contents, err := dbx.DownloadContext(currentContext(), arg)
+		contents, err := stdoutReadCloser(dbx, arg, metadata)
 		if err != nil {
 			return err
 		}
@@ -58,6 +62,16 @@ func downloadToStdout(dbx filesClient, src string, w io.Writer) error {
 	})
 
 	return err
+}
+
+func stdoutReadCloser(dbx filesClient, downloadArg *files.DownloadArg, metadata *files.FileMetadata) (io.ReadCloser, error) {
+	if isExportOnlyFile(metadata) {
+		_, contents, err := exportFile(dbx, downloadArg.Path)
+		return contents, err
+	}
+
+	_, contents, err := dbx.DownloadContext(currentContext(), downloadArg)
+	return contents, err
 }
 
 func partialStdoutError(bytesWritten int64) error {

@@ -13,6 +13,7 @@ type filesClient interface {
 	CreateFolderV2Context(context.Context, *files.CreateFolderArg) (*files.CreateFolderResult, error)
 	DeleteV2Context(context.Context, *files.DeleteArg) (*files.DeleteResult, error)
 	DownloadContext(context.Context, *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error)
+	ExportContext(context.Context, *files.ExportArg) (*files.ExportResult, io.ReadCloser, error)
 	GetMetadataContext(context.Context, *files.GetMetadataArg) (files.IsMetadata, error)
 	ListFolderContext(context.Context, *files.ListFolderArg) (*files.ListFolderResult, error)
 	ListFolderContinueContext(context.Context, *files.ListFolderContinueArg) (*files.ListFolderResult, error)
