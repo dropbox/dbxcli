@@ -220,7 +220,6 @@ func TestGetDownloadWithRetry(t *testing.T) {
 }
 
 func TestGetDownloadRetriesBodyReadError(t *testing.T) {
-	delays := stubRetrySleep(t)
 	tmpDir := t.TempDir()
 	dst := filepath.Join(tmpDir, "downloaded.txt")
 	content := "complete file content"
@@ -234,9 +233,12 @@ func TestGetDownloadRetriesBodyReadError(t *testing.T) {
 				Size:     uint64(len(content)),
 			}
 			if calls == 1 {
-				return meta, &failingReadCloser{data: []byte("partial")}, nil
+				return meta, &failingReadCloser{data: []byte(content[:7])}, nil
 			}
-			return meta, io.NopCloser(strings.NewReader(content)), nil
+			if got := arg.ExtraHeaders["Range"]; got != "bytes=7-" {
+				t.Errorf("retry range = %q, want bytes=7-", got)
+			}
+			return meta, io.NopCloser(strings.NewReader(content[7:])), nil
 		},
 	}
 
@@ -247,10 +249,6 @@ func TestGetDownloadRetriesBodyReadError(t *testing.T) {
 	if calls != 2 {
 		t.Errorf("expected 2 calls, got %d", calls)
 	}
-	if len(*delays) != 1 {
-		t.Fatalf("expected 1 sleep, got %d", len(*delays))
-	}
-
 	got, err := os.ReadFile(dst)
 	if err != nil {
 		t.Fatalf("failed to read downloaded file: %v", err)
