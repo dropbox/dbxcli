@@ -26,6 +26,7 @@ import (
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/filetransfer"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
@@ -416,20 +417,18 @@ func downloadFileWithMetadata(
 	dstExplicit bool,
 	errOut io.Writer,
 ) (*files.FileMetadata, string, error) {
+	if !isExportOnlyFile(metadata) {
+		result, err := downloadFileOnce(dbx, src, dst, errOut)
+		return result, dst, err
+	}
+
 	var result *files.FileMetadata
 	actualDst := dst
-
 	err := retryWithBackoff(func() error {
 		var err error
-		if isExportOnlyFile(metadata) {
-			result, actualDst, err = exportFileToPath(dbx, src, dst, dstExplicit)
-		} else {
-			arg := files.NewDownloadArg(src)
-			result, err = downloadFileOnce(dbx, arg, dst, errOut)
-		}
+		result, actualDst, err = exportFileToPath(dbx, src, dst, dstExplicit)
 		return err
 	})
-
 	return result, actualDst, err
 }
 
@@ -473,51 +472,36 @@ func downloadDestinationPath(dst string) (string, error) {
 	return "", fmt.Errorf("too many symlinks resolving %s", dst)
 }
 
-func downloadFileOnce(dbx filesClient, arg *files.DownloadArg, dst string, errOut io.Writer) (*files.FileMetadata, error) {
-	res, contents, err := dbx.DownloadContext(currentContext(), arg)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = contents.Close() }()
-
+func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {
 	finalDst, err := downloadDestinationPath(dst)
 	if err != nil {
 		return nil, err
 	}
+	if errOut == nil {
+		errOut = io.Discard
+	}
 
-	f, tmp, err := createDownloadTemp(finalDst)
+	draw := ioprogress.DrawTerminalf(errOut, func(progress, total int64) string {
+		return fmt.Sprintf("Downloading %s/%s",
+			humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
+	})
+	defer func() { _ = draw(-1, -1) }()
+
+	result, err := filetransfer.NewDownloader(dbx).Download(
+		currentContext(),
+		src,
+		filetransfer.File(finalDst),
+		filetransfer.DownloadOptions{
+			MaxAttempts: maxRetries + 1,
+			Progress: func(progress filetransfer.DownloadProgress) {
+				_ = draw(progress.BytesCommitted, progress.TotalBytes)
+			},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	removeTemp := true
-	defer func() {
-		if removeTemp {
-			_ = os.Remove(tmp)
-		}
-	}()
-
-	progressbar := &ioprogress.Reader{
-		Reader: contents,
-		DrawFunc: ioprogress.DrawTerminalf(errOut, func(progress, total int64) string {
-			return fmt.Sprintf("Downloading %s/%s",
-				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
-		}),
-		Size: downloadMetadataSize(res),
-	}
-
-	_, copyErr := io.Copy(f, progressbar)
-	closeErr := f.Close()
-	if copyErr != nil {
-		return nil, copyErr
-	}
-	if closeErr != nil {
-		return nil, closeErr
-	}
-	if err := os.Rename(tmp, finalDst); err != nil {
-		return nil, err
-	}
-	removeTemp = false
-	return res, nil
+	return result.Metadata, nil
 }
 
 func exportFile(
@@ -574,13 +558,6 @@ func exportFileToPath(dbx filesClient, src string, dst string, dstExplicit bool)
 
 	removeTemp = false
 	return res.FileMetadata, dst, nil
-}
-
-func downloadMetadataSize(metadata *files.FileMetadata) int64 {
-	if metadata == nil {
-		return 0
-	}
-	return int64(metadata.Size)
 }
 
 func isExportOnlyFile(metadata *files.FileMetadata) bool {
