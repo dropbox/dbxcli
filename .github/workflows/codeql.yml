@@ -26,7 +26,7 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4.37.6
+        uses: github/codeql-action/init@v4.37.7
         with:
           languages: go
 
@@ -34,4 +34,4 @@ jobs:
         run: go build ./...
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4.37.6
+        uses: github/codeql-action/analyze@v4.37.7
