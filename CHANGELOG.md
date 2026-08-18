@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/dropbox/dbxcli/tree/HEAD)
 
-[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.2...HEAD)
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.3...HEAD)
+
+## [v3.7.3](https://github.com/dropbox/dbxcli/tree/v3.7.3) (2026-08-18)
+
+[Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.2...v3.7.3)
+
+**Changed:**
+
+- Switched file downloads to the Dropbox SDK's reliable file transfer implementation, with retries, integrity validation, and safe target-file commits.
+- Updated the Dropbox Go SDK to v6.6.1.
+- `dbxcli version` now reports the resolved Dropbox SDK module version.
+
+**Infrastructure:**
+
+- Updated the CI Go version to 1.25.13 and the CodeQL GitHub Action.
 
 ## [v3.7.2](https://github.com/dropbox/dbxcli/tree/v3.7.2) (2026-08-11)
 
