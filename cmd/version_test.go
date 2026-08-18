@@ -80,10 +80,13 @@ func stubDropboxVersion(t *testing.T, sdkVersion, specVersion string) {
 	t.Helper()
 
 	previous := dropboxVersionFunc
+	previousModuleVersion := dropboxSDKModuleVersionFunc
 	dropboxVersionFunc = func() (string, string) {
 		return sdkVersion, specVersion
 	}
+	dropboxSDKModuleVersionFunc = func() string { return sdkVersion }
 	t.Cleanup(func() {
 		dropboxVersionFunc = previous
+		dropboxSDKModuleVersionFunc = previousModuleVersion
 	})
 }

@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"runtime/debug"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/spf13/cobra"
@@ -36,6 +37,7 @@ const (
 )
 
 var dropboxVersionFunc = dropbox.Version
+var dropboxSDKModuleVersionFunc = dropboxSDKModuleVersion
 
 // NewVersionCommand creates the version command. The version value is supplied
 // by main so release builds can continue setting it with ldflags.
@@ -66,12 +68,29 @@ func renderVersion(out io.Writer, info versionOutput) error {
 }
 
 func newVersionOutput(version string) versionOutput {
-	sdkVersion, specVersion := dropboxVersionFunc()
+	_, specVersion := dropboxVersionFunc()
 	return versionOutput{
 		Version:     version,
-		SDKVersion:  sdkVersion,
+		SDKVersion:  dropboxSDKModuleVersionFunc(),
 		SpecVersion: specVersion,
 	}
+}
+
+func dropboxSDKModuleVersion() string {
+	const modulePath = "github.com/dropbox/dropbox-sdk-go-unofficial/v6"
+
+	if buildInfo, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range buildInfo.Deps {
+			if dep.Path == modulePath && dep.Version != "" {
+				return dep.Version
+			}
+		}
+	}
+
+	// Fall back to the SDK's generated version when build metadata is absent,
+	// for example in binaries built with stripped build information.
+	sdkVersion, _ := dropboxVersionFunc()
+	return sdkVersion
 }
 
 func newVersionOperationOutput(info versionOutput) jsonOperationOutput {
