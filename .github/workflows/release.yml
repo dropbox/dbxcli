@@ -75,6 +75,24 @@ jobs:
           if ($actual -ne $expected) {
             throw "WingetCreate checksum mismatch: expected $expected, got $actual"
           }
+      - name: Sync WinGet submission fork
+        shell: pwsh
+        env:
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINGET_CREATE_GITHUB_TOKEN)) {
+            throw "The WINGET_CREATE_GITHUB_TOKEN repository secret is not configured"
+          }
+
+          $headers = @{
+            Accept = "application/vnd.github+json"
+            Authorization = "Bearer $env:WINGET_CREATE_GITHUB_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $response = Invoke-RestMethod -Method Post -Headers $headers `
+            -Uri "https://api.github.com/repos/AndreyVMarkelov/winget-pkgs/merge-upstream" `
+            -ContentType "application/json" -Body '{"branch":"master"}'
+          Write-Host "WinGet fork sync: $($response.message)"
       - name: Submit WinGet manifest
         shell: pwsh
         env:
