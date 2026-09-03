@@ -1,0 +1,6 @@
+interface:
+  display_name: "dbxcli"
+  short_description: "Safely operate Dropbox with dbxcli"
+  default_prompt: "Use $dbxcli to inspect Dropbox safely through the local CLI."
+policy:
+  allow_implicit_invocation: true

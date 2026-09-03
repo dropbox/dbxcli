@@ -97,6 +97,25 @@ jobs:
       - run: test -z "$(git status --porcelain -- docs/commands)"
       - run: test -z "$(git status --porcelain -- docs/json-schema/v1)"
 
+  claude-plugin:
+    name: Claude Code plugin sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate marketplace.json
+        run: python3 -c 'import json; json.load(open(".claude-plugin/marketplace.json"))'
+      - name: Check plugin skill is synced with canonical source
+        run: |
+          if ! diff -qr skills/dbxcli plugin/claude/skills/dbxcli; then
+            echo "error: plugin/claude/skills/dbxcli is out of sync with skills/dbxcli"
+            echo "Run: ./scripts/sync-claude-skill.sh"
+            exit 1
+          fi
+      - name: Package plugin artifacts
+        run: ./scripts/package-skills.sh
+      - name: Run plugin validation tests
+        run: ./scripts/test-plugin.sh
+
   chocolatey:
     name: Chocolatey package
     runs-on: windows-latest
