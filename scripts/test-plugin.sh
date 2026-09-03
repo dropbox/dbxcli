@@ -21,7 +21,33 @@ check() {
   fi
 }
 
-echo "=== Plugin structure ==="
+echo "=== Marketplace structure ==="
+
+marketplace_file="$root_dir/.claude-plugin/marketplace.json"
+check "marketplace.json exists" test -f "$marketplace_file"
+check "marketplace.json is valid JSON" python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$marketplace_file"
+check "marketplace.json has owner field" python3 -c "
+import json,sys
+d = json.load(open(sys.argv[1]))
+assert 'owner' in d, 'owner missing'
+assert 'name' in d.get('owner', {}), 'owner.name missing'
+" "$marketplace_file"
+check "marketplace.json has plugins array" python3 -c "
+import json,sys
+d = json.load(open(sys.argv[1]))
+assert 'plugins' in d, 'plugins missing'
+assert isinstance(d['plugins'], list), 'plugins must be array'
+" "$marketplace_file"
+
+echo ""
+echo "=== Plugin structure (plugin/claude) ==="
+
+source_plugin_dir="$root_dir/plugin/claude"
+check "plugin source directory exists" test -d "$source_plugin_dir"
+check "plugin source plugin.json exists" test -f "$source_plugin_dir/.claude-plugin/plugin.json"
+
+echo ""
+echo "=== Plugin structure (dist) ==="
 
 check "plugin dist directory exists" test -d "$plugin_dir"
 check "plugin.json exists" test -f "$plugin_dir/.claude-plugin/plugin.json"
@@ -45,16 +71,29 @@ check "detect-dbxcli.sh is executable" test -x "$plugin_dir/scripts/detect-dbxcl
 check "README.md exists" test -f "$plugin_dir/README.md"
 
 echo ""
-echo "=== Skill content ==="
+echo "=== Skill content (plugin/claude) ==="
 
-check "skills/dbxcli/ directory exists" test -d "$plugin_dir/skills/dbxcli"
-check "SKILL.md exists in packaged skill" test -f "$plugin_dir/skills/dbxcli/SKILL.md"
-check "references/safety.md exists" test -f "$plugin_dir/skills/dbxcli/references/safety.md"
-check "references/automation.md exists" test -f "$plugin_dir/skills/dbxcli/references/automation.md"
-check "references/tool-integration.md exists" test -f "$plugin_dir/skills/dbxcli/references/tool-integration.md"
+source_plugin_dir="$root_dir/plugin/claude"
 
-check "SKILL.md matches canonical source" diff -q "$source_dir/SKILL.md" "$plugin_dir/skills/dbxcli/SKILL.md"
-check "safety.md matches canonical source" diff -q "$source_dir/references/safety.md" "$plugin_dir/skills/dbxcli/references/safety.md"
+check "plugin/claude/skills/dbxcli/ exists" test -d "$source_plugin_dir/skills/dbxcli"
+check "plugin/claude skill SKILL.md exists" test -f "$source_plugin_dir/skills/dbxcli/SKILL.md"
+check "plugin/claude skill references/ exists" test -d "$source_plugin_dir/skills/dbxcli/references"
+
+echo ""
+echo "=== Skill content (dist) ==="
+
+check "dist skills/dbxcli/ directory exists" test -d "$plugin_dir/skills/dbxcli"
+check "dist SKILL.md exists" test -f "$plugin_dir/skills/dbxcli/SKILL.md"
+check "dist references/safety.md exists" test -f "$plugin_dir/skills/dbxcli/references/safety.md"
+check "dist references/automation.md exists" test -f "$plugin_dir/skills/dbxcli/references/automation.md"
+check "dist references/tool-integration.md exists" test -f "$plugin_dir/skills/dbxcli/references/tool-integration.md"
+
+echo ""
+echo "=== Skill sync validation ==="
+
+check "plugin/claude/skills/dbxcli matches canonical source" diff -qr "$source_dir" "$source_plugin_dir/skills/dbxcli"
+check "dist SKILL.md matches canonical source" diff -q "$source_dir/SKILL.md" "$plugin_dir/skills/dbxcli/SKILL.md"
+check "dist safety.md matches canonical source" diff -q "$source_dir/references/safety.md" "$plugin_dir/skills/dbxcli/references/safety.md"
 
 echo ""
 echo "=== Host validation ==="

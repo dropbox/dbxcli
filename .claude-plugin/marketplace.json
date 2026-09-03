@@ -1,0 +1,15 @@
+{
+  "name": "dbxcli",
+  "owner": {
+    "name": "Dropbox"
+  },
+  "description": "Official Dropbox CLI plugin for Claude Code",
+  "plugins": [
+    {
+      "name": "dbxcli",
+      "version": "1.0.0",
+      "source": "./plugin/claude",
+      "description": "Safely operate Dropbox through locally installed dbxcli CLI"
+    }
+  ]
+}
