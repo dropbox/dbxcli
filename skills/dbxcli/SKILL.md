@@ -50,11 +50,10 @@ exit code and `.ok`:
 For destructive or externally visible actions, first discover the command and
 validate inputs, then prefer `--dry-run` if the manifest exposes it. Use an
 explicit `--if-exists` policy whenever it is available; never assume that a
-default overwrite or conflict policy matches the user's intent. Require clear
-user confirmation before the real destructive action unless the user has
-already explicitly requested the exact action. When a command exposes `--yes`,
-use it only after that confirmation to prevent an interactive prompt from
-blocking automation.
+default overwrite or conflict policy matches the user's intent. A successful
+dry-run does not authorize execution; obtain explicit user confirmation before
+the real destructive action. When a command exposes `--yes`, use it only after
+that confirmation to prevent an interactive prompt from blocking automation.
 
 ## Large listings, search, and multi-step work
 

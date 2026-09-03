@@ -8,6 +8,25 @@ Use `--dry-run` to preview a user-authorized mutation when it is offered. A
 successful preview is not permission to perform the real action: obtain or use
 the user's explicit confirmation for the real scope.
 
+When a dry-run succeeds, it returns structured JSON with `ok: true` and
+`results[].status` set to `"planned"`. Inspect all planned results before
+proceeding:
+
+- Check that every planned target matches the user's requested scope.
+- Verify file vs folder types, target paths, and operation count.
+- Do not proceed if planned scope is broader than requested.
+
+Present a concise summary of the planned action to the user:
+
+    Planned: delete /Reports/old-file.txt (file, 2.1MB)
+    Method: move to Dropbox trash (recoverable)
+    No changes have been made yet.
+
+    Proceed with this deletion?
+
+Obtain explicit confirmation. A `"planned"` status proves feasibility only; it
+does not authorize execution.
+
 When `--if-exists` is available, pass an explicit value. Typical policies are
 `fail`, `skip`, and `autorename`; some commands also offer `overwrite`. Select
 only a policy compatible with the user's stated intent. In particular, do not

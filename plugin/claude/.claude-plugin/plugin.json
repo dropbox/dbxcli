@@ -1,0 +1,13 @@
+{
+  "name": "dbxcli",
+  "displayName": "dbxcli",
+  "description": "Safely operate Dropbox through a locally installed dbxcli CLI, using its JSON manifest and schema-backed machine contract.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dropbox"
+  },
+  "repository": "https://github.com/dropbox/dbxcli",
+  "license": "Apache-2.0",
+  "keywords": ["dropbox", "cli", "files", "cloud-storage"],
+  "defaultEnabled": true
+}
