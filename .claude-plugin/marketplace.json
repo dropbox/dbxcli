@@ -3,13 +3,13 @@
   "owner": {
     "name": "Dropbox"
   },
-  "description": "Official Dropbox CLI plugin for Claude Code",
+  "description": "Official Dropbox CLI plugin. Upload/download files, manage shared links, search content, and automate team workflows.",
   "plugins": [
     {
       "name": "dbxcli",
       "version": "1.0.0",
       "source": "./plugin/claude",
-      "description": "Safely operate Dropbox through locally installed dbxcli CLI"
+      "description": "Upload/download files, manage shared links, search content, and automate team workflows through locally installed dbxcli with schema-backed JSON contracts"
     }
   ]
 }

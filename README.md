@@ -235,6 +235,15 @@ cd dbxcli
 go build .
 ```
 
+### Claude Code plugin
+
+```sh
+/plugin marketplace add Dropbox/dbxcli
+/plugin install dbxcli@dbxcli
+```
+
+Then use the `/dbxcli` skill to work with Dropbox from Claude Code.
+
 ## Support posture
 
 `dbxcli` is maintained in the Dropbox GitHub organization by Dropbox engineers,

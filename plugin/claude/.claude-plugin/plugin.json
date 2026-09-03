@@ -1,13 +1,13 @@
 {
   "name": "dbxcli",
   "displayName": "dbxcli",
-  "description": "Safely operate Dropbox through a locally installed dbxcli CLI, using its JSON manifest and schema-backed machine contract.",
-  "version": "0.1.0",
+  "description": "Official Dropbox CLI plugin. Upload/download files, manage shared links, search content, and automate team workflows through locally installed dbxcli with schema-backed JSON contracts.",
+  "version": "1.0.0",
   "author": {
     "name": "Dropbox"
   },
   "repository": "https://github.com/dropbox/dbxcli",
   "license": "Apache-2.0",
-  "keywords": ["dropbox", "cli", "files", "cloud-storage"],
+  "keywords": ["dropbox", "cli", "files", "cloud-storage", "automation", "file-management", "shared-links", "team", "json"],
   "defaultEnabled": true
 }
