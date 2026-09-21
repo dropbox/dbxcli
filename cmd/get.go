@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -43,6 +44,9 @@ const (
 
 type getOptions struct {
 	errOut io.Writer
+	// workers is the number of files downloaded concurrently by recursive
+	// downloads; downloadWorkersAuto tunes it from measured throughput.
+	workers int
 }
 
 type getCommandInput struct {
@@ -83,7 +87,10 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	recursive, _ := cmd.Flags().GetBool("recursive")
-	opts := parseGetOptions(cmd)
+	opts, err := parseGetOptions(cmd)
+	if err != nil {
+		return err
+	}
 
 	if dst == "-" {
 		if commandOutputFormat(cmd) == output.FormatJSON {
@@ -138,7 +145,7 @@ func get(cmd *cobra.Command, args []string) (err error) {
 			dst = filepath.Join(dst, sourceName)
 		}
 		if commandOutputFormat(cmd) == output.FormatText {
-			return withJSONErrorDetails(getRecursiveWithRootMetadata(dbx, src, dst, meta), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
+			return withJSONErrorDetails(getRecursiveWithRootMetadata(dbx, src, dst, meta, opts), operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst))
 		}
 		results, err := getRecursiveWithResults(dbx, src, dst, meta, opts)
 		if err != nil {
@@ -174,10 +181,22 @@ func get(cmd *cobra.Command, args []string) (err error) {
 	}, []getResult{result})
 }
 
-func parseGetOptions(cmd *cobra.Command) getOptions {
-	return getOptions{
-		errOut: cmd.ErrOrStderr(),
+func parseGetOptions(cmd *cobra.Command) (getOptions, error) {
+	opts := getOptions{
+		errOut:  cmd.ErrOrStderr(),
+		workers: downloadWorkersAuto,
 	}
+	if cmd.Flags().Lookup("workers") != nil {
+		workers, err := cmd.Flags().GetInt("workers")
+		if err != nil {
+			return getOptions{}, err
+		}
+		if workers < 0 {
+			return getOptions{}, invalidArgumentsErrorWithDetails("`--workers` must be greater than or equal to 0 (0 selects automatic tuning)", flagErrorDetails("workers"))
+		}
+		opts.workers = workers
+	}
+	return opts, nil
 }
 
 func getErrorOutput(opts getOptions) io.Writer {
@@ -245,8 +264,8 @@ func getRecursive(dbx filesClient, src, dst string) error {
 	return err
 }
 
-func getRecursiveWithRootMetadata(dbx filesClient, src, dst string, rootMeta files.IsMetadata) error {
-	_, err := getRecursiveInternal(dbx, src, dst, rootMeta, getOptions{}, false)
+func getRecursiveWithRootMetadata(dbx filesClient, src, dst string, rootMeta files.IsMetadata, opts getOptions) error {
+	_, err := getRecursiveInternal(dbx, src, dst, rootMeta, opts, false)
 	return err
 }
 
@@ -292,14 +311,22 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 		}
 	}
 
-	var downloadErrors []error
+	// Folders are created up front and in listing order; files are queued as
+	// jobs and downloaded concurrently. Results and errors are kept in listing
+	// order so output is stable regardless of completion order.
+	entryResults := make([]*getResult, len(entries))
+	entryErrors := make([]error, len(entries))
+	var jobIndexes []int
+	var jobFiles []*files.FileMetadata
+	var jobTargets []string
+	var totalBytes int64
 
-	for _, entry := range entries {
+	for i, entry := range entries {
 		switch f := entry.(type) {
 		case *files.FolderMetadata:
 			relPath, err := relativeTo(rootPath, f.PathDisplay)
 			if err != nil {
-				downloadErrors = append(downloadErrors, err)
+				entryErrors[i] = err
 				continue
 			}
 			if relPath == "" {
@@ -309,51 +336,98 @@ func getRecursiveInternal(dbx filesClient, src, dst string, rootMeta files.IsMet
 			if collectResults {
 				result, err := ensureLocalDirectoryResult(f.PathDisplay, localDir, f)
 				if err != nil {
-					downloadErrors = append(downloadErrors, fmt.Errorf("mkdir %s: %w", localDir, err))
+					entryErrors[i] = fmt.Errorf("mkdir %s: %w", localDir, err)
 					continue
 				}
-				results = append(results, result)
+				entryResults[i] = &result
 			} else {
 				if err := os.MkdirAll(localDir, 0755); err != nil {
-					downloadErrors = append(downloadErrors, fmt.Errorf("mkdir %s: %w", localDir, err))
+					entryErrors[i] = fmt.Errorf("mkdir %s: %w", localDir, err)
 				}
 			}
 		case *files.FileMetadata:
 			relPath, err := relativeTo(rootPath, f.PathDisplay)
 			if err != nil {
-				downloadErrors = append(downloadErrors, err)
+				entryErrors[i] = err
 				continue
 			}
-			localPath := filepath.Join(dst, filepath.FromSlash(relPath))
+			jobIndexes = append(jobIndexes, i)
+			jobFiles = append(jobFiles, f)
+			jobTargets = append(jobTargets, filepath.Join(dst, filepath.FromSlash(relPath)))
+			if f.Size <= math.MaxInt64 {
+				totalBytes += int64(f.Size)
+			}
+		}
+	}
+
+	errOut := getErrorOutput(opts)
+	status := newDownloadStatusWriter(errOut)
+	pool := newDownloadPool(opts.workers, len(jobFiles), totalBytes, status)
+	concurrent := pool.concurrent()
+
+	jobs := make([]func(), len(jobFiles))
+	for j := range jobFiles {
+		i, f, localPath := jobIndexes[j], jobFiles[j], jobTargets[j]
+		jobs[j] = func() {
 			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-				downloadErrors = append(downloadErrors, fmt.Errorf("mkdir %s: %w", filepath.Dir(localPath), err))
-				continue
+				entryErrors[i] = fmt.Errorf("mkdir %s: %w", filepath.Dir(localPath), err)
+				return
 			}
-			fmt.Fprintf(getErrorOutput(opts), "Downloading %s -> %s\n", f.PathDisplay, localPath)
-			if collectResults {
-				result, err := downloadFileWithResult(dbx, f.PathDisplay, localPath, f, false, opts)
-				if err != nil {
-					downloadErrors = append(
-						downloadErrors,
-						fmt.Errorf("%s: %w", f.PathDisplay, err),
-					)
-					continue
+
+			// With several downloads in flight the per-file progress bars
+			// would overwrite each other, so concurrent mode reports only
+			// one line per file plus the pool's aggregate status line.
+			fileErrOut := errOut
+			var progress downloadProgressFunc
+			if concurrent {
+				status.message("Downloading %s -> %s\n", f.PathDisplay, localPath)
+				fileErrOut = io.Discard
+				if !isExportOnlyFile(f) {
+					progress = pool.fileProgress()
 				}
-				results = append(results, result)
-				continue
+			} else {
+				fmt.Fprintf(errOut, "Downloading %s -> %s\n", f.PathDisplay, localPath)
 			}
-			if _, _, err := downloadFileWithMetadata(dbx, f.PathDisplay, localPath, f, false, getErrorOutput(opts)); err != nil {
-				downloadErrors = append(
-					downloadErrors,
-					fmt.Errorf("%s: %w", f.PathDisplay, err),
-				)
+
+			metadata, actualDst, err := downloadFileWithProgress(dbx, f.PathDisplay, localPath, f, false, fileErrOut, progress)
+			if err != nil {
+				entryErrors[i] = fmt.Errorf("%s: %w", f.PathDisplay, err)
+				return
 			}
+			// Exported files report no streaming progress, so count them once
+			// they have been written in full.
+			if concurrent && progress == nil && metadata != nil && metadata.Size <= math.MaxInt64 {
+				pool.addBytes(int64(metadata.Size))
+			}
+			if collectResults {
+				result, err := newGetResult(getStatusDownloaded, getKindFile, f.PathDisplay, actualDst, metadata)
+				if err != nil {
+					entryErrors[i] = fmt.Errorf("%s: %w", f.PathDisplay, err)
+					return
+				}
+				entryResults[i] = &result
+			}
+		}
+	}
+
+	pool.run(currentContext(), jobs, func(j int, err error) {
+		entryErrors[jobIndexes[j]] = fmt.Errorf("%s: %w", jobFiles[j].PathDisplay, err)
+	})
+
+	var downloadErrors []error
+	for i := range entries {
+		if entryErrors[i] != nil {
+			downloadErrors = append(downloadErrors, entryErrors[i])
+			continue
+		}
+		if entryResults[i] != nil {
+			results = append(results, *entryResults[i])
 		}
 	}
 
 	if len(downloadErrors) > 0 {
 		for _, e := range downloadErrors {
-			fmt.Fprintf(getErrorOutput(opts), "Error: %v\n", e)
+			fmt.Fprintf(errOut, "Error: %v\n", e)
 		}
 		return nil, commandFailedErrorfWithDetails("get: %d error(s)", mergeJSONErrorDetails(operationErrorDetails("download"), pathErrorDetails(src), relocationErrorDetails(src, dst)), len(downloadErrors))
 	}
@@ -417,8 +491,24 @@ func downloadFileWithMetadata(
 	dstExplicit bool,
 	errOut io.Writer,
 ) (*files.FileMetadata, string, error) {
+	return downloadFileWithProgress(dbx, src, dst, metadata, dstExplicit, errOut, nil)
+}
+
+// downloadProgressFunc receives the monotonic number of bytes committed so
+// far for one file and the file's total size.
+type downloadProgressFunc func(committed, total int64)
+
+func downloadFileWithProgress(
+	dbx filesClient,
+	src string,
+	dst string,
+	metadata *files.FileMetadata,
+	dstExplicit bool,
+	errOut io.Writer,
+	progress downloadProgressFunc,
+) (*files.FileMetadata, string, error) {
 	if !isExportOnlyFile(metadata) {
-		result, err := downloadFileOnce(dbx, src, dst, errOut)
+		result, err := downloadFileOnce(dbx, src, dst, errOut, progress)
 		return result, dst, err
 	}
 
@@ -472,7 +562,7 @@ func downloadDestinationPath(dst string) (string, error) {
 	return "", fmt.Errorf("too many symlinks resolving %s", dst)
 }
 
-func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer) (*files.FileMetadata, error) {
+func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer, onProgress downloadProgressFunc) (*files.FileMetadata, error) {
 	finalDst, err := downloadDestinationPath(dst)
 	if err != nil {
 		return nil, err
@@ -495,6 +585,9 @@ func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer)
 			MaxAttempts: maxRetries + 1,
 			Progress: func(progress filetransfer.DownloadProgress) {
 				_ = draw(progress.BytesCommitted, progress.TotalBytes)
+				if onProgress != nil {
+					onProgress(progress.BytesCommitted, progress.TotalBytes)
+				}
 			},
 		},
 	)
@@ -574,12 +667,16 @@ var getCmd = &cobra.Command{
   - Source may be a Dropbox path, file ID (id:), revision (rev:), or
     namespace-relative path (ns:).
   - Use --recursive (-r) to download entire directories.
+  - Recursive downloads fetch several files in parallel. By default the
+    number of concurrent downloads is tuned automatically from the measured
+    throughput; use --workers (-w) to set a fixed number instead.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
 `,
 	Example: `  dbxcli get /remote/file.txt ./local-file.txt
   dbxcli get rev:a1c10ce0dd78 ./historical-file.txt
   dbxcli get -r /remote/folder ./local-folder
+  dbxcli get -r -w 8 /remote/folder ./local-folder
   dbxcli get /backups/src.tgz - | tar tz
   dbxcli get /file.txt - > local-copy.txt`,
 	RunE: get,
@@ -588,5 +685,6 @@ var getCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(getCmd)
 	getCmd.Flags().BoolP("recursive", "r", false, "Recursively download a folder")
+	getCmd.Flags().IntP("workers", "w", downloadWorkersAuto, "Number of files to download concurrently with --recursive (0 = auto-tune from measured bandwidth)")
 	enableStructuredOutput(getCmd)
 }

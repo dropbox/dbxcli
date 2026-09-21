@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.3...HEAD)
 
+**Added:**
+
+- `get --recursive` now downloads multiple files in parallel. The number of concurrent downloads is tuned automatically from the measured throughput, and can be pinned with the new `--workers`/`-w` flag.
+
 ## [v3.7.3](https://github.com/dropbox/dbxcli/tree/v3.7.3) (2026-08-18)
 
 [Full Changelog](https://github.com/dropbox/dbxcli/compare/v3.7.2...v3.7.3)
