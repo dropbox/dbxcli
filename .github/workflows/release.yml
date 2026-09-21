@@ -29,7 +29,7 @@ jobs:
           asset_version="${GITHUB_REF_NAME#v}"
           echo "asset_version=${asset_version}" >> "$GITHUB_OUTPUT"
           echo "windows_archive=dbxcli_${asset_version}_windows_amd64.zip" >> "$GITHUB_OUTPUT"
-      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
       - run: govulncheck ./...
       - uses: golangci/golangci-lint-action@v9
         with:
