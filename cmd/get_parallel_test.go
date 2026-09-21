@@ -353,8 +353,8 @@ func TestDownloadStatusWriterKeepsPipesLineOriented(t *testing.T) {
 	w.status("Downloading 1/2 files")
 	w.message("Downloading %s -> %s\n", "/a", "a")
 	w.finish("done")
-	if got := buf.String(); got != "Downloading /a -> a\n" {
-		t.Fatalf("output = %q, want only the message line", got)
+	if got := buf.String(); got != "Downloading /a -> a\ndone\n" {
+		t.Fatalf("output = %q, want only complete lines", got)
 	}
 }
 
@@ -482,6 +482,10 @@ func TestGetRecursiveDownloadsFilesInParallelByDefault(t *testing.T) {
 	if strings.Contains(stderr.String(), "\r") {
 		t.Fatalf("stderr = %q, want no progress-bar control characters on a pipe", stderr.String())
 	}
+	summary := stderr.String()[strings.LastIndex(strings.TrimSpace(stderr.String()), "\n")+1:]
+	if !strings.HasPrefix(summary, "Downloaded 6/6 files, 24 B in 00:0") || !strings.Contains(summary, "/s), up to 4 workers") {
+		t.Fatalf("summary = %q, want file count, bytes, elapsed time, and average throughput", summary)
+	}
 }
 
 func TestGetRecursiveWorkersFlagFixesConcurrency(t *testing.T) {
@@ -516,9 +520,13 @@ func TestGetRecursiveSingleWorkerKeepsSequentialProgress(t *testing.T) {
 		t.Fatalf("get error: %v", err)
 	}
 	probe.check(t, 1)
-	// The sequential path keeps the per-file progress bar on stderr.
-	if !strings.Contains(stderr.String(), "Downloading 4 B/4 B") {
+	// The sequential path keeps the per-file progress bar on stderr, with
+	// throughput and ETA, and never prints the aggregate summary.
+	if !strings.Contains(stderr.String(), "Downloading 100%|====================| 4 B/4 B [00:00<00:00, ") {
 		t.Fatalf("stderr = %q, want per-file progress", stderr.String())
+	}
+	if strings.Contains(stderr.String(), "Downloaded 3/3 files") {
+		t.Fatalf("stderr = %q, want no aggregate summary in sequential mode", stderr.String())
 	}
 }
 

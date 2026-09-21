@@ -28,8 +28,6 @@ import (
 	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/filetransfer"
-	"github.com/dustin/go-humanize"
-	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
 )
 
@@ -571,11 +569,8 @@ func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer,
 		errOut = io.Discard
 	}
 
-	draw := ioprogress.DrawTerminalf(errOut, func(progress, total int64) string {
-		return fmt.Sprintf("Downloading %s/%s",
-			humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
-	})
-	defer func() { _ = draw(-1, -1) }()
+	drawer := newTransferProgressDrawer(errOut, "Downloading ")
+	defer drawer.finish()
 
 	result, err := filetransfer.NewDownloader(dbx).Download(
 		currentContext(),
@@ -584,7 +579,7 @@ func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer,
 		filetransfer.DownloadOptions{
 			MaxAttempts: maxRetries + 1,
 			Progress: func(progress filetransfer.DownloadProgress) {
-				_ = draw(progress.BytesCommitted, progress.TotalBytes)
+				drawer.update(progress.BytesCommitted, progress.TotalBytes)
 				if onProgress != nil {
 					onProgress(progress.BytesCommitted, progress.TotalBytes)
 				}

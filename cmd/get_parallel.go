@@ -255,12 +255,9 @@ func (s *downloadStatusWriter) status(line string) {
 	_, _ = fmt.Fprint(s.w, "\r"+padded)
 }
 
-// finish clears the live status line and prints a final summary line in its
-// place. Nothing is printed when the status line was never shown.
+// finish clears the live status line, if any, and prints a final summary
+// line in its place.
 func (s *downloadStatusWriter) finish(summary string) {
-	if !s.live {
-		return
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.clearLineLocked()
@@ -279,6 +276,7 @@ type downloadPool struct {
 	done       atomic.Int64
 	peakLimit  int
 	started    time.Time
+	meter      *transferRateMeter
 }
 
 // newDownloadPool creates a pool for jobs files. workers selects a fixed
@@ -339,14 +337,20 @@ func (p *downloadPool) fileProgress() downloadProgressFunc {
 // cancelled the remaining jobs receive ctx's error through onError.
 func (p *downloadPool) run(ctx context.Context, jobs []func(), onError func(index int, err error)) {
 	p.started = time.Now()
+	p.meter = newTransferRateMeter(p.started)
 
+	// Sequential downloads keep their own per-file progress bar, so the
+	// aggregate status line and tuner only run in concurrent mode.
+	concurrent := p.concurrent()
 	stop := make(chan struct{})
 	var monitor sync.WaitGroup
-	monitor.Add(1)
-	go func() {
-		defer monitor.Done()
-		p.monitor(stop)
-	}()
+	if concurrent {
+		monitor.Add(1)
+		go func() {
+			defer monitor.Done()
+			p.monitor(stop)
+		}()
+	}
 
 	var wg sync.WaitGroup
 	for i, job := range jobs {
@@ -367,7 +371,9 @@ func (p *downloadPool) run(ctx context.Context, jobs []func(), onError func(inde
 
 	close(stop)
 	monitor.Wait()
-	p.status.finish(p.summary())
+	if concurrent {
+		p.status.finish(p.summary())
+	}
 }
 
 func (p *downloadPool) monitor(stop <-chan struct{}) {
@@ -382,6 +388,7 @@ func (p *downloadPool) monitor(stop <-chan struct{}) {
 			return
 		case now := <-ticker.C:
 			total := p.bytes.Load()
+			p.meter.update(now, total)
 			if p.tuner != nil && now.Sub(windowStart) >= downloadAutoTuneWindow {
 				elapsed := now.Sub(windowStart).Seconds()
 				rate := float64(total-windowBytes) / elapsed
@@ -392,22 +399,32 @@ func (p *downloadPool) monitor(stop <-chan struct{}) {
 				}
 				windowStart, windowBytes = now, total
 			}
-			p.status.status(p.statusLine(total))
+			p.status.status(p.statusLine(now, total))
 		}
 	}
 }
 
-func (p *downloadPool) statusLine(bytes int64) string {
-	return fmt.Sprintf("Downloading %d/%d files, %s/%s, %d workers",
+// statusLine renders the live aggregate line, for example:
+//
+//	Downloading 12/40 files  45%|=========           | 1.2 GiB/2.7 GiB [00:12<00:15, 98 MiB/s, 6 workers]
+func (p *downloadPool) statusLine(now time.Time, bytes int64) string {
+	return fmt.Sprintf("Downloading %d/%d files %s",
 		p.done.Load(), p.totalFiles,
-		humanize.IBytes(uint64(max(bytes, 0))), humanize.IBytes(uint64(max(p.totalBytes, 0))),
-		p.limiter.currentLimit())
+		formatTransferProgress(bytes, p.totalBytes, p.meter.elapsed(now), p.meter.rate(),
+			fmt.Sprintf(", %d workers", p.limiter.currentLimit())))
 }
 
+// summary renders the final line printed once every job has finished, with
+// the average throughput over the whole run.
 func (p *downloadPool) summary() string {
-	return fmt.Sprintf("Downloaded %d/%d files (%s) in %s using up to %d workers",
+	elapsed := time.Since(p.started)
+	bytes := max(p.bytes.Load(), 0)
+	average := 0.0
+	if seconds := elapsed.Seconds(); seconds > 0 {
+		average = float64(bytes) / seconds
+	}
+	return fmt.Sprintf("Downloaded %d/%d files, %s in %s (%s), up to %d workers",
 		p.done.Load(), p.totalFiles,
-		humanize.IBytes(uint64(max(p.bytes.Load(), 0))),
-		time.Since(p.started).Round(time.Second),
+		humanize.IBytes(uint64(bytes)), formatTransferClock(elapsed), formatTransferRate(average),
 		p.peakLimit)
 }
