@@ -80,6 +80,26 @@ jobs:
         env:
           VERSION: ci
       - run: ./packaging/package-release.sh ci
+      - name: Upload Linux binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbxcli-linux-binaries
+          path: |
+            dist/dbxcli-linux-amd64
+            dist/dbxcli-linux-arm64
+            dist/dbxcli-linux-arm
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload release archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbxcli-release-archives
+          path: |
+            dist/dbxcli_ci_*.tar.gz
+            dist/dbxcli_ci_*.zip
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
 
   docs:
     name: Generated docs
