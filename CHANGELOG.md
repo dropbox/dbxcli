@@ -7,7 +7,15 @@
 **Added:**
 
 - `get --recursive` now downloads multiple files in parallel. The number of concurrent downloads is tuned automatically from the measured throughput, and can be pinned with the new `--workers`/`-w` flag.
+
+**Changed:**
+
 - Download progress for `get` and `share-link download` now shows a progress bar, current throughput (MiB/s), elapsed time, and estimated time remaining, and parallel downloads end with a summary of the average throughput.
+
+**Infrastructure:**
+
+- The CI release build now uploads the Linux binaries and packaged release archives as workflow artifacts.
+- Pinned `govulncheck` to v1.7.0 in CI and release workflows, because newer releases require Go 1.26.
 
 ## [v3.7.3](https://github.com/dropbox/dbxcli/tree/v3.7.3) (2026-08-18)
 
