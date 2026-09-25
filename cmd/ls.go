@@ -45,7 +45,7 @@ type lsInput struct {
 
 const lsJSONStatusListed = "listed"
 
-// Sends a get_metadata request for a given path and returns the response
+// Sends a get_metadata request for a given path or Dropbox reference and returns the response.
 func getFileMetadata(c filesClient, path string) (files.IsMetadata, error) {
 	arg := files.NewGetMetadataArg(path)
 
@@ -108,9 +108,7 @@ func ls(cmd *cobra.Command, args []string) (err error) {
 
 	path := ""
 	if len(args) > 0 {
-		if path, err = validatePath(args[0]); err != nil {
-			return err
-		}
+		path = newDropboxReference(args[0]).String()
 	}
 
 	arg := files.NewListFolderArg(path)
@@ -397,11 +395,12 @@ func finishListOutput(w *tabwriter.Writer, itemCounter int, opts listOptions) er
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
-	Use:   "ls [flags] [<path>]",
+	Use:   "ls [flags] [<path-or-reference>]",
 	Short: "List files and folders",
 	Example: `  dbxcli ls / # Or just 'ls'
   dbxcli ls /some-folder # Or 'ls some-folder'
   dbxcli ls /some-folder/some-file.pdf
+  dbxcli ls rev:a1c10ce0dd78
   dbxcli ls -l`,
 	RunE: ls,
 }

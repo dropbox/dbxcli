@@ -5,7 +5,7 @@
 List files and folders
 
 ```
-dbxcli ls [flags] [<path>]
+dbxcli ls [flags] [<path-or-reference>]
 ```
 
 ### Examples
@@ -14,6 +14,7 @@ dbxcli ls [flags] [<path>]
   dbxcli ls / # Or just 'ls'
   dbxcli ls /some-folder # Or 'ls some-folder'
   dbxcli ls /some-folder/some-file.pdf
+  dbxcli ls rev:a1c10ce0dd78
   dbxcli ls -l
 ```
 

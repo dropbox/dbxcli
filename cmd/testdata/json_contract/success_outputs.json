@@ -18,7 +18,7 @@
         "input": {},
         "result": {
           "path": "ls",
-          "use": "dbxcli ls [flags] [<path>]",
+          "use": "dbxcli ls [flags] [<path-or-reference>]",
           "short": "List files and folders",
           "aliases": [],
           "runnable": true,
@@ -298,7 +298,7 @@
               },
               "path": {
                 "type": "string",
-                "description": "Dropbox folder or file path",
+                "description": "Dropbox folder, file path, or revision",
                 "x-cli-kind": "arg",
                 "x-cli-name": "path",
                 "x-value-kind": "dropbox_path"
@@ -400,7 +400,7 @@
               "variadic": false,
               "placement": "positional",
               "value_kind": "dropbox_path",
-              "description": "Dropbox folder or file path",
+              "description": "Dropbox folder, file path, or revision",
               "stream_dash": false,
               "enum_values": []
             }
@@ -409,6 +409,10 @@
             {
               "description": "List the root folder",
               "command": "dbxcli ls /"
+            },
+            {
+              "description": "Show a file revision",
+              "command": "dbxcli ls rev:a1c10ce0dd78"
             }
           ],
           "schema_refs": {
