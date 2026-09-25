@@ -244,6 +244,19 @@ go build .
 
 Then use the `/dbxcli` skill to work with Dropbox from Claude Code.
 
+### Codex skill
+
+To use dbxcli as a project skill in Codex, copy the canonical skill into the
+repository's `.codex` directory:
+
+```sh
+mkdir -p .codex/skills
+cp -R skills/dbxcli .codex/skills/dbxcli
+```
+
+Start a new Codex task, then invoke `$dbxcli` to work with Dropbox through the
+local CLI.
+
 ## Support posture
 
 `dbxcli` is maintained in the Dropbox GitHub organization by Dropbox engineers,
