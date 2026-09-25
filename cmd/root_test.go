@@ -663,6 +663,16 @@ func TestWithRootNamespaceSkipsTeamManage(t *testing.T) {
 	}
 }
 
+func TestMakeDropboxConfigSetsUserAgent(t *testing.T) {
+	cfg := makeDropboxConfig("token", false, "", "")
+	if cfg.HeaderGenerator == nil {
+		t.Fatal("HeaderGenerator = nil, want dbxcli User-Agent generator")
+	}
+	if got := cfg.HeaderGenerator("api", "files", "get_metadata")["User-Agent"]; got != dbxcliUserAgent {
+		t.Fatalf("User-Agent = %q, want %q", got, dbxcliUserAgent)
+	}
+}
+
 func assertCurrentAuthContext(t *testing.T, source string, refreshable bool, authFile string) {
 	t.Helper()
 
