@@ -153,8 +153,13 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 		Known:    true,
 	},
 	"ls": {
-		Args:     []jsonCommandArg{commandArg("path", false, false, "dropbox_path", "Dropbox folder or file path")},
-		Examples: []jsonCommandExample{{Description: "List the root folder", Command: "dbxcli ls /"}},
+		Args: []jsonCommandArg{
+			commandArg("path", false, false, "dropbox_path", "Dropbox folder, file path, or revision"),
+		},
+		Examples: []jsonCommandExample{
+			{Description: "List the root folder", Command: "dbxcli ls /"},
+			{Description: "Show a file revision", Command: "dbxcli ls rev:a1c10ce0dd78"},
+		},
 		Flags: mergeCommandFlagMetadata(commonListFlagMetadata, map[string]jsonCommandFlagMetadata{
 			"include-deleted": {ValueKind: "boolean"},
 			"only-deleted":    {ValueKind: "boolean"},

@@ -556,6 +556,45 @@ func TestLsJSONFilePathUsesMetadata(t *testing.T) {
 	}
 }
 
+func TestLsJSONRevisionReferenceUsesMetadata(t *testing.T) {
+	cmd, stdout := testLsCmd(t)
+	setLsOutputJSON(t, cmd)
+	const revision = "rev:opaque-revision"
+
+	mock := &mockFilesClient{
+		getMetadataFn: func(arg *files.GetMetadataArg) (files.IsMetadata, error) {
+			if arg.Path != revision {
+				t.Fatalf("metadata path = %q, want %q", arg.Path, revision)
+			}
+			return &files.FileMetadata{
+				Metadata: files.Metadata{
+					PathDisplay: "/file.txt",
+					PathLower:   "/file.txt",
+				},
+				Id:   "id:file",
+				Rev:  "rev-file",
+				Size: 7,
+			}, nil
+		},
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			t.Fatalf("ListFolder called for revision reference: %v", arg)
+			return nil, nil
+		},
+	}
+	stubFilesClient(t, mock)
+
+	if err := ls(cmd, []string{revision}); err != nil {
+		t.Fatalf("ls error: %v", err)
+	}
+	got := decodeLsOutput(t, stdout)
+	if got.Input.Path != revision {
+		t.Fatalf("input path = %q, want %q", got.Input.Path, revision)
+	}
+	if len(got.Results) != 1 || got.Results[0].Status != lsJSONStatusListed || got.Results[0].Kind != "file" || got.Results[0].Result.Type != "file" || got.Results[0].Result.Rev != "rev-file" {
+		t.Fatalf("results = %#v, want one listed file revision", got.Results)
+	}
+}
+
 func TestLsJSONDeletedEntryIsStructured(t *testing.T) {
 	cmd, stdout := testLsCmd(t)
 	setLsOutputJSON(t, cmd)
