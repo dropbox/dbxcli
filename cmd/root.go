@@ -54,6 +54,13 @@ var (
 )
 
 var config dropbox.Config
+
+const dbxcliUserAgent = "dbxcli"
+
+func dbxcliHeaderGenerator(_ string, _ string, _ string) map[string]string {
+	return map[string]string{"User-Agent": dbxcliUserAgent}
+}
+
 var commandContext context.Context = context.Background()
 var commandContextCancel context.CancelFunc
 
@@ -198,7 +205,7 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 		AsMemberID:      asMember,
 		Domain:          domain,
 		Client:          nil,
-		HeaderGenerator: nil,
+		HeaderGenerator: dbxcliHeaderGenerator,
 		URLGenerator:    nil,
 	}
 }

@@ -44,7 +44,7 @@ var revokeAccessToken = func(domain string, token string) error {
 		AsMemberID:      "",
 		Domain:          domain,
 		Client:          nil,
-		HeaderGenerator: nil,
+		HeaderGenerator: dbxcliHeaderGenerator,
 		URLGenerator:    nil,
 	}
 	client := auth.NewContext(cfg)
