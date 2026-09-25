@@ -10,6 +10,9 @@ Download a file or folder from Dropbox.
   - Source may be a Dropbox path, file ID (id:), revision (rev:), or
     namespace-relative path (ns:).
   - Use --recursive (-r) to download entire directories.
+  - Recursive downloads fetch several files in parallel. By default the
+    number of concurrent downloads is tuned automatically from the measured
+    throughput; use --workers (-w) to set a fixed number instead.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
 
@@ -24,6 +27,7 @@ dbxcli get [flags] <source> [<target>]
   dbxcli get /remote/file.txt ./local-file.txt
   dbxcli get rev:a1c10ce0dd78 ./historical-file.txt
   dbxcli get -r /remote/folder ./local-folder
+  dbxcli get -r -w 8 /remote/folder ./local-folder
   dbxcli get /backups/src.tgz - | tar tz
   dbxcli get /file.txt - > local-copy.txt
 ```
@@ -31,8 +35,9 @@ dbxcli get [flags] <source> [<target>]
 ### Options
 
 ```
-  -h, --help        help for get
-  -r, --recursive   Recursively download a folder
+  -h, --help          help for get
+  -r, --recursive     Recursively download a folder
+  -w, --workers int   Number of files to download concurrently with --recursive (0 = auto-tune from measured bandwidth)
 ```
 
 ### Options inherited from parent commands

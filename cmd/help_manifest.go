@@ -131,7 +131,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 			{Description: "Download a file", Command: "dbxcli get /remote.txt ./remote.txt"},
 			{Description: "Download a file revision", Command: "dbxcli get rev:a1c10ce0dd78 ./historical.txt"},
 		},
-		Flags:         map[string]jsonCommandFlagMetadata{"recursive": {ValueKind: "boolean"}},
+		Flags:         map[string]jsonCommandFlagMetadata{"recursive": {ValueKind: "boolean"}, "workers": {ValueKind: "integer"}},
 		DropboxScopes: []string{"files.content.read", "files.metadata.read"},
 		StdinStdout:   jsonCommandStdinStdout{WritesBinaryStdout: true},
 		Known:         true,

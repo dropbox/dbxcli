@@ -26,7 +26,6 @@ import (
 	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
-	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
 	"github.com/spf13/cobra"
 )
@@ -451,12 +450,9 @@ func copySharedLinkContentToFile(contents io.Reader, size uint64, dst string, er
 	}()
 
 	progressbar := &ioprogress.Reader{
-		Reader: contents,
-		DrawFunc: ioprogress.DrawTerminalf(errOut, func(progress, total int64) string {
-			return fmt.Sprintf("Downloading %s/%s",
-				humanize.IBytes(uint64(progress)), humanize.IBytes(uint64(total)))
-		}),
-		Size: int64(size),
+		Reader:   contents,
+		DrawFunc: newTransferProgressDrawer(errOut, "Downloading ").drawFunc(),
+		Size:     int64(size),
 	}
 
 	_, copyErr := io.Copy(f, progressbar)
