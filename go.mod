@@ -3,7 +3,7 @@ module github.com/dropbox/dbxcli/v3
 go 1.26.0
 
 require (
-	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.6.1
+	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.6.2
 	github.com/dustin/go-humanize v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/ioprogress v0.0.0-20180201004757-6a23b12fa88e
