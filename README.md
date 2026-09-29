@@ -87,6 +87,15 @@ Download to stdout:
 dbxcli get /Backups/project.tgz - | tar tz
 ```
 
+Download a folder. Files are fetched in parallel, and the number of
+concurrent downloads is tuned automatically from the measured throughput.
+Use `--workers` (`-w`) to pin it instead:
+
+```sh
+dbxcli get -r /Photos/2026 ./photos
+dbxcli get -r -w 8 /Photos/2026 ./photos
+```
+
 Create a shared link:
 
 ```sh
