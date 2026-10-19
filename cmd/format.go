@@ -52,7 +52,7 @@ func getTime(e *files.FileMetadata, opts listOptions) time.Time {
 
 func sortEntries(entries []files.IsMetadata, opts listOptions) {
 	if opts.sortBy == "" {
-		opts.sortBy = "name"
+		return
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
