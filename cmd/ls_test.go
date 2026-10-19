@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"text/tabwriter"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -21,13 +20,13 @@ func TestFormatFolderMetadata(t *testing.T) {
 	}
 
 	got := formatFolderMetadata(meta, false)
-	want := "/Documents\t"
+	want := "/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatFolderMetadata(meta, true)
-	want = "-\t-\t-\t/Documents\t"
+	want = "-\t-\t-\t/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(long) = %q, want %q", got, want)
 	}
@@ -43,7 +42,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	}
 
 	got := formatFileMetadata(meta, false)
-	want := "/test.txt\t"
+	want := "/test.txt"
 	if got != want {
 		t.Errorf("formatFileMetadata(short) = %q, want %q", got, want)
 	}
@@ -52,7 +51,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	if got == "" {
 		t.Error("formatFileMetadata(long) returned empty string")
 	}
-	if len(got) <= len("/test.txt\t") {
+	if len(got) <= len("/test.txt") {
 		t.Errorf("formatFileMetadata(long) should include rev/size/time, got %q", got)
 	}
 }
@@ -65,13 +64,13 @@ func TestFormatDeletedMetadata(t *testing.T) {
 	}
 
 	got := formatDeletedMetadata(meta, false)
-	want := "/removed.txt\t"
+	want := "/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatDeletedMetadata(meta, true)
-	want = "-\t-\t-\t/removed.txt\t"
+	want = "-\t-\t-\t/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(long) = %q, want %q", got, want)
 	}
@@ -137,28 +136,11 @@ func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	}
 }
 
-func TestFinishListOutputAddsTrailingNewlineForPartialShortRows(t *testing.T) {
-	var out strings.Builder
-	w := new(tabwriter.Writer)
-	w.Init(&out, 4, 8, 1, ' ', 0)
-
-	fmt.Fprint(w, "/one\t")
-	if err := finishListOutput(w, 1, listOptions{}); err != nil {
-		t.Fatalf("finishListOutput returned error: %v", err)
-	}
-
-	if got := out.String(); !strings.HasSuffix(got, "\n") {
-		t.Fatalf("output %q does not end with newline", got)
-	}
-}
-
-func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
+func TestRenderLsResultsShortModeUsesOneEntryPerLine(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/one"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/two"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/three"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/four"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/five"}},
+		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/two words"}},
+		&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/three.zip"}},
 	}
 
 	var out bytes.Buffer
@@ -166,15 +148,8 @@ func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
 		t.Fatalf("renderLsResults returned error: %v", err)
 	}
 
-	lines := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")
-	if len(lines) != 2 {
-		t.Fatalf("output = %q, want two short-mode rows", out.String())
-	}
-	if !strings.Contains(lines[0], "/one") || !strings.Contains(lines[0], "/four") {
-		t.Fatalf("first row = %q, want first four entries", lines[0])
-	}
-	if !strings.Contains(lines[1], "/five") {
-		t.Fatalf("second row = %q, want fifth entry", lines[1])
+	if want := "/one\n/two words\n/three.zip\n"; out.String() != want {
+		t.Fatalf("output = %q, want %q", out.String(), want)
 	}
 }
 
