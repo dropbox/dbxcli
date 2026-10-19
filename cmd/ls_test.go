@@ -20,13 +20,13 @@ func TestFormatFolderMetadata(t *testing.T) {
 	}
 
 	got := formatFolderMetadata(meta, false)
-	want := "/Documents\t"
+	want := "/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatFolderMetadata(meta, true)
-	want = "-\t-\t-\t/Documents\t"
+	want = "-\t-\t-\t/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(long) = %q, want %q", got, want)
 	}
@@ -42,7 +42,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	}
 
 	got := formatFileMetadata(meta, false)
-	want := "/test.txt\t"
+	want := "/test.txt"
 	if got != want {
 		t.Errorf("formatFileMetadata(short) = %q, want %q", got, want)
 	}
@@ -51,7 +51,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	if got == "" {
 		t.Error("formatFileMetadata(long) returned empty string")
 	}
-	if len(got) <= len("/test.txt\t") {
+	if len(got) <= len("/test.txt") {
 		t.Errorf("formatFileMetadata(long) should include rev/size/time, got %q", got)
 	}
 }
@@ -64,13 +64,13 @@ func TestFormatDeletedMetadata(t *testing.T) {
 	}
 
 	got := formatDeletedMetadata(meta, false)
-	want := "/removed.txt\t"
+	want := "/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatDeletedMetadata(meta, true)
-	want = "-\t-\t-\t/removed.txt\t"
+	want = "-\t-\t-\t/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(long) = %q, want %q", got, want)
 	}

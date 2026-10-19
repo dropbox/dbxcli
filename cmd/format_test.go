@@ -174,7 +174,7 @@ func TestFormatFileMetadataWithOptsShort(t *testing.T) {
 	}
 
 	got := formatFileMetadataWithOpts(meta, listOptions{long: false})
-	want := "/test.txt\t"
+	want := "/test.txt"
 	if got != want {
 		t.Errorf("short format = %q, want %q", got, want)
 	}
