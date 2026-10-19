@@ -346,10 +346,10 @@ func renderLsResults(out io.Writer, entries []files.IsMetadata, opts listOptions
 	itemCounter := 0
 	printItem := func(message string) {
 		itemCounter = itemCounter + 1
-		_, _ = fmt.Fprint(w, message)
-		if (itemCounter%4 == 0) || opts.long {
-			_, _ = fmt.Fprintln(w)
+		if !opts.long {
+			message = strings.TrimSuffix(message, "\t")
 		}
+		_, _ = fmt.Fprintln(w, message)
 	}
 
 	if opts.long {
@@ -387,9 +387,6 @@ func isListRevisionsNotFileError(err error) bool {
 }
 
 func finishListOutput(w *tabwriter.Writer, itemCounter int, opts listOptions) error {
-	if itemCounter > 0 && !opts.long && itemCounter%4 != 0 {
-		_, _ = fmt.Fprintln(w)
-	}
 	return w.Flush()
 }
 

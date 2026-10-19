@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"text/tabwriter"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -137,28 +136,11 @@ func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	}
 }
 
-func TestFinishListOutputAddsTrailingNewlineForPartialShortRows(t *testing.T) {
-	var out strings.Builder
-	w := new(tabwriter.Writer)
-	w.Init(&out, 4, 8, 1, ' ', 0)
-
-	fmt.Fprint(w, "/one\t")
-	if err := finishListOutput(w, 1, listOptions{}); err != nil {
-		t.Fatalf("finishListOutput returned error: %v", err)
-	}
-
-	if got := out.String(); !strings.HasSuffix(got, "\n") {
-		t.Fatalf("output %q does not end with newline", got)
-	}
-}
-
-func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
+func TestRenderLsResultsShortModeUsesOneEntryPerLine(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/one"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/two"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/three"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/four"}},
-		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/five"}},
+		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/two words"}},
+		&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/three.zip"}},
 	}
 
 	var out bytes.Buffer
@@ -166,15 +148,8 @@ func TestRenderLsResultsShortModeUsesFourColumns(t *testing.T) {
 		t.Fatalf("renderLsResults returned error: %v", err)
 	}
 
-	lines := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")
-	if len(lines) != 2 {
-		t.Fatalf("output = %q, want two short-mode rows", out.String())
-	}
-	if !strings.Contains(lines[0], "/one") || !strings.Contains(lines[0], "/four") {
-		t.Fatalf("first row = %q, want first four entries", lines[0])
-	}
-	if !strings.Contains(lines[1], "/five") {
-		t.Fatalf("second row = %q, want fifth entry", lines[1])
+	if want := "/one\n/two words\n/three.zip\n"; out.String() != want {
+		t.Fatalf("output = %q, want %q", out.String(), want)
 	}
 }
 
