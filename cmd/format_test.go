@@ -151,7 +151,7 @@ func TestSortEntriesReverse(t *testing.T) {
 	}
 }
 
-func TestSortEntriesNoSort(t *testing.T) {
+func TestSortEntriesDefaultsToName(t *testing.T) {
 	entries := []files.IsMetadata{
 		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/z"}},
 		&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/a"}},
@@ -159,8 +159,8 @@ func TestSortEntriesNoSort(t *testing.T) {
 
 	sortEntries(entries, listOptions{})
 
-	if entryPath(entries[0]) != "/z" || entryPath(entries[1]) != "/a" {
-		t.Error("with no sort, order should be preserved")
+	if entryPath(entries[0]) != "/a" || entryPath(entries[1]) != "/z" {
+		t.Error("with no sort, entries should be sorted by name")
 	}
 }
 
