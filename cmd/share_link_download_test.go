@@ -502,14 +502,14 @@ func TestShareLinkDownloadFolderRecursiveDownloadsNestedFiles(t *testing.T) {
 			case "":
 				return &files.ListFolderResult{
 					Entries: []files.IsMetadata{
-						&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/docs/root.txt"}, Size: 8},
-						&files.FolderMetadata{Metadata: files.Metadata{PathDisplay: "/docs/sub"}},
+						&files.FileMetadata{Metadata: files.Metadata{Name: "root.txt"}, Size: 8},
+						&files.FolderMetadata{Metadata: files.Metadata{Name: "sub"}},
 					},
 				}, nil
 			case "/sub":
 				return &files.ListFolderResult{
 					Entries: []files.IsMetadata{
-						&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/docs/sub/deep.txt"}, Size: 12},
+						&files.FileMetadata{Metadata: files.Metadata{Name: "deep.txt"}, Size: 12},
 					},
 				}, nil
 			default:
@@ -564,7 +564,7 @@ func TestShareLinkDownloadFolderUsesExistingTargetDirectory(t *testing.T) {
 		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
 			return &files.ListFolderResult{
 				Entries: []files.IsMetadata{
-					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/docs/root.txt"}, Size: 4},
+					&files.FileMetadata{Metadata: files.Metadata{Name: "root.txt"}, Size: 4},
 				},
 			}, nil
 		},
@@ -599,7 +599,7 @@ func TestShareLinkDownloadFolderFollowsPagination(t *testing.T) {
 		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
 			return &files.ListFolderResult{
 				Entries: []files.IsMetadata{
-					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/docs/page-one.txt"}, Size: 4},
+					&files.FileMetadata{Metadata: files.Metadata{Name: "page-one.txt"}, Size: 4},
 				},
 				HasMore: true,
 				Cursor:  "cursor-2",
@@ -609,7 +609,7 @@ func TestShareLinkDownloadFolderFollowsPagination(t *testing.T) {
 			continued = arg.Cursor
 			return &files.ListFolderResult{
 				Entries: []files.IsMetadata{
-					&files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/docs/page-two.txt"}, Size: 4},
+					&files.FileMetadata{Metadata: files.Metadata{Name: "page-two.txt"}, Size: 4},
 				},
 			}, nil
 		},
@@ -661,48 +661,21 @@ func TestShareLinkDownloadFolderDoesNotCreateTargetWhenRootListFails(t *testing.
 	}
 }
 
-func TestSharedLinkEntryRelativePathStripsRootBySegment(t *testing.T) {
+func TestSharedLinkEntryRelativePathJoinsParentAndName(t *testing.T) {
 	tests := []struct {
-		name        string
-		pathDisplay string
-		rootName    string
-		want        string
+		name   string
+		parent string
+		entry  string
+		want   string
 	}{
-		{
-			name:        "root itself",
-			pathDisplay: "/docs",
-			rootName:    "docs",
-			want:        "",
-		},
-		{
-			name:        "child",
-			pathDisplay: "/docs/root.txt",
-			rootName:    "docs",
-			want:        "root.txt",
-		},
-		{
-			name:        "case-insensitive root segment",
-			pathDisplay: "/DOCS/root.txt",
-			rootName:    "docs",
-			want:        "root.txt",
-		},
-		{
-			name:        "partial prefix is not stripped",
-			pathDisplay: "/docs-other/root.txt",
-			rootName:    "docs",
-			want:        "docs-other/root.txt",
-		},
-		{
-			name:        "unicode root segment",
-			pathDisplay: "/\u0130/root.txt",
-			rootName:    "\u0130",
-			want:        "root.txt",
-		},
+		{name: "top level", parent: "", entry: "root.txt", want: "root.txt"},
+		{name: "nested", parent: "sub/inner", entry: "deep.txt", want: "sub/inner/deep.txt"},
+		{name: "dots inside name", parent: "sub", entry: "a..b", want: "sub/a..b"},
+		{name: "unicode", parent: "", entry: "\u0130.txt", want: "\u0130.txt"},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := sharedLinkEntryRelativePath(tt.pathDisplay, tt.rootName)
+			got, err := sharedLinkEntryRelativePath(tt.parent, tt.entry)
 			if err != nil {
 				t.Fatalf("sharedLinkEntryRelativePath error: %v", err)
 			}
@@ -710,6 +683,56 @@ func TestSharedLinkEntryRelativePathStripsRootBySegment(t *testing.T) {
 				t.Fatalf("relative path = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSharedLinkEntryRelativePathRejectsUnsafeNames(t *testing.T) {
+	for _, name := range []string{"", ".", "..", "../evil", "a/b", `a\b`, `..\evil`, "/abs"} {
+		if got, err := sharedLinkEntryRelativePath("sub", name); err == nil {
+			t.Fatalf("name %q accepted as %q, want error", name, got)
+		}
+	}
+}
+
+func TestShareLinkDownloadFolderRecursiveRejectsUnsafeEntryNames(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out")
+	var downloaded []string
+
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			return sharedLinkFolder("/docs", "https://example.com/folder"), nil
+		},
+		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+			downloaded = append(downloaded, arg.Path)
+			return downloadableSharedLinkFile("ok.txt", arg.Path, "https://example.com/folder", 2),
+				io.NopCloser(strings.NewReader("ok")), nil
+		},
+	})
+	stubFilesClient(t, &mockFilesClient{
+		listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+			return &files.ListFolderResult{Entries: []files.IsMetadata{
+				&files.FileMetadata{Metadata: files.Metadata{Name: "ok.txt"}, Size: 2},
+				&files.FileMetadata{Metadata: files.Metadata{Name: ".."}, Size: 2},
+				&files.FileMetadata{Metadata: files.Metadata{Name: "../escape.txt"}, Size: 2},
+				&files.FolderMetadata{Metadata: files.Metadata{Name: `a\b`}},
+			}}, nil
+		},
+	})
+
+	cmd := newShareLinkDownloadTestCommand(nil, nil)
+	if err := cmd.Flags().Set("recursive", "true"); err != nil {
+		t.Fatalf("set recursive: %v", err)
+	}
+	err := shareLinkDownload(cmd, []string{"https://example.com/folder", target})
+	if err == nil || !strings.Contains(err.Error(), "3 error(s)") {
+		t.Fatalf("error = %v, want 3 error(s)", err)
+	}
+	if strings.Join(downloaded, ",") != "/ok.txt" {
+		t.Fatalf("downloaded = %q, want only /ok.txt", strings.Join(downloaded, ","))
+	}
+	if _, statErr := os.Stat(filepath.Join(tmp, "escape.txt")); !os.IsNotExist(statErr) {
+		t.Fatalf("escape.txt stat error = %v, want not created", statErr)
 	}
 }
 

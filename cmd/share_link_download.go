@@ -106,7 +106,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
 		}
-		if err := downloadSharedLinkFolder(filesNewFunc(config), dbx, arg, folder.Name, dst, cmd.ErrOrStderr()); err != nil {
+		if err := downloadSharedLinkFolder(filesNewFunc(config), dbx, arg, dst, cmd.ErrOrStderr()); err != nil {
 			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
 		}
 		commandVerboseStatus(cmd, "Downloaded shared link folder to %s", dst)
@@ -209,7 +209,7 @@ func sharedLinkFolderDownloadTarget(target string, link *sharing.FolderLinkMetad
 	return target, nil
 }
 
-func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, rootName, dst string, errOut io.Writer) error {
+func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, dst string, errOut io.Writer) error {
 	if errOut == nil {
 		errOut = io.Discard
 	}
@@ -238,12 +238,9 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 		for _, entry := range entries {
 			switch f := entry.(type) {
 			case *files.FolderMetadata:
-				relPath, err := sharedLinkEntryRelativePath(f.PathDisplay, rootName)
+				relPath, err := sharedLinkEntryRelativePath(relFolder, f.Name)
 				if err != nil {
 					downloadErrors = append(downloadErrors, err)
-					continue
-				}
-				if relPath == "" {
 					continue
 				}
 				localDir, err := sharedLinkLocalPath(dst, relPath)
@@ -257,7 +254,7 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 				}
 				queue = append(queue, relPath)
 			case *files.FileMetadata:
-				relPath, err := sharedLinkEntryRelativePath(f.PathDisplay, rootName)
+				relPath, err := sharedLinkEntryRelativePath(relFolder, f.Name)
 				if err != nil {
 					downloadErrors = append(downloadErrors, err)
 					continue
@@ -334,29 +331,17 @@ func downloadSharedLinkRelativeFile(dbx sharedLinkClient, baseArg *sharing.GetSh
 	})
 }
 
-func sharedLinkEntryRelativePath(pathDisplay string, rootName string) (string, error) {
-	rel := strings.TrimPrefix(pathDisplay, "/")
-	if rootName != "" {
-		rootName = strings.Trim(rootName, "/")
-		first, rest, ok := strings.Cut(rel, "/")
-		if strings.EqualFold(first, rootName) {
-			if !ok {
-				return "", nil
-			}
-			rel = rest
-		}
+// sharedLinkEntryRelativePath joins the folder being listed and an entry name.
+// It does not use the entry's path_display or path_lower, because Dropbox leaves
+// them empty when the shared folder is not mounted in the caller's Dropbox.
+func sharedLinkEntryRelativePath(parentRel, name string) (string, error) {
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+		return "", fmt.Errorf("invalid shared link entry name %q", name)
 	}
-	parts := strings.Split(rel, "/")
-	for _, part := range parts {
-		if part == "" || part == "." || part == ".." {
-			return "", fmt.Errorf("invalid shared link entry path %q", pathDisplay)
-		}
+	if parentRel == "" {
+		return name, nil
 	}
-	rel = path.Clean(rel)
-	if rel == "" || rel == "." || rel == ".." || strings.HasPrefix(rel, "../") {
-		return "", fmt.Errorf("invalid shared link entry path %q", pathDisplay)
-	}
-	return rel, nil
+	return parentRel + "/" + name, nil
 }
 
 func sharedLinkAPIPath(rel string) string {
