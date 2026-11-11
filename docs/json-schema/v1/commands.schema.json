@@ -1823,7 +1823,8 @@
             "autorename",
             "fail",
             "overwrite",
-            "skip"
+            "skip",
+            "skip-same"
           ],
           "type": "string"
         },
