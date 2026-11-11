@@ -138,7 +138,12 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 
 				t0 := time.Now()
 				if err := uploadOneChunk(dbx, args, chunk.data); err != nil {
-					errCh <- err
+					// Only the first error is needed. A worker must not block
+					// reporting another error while the caller waits for it.
+					select {
+					case errCh <- err:
+					default:
+					}
 				}
 				if debug {
 					log.Printf("Chunk upload at offset %d took: %v\n", chunk.offset, time.Since(t0))
@@ -146,6 +151,12 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 			}
 		}()
 	}
+
+	stopWorkers := sync.OnceFunc(func() {
+		close(workCh)
+		wg.Wait()
+	})
+	defer stopWorkers()
 
 	written := int64(0)
 	for written < sizeTotal {
@@ -176,8 +187,7 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 		written += int64(len(data))
 	}
 
-	close(workCh)
-	wg.Wait()
+	stopWorkers()
 	select {
 	case err := <-errCh:
 		return nil, err
