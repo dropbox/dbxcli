@@ -11,16 +11,16 @@ dbxcli team remove-member [flags] <email>
 ### Options
 
 ```
-  -h, --help   help for remove-member
+  -h, --help[=true|false]   help for remove-member
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

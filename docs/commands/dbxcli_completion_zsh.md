@@ -37,17 +37,17 @@ dbxcli completion zsh [flags]
 ### Options
 
 ```
-  -h, --help              help for zsh
-      --no-descriptions   disable completion descriptions
+  -h, --help[=true|false]              help for zsh
+      --no-descriptions[=true|false]   disable completion descriptions
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

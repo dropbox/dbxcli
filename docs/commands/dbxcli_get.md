@@ -31,17 +31,17 @@ dbxcli get [flags] <source> [<target>]
 ### Options
 
 ```
-  -h, --help        help for get
-  -r, --recursive   Recursively download a folder
+  -h, --help[=true|false]        help for get
+  -r, --recursive[=true|false]   Recursively download a folder
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

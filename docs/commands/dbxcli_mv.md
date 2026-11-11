@@ -11,18 +11,18 @@ dbxcli mv [flags] <source> [more sources] <target>
 ### Options
 
 ```
-      --dry-run            Preview intended writes without making changes
-  -h, --help               help for mv
-      --if-exists string   What to do when the destination exists: fail, skip, or autorename (default "fail")
+      --dry-run[=true|false]   Preview intended writes without making changes
+  -h, --help[=true|false]      help for mv
+      --if-exists string       What to do when the destination exists: fail, skip, or autorename (default "fail")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata
