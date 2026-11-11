@@ -173,8 +173,22 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 		stopWorkers()
 	}()
 
+	cancellationError := func() error {
+		select {
+		case err := <-errCh:
+			return err
+		default:
+			return ctx.Err()
+		}
+	}
+
 	written := int64(0)
 	for written < sizeTotal {
+		// A ready queue send can win a select even after cancellation. Check
+		// before reading so that it cannot trigger another source read.
+		if ctx.Err() != nil {
+			return nil, cancellationError()
+		}
 		data, err := io.ReadAll(&io.LimitedReader{R: r, N: chunkSize})
 		if err != nil {
 			return nil, err
@@ -194,9 +208,11 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 		}
 
 		select {
-		case workCh <- chunk:
+		case <-ctx.Done():
+			return nil, cancellationError()
 		case err := <-errCh:
 			return nil, err
+		case workCh <- chunk:
 		}
 
 		written += int64(len(data))

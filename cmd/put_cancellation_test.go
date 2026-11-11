@@ -8,6 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -163,5 +166,144 @@ func TestUploadChunkedCancelsRetryWaitOnSourceError(t *testing.T) {
 	}
 	if parent.Err() != nil {
 		t.Fatalf("command context canceled: %v", parent.Err())
+	}
+}
+
+// Each call represents one source chunk, allowing tests to cancel at precise
+// points without filesystem timing or a blocked read that needs manual release.
+type uploadReadObserver struct {
+	reads      int
+	beforeRead func(int)
+}
+
+func (r *uploadReadObserver) Read(p []byte) (int, error) {
+	r.reads++
+	if r.beforeRead != nil {
+		r.beforeRead(r.reads)
+	}
+	p[0] = 'a'
+	return 1, nil
+}
+
+func TestUploadChunkedDoesNotReadAfterCancellation(t *testing.T) {
+	for _, when := range []string{"before first read", "during first read"} {
+		t.Run(when, func(t *testing.T) {
+			// Repeat the second case to exercise both simultaneously-ready select arms.
+			for i := 0; i < 100; i++ {
+				ctx, cancel := context.WithCancel(context.Background())
+				old := commandContext
+				commandContext = ctx
+				source := &uploadReadObserver{}
+				mock := &mockFilesClient{uploadSessionStartFn: func(*files.UploadSessionStartArg, io.Reader) (*files.UploadSessionStartResult, error) {
+					if when == "before first read" {
+						cancel()
+					}
+					return &files.UploadSessionStartResult{SessionId: "session"}, nil
+				}}
+				wantReads := 0
+				if when == "during first read" {
+					wantReads = 1
+					source.beforeRead = func(int) { cancel() }
+				}
+				_, err := uploadChunked(mock, source, files.NewCommitInfo("/file"), 2, 1, 1, false)
+				cancel()
+				commandContext = old
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("error=%v, want cancellation", err)
+				}
+				if source.reads != wantReads {
+					t.Fatalf("trial %d: source reads=%d, want %d", i, source.reads, wantReads)
+				}
+			}
+		})
+	}
+}
+
+type uploadContextClient struct {
+	*mockFilesClient
+	appendContext func(context.Context, *files.UploadSessionAppendArg, io.Reader) error
+}
+
+func (c *uploadContextClient) UploadSessionAppendV2Context(ctx context.Context, arg *files.UploadSessionAppendArg, r io.Reader) error {
+	return c.appendContext(ctx, arg, r)
+}
+
+func TestUploadChunkedCancellationPreservesWorkerError(t *testing.T) {
+	parent := context.Background()
+	old := commandContext
+	commandContext = parent
+	defer func() { commandContext = old }()
+	workerContext := make(chan context.Context, 1)
+	failure := errors.New("permanent worker error")
+	mock := &uploadContextClient{
+		mockFilesClient: &mockFilesClient{uploadSessionStartFn: func(*files.UploadSessionStartArg, io.Reader) (*files.UploadSessionStartResult, error) {
+			return &files.UploadSessionStartResult{SessionId: "session"}, nil
+		}},
+		appendContext: func(ctx context.Context, _ *files.UploadSessionAppendArg, _ io.Reader) error {
+			workerContext <- ctx
+			return failure
+		},
+	}
+	source := &uploadReadObserver{beforeRead: func(read int) {
+		if read == 2 {
+			ctx := <-workerContext
+			<-ctx.Done()
+		}
+	}}
+	_, err := uploadChunked(mock, source, files.NewCommitInfo("/file"), 3, 1, 1, false)
+	if !errors.Is(err, failure) {
+		t.Fatalf("error=%v, want original worker failure", err)
+	}
+	if source.reads > 2 {
+		t.Fatalf("source reads=%d, want at most 2", source.reads)
+	}
+	if parent.Err() != nil {
+		t.Fatalf("parent canceled: %v", parent.Err())
+	}
+}
+
+func TestPutRecursiveContinuesAfterSessionCancellation(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a-fail", "b-good"} {
+		f, err := os.Create(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Truncate(singleShotUploadSizeCutoff + 1); err != nil {
+			f.Close()
+			t.Fatal(err)
+		}
+		if err := f.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sessions := 0
+	var committed []string
+	failure := errors.New("first file append failed")
+	stubFilesClient(t, &mockFilesClient{
+		uploadSessionStartFn: func(*files.UploadSessionStartArg, io.Reader) (*files.UploadSessionStartResult, error) {
+			sessions++
+			return &files.UploadSessionStartResult{SessionId: strconv.Itoa(sessions)}, nil
+		},
+		uploadSessionAppendV2Fn: func(arg *files.UploadSessionAppendArg, _ io.Reader) error {
+			if arg.Cursor.SessionId == "1" {
+				return failure
+			}
+			return nil
+		},
+		uploadSessionFinishFn: func(arg *files.UploadSessionFinishArg, _ io.Reader) (*files.FileMetadata, error) {
+			committed = append(committed, arg.Commit.Path)
+			return &files.FileMetadata{}, nil
+		},
+		createFolderV2Fn: func(*files.CreateFolderArg) (*files.CreateFolderResult, error) {
+			return &files.CreateFolderResult{}, nil
+		},
+	})
+	err := putRecursive(dir, "/target", putOptions{workers: 1, chunkSize: putChunkSizeUnit, errOut: io.Discard})
+	if err == nil || !strings.Contains(err.Error(), failure.Error()) {
+		t.Fatalf("error=%v, want aggregate failure", err)
+	}
+	if sessions != 2 || len(committed) != 1 || committed[0] != "/target/b-good" {
+		t.Fatalf("sessions=%d committed=%v, want second file committed", sessions, committed)
 	}
 }
