@@ -207,6 +207,9 @@ func TestExecuteExitHelper(t *testing.T) {
 	if os.Getenv("DBXCLI_TEST_EXECUTE_HELPER") != "1" {
 		return
 	}
+	if os.Getenv(listingOutputE2EEnv) == "1" {
+		installListingOutputFixture(t)
+	}
 
 	separator := -1
 	for i, arg := range os.Args {

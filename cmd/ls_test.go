@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"text/tabwriter"
 	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -21,13 +20,13 @@ func TestFormatFolderMetadata(t *testing.T) {
 	}
 
 	got := formatFolderMetadata(meta, false)
-	want := "/Documents\t"
+	want := "/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatFolderMetadata(meta, true)
-	want = "-\t-\t-\t/Documents\t"
+	want = "-\t-\t-\t/Documents"
 	if got != want {
 		t.Errorf("formatFolderMetadata(long) = %q, want %q", got, want)
 	}
@@ -43,7 +42,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	}
 
 	got := formatFileMetadata(meta, false)
-	want := "/test.txt\t"
+	want := "/test.txt"
 	if got != want {
 		t.Errorf("formatFileMetadata(short) = %q, want %q", got, want)
 	}
@@ -52,7 +51,7 @@ func TestFormatFileMetadata(t *testing.T) {
 	if got == "" {
 		t.Error("formatFileMetadata(long) returned empty string")
 	}
-	if len(got) <= len("/test.txt\t") {
+	if len(got) <= len("/test.txt") {
 		t.Errorf("formatFileMetadata(long) should include rev/size/time, got %q", got)
 	}
 }
@@ -65,13 +64,13 @@ func TestFormatDeletedMetadata(t *testing.T) {
 	}
 
 	got := formatDeletedMetadata(meta, false)
-	want := "/removed.txt\t"
+	want := "/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(short) = %q, want %q", got, want)
 	}
 
 	got = formatDeletedMetadata(meta, true)
-	want = "-\t-\t-\t/removed.txt\t"
+	want = "-\t-\t-\t/removed.txt"
 	if got != want {
 		t.Errorf("formatDeletedMetadata(long) = %q, want %q", got, want)
 	}
@@ -134,21 +133,6 @@ func TestGetFileMetadataNotCalledForRoot(t *testing.T) {
 	arg := files.NewGetMetadataArg("")
 	if arg.Path != "" {
 		t.Errorf("NewGetMetadataArg('') path = %q, want empty", arg.Path)
-	}
-}
-
-func TestFinishListOutputAddsTrailingNewlineForPartialShortRows(t *testing.T) {
-	var out strings.Builder
-	w := new(tabwriter.Writer)
-	w.Init(&out, 4, 8, 1, ' ', 0)
-
-	fmt.Fprint(w, "/one\t")
-	if err := finishListOutput(w, 1, listOptions{}); err != nil {
-		t.Fatalf("finishListOutput returned error: %v", err)
-	}
-
-	if got := out.String(); !strings.HasSuffix(got, "\n") {
-		t.Fatalf("output %q does not end with newline", got)
 	}
 }
 

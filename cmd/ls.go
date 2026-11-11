@@ -65,7 +65,7 @@ func printFolderMetadata(w io.Writer, e *files.FolderMetadata, longFormat bool) 
 }
 
 func formatFolderMetadata(e *files.FolderMetadata, longFormat bool) string {
-	text := fmt.Sprintf("%s\t", e.PathDisplay)
+	text := e.PathDisplay
 	if longFormat {
 		text = "-\t-\t-\t" + text
 	}
@@ -77,7 +77,7 @@ func formatFileMetadata(e *files.FileMetadata, longFormat bool) string {
 }
 
 func formatFileMetadataWithOpts(e *files.FileMetadata, opts listOptions) string {
-	text := fmt.Sprintf("%s\t", e.PathDisplay)
+	text := e.PathDisplay
 	if opts.long {
 		t := getTime(e, opts)
 		text = fmt.Sprintf("%s\t%s\t%s\t", e.Rev, humanize.IBytes(e.Size), formatTime(t, opts)) + text
@@ -86,7 +86,7 @@ func formatFileMetadataWithOpts(e *files.FileMetadata, opts listOptions) string 
 }
 
 func formatDeletedMetadata(e *files.DeletedMetadata, longFormat bool) string {
-	text := fmt.Sprintf("%s\t", e.PathDisplay)
+	text := e.PathDisplay
 	if longFormat {
 		text = "-\t-\t-\t" + text
 	}
@@ -345,11 +345,15 @@ func renderLsResults(out io.Writer, entries []files.IsMetadata, opts listOptions
 	w.Init(out, 4, 8, 1, ' ', 0)
 	itemCounter := 0
 	printItem := func(message string) {
-		itemCounter = itemCounter + 1
-		_, _ = fmt.Fprint(w, message)
-		if (itemCounter%4 == 0) || opts.long {
-			_, _ = fmt.Fprintln(w)
+		if itemCounter > 0 {
+			if itemCounter%4 == 0 || opts.long {
+				_, _ = fmt.Fprintln(w)
+			} else {
+				_, _ = fmt.Fprint(w, "\t")
+			}
 		}
+		_, _ = fmt.Fprint(w, message)
+		itemCounter++
 	}
 
 	if opts.long {
@@ -367,7 +371,10 @@ func renderLsResults(out io.Writer, entries []files.IsMetadata, opts listOptions
 		}
 	}
 
-	return finishListOutput(w, itemCounter, opts)
+	if itemCounter > 0 {
+		_, _ = fmt.Fprintln(w)
+	}
+	return w.Flush()
 }
 
 func isListFolderNotFolderError(err error) bool {
@@ -384,13 +391,6 @@ func isListRevisionsNotFileError(err error) bool {
 		apiErr.EndpointError != nil &&
 		apiErr.EndpointError.Path != nil &&
 		apiErr.EndpointError.Path.Tag == files.LookupErrorNotFile
-}
-
-func finishListOutput(w *tabwriter.Writer, itemCounter int, opts listOptions) error {
-	if itemCounter > 0 && !opts.long && itemCounter%4 != 0 {
-		_, _ = fmt.Fprintln(w)
-	}
-	return w.Flush()
 }
 
 // lsCmd represents the ls command
