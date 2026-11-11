@@ -30,21 +30,21 @@ dbxcli share-link download <url> [target] [flags]
 ### Options
 
 ```
-  -h, --help                   help for download
-      --password string        Password for password-protected shared links
-      --password-file string   Read the shared link password from a file
-      --password-prompt        Prompt for the shared link password
-      --path string            Download a file path inside a folder shared link
-  -r, --recursive              Recursively download a folder shared link
+  -h, --help[=true|false]              help for download
+      --password string                Password for password-protected shared links
+      --password-file string           Read the shared link password from a file
+      --password-prompt[=true|false]   Prompt for the shared link password
+      --path string                    Download a file path inside a folder shared link
+  -r, --recursive[=true|false]         Recursively download a folder shared link
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

@@ -26,26 +26,26 @@ dbxcli share-link update <url> [flags]
 ### Options
 
 ```
-      --allow-download         Allow downloads from the shared link
-      --audience string        Set shared link audience: public, team, members, or no-one
-      --disallow-download      Disallow downloads from the shared link
-      --dry-run                Preview intended writes without making changes
-      --expires string         Set shared link expiration time as an RFC3339 timestamp
-  -h, --help                   help for update
-      --password string        Password for password-protected shared links
-      --password-file string   Read the shared link password from a file
-      --password-prompt        Prompt for the shared link password
-      --remove-expiration      Remove the shared link expiration time
-      --remove-password        Remove the shared link password
+      --allow-download[=true|false]      Allow downloads from the shared link
+      --audience string                  Set shared link audience: public, team, members, or no-one
+      --disallow-download[=true|false]   Disallow downloads from the shared link
+      --dry-run[=true|false]             Preview intended writes without making changes
+      --expires string                   Set shared link expiration time as an RFC3339 timestamp
+  -h, --help[=true|false]                help for update
+      --password string                  Password for password-protected shared links
+      --password-file string             Read the shared link password from a file
+      --password-prompt[=true|false]     Prompt for the shared link password
+      --remove-expiration[=true|false]   Remove the shared link expiration time
+      --remove-password[=true|false]     Remove the shared link password
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

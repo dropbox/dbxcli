@@ -11,9 +11,9 @@ dbxcli revs [flags] <file>
 ### Options
 
 ```
-  -h, --help                 help for revs
+  -h, --help[=true|false]    help for revs
       --limit uint           Maximum number of revisions to return
-  -l, --long                 Long listing
+  -l, --long[=true|false]    Long listing
       --time string          Time field: server, client (default "server")
       --time-format string   Time format: short (2006-01-02 15:04), rfc3339
 ```
@@ -21,10 +21,10 @@ dbxcli revs [flags] <file>
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

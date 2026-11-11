@@ -34,22 +34,22 @@ dbxcli put [flags] <source> [<target>]
 ### Options
 
 ```
-  -c, --chunksize int      Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB (default 16777216)
-  -d, --debug              Print debug timing
-      --dry-run            Preview intended writes without making changes
-  -h, --help               help for put
-      --if-exists string   What to do when the destination file exists: overwrite, skip, autorename, or fail (default "overwrite")
-  -r, --recursive          Recursively upload directories
-  -w, --workers int        Number of concurrent upload workers for chunked large-file uploads (default 4)
+  -c, --chunksize int            Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB (default 16777216)
+  -d, --debug[=true|false]       Print debug timing
+      --dry-run[=true|false]     Preview intended writes without making changes
+  -h, --help[=true|false]        help for put
+      --if-exists string         What to do when the destination file exists: overwrite, skip, autorename, or fail (default "overwrite")
+  -r, --recursive[=true|false]   Recursively upload directories
+  -w, --workers int              Number of concurrent upload workers for chunked large-file uploads (default 4)
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata

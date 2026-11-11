@@ -21,26 +21,26 @@ dbxcli ls [flags] [<path-or-reference>]
 ### Options
 
 ```
-  -h, --help                 help for ls
-  -d, --include-deleted      Include deleted files
-      --limit uint           Maximum number of entries to return
-  -l, --long                 Long listing
-  -D, --only-deleted         Only show deleted files
-  -R, --recurse              Alias for --recursive
-      --recursive            Recursively list all subfolders
-  -r, --reverse              Reverse sort order
-      --sort string          Sort by: name, size, time, type
-      --time string          Time field: server, client (default "server")
-      --time-format string   Time format: short (2006-01-02 15:04), rfc3339
+  -h, --help[=true|false]              help for ls
+  -d, --include-deleted[=true|false]   Include deleted files
+      --limit uint                     Maximum number of entries to return
+  -l, --long[=true|false]              Long listing
+  -D, --only-deleted[=true|false]      Only show deleted files
+  -R, --recurse[=true|false]           Alias for --recursive
+      --recursive[=true|false]         Recursively list all subfolders
+  -r, --reverse[=true|false]           Reverse sort order
+      --sort string                    Sort by: name, size, time, type
+      --time string                    Time field: server, client (default "server")
+      --time-format string             Time format: short (2006-01-02 15:04), rfc3339
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --as-member string   Member ID to perform action as
-      --output string      Output format: text, json (default "text")
-      --timeout duration   Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose            Enable verbose logging
+      --as-member string       Member ID to perform action as
+      --output string          Output format: text, json (default "text")
+      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]   Enable verbose logging
 ```
 
 ### Command metadata
