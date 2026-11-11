@@ -209,7 +209,7 @@ var commandDefinitionSchemas = map[string]definitionSchemaConfig{
 	"put_input": {
 		Required: []string{"if_exists", "recursive", "source", "stdin", "target"},
 		Properties: map[string]any{
-			"if_exists": stringEnum("fail", "overwrite", "skip", "autorename"),
+			"if_exists": stringEnum("fail", "overwrite", "skip", "skip-same", "autorename"),
 		},
 	},
 	"put_result_input": {

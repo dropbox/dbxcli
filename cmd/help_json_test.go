@@ -280,7 +280,7 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	if jsonHelpFlagByName(t, put.Flags, dryRunFlagName).ValueKind != "boolean" {
 		t.Fatalf("put --%s value_kind = %q, want boolean", dryRunFlagName, jsonHelpFlagByName(t, put.Flags, dryRunFlagName).ValueKind)
 	}
-	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "fail", "autorename"})
+	assertStringSliceEqual(t, "put --if-exists enum", jsonHelpFlagByName(t, put.Flags, "if-exists").EnumValues, []string{"overwrite", "skip", "skip-same", "fail", "autorename"})
 	if !put.StdinStdout.ReadsStdin || put.StdinStdout.WritesBinaryStdout {
 		t.Fatalf("put stdin_stdout = %+v, want stdin only", put.StdinStdout)
 	}
@@ -311,7 +311,7 @@ func TestJSONHelpManifestV1MachineFields(t *testing.T) {
 	}
 	assertJSONHelpInputProperty(t, put.InputSchema, "target", "string", "arg", "target", "dropbox_path")
 	ifExists := assertJSONHelpInputProperty(t, put.InputSchema, "if_exists", "string", "flag", "if-exists", "enum")
-	assertStringSliceEqual(t, "put input_schema if_exists enum", ifExists.Enum, []string{"autorename", "fail", "overwrite", "skip"})
+	assertStringSliceEqual(t, "put input_schema if_exists enum", ifExists.Enum, []string{"autorename", "fail", "overwrite", "skip", "skip-same"})
 	if ifExists.Default != "overwrite" {
 		t.Fatalf("put if_exists default = %#v, want overwrite", ifExists.Default)
 	}

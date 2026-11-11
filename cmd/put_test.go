@@ -710,7 +710,7 @@ func TestPutIfExistsValidation(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected invalid --if-exists error")
 	}
-	if !bytes.Contains([]byte(err.Error()), []byte("overwrite, skip, autorename, or fail")) {
+	if !bytes.Contains([]byte(err.Error()), []byte("overwrite, skip, skip-same, autorename, or fail")) {
 		t.Errorf("error = %q, want valid option list", err.Error())
 	}
 }

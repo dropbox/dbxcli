@@ -199,7 +199,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 			"chunksize":    {ValueKind: "bytes"},
 			"debug":        {ValueKind: "boolean"},
 			dryRunFlagName: {ValueKind: "boolean"},
-			"if-exists":    {EnumValues: []string{"overwrite", "skip", "fail", "autorename"}, ValueKind: "enum"},
+			"if-exists":    {EnumValues: []string{"overwrite", "skip", "skip-same", "fail", "autorename"}, ValueKind: "enum"},
 			"recursive":    {ValueKind: "boolean"},
 			"workers":      {ValueKind: "integer"},
 		},

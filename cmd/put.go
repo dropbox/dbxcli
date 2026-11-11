@@ -29,6 +29,7 @@ import (
 
 	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/contenthash"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/ioprogress"
@@ -45,6 +46,7 @@ const (
 
 	putIfExistsOverwrite  = "overwrite"
 	putIfExistsSkip       = "skip"
+	putIfExistsSkipSame   = "skip-same"
 	putIfExistsFail       = "fail"
 	putIfExistsAutorename = "autorename"
 )
@@ -542,10 +544,10 @@ func normalizePutIfExists(ifExists string) (string, error) {
 		return putIfExistsOverwrite, nil
 	}
 	switch ifExists {
-	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsFail, putIfExistsAutorename:
+	case putIfExistsOverwrite, putIfExistsSkip, putIfExistsSkipSame, putIfExistsFail, putIfExistsAutorename:
 		return ifExists, nil
 	default:
-		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, autorename, or fail)", flagValueErrorDetails("if-exists", ifExists), ifExists)
+		return "", invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, skip-same, autorename, or fail)", flagValueErrorDetails("if-exists", ifExists), ifExists)
 	}
 }
 
@@ -587,6 +589,14 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 		return putResult{}, err
 	}
 
+	if ifExists == putIfExistsSkipSame && existingMetadata != nil {
+		if err := comparePutContents(contents, contentsInfo.Size(), existingMetadata, dst); err != nil {
+			return putResult{}, err
+		}
+		putOutput(opts).Status("Skipping %s (same contents)", dst)
+		return newPutResult(putStatusSkipped, putKindFile, src, dst, existingMetadata)
+	}
+
 	commitInfo := files.NewCommitInfo(dst)
 	commitInfo.Mode.Tag = writeModeForIfExists(ifExists)
 	commitInfo.StrictConflict = ifExists != putIfExistsOverwrite
@@ -616,6 +626,28 @@ func putFileWithResult(src, dst string, opts putOptions) (putResult, error) {
 		return putResult{}, err
 	}
 	return newPutResult(putUploadStatus(ifExists, dst, metadata), putKindFile, src, dst, metadata)
+}
+
+// comparePutContents only permits skipping when equality can be established.
+func comparePutContents(contents io.Reader, size int64, metadata files.IsMetadata, dst string) error {
+	remote, ok := metadata.(*files.FileMetadata)
+	if !ok || remote == nil {
+		return pathConflictErrorWithPath(dst, "destination %q is not a file", dst)
+	}
+	if uint64(size) != remote.Size {
+		return pathConflictErrorWithPath(dst, "destination %q has different contents", dst)
+	}
+	if remote.ContentHash == "" {
+		return pathConflictErrorWithPath(dst, "cannot compare destination %q: content hash is unavailable", dst)
+	}
+	localHash, err := contenthash.Compute(contents)
+	if err != nil {
+		return fmt.Errorf("compute local content hash: %w", err)
+	}
+	if localHash != remote.ContentHash {
+		return pathConflictErrorWithPath(dst, "destination %q has different contents", dst)
+	}
+	return nil
 }
 
 // putUploadStatus reports "autorenamed" when --if-exists=autorename caused the
@@ -683,6 +715,8 @@ func actionForExistingDestination(dst string, ifExists string, metadata files.Is
 	switch ifExists {
 	case putIfExistsSkip:
 		return putDestinationSkip, metadata, nil
+	case putIfExistsSkipSame:
+		return putDestinationUpload, metadata, nil
 	case putIfExistsFail:
 		return putDestinationUpload, nil, pathConflictErrorWithPath(dst, "destination %q already exists", dst)
 	default:
@@ -1079,11 +1113,15 @@ var putCmd = &cobra.Command{
   - Use - as source to read from stdin (target is required).
     Stdin is spooled to a temp file before upload and may use disk
     space up to the full input size.
+  - Use --if-exists skip-same to skip files with identical contents and fail
+    when contents differ or the remote content hash is unavailable.
+    Dry-run only plans uploads; it does not compare contents.
   - Files larger than 32MiB use Dropbox upload sessions. Each chunk is one
     upload-session request; chunk size must be a multiple of 4MiB and no more
     than 128MiB.
 `,
 	Example: `  dbxcli put file.txt /destination/file.txt
+  dbxcli put file.txt /destination/file.txt --if-exists skip-same
   dbxcli put -r ./project /backup/project
   dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
   printf 'hello' | dbxcli put - /hello.txt
@@ -1099,5 +1137,5 @@ func init() {
 	putCmd.Flags().IntP("workers", "w", 4, "Number of concurrent upload workers for chunked large-file uploads")
 	putCmd.Flags().Int64P("chunksize", "c", 1<<24, "Chunk size in bytes for chunked large-file uploads; must be a multiple of 4MiB and no more than 128MiB")
 	putCmd.Flags().BoolP("debug", "d", false, "Print debug timing")
-	putCmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, autorename, or fail")
+	putCmd.Flags().String("if-exists", putIfExistsOverwrite, "What to do when the destination file exists: overwrite, skip, skip-same, autorename, or fail")
 }

@@ -12,6 +12,9 @@ Upload files or directories to Dropbox.
   - Use - as source to read from stdin (target is required).
     Stdin is spooled to a temp file before upload and may use disk
     space up to the full input size.
+  - Use --if-exists skip-same to skip files with identical contents and fail
+    when contents differ or the remote content hash is unavailable.
+    Dry-run only plans uploads; it does not compare contents.
   - Files larger than 32MiB use Dropbox upload sessions. Each chunk is one
     upload-session request; chunk size must be a multiple of 4MiB and no more
     than 128MiB.
@@ -25,6 +28,7 @@ dbxcli put [flags] <source> [<target>]
 
 ```
   dbxcli put file.txt /destination/file.txt
+  dbxcli put file.txt /destination/file.txt --if-exists skip-same
   dbxcli put -r ./project /backup/project
   dbxcli put -w 1 -c 134217728 large.zip /backup/large.zip
   printf 'hello' | dbxcli put - /hello.txt
@@ -38,7 +42,7 @@ dbxcli put [flags] <source> [<target>]
   -d, --debug[=true|false]       Print debug timing
       --dry-run[=true|false]     Preview intended writes without making changes
   -h, --help[=true|false]        help for put
-      --if-exists string         What to do when the destination file exists: overwrite, skip, autorename, or fail (default "overwrite")
+      --if-exists string         What to do when the destination file exists: overwrite, skip, skip-same, autorename, or fail (default "overwrite")
   -r, --recursive[=true|false]   Recursively upload directories
   -w, --workers int              Number of concurrent upload workers for chunked large-file uploads (default 4)
 ```
@@ -60,7 +64,7 @@ dbxcli put [flags] <source> [<target>]
 * Auth modes: `personal`, `team-access`
 * Dropbox scopes: `files.content.write`, `files.metadata.read`
 * Arguments: `source` (required, local_path, `-` stream operand), `target` (optional, dropbox_path)
-* Flag metadata: `--if-exists` (values: `autorename`, `fail`, `overwrite`, `skip`), `--output` (values: `json`, `text`)
+* Flag metadata: `--if-exists` (values: `autorename`, `fail`, `overwrite`, `skip`, `skip-same`), `--output` (values: `json`, `text`)
 * Stdin/stdout behavior: Use `-` as the local source to upload from stdin; stdin is spooled to a temporary file before upload.
 * Result statuses: `autorenamed`, `created`, `existing`, `planned`, `skipped`, `uploaded`
 * Result kinds: `file`, `folder`

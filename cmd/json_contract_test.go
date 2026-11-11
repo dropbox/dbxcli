@@ -841,7 +841,7 @@ func jsonGoldenErrorOutputExamples() map[string]jsonErrorResponse {
 		),
 		"invalid_arguments": newJSONErrorResponse(
 			jsonErrorExampleCommand("put"),
-			invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, autorename, or fail)", flagValueErrorDetails("if-exists", "replace"), "replace"),
+			invalidArgumentsErrorfWithDetails("invalid --if-exists %q (use overwrite, skip, skip-same, autorename, or fail)", flagValueErrorDetails("if-exists", "replace"), "replace"),
 		),
 		"not_found": newJSONErrorResponse(
 			jsonErrorExampleCommand("get"),
