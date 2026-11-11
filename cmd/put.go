@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -58,8 +59,12 @@ type uploadChunk struct {
 }
 
 func uploadOneChunk(dbx filesClient, args *files.UploadSessionAppendArg, data []byte) error {
-	return retryWithBackoff(func() error {
-		err := dbx.UploadSessionAppendV2Context(currentContext(), args, bytes.NewReader(data))
+	return uploadOneChunkContext(currentContext(), dbx, args, data)
+}
+
+func uploadOneChunkContext(ctx context.Context, dbx filesClient, args *files.UploadSessionAppendArg, data []byte) error {
+	return retryWithBackoffContext(ctx, func() error {
+		err := dbx.UploadSessionAppendV2Context(ctx, args, bytes.NewReader(data))
 		if uploadChunkAlreadyAccepted(err, args.Cursor.Offset+uint64(len(data))) {
 			return nil
 		}
@@ -106,14 +111,17 @@ func uploadSingleShot(dbx filesClient, r io.ReadSeeker, uploadArg *files.UploadA
 }
 
 func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, sizeTotal int64, workers int, chunkSize int64, debug bool) (metadata *files.FileMetadata, err error) {
+	ctx, cancel := context.WithCancel(currentContext())
+	defer cancel()
+
 	t0 := time.Now()
 	startArgs := files.NewUploadSessionStartArg()
 	startArgs.SessionType = &files.UploadSessionType{}
 	startArgs.SessionType.Tag = files.UploadSessionTypeConcurrent
 	var res *files.UploadSessionStartResult
-	err = retryWithBackoff(func() error {
+	err = retryWithBackoffContext(ctx, func() error {
 		var e error
-		res, e = dbx.UploadSessionStartContext(currentContext(), startArgs, nil)
+		res, e = dbx.UploadSessionStartContext(ctx, startArgs, nil)
 		return e
 	})
 	if err != nil {
@@ -137,13 +145,15 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 				args.Close = chunk.close
 
 				t0 := time.Now()
-				if err := uploadOneChunk(dbx, args, chunk.data); err != nil {
+				if err := uploadOneChunkContext(ctx, dbx, args, chunk.data); err != nil {
 					// Only the first error is needed. A worker must not block
 					// reporting another error while the caller waits for it.
 					select {
 					case errCh <- err:
 					default:
 					}
+					cancel()
+					return
 				}
 				if debug {
 					log.Printf("Chunk upload at offset %d took: %v\n", chunk.offset, time.Since(t0))
@@ -156,7 +166,12 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 		close(workCh)
 		wg.Wait()
 	})
-	defer stopWorkers()
+	defer func() {
+		// Abort in-flight requests and retry waits before joining workers on
+		// any early return. The command context remains usable by other files.
+		cancel()
+		stopWorkers()
+	}()
 
 	written := int64(0)
 	for written < sizeTotal {
@@ -200,9 +215,9 @@ func uploadChunked(dbx filesClient, r io.Reader, commitInfo *files.CommitInfo, s
 	t2 := time.Now()
 	cursor := files.NewUploadSessionCursor(res.SessionId, uint64(written))
 	finishArgs := files.NewUploadSessionFinishArg(cursor, commitInfo)
-	err = retryWithBackoff(func() error {
+	err = retryWithBackoffContext(ctx, func() error {
 		var e error
-		metadata, e = dbx.UploadSessionFinishContext(currentContext(), finishArgs, nil)
+		metadata, e = dbx.UploadSessionFinishContext(ctx, finishArgs, nil)
 		return e
 	})
 	if debug {
