@@ -10,6 +10,7 @@ List files and folders inside a Dropbox folder shared link, including folders
 not mounted in your Dropbox. Paths are relative to the shared-link root and can
 be passed to share-link info --path or share-link download --path.
 Use --path to start at a subfolder and --recursive (-r) to include its descendants.
+By default, only paths are shown. Use --long (-l) for types and file sizes.
 Use share-link list to list shared links belonging to your Dropbox.
 
 ```
@@ -20,6 +21,7 @@ dbxcli share-link ls <url> [flags]
 
 ```
   dbxcli share-link ls https://www.dropbox.com/s/example/folder
+  dbxcli share-link ls https://www.dropbox.com/s/example/folder -l
   dbxcli share-link ls https://www.dropbox.com/s/example/folder --path /documents --recursive
   dbxcli share-link ls https://www.dropbox.com/s/example/folder --output json
 ```
@@ -28,6 +30,7 @@ dbxcli share-link ls <url> [flags]
 
 ```
   -h, --help[=true|false]              help for ls
+  -l, --long[=true|false]              Long listing with types, file sizes, and paths
       --password string                Password for password-protected shared links
       --password-file string           Read the shared link password from a file
       --password-prompt[=true|false]   Prompt for the shared link password

@@ -768,7 +768,7 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"share-link download": newJSONOperationOutput(shareLinkDownloadInput{URL: sharedLink.URL, Target: "old.pdf", Path: "/old.pdf", Recursive: false, Password: true}, []jsonOperationResult{
 			newJSONOperationResult(shareLinkJSONStatusDownloaded, sharedLink.Type, nil, shareLinkDownloadResult{Target: "old.pdf", Link: sharedLink}),
 		}, nil),
-		"share-link ls": newJSONOperationOutput(shareLinkLSInput{URL: sharedLink.URL, Path: "/documents", Recursive: true, Password: true}, []jsonOperationResult{
+		"share-link ls": newJSONOperationOutput(shareLinkLSInput{URL: sharedLink.URL, Path: "/documents", Recursive: true, Password: true, Long: true}, []jsonOperationResult{
 			newJSONOperationResult(shareLinkJSONStatusListed, "folder", nil, shareLinkLSEntry{Name: "nested", Path: "/documents/nested"}),
 			newJSONOperationResult(shareLinkJSONStatusListed, "file", nil, shareLinkLSEntry{Name: "report.pdf", Path: "/documents/report.pdf", Size: uint64Ptr(123)}),
 		}, nil),

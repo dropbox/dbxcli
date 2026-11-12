@@ -68,6 +68,7 @@ parent-folder links.
 
 ```sh
 dbxcli share-link ls <url>
+dbxcli share-link ls <url> -l
 dbxcli share-link ls <url> --path /documents
 dbxcli share-link ls <url> --recursive
 dbxcli share-link ls <url> --path /documents --recursive --output=json
@@ -81,12 +82,15 @@ returned paths still start at the shared-link root, so they can be passed to
 Path components must be non-empty names, without `.` or `..` components or
 backslashes.
 
-Text output shows type, human-readable file size (`-` for folders), and path.
+By default, text output shows only paths in columns, like `dbxcli ls`.
+Use `--long` (`-l`) to show type, human-readable file size (`-` for folders),
+and path. Empty folders produce no text in the default format.
 Entries are sorted by path. JSON results use status `listed`, kind `file` or
 `folder`, and `result` fields `name`, `path`, and `size` (files only, in bytes).
 Input metadata includes the URL, optional path, recursive flag, and password
-presence; the password is never included. A failed listing returns an error
-without emitting successful partial results.
+presence; `long: true` is included when `--long` is requested. The password is
+never included. JSON entries retain the same metadata in both text formats.
+A failed listing returns an error without emitting successful partial results.
 
 ## Update shared links
 
