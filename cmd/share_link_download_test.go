@@ -958,7 +958,9 @@ func TestSharedLinkLocalPathKeepsLocalFilesystemChecks(t *testing.T) {
 			t.Fatalf("local path %q = %q, want rejection", rel, got)
 		}
 	}
-	for _, rel := range []string{"CON", "nested/NUL.txt", "C:notes", "nested/report:2026.txt"} {
+	// Device names with extensions can be valid on newer Windows versions.
+	// Bare device names remain reserved on all supported Windows versions.
+	for _, rel := range []string{"CON", "nested/NUL", "C:notes", "nested/report:2026.txt"} {
 		got, err := sharedLinkLocalPath(root, rel)
 		if runtime.GOOS == "windows" {
 			if err == nil {
