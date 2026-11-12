@@ -262,7 +262,7 @@ func TestShareLinkLSInvalidArguments(t *testing.T) {
 			t.Fatalf("args=%v, err=%v, out=%s", args, err, &out)
 		}
 	}
-	for _, value := range []string{"", "../escape", "/a/../escape", "/a/./b", "/a//b", "/a/", "/a\\b", "/nul\x00"} {
+	for _, value := range []string{"", "../escape", "/a/../escape", "//a//../escape/", "/a\\b", `C:\documents`, `\\server\share`, "/nul\x00"} {
 		var out bytes.Buffer
 		cmd := newShareLinkLSTestCommand(&out)
 		_ = cmd.Flags().Set("path", value)
@@ -490,26 +490,79 @@ func TestShareLinkLSAPIErrorDetails(t *testing.T) {
 }
 
 func TestShareLinkLSRootAndRelativePath(t *testing.T) {
-	for _, value := range []string{"/", "documents/sub"} {
-		t.Run(value, func(t *testing.T) {
-			want := strings.TrimPrefix(value, "/")
+	cases := []struct{ value, want string }{
+		{"/", ""}, {"//", ""}, {".", ""}, {"/./", ""},
+		{"documents/sub", "/documents/sub"},
+		{"//documents", "/documents"}, {"/documents/", "/documents"},
+		{"//documents//sub/", "/documents/sub"},
+		{"/documents/./sub/.", "/documents/sub"},
+		{"/資料/é/", "/資料/é"}, {"/資料/e\u0301/", "/資料/e\u0301"},
+		{"/CON/", "/CON"}, {"/C:notes/", "/C:notes"}, {"C:/documents/", "/C:/documents"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.value, func(t *testing.T) {
+			normalized, err := validatePath(tt.value)
+			if err != nil || normalized != tt.want {
+				t.Fatalf("validatePath = %q, %v, want %q", normalized, err, tt.want)
+			}
 			stubSharedLinkClient(t, &mockSharedLinkClient{getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
-				if arg.Path != sharedLinkAPIPath(want) {
-					t.Fatalf("metadata path=%s", arg.Path)
+				if arg.Path != tt.want {
+					t.Fatalf("metadata path = %q, want %q", arg.Path, tt.want)
 				}
 				return sharedLinkFolder("/elsewhere", arg.Url), nil
 			}})
 			stubFilesClient(t, &mockFilesClient{listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
-				if arg.Path != sharedLinkAPIPath(want) {
-					t.Fatalf("listing path=%s", arg.Path)
+				if arg.Path != tt.want {
+					t.Fatalf("listing path = %q, want %q", arg.Path, tt.want)
 				}
-				return &files.ListFolderResult{}, nil
+				return &files.ListFolderResult{Entries: []files.IsMetadata{listingFile("résumé.txt", 1)}}, nil
 			}})
 			var out bytes.Buffer
 			cmd := newShareLinkLSTestCommand(&out)
-			_ = cmd.Flags().Set("path", value)
+			setShareLinkOutputJSON(t, cmd)
+			if err := cmd.Flags().Set("path", tt.value); err != nil {
+				t.Fatal(err)
+			}
 			if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
 				t.Fatal(err)
+			}
+			got := decodeShareLinkOperationOutput[shareLinkLSInput, shareLinkLSEntry](t, out.Bytes())
+			inputPath := tt.want
+			if inputPath == "" {
+				inputPath = "/"
+			}
+			if got.Input.Path != inputPath || len(got.Results) != 1 || got.Results[0].Result.Path != tt.want+"/résumé.txt" {
+				t.Fatalf("output = %s", out.String())
+			}
+		})
+	}
+}
+
+func TestShareLinkLSRemoteNamesArePlatformIndependent(t *testing.T) {
+	for _, name := range []string{"résumé.txt", "re\u0301sume\u0301.txt", "資料.txt", "📁.txt", "İ.txt", "CON", "NUL.txt", "COM1", "LPT1.txt", "C:notes", "report:2026.txt", "report?.txt", "report*.txt", "report|name.txt", `<report>.txt`, `quote".txt`, "trailing.", "trailing "} {
+		t.Run(name, func(t *testing.T) {
+			stubListingFolder(t)
+			stubFilesClient(t, &mockFilesClient{listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+				if arg.Path == "" {
+					return &files.ListFolderResult{Entries: []files.IsMetadata{listingFolder(name)}}, nil
+				}
+				if arg.Path != "/"+name {
+					t.Fatalf("nested listing path = %q", arg.Path)
+				}
+				return &files.ListFolderResult{Entries: []files.IsMetadata{listingFile(name, 0)}}, nil
+			}})
+			var out bytes.Buffer
+			cmd := newShareLinkLSTestCommand(&out)
+			setShareLinkOutputJSON(t, cmd)
+			if err := cmd.Flags().Set("recursive", "true"); err != nil {
+				t.Fatal(err)
+			}
+			if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
+				t.Fatal(err)
+			}
+			got := decodeShareLinkOperationOutput[shareLinkLSInput, shareLinkLSEntry](t, out.Bytes())
+			if len(got.Results) != 2 || got.Results[0].Result.Name != name || got.Results[0].Result.Path != "/"+name || got.Results[1].Result.Name != name || got.Results[1].Result.Path != "/"+name+"/"+name {
+				t.Fatalf("remote names were changed: %s", out.String())
 			}
 		})
 	}

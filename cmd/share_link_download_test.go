@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -680,6 +681,9 @@ func TestSharedLinkEntryRelativePath(t *testing.T) {
 		{"docs", "docs", "docs/docs"},
 		{"", "İ.txt", "İ.txt"},
 		{"sub", "a..b", "sub/a..b"},
+		{"資料", "e\u0301.txt", "資料/e\u0301.txt"},
+		{"sub", "CON", "sub/CON"},
+		{"sub", "C:notes", "sub/C:notes"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
@@ -944,5 +948,24 @@ func assertFileContent(t *testing.T, path string, want string) {
 	}
 	if string(got) != want {
 		t.Fatalf("%s = %q, want %q", path, string(got), want)
+	}
+}
+
+func TestSharedLinkLocalPathKeepsLocalFilesystemChecks(t *testing.T) {
+	root := t.TempDir()
+	for _, rel := range []string{"", ".", "..", "../escape", "/absolute", "nested/../../escape"} {
+		if got, err := sharedLinkLocalPath(root, rel); err == nil {
+			t.Fatalf("local path %q = %q, want rejection", rel, got)
+		}
+	}
+	for _, rel := range []string{"CON", "nested/NUL.txt", "C:notes", "nested/report:2026.txt"} {
+		got, err := sharedLinkLocalPath(root, rel)
+		if runtime.GOOS == "windows" {
+			if err == nil {
+				t.Fatalf("unsafe Windows local path %q = %q", rel, got)
+			}
+		} else if err != nil || got != filepath.Join(root, filepath.FromSlash(rel)) {
+			t.Fatalf("valid local path %q = %q, %v", rel, got, err)
+		}
 	}
 }
