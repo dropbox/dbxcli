@@ -64,16 +64,20 @@ func listSharedLink(cmd *cobra.Command, linkURL string) error {
 		if value == "" {
 			return invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 		}
-		// Validate each component before normalization, using the same name rules as downloads.
-		if value != "/" {
-			for _, name := range strings.Split(strings.TrimPrefix(value, "/"), "/") {
-				relFolder, err = sharedLinkEntryRelativePath(relFolder, name)
-				if err != nil {
-					return invalidArgumentsErrorWithDetails(err.Error(), mergeJSONErrorDetails(flagErrorDetails("path"), pathErrorDetails(value)))
-				}
+		// Check names before cleaning so traversal cannot disappear during normalization.
+		for _, name := range strings.Split(value, "/") {
+			if name == "" || name == "." {
+				continue
+			}
+			if _, err := sharedLinkEntryRelativePath("", name); err != nil {
+				return invalidArgumentsErrorWithDetails(err.Error(), mergeJSONErrorDetails(flagErrorDetails("path"), pathErrorDetails(value)))
 			}
 		}
-		input.Path = sharedLinkAPIPath(relFolder)
+		input.Path, err = validatePath(value)
+		if err != nil {
+			return err
+		}
+		relFolder = strings.TrimPrefix(input.Path, "/")
 		if input.Path == "" {
 			input.Path = "/"
 		}

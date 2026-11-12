@@ -339,8 +339,10 @@ func downloadSharedLinkRelativeFile(dbx sharedLinkClient, baseArg *sharing.GetSh
 
 // Shared-link listings may omit path_display and path_lower when the folder is
 // not mounted in the caller's Dropbox. Names are relative to the folder listed.
+// Validate Dropbox names independently of the local OS; Windows device names
+// and colons are not filesystem paths until sharedLinkLocalPath is called.
 func sharedLinkEntryRelativePath(parentRel, name string) (string, error) {
-	if name == "." || !filepath.IsLocal(name) || strings.ContainsAny(name, "/\\\x00") {
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\\x00") {
 		return "", fmt.Errorf("invalid shared link entry name %q", name)
 	}
 	return path.Join(parentRel, name), nil
@@ -355,7 +357,7 @@ func sharedLinkAPIPath(rel string) string {
 
 func sharedLinkLocalPath(root, rel string) (string, error) {
 	localRel := filepath.Clean(filepath.FromSlash(rel))
-	if localRel == "." || localRel == ".." || strings.HasPrefix(localRel, ".."+string(filepath.Separator)) || filepath.IsAbs(localRel) {
+	if localRel == "." || !filepath.IsLocal(localRel) {
 		return "", fmt.Errorf("invalid shared link relative path %q", rel)
 	}
 	return filepath.Join(root, localRel), nil

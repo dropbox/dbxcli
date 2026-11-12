@@ -79,8 +79,14 @@ not mounted in your Dropbox. `share-link list` lists shared links themselves.
 Without `--recursive`, only immediate children are listed. With `--path`, all
 returned paths still start at the shared-link root, so they can be passed to
 `share-link download --path` or `share-link info --path`. Use `/` for the root.
-Path components must be non-empty names, without `.` or `..` components or
-backslashes.
+Repeated slashes, trailing slashes, and `.` components are normalized like
+other Dropbox paths. `..` components, backslashes, and NUL bytes are rejected
+before normalization.
+
+Remote names are preserved independently of the local OS, including Unicode,
+colons, and Windows device names such as `CON`. Dropbox paths always use `/`;
+drive prefixes have no special meaning. Local filesystem restrictions are
+checked separately when downloading entries to disk.
 
 By default, text output shows only paths in columns, like `dbxcli ls`.
 Use `--long` (`-l`) to show type, human-readable file size (`-` for folders),
