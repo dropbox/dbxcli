@@ -3130,6 +3130,9 @@
     "share_link_ls_input": {
       "additionalProperties": false,
       "properties": {
+        "long": {
+          "type": "boolean"
+        },
         "password": {
           "type": "boolean"
         },

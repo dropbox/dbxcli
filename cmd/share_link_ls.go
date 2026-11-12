@@ -33,6 +33,7 @@ type shareLinkLSInput struct {
 	Path      string `json:"path,omitempty"`
 	Recursive bool   `json:"recursive"`
 	Password  bool   `json:"password"`
+	Long      bool   `json:"long,omitempty"`
 }
 
 type shareLinkLSEntry struct {
@@ -81,6 +82,10 @@ func listSharedLink(cmd *cobra.Command, linkURL string) error {
 	if err != nil {
 		return err
 	}
+	input.Long, err = localBoolFlag(cmd, "long")
+	if err != nil {
+		return err
+	}
 	password, err := sharedLinkPasswordFromFlags(cmd)
 	if err != nil {
 		return err
@@ -105,6 +110,26 @@ func listSharedLink(cmd *cobra.Command, linkURL string) error {
 	}
 	return commandOutput(cmd).Render(func(out io.Writer) error {
 		w := tabwriter.NewWriter(out, 4, 8, 1, ' ', 0)
+		if !input.Long {
+			for i, result := range results {
+				separator := ""
+				if i > 0 {
+					separator = "\t"
+					if i%4 == 0 {
+						separator = "\n"
+					}
+				}
+				if _, err := fmt.Fprintf(w, "%s%s", separator, result.Result.(shareLinkLSEntry).Path); err != nil {
+					return err
+				}
+			}
+			if len(results) > 0 {
+				if _, err := fmt.Fprintln(w); err != nil {
+					return err
+				}
+			}
+			return w.Flush()
+		}
 		if _, err := fmt.Fprintln(w, "TYPE\tSIZE\tPATH"); err != nil {
 			return err
 		}
@@ -187,8 +212,10 @@ var shareLinkLSCmd = &cobra.Command{
 not mounted in your Dropbox. Paths are relative to the shared-link root and can
 be passed to share-link info --path or share-link download --path.
 Use --path to start at a subfolder and --recursive (-r) to include its descendants.
+By default, only paths are shown. Use --long (-l) for types and file sizes.
 Use share-link list to list shared links belonging to your Dropbox.`,
 	Example: `  dbxcli share-link ls https://www.dropbox.com/s/example/folder
+  dbxcli share-link ls https://www.dropbox.com/s/example/folder -l
   dbxcli share-link ls https://www.dropbox.com/s/example/folder --path /documents --recursive
   dbxcli share-link ls https://www.dropbox.com/s/example/folder --output json`,
 	RunE: shareLinkLS,
@@ -198,6 +225,7 @@ func init() {
 	addSharedLinkPasswordFlags(shareLinkLSCmd)
 	shareLinkLSCmd.Flags().String("path", "", "List a subfolder inside the shared link")
 	shareLinkLSCmd.Flags().BoolP("recursive", "r", false, "Recursively list folder contents")
+	shareLinkLSCmd.Flags().BoolP("long", "l", false, "Long listing with types, file sizes, and paths")
 	shareLinkCmd.AddCommand(shareLinkLSCmd)
 	enableStructuredOutput(shareLinkLSCmd)
 }

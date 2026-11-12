@@ -292,6 +292,7 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 		Args:     []jsonCommandArg{commandArg("url", true, false, "url", "Folder shared link URL")},
 		Examples: []jsonCommandExample{{Description: "List shared folder contents", Command: "dbxcli share-link ls https://www.dropbox.com/s/example/folder --recursive"}},
 		Flags: mergeCommandFlagMetadata(sharedLinkPasswordFlagMetadata, map[string]jsonCommandFlagMetadata{
+			"long":      {ValueKind: "boolean"},
 			"path":      {ValueKind: "dropbox_path"},
 			"recursive": {ValueKind: "boolean"},
 		}),

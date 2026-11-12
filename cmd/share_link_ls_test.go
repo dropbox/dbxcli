@@ -19,13 +19,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"io"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/sharing"
 	"github.com/spf13/cobra"
@@ -41,6 +41,7 @@ func newShareLinkLSTestCommand(out *bytes.Buffer) *cobra.Command {
 	parent.AddCommand(cmd)
 	cmd.Flags().String("path", "", "")
 	cmd.Flags().Bool("recursive", false, "")
+	cmd.Flags().BoolP("long", "l", false, "")
 	addSharedLinkPasswordFlags(cmd)
 	cmd.SetOut(out)
 	return cmd
@@ -167,36 +168,89 @@ func TestShareLinkLSJSON(t *testing.T) {
 
 func TestShareLinkLSTextAndEmpty(t *testing.T) {
 	for _, empty := range []bool{false, true} {
-		t.Run(fmt.Sprint(empty), func(t *testing.T) {
-			stubListingFolder(t)
-			stubFilesClient(t, &mockFilesClient{listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
-				if empty {
-					return &files.ListFolderResult{}, nil
+		for _, long := range []bool{false, true} {
+			t.Run(fmt.Sprintf("empty=%t/long=%t", empty, long), func(t *testing.T) {
+				stubListingFolder(t)
+				stubFilesClient(t, &mockFilesClient{listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+					if empty {
+						return &files.ListFolderResult{}, nil
+					}
+					return &files.ListFolderResult{Entries: []files.IsMetadata{listingFile("zero", 0), listingFolder("docs"), listingFile("photo", 2048)}}, nil
+				}})
+				var out bytes.Buffer
+				cmd := newShareLinkLSTestCommand(&out)
+				if long {
+					if err := cmd.ParseFlags([]string{"-l"}); err != nil {
+						t.Fatal(err)
+					}
 				}
-				return &files.ListFolderResult{Entries: []files.IsMetadata{listingFile("zero", 0), listingFolder("docs"), listingFile("photo", 2048)}}, nil
-			}})
-			var out bytes.Buffer
-			cmd := newShareLinkLSTestCommand(&out)
-			if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
-				t.Fatal(err)
-			}
-			got := strings.Fields(out.String())
-			want := "TYPE SIZE PATH folder - /docs file 2.0 KiB /photo file 0 B /zero"
-			if empty {
-				want = "TYPE SIZE PATH"
-			}
-			if strings.Join(got, " ") != want {
-				t.Fatalf("output = %q", out.String())
-			}
-			setShareLinkOutputJSON(t, cmd)
-			out.Reset()
-			if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
-				t.Fatal(err)
-			}
-			if empty && !strings.Contains(out.String(), `"results":[]`) {
-				t.Fatalf("output = %s", out.String())
-			}
-		})
+				if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
+					t.Fatal(err)
+				}
+				want := "/docs /photo /zero"
+				if empty {
+					want = ""
+				}
+				if long {
+					want = "TYPE SIZE PATH folder - /docs file 2.0 KiB /photo file 0 B /zero"
+					if empty {
+						want = "TYPE SIZE PATH"
+					}
+				}
+				if got := strings.Join(strings.Fields(out.String()), " "); got != want {
+					t.Fatalf("output = %q, want %q", out.String(), want)
+				}
+				setShareLinkOutputJSON(t, cmd)
+				out.Reset()
+				if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
+					t.Fatal(err)
+				}
+				got := decodeShareLinkOperationOutput[shareLinkLSInput, shareLinkLSEntry](t, out.Bytes())
+				if got.Input.Long != long {
+					t.Fatalf("input.long = %t, want %t", got.Input.Long, long)
+				}
+				if empty && len(got.Results) != 0 {
+					t.Fatalf("results = %+v", got.Results)
+				}
+				if !empty {
+					if len(got.Results) != 3 || got.Results[1].Kind != "file" || got.Results[1].Result.Size == nil || *got.Results[1].Result.Size != 2048 {
+						t.Fatalf("JSON must retain file metadata in both text formats: %+v", got.Results)
+					}
+				}
+				schema := compileJSONSchemaFile(t, "../docs/json-schema/v1/commands.schema.json")
+				if err := schema.Validate(decodeJSONValueForSchema(t, out.Bytes())); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+}
+
+func TestShareLinkLSShortTextLayout(t *testing.T) {
+	stubListingFolder(t)
+	stubFilesClient(t, &mockFilesClient{listFolderFn: func(arg *files.ListFolderArg) (*files.ListFolderResult, error) {
+		return &files.ListFolderResult{Entries: []files.IsMetadata{
+			listingFile("five", 1), listingFolder("four"), listingFile("one", 2), listingFile("three", 3), listingFile("two words", 4),
+		}}, nil
+	}})
+	var out bytes.Buffer
+	cmd := newShareLinkLSTestCommand(&out)
+	if err := cmd.Flags().Set("path", "/nested"); err != nil {
+		t.Fatal(err)
+	}
+	if err := shareLinkLS(cmd, []string{listingURL}); err != nil {
+		t.Fatal(err)
+	}
+	want := "/nested/five /nested/four /nested/one /nested/three\n/nested/two words\n"
+	var normalized []string
+	for _, line := range strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n") {
+		normalized = append(normalized, strings.Join(strings.Fields(line), " "))
+		if strings.TrimRight(line, " \t") != line {
+			t.Fatalf("trailing padding: %q", line)
+		}
+	}
+	if got := strings.Join(normalized, "\n") + "\n"; got != want {
+		t.Fatalf("output = %q, want %q", got, want)
 	}
 }
 
@@ -308,10 +362,13 @@ func TestShareLinkLSHelp(t *testing.T) {
 	if err != nil || command != shareLinkLSCmd {
 		t.Fatalf("command=%v err=%v", command, err)
 	}
-	for _, name := range []string{"path", "recursive", "password", "password-file", "password-prompt"} {
+	for _, name := range []string{"path", "recursive", "long", "password", "password-file", "password-prompt"} {
 		if command.Flags().Lookup(name) == nil {
 			t.Fatalf("missing --%s", name)
 		}
+	}
+	if command.Flags().Lookup("long").Shorthand != "l" {
+		t.Fatal("--long should have -l shorthand")
 	}
 	manifest := jsonCommandManifestFor(command)
 	if !reflect.DeepEqual(manifest.ResultStatuses, []string{"listed"}) || !reflect.DeepEqual(manifest.ResultKinds, []string{"file", "folder"}) {
