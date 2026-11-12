@@ -261,6 +261,8 @@ var commandDefinitionSchemas = map[string]definitionSchemaConfig{
 			"link": schemaRef("share_link_metadata"),
 		},
 	},
+	"share_link_ls_input": {Required: []string{"url", "recursive", "password"}},
+	"share_link_ls_entry": {Required: []string{"name", "path"}},
 	"share_link_info_input": {
 		Required: []string{"url"},
 	},

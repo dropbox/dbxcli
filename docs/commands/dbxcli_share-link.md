@@ -40,6 +40,7 @@ Create, list, inspect, download, update, and revoke Dropbox shared links.
 * [dbxcli share-link download](dbxcli_share-link_download.md)	 - Download shared link content
 * [dbxcli share-link info](dbxcli_share-link_info.md)	 - Display shared link information
 * [dbxcli share-link list](dbxcli_share-link_list.md)	 - List shared links
+* [dbxcli share-link ls](dbxcli_share-link_ls.md)	 - List the contents of a folder shared link
 * [dbxcli share-link revoke](dbxcli_share-link_revoke.md)	 - Revoke shared links
 * [dbxcli share-link update](dbxcli_share-link_update.md)	 - Update shared link settings
 

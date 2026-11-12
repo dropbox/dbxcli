@@ -291,20 +291,26 @@ func listSharedLinkFolderEntries(dbx filesClient, arg *sharing.GetSharedLinkMeta
 	listArg.SharedLink = files.NewSharedLink(arg.Url)
 	listArg.SharedLink.Password = arg.LinkPassword
 
+	if err := currentContext().Err(); err != nil {
+		return nil, err
+	}
 	res, err := dbx.ListFolderContext(currentContext(), listArg)
 	if err != nil {
-		return nil, fmt.Errorf("list shared link folder %q: %v", relFolder, err)
+		return nil, fmt.Errorf("list shared link folder %q: %w", relFolder, err)
 	}
 
 	entries := append([]files.IsMetadata{}, res.Entries...)
 	for res.HasMore {
+		if err := currentContext().Err(); err != nil {
+			return entries, err
+		}
 		if res.Cursor == "" {
 			return entries, errors.New("list shared link folder has more results but no cursor")
 		}
 		cont := files.NewListFolderContinueArg(res.Cursor)
 		res, err = dbx.ListFolderContinueContext(currentContext(), cont)
 		if err != nil {
-			return entries, fmt.Errorf("list shared link folder continue: %v", err)
+			return entries, fmt.Errorf("list shared link folder continue: %w", err)
 		}
 		entries = append(entries, res.Entries...)
 	}
@@ -334,7 +340,7 @@ func downloadSharedLinkRelativeFile(dbx sharedLinkClient, baseArg *sharing.GetSh
 // Shared-link listings may omit path_display and path_lower when the folder is
 // not mounted in the caller's Dropbox. Names are relative to the folder listed.
 func sharedLinkEntryRelativePath(parentRel, name string) (string, error) {
-	if name == "." || !filepath.IsLocal(name) || strings.ContainsAny(name, `/\`) {
+	if name == "." || !filepath.IsLocal(name) || strings.ContainsAny(name, "/\\\x00") {
 		return "", fmt.Errorf("invalid shared link entry name %q", name)
 	}
 	return path.Join(parentRel, name), nil

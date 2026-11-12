@@ -64,6 +64,30 @@ dbxcli share-link list /file.txt
 `share-link list /file.txt` lists direct shared links for that path, not
 parent-folder links.
 
+## List folder contents
+
+```sh
+dbxcli share-link ls <url>
+dbxcli share-link ls <url> --path /documents
+dbxcli share-link ls <url> --recursive
+dbxcli share-link ls <url> --path /documents --recursive --output=json
+```
+
+`share-link ls` lists the contents of a folder shared link, including folders
+not mounted in your Dropbox. `share-link list` lists shared links themselves.
+Without `--recursive`, only immediate children are listed. With `--path`, all
+returned paths still start at the shared-link root, so they can be passed to
+`share-link download --path` or `share-link info --path`. Use `/` for the root.
+Path components must be non-empty names, without `.` or `..` components or
+backslashes.
+
+Text output shows type, human-readable file size (`-` for folders), and path.
+Entries are sorted by path. JSON results use status `listed`, kind `file` or
+`folder`, and `result` fields `name`, `path`, and `size` (files only, in bytes).
+Input metadata includes the URL, optional path, recursive flag, and password
+presence; the password is never included. A failed listing returns an error
+without emitting successful partial results.
+
 ## Update shared links
 
 ```sh
@@ -106,7 +130,7 @@ the target to write file bytes to stdout. Folder shared links require
 
 ## Password-protected links
 
-`share-link create`, `share-link update`, `share-link info`, and
+`share-link create`, `share-link update`, `share-link info`, `share-link ls`, and
 `share-link download` support `--password <value>`, `--password-prompt`, and
 `--password-file <path>` for password-protected links. Use `--password-prompt`
 for interactive use so the password is not echoed.

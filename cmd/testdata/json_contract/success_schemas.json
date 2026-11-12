@@ -287,6 +287,17 @@
       "link",
       "target"
     ],
+    "share_link_ls_entry": [
+      "name",
+      "path",
+      "size"
+    ],
+    "share_link_ls_input": [
+      "password",
+      "path",
+      "recursive",
+      "url"
+    ],
     "share_link_info_input": [
       "password",
       "path",
@@ -724,6 +735,21 @@
         "folder",
         "link"
       ],
+      "warnings": []
+    },
+    "share-link ls": {
+      "input": "share_link_ls_input",
+      "kinds": [
+        "file",
+        "folder"
+      ],
+      "result": "share_link_ls_entry",
+      "result_input": "empty",
+      "result_wrapper": "operation_result",
+      "statuses": [
+        "listed"
+      ],
+      "top_level": "operation_output",
       "warnings": []
     },
     "share-link list": {
