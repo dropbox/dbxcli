@@ -288,6 +288,16 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 		DropboxScopes: []string{"sharing.read"},
 		Known:         true,
 	},
+	"share-link ls": {
+		Args:     []jsonCommandArg{commandArg("url", true, false, "url", "Folder shared link URL")},
+		Examples: []jsonCommandExample{{Description: "List shared folder contents", Command: "dbxcli share-link ls https://www.dropbox.com/s/example/folder --recursive"}},
+		Flags: mergeCommandFlagMetadata(sharedLinkPasswordFlagMetadata, map[string]jsonCommandFlagMetadata{
+			"path":      {ValueKind: "dropbox_path"},
+			"recursive": {ValueKind: "boolean"},
+		}),
+		DropboxScopes: []string{"sharing.read", "files.metadata.read"},
+		Known:         true,
+	},
 	"share-link list": {
 		Args:          []jsonCommandArg{commandArg("path", false, false, "dropbox_path", "Dropbox path filter")},
 		Examples:      []jsonCommandExample{{Description: "List shared links", Command: "dbxcli share-link list /Reports/report.pdf"}},
@@ -370,6 +380,7 @@ var commandContractRegistry = map[string]jsonCommandContractMetadata{
 	"share list link":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}, Warnings: []string{jsonWarningCodeDeprecatedCommand}},
 	"share-link create":   {Statuses: []string{"created", "existing", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link"}},
 	"share-link download": {Statuses: []string{"downloaded"}, Kinds: []string{"file", "folder", "link"}},
+	"share-link ls":       {Statuses: []string{"listed"}, Kinds: []string{"file", "folder"}},
 	"share-link info":     {Statuses: []string{"found"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link list":     {Statuses: []string{"listed"}, Kinds: []string{"file", "folder", "link"}},
 	"share-link revoke":   {Statuses: []string{"revoked", jsonStatusPlanned}, Kinds: []string{"file", "folder", "link", "shared_link"}},

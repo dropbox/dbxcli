@@ -328,6 +328,7 @@ func expectedStructuredOutputCommands() []string {
 		"share list link",
 		"share-link create",
 		"share-link download",
+		"share-link ls",
 		"share-link info",
 		"share-link list",
 		"share-link revoke",
@@ -451,6 +452,7 @@ func jsonSuccessFixtureCoverage() map[string]jsonSuccessFixture {
 			file:  "share_link_json_test.go",
 			tests: []string{"TestShareLinkDownloadJSONOutputsTargetAndMetadata"},
 		},
+		"share-link ls": {file: "share_link_ls_test.go", tests: []string{"TestShareLinkLSJSON"}},
 		"share-link info": {
 			file:  "share_link_json_test.go",
 			tests: []string{"TestShareLinkInfoJSONOutputsPermissions"},
@@ -766,6 +768,10 @@ func jsonGoldenSuccessOutputExamples() map[string]jsonOperationOutput {
 		"share-link download": newJSONOperationOutput(shareLinkDownloadInput{URL: sharedLink.URL, Target: "old.pdf", Path: "/old.pdf", Recursive: false, Password: true}, []jsonOperationResult{
 			newJSONOperationResult(shareLinkJSONStatusDownloaded, sharedLink.Type, nil, shareLinkDownloadResult{Target: "old.pdf", Link: sharedLink}),
 		}, nil),
+		"share-link ls": newJSONOperationOutput(shareLinkLSInput{URL: sharedLink.URL, Path: "/documents", Recursive: true, Password: true}, []jsonOperationResult{
+			newJSONOperationResult(shareLinkJSONStatusListed, "folder", nil, shareLinkLSEntry{Name: "nested", Path: "/documents/nested"}),
+			newJSONOperationResult(shareLinkJSONStatusListed, "file", nil, shareLinkLSEntry{Name: "report.pdf", Path: "/documents/report.pdf", Size: uint64Ptr(123)}),
+		}, nil),
 		"share-link info": newJSONOperationOutput(shareLinkInfoInput{URL: sharedLink.URL, Path: "/old.pdf", Password: true}, []jsonOperationResult{
 			shareLinkJSONOperationResult(shareLinkJSONStatusFound, sharedLink),
 		}, nil),
@@ -1066,6 +1072,8 @@ func jsonContractDefinitions() map[string][]string {
 		"share_link_create_result_input": jsonFieldNames[shareLinkCreateResultInput](),
 		"share_link_download_input":      jsonFieldNames[shareLinkDownloadInput](),
 		"share_link_download_result":     jsonFieldNames[shareLinkDownloadResult](),
+		"share_link_ls_input":            jsonFieldNames[shareLinkLSInput](),
+		"share_link_ls_entry":            jsonFieldNames[shareLinkLSEntry](),
 		"share_link_info_input":          jsonFieldNames[shareLinkInfoInput](),
 		"share_link_list_input":          jsonFieldNames[shareLinkListInput](),
 		"share_link_metadata":            jsonFieldNames[shareLinkJSONMetadata](),
@@ -1113,6 +1121,7 @@ func jsonCommandSchemas() map[string]jsonGoldenCommandSchema {
 			shareLinkKinds(),
 			nil,
 		),
+		"share-link ls":      operationSchema("share_link_ls_input", schemaRef("empty"), "share_link_ls_entry", []string{shareLinkJSONStatusListed}, []string{"file", "folder"}, nil),
 		"share-link info":    operationSchema("share_link_info_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusFound}, shareLinkKinds(), nil),
 		"share-link list":    operationSchema("share_link_list_input", schemaRef("empty"), "share_link_metadata", []string{shareLinkJSONStatusListed}, shareLinkKinds(), nil),
 		"share-link revoke":  operationSchema("share_link_revoke_input", schemaRef("share_link_revoke_result_input"), "share_link_revoke_result", []string{shareLinkJSONStatusRevoked, jsonStatusPlanned}, append(shareLinkKinds(), shareLinkJSONKindSharedLink), nil),

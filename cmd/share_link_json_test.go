@@ -529,6 +529,7 @@ func TestShareLinkCommandsSupportStructuredOutput(t *testing.T) {
 		shareLinkListCmd,
 		shareListLinksCmd,
 		shareLinkInfoCmd,
+		shareLinkLSCmd,
 		shareLinkUpdateCmd,
 		shareLinkRevokeCmd,
 		shareLinkDownloadCmd,

@@ -1205,6 +1205,41 @@
       ],
       "type": "object"
     },
+    "command_share_2dlink_20ls": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "share-link ls"
+        },
+        "input": {
+          "$ref": "#/$defs/share_link_ls_input"
+        },
+        "ok": {
+          "const": true
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/result_share_2dlink_20ls"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "warnings": {
+          "$ref": "#/$defs/warnings_share_2dlink_20ls"
+        }
+      },
+      "required": [
+        "ok",
+        "schema_version",
+        "command",
+        "input",
+        "results",
+        "warnings"
+      ],
+      "type": "object"
+    },
     "command_share_2dlink_20revoke": {
       "additionalProperties": false,
       "properties": {
@@ -2537,6 +2572,35 @@
       ],
       "type": "object"
     },
+    "result_share_2dlink_20ls": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/empty"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/share_link_ls_entry"
+        },
+        "status": {
+          "enum": [
+            "listed"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "input",
+        "result"
+      ],
+      "type": "object"
+    },
     "result_share_2dlink_20revoke": {
       "additionalProperties": false,
       "properties": {
@@ -3040,6 +3104,49 @@
       },
       "required": [
         "direct_only"
+      ],
+      "type": "object"
+    },
+    "share_link_ls_entry": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ],
+      "type": "object"
+    },
+    "share_link_ls_input": {
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "password",
+        "recursive",
+        "url"
       ],
       "type": "object"
     },
@@ -3620,6 +3727,10 @@
       "items": false,
       "type": "array"
     },
+    "warnings_share_2dlink_20ls": {
+      "items": false,
+      "type": "array"
+    },
     "warnings_share_2dlink_20revoke": {
       "items": false,
       "type": "array"
@@ -3715,6 +3826,9 @@
     },
     {
       "$ref": "#/$defs/command_share_2dlink_20list"
+    },
+    {
+      "$ref": "#/$defs/command_share_2dlink_20ls"
     },
     {
       "$ref": "#/$defs/command_share_2dlink_20revoke"

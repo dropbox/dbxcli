@@ -173,6 +173,7 @@ func TestJSONHelpRealRootManifestIncludesPublicCommands(t *testing.T) {
 		"share-link download",
 		"share-link info",
 		"share-link list",
+		"share-link ls",
 		"share-link revoke",
 		"share-link update",
 		"team",
