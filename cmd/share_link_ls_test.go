@@ -585,12 +585,19 @@ func TestShareLinkLSPathsCanBeDownloaded(t *testing.T) {
 		t.Fatalf("results=%v", got.Results)
 	}
 	returnedPath := got.Results[0].Result.Path
-	stubSharedLinkClient(t, &mockSharedLinkClient{getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
-		if arg.Path != "/documents/照片.txt" || arg.Url != listingURL {
-			t.Fatalf("download arg=%+v", arg)
-		}
-		return downloadableSharedLinkFile("照片.txt", "", arg.Url, 7), io.NopCloser(strings.NewReader("content")), nil
-	}})
+	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			if arg.Path != returnedPath {
+				t.Fatalf("metadata arg=%+v", arg)
+			}
+			return downloadableSharedLinkFile("照片.txt", "", arg.Url, 7), nil
+		},
+		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
+			if arg.Path != "/documents/照片.txt" || arg.Url != listingURL {
+				t.Fatalf("download arg=%+v", arg)
+			}
+			return downloadableSharedLinkFile("照片.txt", "", arg.Url, 7), io.NopCloser(strings.NewReader("content")), nil
+		}})
 	var downloaded bytes.Buffer
 	download := newShareLinkDownloadTestCommand(&downloaded, nil)
 	_ = download.Flags().Set("path", returnedPath)

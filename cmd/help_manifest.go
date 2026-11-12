@@ -272,7 +272,10 @@ var commandManifestRegistry = map[string]jsonCommandManifestMetadata{
 			commandArg("url", true, false, "url", "Shared link URL"),
 			streamCommandArg("target", false, false, "local_path", "Local destination path, or - for stdout"),
 		},
-		Examples: []jsonCommandExample{{Description: "Download a shared link", Command: "dbxcli share-link download https://www.dropbox.com/s/example/file.txt"}},
+		Examples: []jsonCommandExample{
+			{Description: "Download a shared link", Command: "dbxcli share-link download https://www.dropbox.com/s/example/file.txt"},
+			{Description: "Download a selected subfolder", Command: "dbxcli share-link download https://www.dropbox.com/s/example/folder ./out --path /2027/Logoset --recursive"},
+		},
 		Flags: mergeCommandFlagMetadata(sharedLinkPasswordFlagMetadata, map[string]jsonCommandFlagMetadata{
 			"path":      {ValueKind: "dropbox_path"},
 			"recursive": {ValueKind: "boolean"},

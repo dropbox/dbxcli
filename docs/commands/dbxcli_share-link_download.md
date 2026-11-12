@@ -8,10 +8,13 @@ Download shared link content
 
 Download content from a Dropbox shared link.
   - If target is omitted, the local filename comes from shared-link metadata.
-  - Use --path to download a file inside a folder shared link.
+  - Use --path to select a file or folder inside a folder shared link.
+    Selected folders require --recursive; files download with or without it.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
-  - Use --recursive (-r) to download folder shared links.
+  - Use --recursive (-r) to download folder shared links or selected subfolders.
+    Existing target directories receive a subdirectory named after the selected folder.
+    Otherwise, target is used directly as the destination directory.
 
 
 ```
@@ -24,6 +27,7 @@ dbxcli share-link download <url> [target] [flags]
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt ./local-file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/folder --path /nested/file.txt
+  dbxcli share-link download https://www.dropbox.com/s/example/folder ./out --path /2027/Logoset --recursive
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt - | tar tz
 ```
 
@@ -34,7 +38,7 @@ dbxcli share-link download <url> [target] [flags]
       --password string                Password for password-protected shared links
       --password-file string           Read the shared link password from a file
       --password-prompt[=true|false]   Prompt for the shared link password
-      --path string                    Download a file path inside a folder shared link
+      --path string                    Select a file or folder path inside a folder shared link
   -r, --recursive[=true|false]         Recursively download a folder shared link
 ```
 

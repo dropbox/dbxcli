@@ -131,12 +131,35 @@ dbxcli share-link download <url> [target]
 dbxcli share-link download <url> --path nested/file.txt
 dbxcli share-link download <url> ./local.txt --path nested/file.txt
 dbxcli share-link download <url> [target] --recursive
+dbxcli share-link download <url> ./out --path /2027/Logoset --recursive
 ```
 
 `share-link download` writes to the metadata filename when `target` is omitted.
-Use `--path` to download a single file inside a folder shared link. Use `-` as
-the target to write file bytes to stdout. Folder shared links require
-`--recursive` and cannot be written to stdout.
+Use `--path` to select a file or folder inside a folder shared link. Selected
+files download with or without `--recursive`. Folders require `--recursive`.
+Use `-` as the target to write file bytes to stdout; stdout cannot be combined
+with `--recursive` or `--output=json`. Folders cannot be written to stdout.
+
+For a selected folder, only its descendants are downloaded, including empty
+folders. If `./out` already exists as a directory, the example above writes
+`./out/Logoset/logo.png` and `./out/Logoset/icons/icon.svg`. If `./out` does not
+exist, it becomes the selected folder's destination directly, producing
+`./out/logo.png` and `./out/icons/icon.svg`. If target is omitted, the selected
+folder's metadata name is used. This also works for shared folders not mounted
+in your Dropbox and with the existing password flags.
+
+Paths use `/` relative to the original shared-link root and can be copied from
+`share-link ls`. Repeated slashes and `.` components are normalized; `..`,
+backslashes, and NUL bytes are rejected before normalization. Use the command
+without `--path` to download the root. Remote entry names are preserved,
+including Unicode, and checked against local filesystem path rules before
+writing files.
+
+JSON v1 output retains the URL, selected path, recursive flag, and password
+presence in `input`. The `downloaded` result has kind `file` or `folder`, the
+actual local `target`, and metadata for the selected item in `link`. A traversal
+or download failure returns an error rather than successful partial results;
+files already downloaded remain on disk.
 
 ## Password-protected links
 

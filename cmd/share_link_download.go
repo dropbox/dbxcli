@@ -50,7 +50,7 @@ type shareLinkDownloadResult struct {
 	Link   shareLinkJSONMetadata `json:"link"`
 }
 
-func shareLinkDownload(cmd *cobra.Command, args []string) error {
+func shareLinkDownload(cmd *cobra.Command, args []string) (retErr error) {
 	if len(args) == 0 || len(args) > 2 {
 		return invalidArgumentsErrorWithDetails("`share-link download` requires a `url` and optional `target` argument", argumentsErrorDetails("url", "target"))
 	}
@@ -71,8 +71,18 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	arg := sharing.NewGetSharedLinkMetadataArg(url)
 	opts, err := parseShareLinkDownloadOptions(cmd)
 	if err != nil {
-		return err
+		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
 	}
+	defer func() {
+		retErr = withJSONErrorDetails(retErr, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+		if opts.path != "" {
+			flags := []string{"path"}
+			if opts.recursive {
+				flags = append(flags, "recursive")
+			}
+			retErr = withJSONErrorDetails(retErr, pathErrorDetails(opts.path), flagsErrorDetails(flags...))
+		}
+	}()
 	if opts.password.set {
 		arg.LinkPassword = opts.password.password
 	}
@@ -83,18 +93,17 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 	dbx := newSharedLinkClient(config)
 	if opts.path != "" {
 		arg.Path = opts.path
-		if err := downloadSharedLinkPath(cmd, dbx, arg, target, opts); err != nil {
-			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
-		}
-		return nil
 	}
 
+	if err := currentContext().Err(); err != nil {
+		return err
+	}
 	link, err := dbx.GetSharedLinkMetadataContext(currentContext(), arg)
 	if err != nil {
-		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+		return err
 	}
 
-	if folder, ok := link.(*sharing.FolderLinkMetadata); ok {
+	if folder, ok := link.(*sharing.FolderLinkMetadata); ok && folder != nil {
 		if !opts.recursive {
 			return invalidArgumentsErrorWithDetails("shared link is a folder (use --recursive to download folders)", mergeJSONErrorDetails(operationErrorDetails("share_link_download"), flagErrorDetails("recursive"), urlErrorDetails(url)))
 		}
@@ -104,13 +113,19 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 
 		dst, err := sharedLinkFolderDownloadTarget(target, folder)
 		if err != nil {
-			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+			return err
 		}
 		if err := downloadSharedLinkFolder(filesNewFunc(config), dbx, arg, dst, cmd.ErrOrStderr()); err != nil {
-			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+			return err
 		}
 		commandVerboseStatus(cmd, "Downloaded shared link folder to %s", dst)
-		return withJSONErrorDetails(renderShareLinkDownloadOutput(cmd, newShareLinkDownloadInput(url, target, opts), dst, folder), urlErrorDetails(url), operationErrorDetails("share_link_download"))
+		return renderShareLinkDownloadOutput(cmd, newShareLinkDownloadInput(url, target, opts), dst, folder)
+	}
+
+	if opts.path != "" {
+		if file, ok := link.(*sharing.FileLinkMetadata); !ok || file == nil {
+			return errors.New("shared link path is not a downloadable file or folder")
+		}
 	}
 
 	if target == "-" {
@@ -118,7 +133,7 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 			return invalidArgumentsErrorWithDetails("`share-link download -` cannot be used with --recursive", mergeJSONErrorDetails(operationErrorDetails("share_link_download"), flagErrorDetails("recursive"), urlErrorDetails(url)))
 		}
 		if err := downloadSharedLinkToStdout(dbx, arg, cmd.OutOrStdout()); err != nil {
-			return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+			return err
 		}
 		commandVerboseStatus(cmd, "Downloaded shared link to stdout")
 		return nil
@@ -126,10 +141,10 @@ func shareLinkDownload(cmd *cobra.Command, args []string) error {
 
 	dst, downloaded, err := downloadSharedLinkToFile(dbx, arg, target, cmd.ErrOrStderr())
 	if err != nil {
-		return withJSONErrorDetails(err, urlErrorDetails(url), operationErrorDetails("share_link_download"))
+		return err
 	}
 	commandVerboseStatus(cmd, "Downloaded shared link to %s", dst)
-	return withJSONErrorDetails(renderShareLinkDownloadOutput(cmd, newShareLinkDownloadInput(url, target, opts), dst, downloaded), urlErrorDetails(url), operationErrorDetails("share_link_download"))
+	return renderShareLinkDownloadOutput(cmd, newShareLinkDownloadInput(url, target, opts), dst, downloaded)
 }
 
 func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions, error) {
@@ -155,6 +170,15 @@ func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions
 		if pathArg == "" {
 			return opts, invalidArgumentsErrorWithDetails("`--path` requires a non-empty path", flagErrorDetails("path"))
 		}
+		// Reject traversal before validatePath can clean it away, as share-link ls does.
+		for _, name := range strings.Split(pathArg, "/") {
+			if name == "" || name == "." {
+				continue
+			}
+			if _, err := sharedLinkEntryRelativePath("", name); err != nil {
+				return opts, invalidArgumentsErrorWithDetails(err.Error(), mergeJSONErrorDetails(flagErrorDetails("path"), pathErrorDetails(pathArg)))
+			}
+		}
 		dropboxPath, err := validatePath(pathArg)
 		if err != nil {
 			return opts, err
@@ -165,35 +189,16 @@ func parseShareLinkDownloadOptions(cmd *cobra.Command) (shareLinkDownloadOptions
 		opts.path = dropboxPath
 	}
 
-	if opts.path != "" && opts.recursive {
-		return opts, invalidArgumentsErrorWithDetails("`--path` cannot be used with --recursive", mergeJSONErrorDetails(operationErrorDetails("share_link_download"), flagsErrorDetails("path", "recursive"), pathErrorDetails(opts.path)))
-	}
-
 	return opts, nil
-}
-
-func downloadSharedLinkPath(cmd *cobra.Command, dbx sharedLinkClient, arg *sharing.GetSharedLinkMetadataArg, target string, opts shareLinkDownloadOptions) error {
-	if target == "-" {
-		if err := downloadSharedLinkToStdout(dbx, arg, cmd.OutOrStdout()); err != nil {
-			return err
-		}
-		commandVerboseStatus(cmd, "Downloaded shared link path %s to stdout", arg.Path)
-		return nil
-	}
-
-	dst, downloaded, err := downloadSharedLinkToFile(dbx, arg, target, cmd.ErrOrStderr())
-	if err != nil {
-		return err
-	}
-	commandVerboseStatus(cmd, "Downloaded shared link path %s to %s", arg.Path, dst)
-	return renderShareLinkDownloadOutput(cmd, newShareLinkDownloadInput(arg.Url, target, opts), dst, downloaded)
 }
 
 func sharedLinkFolderDownloadTarget(target string, link *sharing.FolderLinkMetadata) (string, error) {
 	name := link.Name
-	name = filepath.Base(filepath.FromSlash(name))
-	if name == "" || name == "." || name == ".." || name == string(filepath.Separator) {
-		return "", errors.New("shared link folder metadata did not include a name")
+	if _, err := sharedLinkEntryRelativePath("", name); err != nil {
+		return "", fmt.Errorf("invalid shared link folder name: %w", err)
+	}
+	if _, err := sharedLinkLocalPath(".", name); err != nil {
+		return "", err
 	}
 
 	if target == "" {
@@ -214,14 +219,24 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 		errOut = io.Discard
 	}
 
+	// Queue and local paths are relative to the selected folder. API paths
+	// remain relative to the original shared-link root, even for unmounted links.
+	start := strings.TrimPrefix(arg.Path, "/")
 	var downloadErrors []error
 	queue := []string{""}
 
 	for len(queue) > 0 {
+		if err := currentContext().Err(); err != nil {
+			return err
+		}
 		relFolder := queue[0]
 		queue = queue[1:]
 
-		entries, err := listSharedLinkFolderEntries(filesDbx, arg, relFolder)
+		apiFolder := relFolder
+		if start != "" {
+			apiFolder = path.Join(start, relFolder)
+		}
+		entries, err := listSharedLinkFolderEntries(filesDbx, arg, apiFolder)
 		if err != nil {
 			if relFolder == "" {
 				return err
@@ -236,8 +251,15 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 		}
 
 		for _, entry := range entries {
+			if err := currentContext().Err(); err != nil {
+				return err
+			}
 			switch f := entry.(type) {
 			case *files.FolderMetadata:
+				if f == nil {
+					downloadErrors = append(downloadErrors, errors.New("shared link listing returned nil folder metadata"))
+					continue
+				}
 				relPath, err := sharedLinkEntryRelativePath(relFolder, f.Name)
 				if err != nil {
 					downloadErrors = append(downloadErrors, err)
@@ -254,6 +276,10 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 				}
 				queue = append(queue, relPath)
 			case *files.FileMetadata:
+				if f == nil {
+					downloadErrors = append(downloadErrors, errors.New("shared link listing returned nil file metadata"))
+					continue
+				}
 				relPath, err := sharedLinkEntryRelativePath(relFolder, f.Name)
 				if err != nil {
 					downloadErrors = append(downloadErrors, err)
@@ -269,9 +295,15 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 					continue
 				}
 				fmt.Fprintf(errOut, "Downloading %s -> %s\n", relPath, localPath)
-				if err := downloadSharedLinkRelativeFile(dbx, arg, relPath, localPath, errOut); err != nil {
+				apiPath := relPath
+				if start != "" {
+					apiPath = path.Join(start, relPath)
+				}
+				if err := downloadSharedLinkRelativeFile(dbx, arg, apiPath, localPath, errOut); err != nil {
 					downloadErrors = append(downloadErrors, fmt.Errorf("%s: %w", relPath, err))
 				}
+			default:
+				downloadErrors = append(downloadErrors, fmt.Errorf("unknown shared link entry type in %q", sharedLinkAPIPath(apiFolder)))
 			}
 		}
 	}
@@ -280,10 +312,10 @@ func downloadSharedLinkFolder(filesDbx filesClient, dbx sharedLinkClient, arg *s
 		for _, e := range downloadErrors {
 			fmt.Fprintf(errOut, "Error: %v\n", e)
 		}
-		return fmt.Errorf("share-link download: %d error(s)", len(downloadErrors))
+		return fmt.Errorf("share-link download: %d error(s): %w", len(downloadErrors), errors.Join(downloadErrors...))
 	}
 
-	return nil
+	return currentContext().Err()
 }
 
 func listSharedLinkFolderEntries(dbx filesClient, arg *sharing.GetSharedLinkMetadataArg, relFolder string) ([]files.IsMetadata, error) {
@@ -541,21 +573,25 @@ var shareLinkDownloadCmd = &cobra.Command{
 	Short: "Download shared link content",
 	Long: `Download content from a Dropbox shared link.
   - If target is omitted, the local filename comes from shared-link metadata.
-  - Use --path to download a file inside a folder shared link.
+  - Use --path to select a file or folder inside a folder shared link.
+    Selected folders require --recursive; files download with or without it.
   - Use - as target to write file bytes to stdout.
     Stdout is byte-clean: all progress and errors go to stderr.
-  - Use --recursive (-r) to download folder shared links.
+  - Use --recursive (-r) to download folder shared links or selected subfolders.
+    Existing target directories receive a subdirectory named after the selected folder.
+    Otherwise, target is used directly as the destination directory.
 `,
 	Example: `  dbxcli share-link download https://www.dropbox.com/s/example/file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt ./local-file.txt
   dbxcli share-link download https://www.dropbox.com/s/example/folder --path /nested/file.txt
+  dbxcli share-link download https://www.dropbox.com/s/example/folder ./out --path /2027/Logoset --recursive
   dbxcli share-link download https://www.dropbox.com/s/example/file.txt - | tar tz`,
 	RunE: shareLinkDownload,
 }
 
 func init() {
 	addSharedLinkPasswordFlags(shareLinkDownloadCmd)
-	shareLinkDownloadCmd.Flags().String("path", "", "Download a file path inside a folder shared link")
+	shareLinkDownloadCmd.Flags().String("path", "", "Select a file or folder path inside a folder shared link")
 	shareLinkDownloadCmd.Flags().BoolP("recursive", "r", false, "Recursively download a folder shared link")
 	shareLinkCmd.AddCommand(shareLinkDownloadCmd)
 	enableStructuredOutput(shareLinkDownloadCmd)
