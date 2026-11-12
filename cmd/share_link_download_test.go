@@ -287,8 +287,10 @@ func TestShareLinkDownloadPathDownloadsNestedFile(t *testing.T) {
 	var requested *sharing.GetSharedLinkMetadataArg
 	stubSharedLinkClient(t, &mockSharedLinkClient{
 		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
-			t.Fatal("GetSharedLinkMetadata should not be called for --path file downloads")
-			return nil, nil
+			if arg.Path != "/sub/nested.txt" || arg.LinkPassword != "secret" {
+				t.Fatalf("metadata arg = %#v", arg)
+			}
+			return downloadableSharedLinkFile("nested.txt", "", arg.Url, uint64(len(content))), nil
 		},
 		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
 			requested = arg
@@ -328,6 +330,9 @@ func TestShareLinkDownloadPathToStdoutIsByteClean(t *testing.T) {
 	content := "nested stdout content"
 	var requested *sharing.GetSharedLinkMetadataArg
 	stubSharedLinkClient(t, &mockSharedLinkClient{
+		getSharedLinkMetadataFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, error) {
+			return downloadableSharedLinkFile("nested.txt", "", arg.Url, uint64(len(content))), nil
+		},
 		getSharedLinkFileFn: func(arg *sharing.GetSharedLinkMetadataArg) (sharing.IsSharedLinkMetadata, io.ReadCloser, error) {
 			requested = arg
 			return downloadableSharedLinkFile("nested.txt", "/docs/sub/nested.txt", "https://example.com/folder", uint64(len(content))),
@@ -369,7 +374,9 @@ func TestShareLinkDownloadPathRejectsInvalidCombinations(t *testing.T) {
 	}{
 		{name: "empty path", path: "", want: "`--path` requires a non-empty path"},
 		{name: "root path", path: "/", want: "cannot download shared-link root with `--path`", wantPath: "/"},
-		{name: "recursive path", path: "/sub/nested.txt", recursive: true, want: "`--path` cannot be used with --recursive", wantPath: "/sub/nested.txt"},
+		{name: "traversal", path: "/sub/../secret", want: "invalid shared link entry name", wantPath: "/sub/../secret"},
+		{name: "backslash", path: `/sub\secret`, want: "invalid shared link entry name", wantPath: `/sub\secret`},
+		{name: "NUL", path: "/sub/\x00secret", want: "invalid shared link entry name", wantPath: "/sub/\x00secret"},
 	}
 
 	for _, tt := range tests {
@@ -919,7 +926,11 @@ func TestShareLinkDownloadCommandIsRegistered(t *testing.T) {
 }
 
 func newShareLinkDownloadTestCommand(stdout, stderr *bytes.Buffer) *cobra.Command {
-	cmd := &cobra.Command{}
+	cmd := &cobra.Command{Use: "download"}
+	root := &cobra.Command{Use: "dbxcli"}
+	parent := &cobra.Command{Use: "share-link"}
+	root.AddCommand(parent)
+	parent.AddCommand(cmd)
 	addSharedLinkPasswordFlags(cmd)
 	cmd.Flags().String("path", "", "")
 	cmd.Flags().BoolP("recursive", "r", false, "")
