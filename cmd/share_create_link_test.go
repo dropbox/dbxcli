@@ -371,6 +371,7 @@ func TestSharedLinkCreateWithDisallowDownloadCombinesRawCreateSettings(t *testin
 			}
 			if settings == nil {
 				t.Fatal("settings = nil, want raw settings")
+				return nil, nil
 			}
 			if settings.AllowDownload == nil || *settings.AllowDownload {
 				t.Fatalf("allow_download = %v, want false", settings.AllowDownload)

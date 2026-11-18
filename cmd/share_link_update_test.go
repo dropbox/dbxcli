@@ -513,6 +513,7 @@ func TestShareLinkUpdateRemovePasswordCombinesSettingsInOneRawCall(t *testing.T)
 			}
 			if settings == nil {
 				t.Fatal("settings = nil, want raw settings")
+				return nil
 			}
 			if settings.RequirePassword == nil || *settings.RequirePassword {
 				t.Fatalf("require_password = %v, want false", settings.RequirePassword)

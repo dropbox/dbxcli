@@ -335,6 +335,7 @@ func TestMvCommandDefinesIfExistsFlag(t *testing.T) {
 	flag := mvCmd.Flags().Lookup("if-exists")
 	if flag == nil {
 		t.Fatal("mv should define --if-exists")
+		return
 	}
 	if flag.DefValue != relocationIfExistsFail {
 		t.Fatalf("--if-exists default = %q, want %q", flag.DefValue, relocationIfExistsFail)

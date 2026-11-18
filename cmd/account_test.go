@@ -239,6 +239,7 @@ func assertAccountAuth(t *testing.T, got *accountAuth, source string, refreshabl
 
 	if got == nil {
 		t.Fatal("auth = nil, want auth context")
+		return
 	}
 	if got.Source != source || got.Refreshable != refreshable || got.AuthFile != authFile {
 		t.Fatalf("auth = %#v, want source=%q refreshable=%t auth_file=%q", got, source, refreshable, authFile)
