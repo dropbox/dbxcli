@@ -197,6 +197,7 @@ func TestRootCommandDefinesOutputFlag(t *testing.T) {
 	flag := RootCmd.PersistentFlags().Lookup(outputFlag)
 	if flag == nil {
 		t.Fatal("root command should define --output")
+		return
 	}
 	if got, want := flag.DefValue, "text"; got != want {
 		t.Fatalf("--output default = %q, want %q", got, want)

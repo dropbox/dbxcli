@@ -1312,6 +1312,7 @@ func TestDropboxClientModifiedUsesUTCSecondPrecision(t *testing.T) {
 	got := dropboxClientModified(input)
 	if got == nil {
 		t.Fatal("dropboxClientModified returned nil")
+		return
 	}
 
 	gotTime := time.Time(*got)

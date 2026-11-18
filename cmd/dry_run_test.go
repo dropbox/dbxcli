@@ -31,6 +31,7 @@ func TestAddDryRunFlag(t *testing.T) {
 	flag := cmd.Flags().Lookup(dryRunFlagName)
 	if flag == nil {
 		t.Fatalf("%q flag not registered", dryRunFlagName)
+		return
 	}
 	if flag.Shorthand != "" {
 		t.Fatalf("dry-run shorthand = %q, want none", flag.Shorthand)
