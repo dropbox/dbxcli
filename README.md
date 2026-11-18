@@ -101,6 +101,35 @@ url="$(dbxcli share-link create /Reports/report.pdf)"
 
 ## Troubleshooting
 
+### Using an App Folder app
+
+Dropbox apps can use **Full Dropbox** or **App Folder** access. For an App Folder
+app, pass `--app-folder` on each command that accesses Dropbox:
+
+```sh
+dbxcli --app-folder ls /
+```
+
+This disables automatic path-root selection, which Dropbox rejects for App
+Folder apps with `Path root is not supported for sandbox app`. Paths are relative
+to the app folder: `/` lists `/Apps/<app-name>/` in Dropbox. Do not prepend
+`/Apps/<app-name>` to paths. The option works with saved login credentials and
+`DBXCLI_ACCESS_TOKEN`. For automation:
+
+```sh
+export DBXCLI_ACCESS_TOKEN=<token>
+export DBXCLI_APP_FOLDER=true
+dbxcli ls /
+dbxcli put report.pdf /report.pdf
+dbxcli get /report.pdf ./report.pdf
+```
+
+`DBXCLI_APP_FOLDER` accepts Go boolean values such as `true`, `false`, `1`, and `0`.
+An explicit `--app-folder` or `--app-folder=false` overrides the environment
+variable, even if its value is invalid. With neither setting, behavior is unchanged.
+Your app must already use App Folder access in the Dropbox App Console; this
+setting grants no additional permissions and does not convert a Full Dropbox app.
+
 ### Why can uploading to `/remote.txt` fail on team accounts?
 
 Some team accounts may not have a writable Dropbox root namespace. Run

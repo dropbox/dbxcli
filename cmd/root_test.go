@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 	"github.com/dropbox/dbxcli/v3/internal/output"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/common"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/users"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -210,6 +213,9 @@ func TestExecuteExitHelper(t *testing.T) {
 	if os.Getenv(listingOutputE2EEnv) == "1" {
 		installListingOutputFixture(t)
 	}
+	if endpoint := os.Getenv(appFolderE2EEndpointEnv); endpoint != "" {
+		installAppFolderHTTPFixture(endpoint)
+	}
 
 	separator := -1
 	for i, arg := range os.Args {
@@ -236,11 +242,19 @@ func newAuthTestCommand() *cobra.Command {
 	cmd.Flags().BoolP("verbose", "v", false, "")
 	cmd.Flags().String("as-member", "", "")
 	cmd.Flags().String("domain", "", "")
+	cmd.Flags().Bool("app-folder", false, "")
 	root.AddCommand(cmd)
 	return cmd
 }
 
 func TestInitDbxSkipsAuthForLocalCommands(t *testing.T) {
+	t.Setenv(envAppFolder, "invalid")
+	stubUsersClient(t, &mockUsersClient{
+		getCurrentAccountFn: func() (*users.FullAccount, error) {
+			t.Fatal("local commands must not discover the root namespace")
+			return nil, nil
+		},
+	})
 	t.Setenv(envAccessToken, "")
 	t.Setenv(envAuthFile, filepath.Join(t.TempDir(), "missing-auth.json"))
 
@@ -448,6 +462,229 @@ func TestInitDbxStillRequiresAuthForDropboxCommands(t *testing.T) {
 	if err := initDbx(cmd, nil); err == nil {
 		t.Fatal("expected Dropbox command to require auth")
 	}
+}
+
+func TestInitDbxAppFolder(t *testing.T) {
+	for _, source := range []string{"env", "saved"} {
+		for _, mode := range []string{"flag", "env"} {
+			t.Run(source+"/"+mode, func(t *testing.T) {
+				origConfig := config
+				t.Cleanup(func() {
+					config = origConfig
+					finishCommandContext()
+				})
+				stubUsersClient(t, &mockUsersClient{
+					getCurrentAccountFn: func() (*users.FullAccount, error) {
+						t.Fatal("App Folder access should not fetch the account or override its root")
+						return nil, nil
+					},
+				})
+
+				authFile := filepath.Join(t.TempDir(), "auth.json")
+				t.Setenv(envAppFolder, "false")
+				t.Setenv(envAuthFile, authFile)
+				t.Setenv(envAccessToken, "")
+				if source == "env" {
+					t.Setenv(envAccessToken, "app-token")
+				}
+
+				// A preceding command may have used a Full Dropbox token.
+				config = makeDropboxConfig("previous-token", false, "", "").WithRoot("previous-root")
+				cmd := newAuthTestCommand()
+				if mode == "env" {
+					t.Setenv(envAppFolder, "true")
+				} else if err := cmd.Flags().Set("app-folder", "true"); err != nil {
+					t.Fatal(err)
+				}
+				if err := cmd.Flags().Set("verbose", "true"); err != nil {
+					t.Fatal(err)
+				}
+				if err := cmd.Flags().Set("domain", "api.example.com"); err != nil {
+					t.Fatal(err)
+				}
+				if source == "saved" {
+					if err := os.WriteFile(authFile, []byte(`{"api.example.com":{"personal":"app-token"}}`), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := initDbx(cmd, nil); err != nil {
+					t.Fatal(err)
+				}
+				if config.Token != "app-token" || config.PathRoot != "" {
+					t.Fatalf("token = %q, path root = %q; want app-token and no path root", config.Token, config.PathRoot)
+				}
+				wantSource, wantFile := authSourceEnv, authFileNone
+				if source == "saved" {
+					wantSource, wantFile = authSourceSaved, authFileCustom
+				}
+				assertCurrentAuthContext(t, wantSource, false, wantFile)
+				if config.LogLevel != dropbox.LogInfo || config.Domain != "api.example.com" {
+					t.Fatalf("App Folder mode lost logging or domain configuration")
+				}
+				// Exercise the real SDK without a live API or local listening port.
+				requests := 0
+				config.Client = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+					requests++
+					if got := req.Header.Get("Dropbox-API-Path-Root"); got != "" {
+						t.Fatalf("unexpected path-root header: %q", got)
+					}
+					return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"entries":[],"cursor":"cursor","has_more":false}`))}, nil
+				})}
+				if _, err := files.NewContext(config).ListFolderContext(currentContext(), files.NewListFolderArg("")); err != nil {
+					t.Fatal(err)
+				}
+				if requests != 1 {
+					t.Fatalf("SDK requests = %d, want 1", requests)
+				}
+			})
+		}
+	}
+}
+
+func TestAppFolderModePrecedence(t *testing.T) {
+	type testCase struct {
+		name, env, flag      string
+		unset, want, invalid bool
+	}
+	tests := []testCase{
+		{name: "default", unset: true},
+		{name: "env false", env: "false"},
+		{name: "env true", env: "true", want: true},
+		{name: "CLI true", unset: true, flag: "true", want: true},
+		{name: "CLI overrides false", env: "false", flag: "true", want: true},
+		{name: "CLI overrides true", env: "true", flag: "false"},
+		{name: "invalid env", env: "secret-invalid", invalid: true},
+		{name: "empty env", env: "", invalid: true},
+		{name: "CLI true overrides invalid", env: "invalid", flag: "true", want: true},
+		{name: "CLI false overrides invalid", env: "invalid", flag: "false"},
+	}
+	for _, value := range []string{"1", "t", "T", "TRUE", "True", "0", "f", "F", "FALSE", "False"} {
+		tests = append(tests, testCase{name: value, env: value, want: strings.Contains("1 t T TRUE True", value)})
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(envAppFolder, tt.env)
+			if tt.unset {
+				unsetEnvForTest(t, envAppFolder)
+			}
+			root := &cobra.Command{Use: "dbxcli"}
+			root.PersistentFlags().Bool("app-folder", false, "")
+			cmd := &cobra.Command{Use: "ls"}
+			root.AddCommand(cmd)
+			if tt.flag != "" {
+				if err := root.PersistentFlags().Set("app-folder", tt.flag); err != nil {
+					t.Fatal(err)
+				}
+			}
+			got, err := appFolderMode(cmd)
+			if tt.invalid {
+				if err == nil || !strings.Contains(err.Error(), envAppFolder) || strings.Contains(err.Error(), "secret-invalid") || exitCodeForError(err) != exitCodeValidationError {
+					t.Fatalf("error = %v, want safe configuration validation error", err)
+				}
+				return
+			}
+			if err != nil || got != tt.want {
+				t.Fatalf("mode = %t, error = %v; want %t", got, err, tt.want)
+			}
+		})
+	}
+}
+
+func TestInitDbxAppFolderFalseUsesRootNamespace(t *testing.T) {
+	for name, rootInfo := range map[string]common.IsRootInfo{"personal": common.NewUserRootInfo("root-ns", "home-ns"), "team": common.NewTeamRootInfo("root-ns", "home-ns", "/Member")} {
+		t.Run(name, func(t *testing.T) {
+			origConfig := config
+			t.Cleanup(func() { config = origConfig; finishCommandContext() })
+			t.Setenv(envAccessToken, "env-token")
+			t.Setenv(envAppFolder, "true")
+			calls := 0
+			stubUsersClient(t, &mockUsersClient{getCurrentAccountFn: func() (*users.FullAccount, error) {
+				calls++
+				return testRootFullAccount(rootInfo), nil
+			}})
+			cmd := newAuthTestCommand()
+			if err := cmd.Flags().Set("app-folder", "false"); err != nil {
+				t.Fatal(err)
+			}
+			if err := initDbx(cmd, nil); err != nil {
+				t.Fatal(err)
+			}
+			if calls != 1 || config.PathRoot != `{".tag": "root", "root": "root-ns"}` {
+				t.Fatalf("account calls = %d, path root = %q", calls, config.PathRoot)
+			}
+		})
+	}
+}
+
+func TestAppFolderInvalidEnvironmentJSON(t *testing.T) {
+	code, stdout, stderr := executeExitTestSubprocess(t, []string{"ls", "/", "--output=json"}, map[string]string{
+		envAppFolder: "secret-invalid", envAccessToken: "secret-token",
+	})
+	if code != exitCodeValidationError || stderr != "" {
+		t.Fatalf("exit = %d, stderr = %q", code, stderr)
+	}
+	got := decodeJSONErrorResponse(t, stdout)
+	if got.Error.Code != jsonErrorCodeInvalidArguments || !strings.Contains(stdout, envAppFolder) || strings.Contains(stdout, "secret-") {
+		t.Fatalf("unexpected JSON configuration error: %s", stdout)
+	}
+}
+
+func TestAppFolderJSONHelp(t *testing.T) {
+	for _, args := range [][]string{{"--help", "--output=json"}, {"ls", "--help", "--output=json"}} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			code, stdout, stderr := executeExitTestSubprocess(t, args, map[string]string{
+				envAppFolder: "invalid", envAccessToken: "", envAuthFile: filepath.Join(t.TempDir(), "missing.json"),
+			})
+			if code != exitCodeSuccess || stderr != "" {
+				t.Fatalf("exit = %d, stderr = %q", code, stderr)
+			}
+			got := decodeJSONHelpOutput(t, stdout)
+			path := "dbxcli"
+			if args[0] == "ls" {
+				path = "ls"
+			}
+			manifest := jsonHelpManifestByPath(t, got, path)
+			flag := jsonHelpFlagByName(t, manifest.Flags, "app-folder")
+			if flag.Type != "bool" || flag.Default != "false" || flag.Usage != "Use App Folder access without overriding the Dropbox path root" || flag.Inherited != (path == "ls") {
+				t.Fatalf("unexpected App Folder flag: %+v", flag)
+			}
+		})
+	}
+}
+
+func TestInitDbxAppFolderRefreshesSavedCredential(t *testing.T) {
+	origConfig := config
+	t.Cleanup(func() { config = origConfig; finishCommandContext() })
+	restoreOAuthCredentials(t)
+	t.Setenv(envAccessToken, "")
+	t.Setenv(envAppFolder, "true")
+	authFile := filepath.Join(t.TempDir(), "auth.json")
+	t.Setenv(envAuthFile, authFile)
+	expired := time.Now().Add(-time.Hour)
+	if err := writeTokens(authFile, TokenMap{"": {tokenPersonal: {
+		AccessToken: "expired-token", RefreshToken: "refresh-token", Expiry: &expired, AppKey: "app-key",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+	refreshes := 0
+	refreshOAuthToken = func(ctx context.Context, appKey, domain string, token *oauth2.Token) (*oauth2.Token, error) {
+		refreshes++
+		if appKey != "app-key" || token.RefreshToken != "refresh-token" {
+			t.Fatal("incorrect refresh credentials")
+		}
+		return &oauth2.Token{AccessToken: "refreshed-token", Expiry: time.Now().Add(time.Hour)}, nil
+	}
+	stubUsersClient(t, &mockUsersClient{getCurrentAccountFn: func() (*users.FullAccount, error) {
+		t.Fatal("App Folder refresh must not trigger root discovery")
+		return nil, nil
+	}})
+	if err := initDbx(newAuthTestCommand(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if refreshes != 1 || config.Token != "refreshed-token" || config.PathRoot != "" {
+		t.Fatalf("refreshes = %d, token = %q, path root = %q", refreshes, config.Token, config.PathRoot)
+	}
+	assertCurrentAuthContext(t, authSourceSaved, true, authFileCustom)
 }
 
 func TestInitDbxUsesAccessTokenEnv(t *testing.T) {
