@@ -14,11 +14,12 @@ direct-token automation for scripts, CI jobs, and agent-style workflows.
 ### Options
 
 ```
-      --as-member string       Member ID to perform action as
-  -h, --help[=true|false]      help for dbxcli
-      --output string          Output format: text, json (default "text")
-      --timeout duration       Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
-  -v, --verbose[=true|false]   Enable verbose logging
+      --app-folder[=true|false]   Use App Folder access without overriding the Dropbox path root
+      --as-member string          Member ID to perform action as
+  -h, --help[=true|false]         help for dbxcli
+      --output string             Output format: text, json (default "text")
+      --timeout duration          Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)
+  -v, --verbose[=true|false]      Enable verbose logging
 ```
 
 ### Command metadata

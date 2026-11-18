@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ import (
 )
 
 const (
+	envAppFolder = "DBXCLI_APP_FOLDER"
+
 	tokenPersonal   = "personal"
 	tokenTeamAccess = "teamAccess"
 	tokenTeamManage = "teamManage"
@@ -210,6 +213,21 @@ func makeDropboxConfig(token string, verbose bool, asMember string, domain strin
 	}
 }
 
+func appFolderMode(cmd *cobra.Command) (bool, error) {
+	if flag := cmd.Flag("app-folder"); flag != nil && flag.Changed {
+		return strconv.ParseBool(flag.Value.String())
+	}
+	value, exists := os.LookupEnv(envAppFolder)
+	if !exists {
+		return false, nil
+	}
+	enabled, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, invalidArgumentsErrorWithDetails(envAppFolder+" must be a boolean (for example, true or false)", map[string]any{"env_var": envAppFolder})
+	}
+	return enabled, nil
+}
+
 func initDbx(cmd *cobra.Command, args []string) (err error) {
 	currentAuthContext = nil
 
@@ -231,6 +249,10 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	asMember, _ := cmd.Flags().GetString("as-member")
 	domain, _ := cmd.Flags().GetString("domain")
+	appFolder, err := appFolderMode(cmd)
+	if err != nil {
+		return err
+	}
 
 	if accessToken := os.Getenv(envAccessToken); accessToken != "" {
 		config = makeDropboxConfig(accessToken, verbose, asMember, domain)
@@ -239,7 +261,9 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 			Refreshable: false,
 			AuthFile:    authFileNone,
 		}
-		config = withRootNamespace(config, tokenType(cmd))
+		if !appFolder {
+			config = withRootNamespace(config, tokenType(cmd))
+		}
 		return nil
 	}
 
@@ -255,7 +279,9 @@ func initDbx(cmd *cobra.Command, args []string) (err error) {
 		Refreshable: credential.RefreshToken != "",
 		AuthFile:    authFileKind(),
 	}
-	config = withRootNamespace(config, tokType)
+	if !appFolder {
+		config = withRootNamespace(config, tokType)
+	}
 
 	return
 }
@@ -342,6 +368,7 @@ func init() {
 	RootCmd.PersistentFlags().String(outputFlag, "text", "Output format: text, json")
 	RootCmd.PersistentFlags().Duration("timeout", 0, "Timeout for Dropbox network operations (0 disables; examples: 30s, 2m, 1h)")
 	RootCmd.PersistentFlags().String("as-member", "", "Member ID to perform action as")
+	RootCmd.PersistentFlags().Bool("app-folder", false, "Use App Folder access without overriding the Dropbox path root")
 	// This flag should only be used for testing. Marked hidden so it doesn't clutter usage etc.
 	RootCmd.PersistentFlags().String("domain", "", "Override default Dropbox domain, useful for testing")
 	_ = RootCmd.PersistentFlags().MarkHidden("domain")

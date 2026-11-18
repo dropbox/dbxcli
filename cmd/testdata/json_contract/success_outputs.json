@@ -24,6 +24,20 @@
           "runnable": true,
           "flags": [
             {
+              "name": "app-folder",
+              "type": "bool",
+              "default": "false",
+              "usage": "Use App Folder access without overriding the Dropbox path root",
+              "inherited": true,
+              "shorthand": "",
+              "enum_values": [],
+              "conflicts": [],
+              "required": false,
+              "sensitive": false,
+              "may_prompt": false,
+              "value_kind": "boolean"
+            },
+            {
               "name": "as-member",
               "type": "string",
               "default": "",
@@ -253,6 +267,15 @@
             "additionalProperties": false,
             "required": [],
             "properties": {
+              "app_folder": {
+                "type": "boolean",
+                "description": "Use App Folder access without overriding the Dropbox path root",
+                "default": false,
+                "x-cli-kind": "flag",
+                "x-cli-name": "app-folder",
+                "x-value-kind": "boolean",
+                "x-inherited": true
+              },
               "as_member": {
                 "type": "string",
                 "description": "Member ID to perform action as",
