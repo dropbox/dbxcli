@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -48,9 +49,12 @@ func TestAppFolderEndToEnd(t *testing.T) {
 			{name: "explicit false restores path root", env: "true", flags: []string{"--app-folder=false"}, wantError: true},
 		} {
 			t.Run(source+"/"+scenario.name, func(t *testing.T) {
-				requests := make(chan string, 8)
+				var requestsMu sync.Mutex
+				var requests []string
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					requests <- r.URL.Path
+					requestsMu.Lock()
+					requests = append(requests, r.URL.Path)
+					requestsMu.Unlock()
 					if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer app-token" {
 						t.Error("expected authenticated SDK POST")
 						w.WriteHeader(http.StatusUnauthorized)
@@ -105,11 +109,9 @@ func TestAppFolderEndToEnd(t *testing.T) {
 				if scenario.wantError {
 					wantCalls = append([]string{"/2/users/get_current_account"}, wantCalls...)
 				}
-				close(requests)
-				var gotCalls []string
-				for route := range requests {
-					gotCalls = append(gotCalls, route)
-				}
+				requestsMu.Lock()
+				gotCalls := append([]string(nil), requests...)
+				requestsMu.Unlock()
 				if strings.Join(gotCalls, ",") != strings.Join(wantCalls, ",") {
 					t.Fatalf("API calls = %v, want %v", gotCalls, wantCalls)
 				}
