@@ -18,5 +18,12 @@ for target in $TARGETS; do
         output="${output}.exe"
     fi
     echo "Building ${target}..."
-    GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="${LDFLAGS}" -o "$output" .
+    (
+        if [ "$target" = "linux/amd64" ]; then
+            # GOAMD64 does not constrain C code compiled by cgo.
+            export GOAMD64=v1
+            export CGO_CFLAGS="${CGO_CFLAGS:--O2 -g} -march=x86-64"
+        fi
+        GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="${LDFLAGS}" -o "$output" .
+    )
 done

@@ -79,7 +79,16 @@ jobs:
       - run: ./build.sh
         env:
           VERSION: ci
+          # Exercise Linux amd64 compatibility with higher inherited CPU flags.
+          GOAMD64: v3
+          CGO_CFLAGS: -O2 -g -march=x86-64-v3
       - run: ./packaging/package-release.sh ci
+      - name: Install QEMU user emulator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-user
+      - name: Smoke-test Linux amd64 release without AVX
+        run: ./packaging/smoke-test-linux-amd64.sh dist/dbxcli_ci_linux_amd64.tar.gz
 
   docs:
     name: Generated docs

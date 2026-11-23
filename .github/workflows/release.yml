@@ -44,6 +44,14 @@ jobs:
       - run: ./packaging/package-release.sh
         env:
           VERSION: ${{ github.ref_name }}
+      - name: Install QEMU user emulator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-user
+      - name: Smoke-test Linux amd64 release without AVX
+        env:
+          ASSET_VERSION: ${{ steps.version.outputs.asset_version }}
+        run: ./packaging/smoke-test-linux-amd64.sh "dist/dbxcli_${ASSET_VERSION}_linux_amd64.tar.gz"
       - name: Verify Windows release archive
         run: test -f "dist/${{ steps.version.outputs.windows_archive }}"
       - uses: softprops/action-gh-release@v3
